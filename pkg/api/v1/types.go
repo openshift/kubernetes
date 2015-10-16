@@ -263,6 +263,10 @@ type VolumeSource struct {
 	AzureFile *AzureFileVolumeSource `json:"azureFile,omitempty"`
 	// ConfigMap represents a configMap that should populate this volume
 	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty"`
+
+	// Metadata represents metadata about the pod that should populate this volume
+	// Deprecated: Use downwardAPI instead.
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -2887,6 +2891,22 @@ type ComponentStatusList struct {
 
 	// List of ComponentStatus objects.
 	Items []ComponentStatus `json:"items"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+// NOTE: Deprecated in favor of DownwardAPIVolumeSource
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+// NOTE: Deprecated in favor of DownwardAPIVolumeFile
+type MetadataFile struct {
+	// Name of the file to be created
+	Name string `json:"name"`
+	// Selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace
+	FieldRef ObjectFieldSelector `json:"fieldRef"`
 }
 
 // DownwardAPIVolumeSource represents a volume containing downward API info.

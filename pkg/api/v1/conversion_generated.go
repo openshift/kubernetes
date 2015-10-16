@@ -3525,10 +3525,6 @@ func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *
 	return nil
 }
 
-func Convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
-	return autoConvert_api_VolumeSource_To_v1_VolumeSource(in, out, s)
-}
-
 func autoConvert_unversioned_ExportOptions_To_v1_ExportOptions(in *unversioned.ExportOptions, out *ExportOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*unversioned.ExportOptions))(in)
@@ -6928,11 +6924,8 @@ func autoConvert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.
 	} else {
 		out.ConfigMap = nil
 	}
+	// in.Metadata has no peer in out
 	return nil
-}
-
-func Convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	return autoConvert_v1_VolumeSource_To_api_VolumeSource(in, out, s)
 }
 
 func init() {

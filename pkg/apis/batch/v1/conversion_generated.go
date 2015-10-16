@@ -790,7 +790,7 @@ func autoConvert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *v1.PodSpec, s c
 	if in.Volumes != nil {
 		out.Volumes = make([]v1.Volume, len(in.Volumes))
 		for i := range in.Volumes {
-			if err := Convert_api_Volume_To_v1_Volume(&in.Volumes[i], &out.Volumes[i], s); err != nil {
+			if err := s.Convert(&in.Volumes[i], &out.Volumes[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1066,21 +1066,6 @@ func Convert_api_TCPSocketAction_To_v1_TCPSocketAction(in *api.TCPSocketAction, 
 	return autoConvert_api_TCPSocketAction_To_v1_TCPSocketAction(in, out, s)
 }
 
-func autoConvert_api_Volume_To_v1_Volume(in *api.Volume, out *v1.Volume, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.Volume))(in)
-	}
-	out.Name = in.Name
-	if err := Convert_api_VolumeSource_To_v1_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func Convert_api_Volume_To_v1_Volume(in *api.Volume, out *v1.Volume, s conversion.Scope) error {
-	return autoConvert_api_Volume_To_v1_Volume(in, out, s)
-}
-
 func autoConvert_api_VolumeMount_To_v1_VolumeMount(in *api.VolumeMount, out *v1.VolumeMount, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.VolumeMount))(in)
@@ -1093,188 +1078,6 @@ func autoConvert_api_VolumeMount_To_v1_VolumeMount(in *api.VolumeMount, out *v1.
 
 func Convert_api_VolumeMount_To_v1_VolumeMount(in *api.VolumeMount, out *v1.VolumeMount, s conversion.Scope) error {
 	return autoConvert_api_VolumeMount_To_v1_VolumeMount(in, out, s)
-}
-
-func autoConvert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *v1.VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.VolumeSource))(in)
-	}
-	// unable to generate simple pointer conversion for api.HostPathVolumeSource -> v1.HostPathVolumeSource
-	if in.HostPath != nil {
-		out.HostPath = new(v1.HostPathVolumeSource)
-		if err := Convert_api_HostPathVolumeSource_To_v1_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
-			return err
-		}
-	} else {
-		out.HostPath = nil
-	}
-	// unable to generate simple pointer conversion for api.EmptyDirVolumeSource -> v1.EmptyDirVolumeSource
-	if in.EmptyDir != nil {
-		out.EmptyDir = new(v1.EmptyDirVolumeSource)
-		if err := Convert_api_EmptyDirVolumeSource_To_v1_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
-			return err
-		}
-	} else {
-		out.EmptyDir = nil
-	}
-	// unable to generate simple pointer conversion for api.GCEPersistentDiskVolumeSource -> v1.GCEPersistentDiskVolumeSource
-	if in.GCEPersistentDisk != nil {
-		out.GCEPersistentDisk = new(v1.GCEPersistentDiskVolumeSource)
-		if err := Convert_api_GCEPersistentDiskVolumeSource_To_v1_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
-			return err
-		}
-	} else {
-		out.GCEPersistentDisk = nil
-	}
-	// unable to generate simple pointer conversion for api.AWSElasticBlockStoreVolumeSource -> v1.AWSElasticBlockStoreVolumeSource
-	if in.AWSElasticBlockStore != nil {
-		out.AWSElasticBlockStore = new(v1.AWSElasticBlockStoreVolumeSource)
-		if err := Convert_api_AWSElasticBlockStoreVolumeSource_To_v1_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
-			return err
-		}
-	} else {
-		out.AWSElasticBlockStore = nil
-	}
-	// unable to generate simple pointer conversion for api.GitRepoVolumeSource -> v1.GitRepoVolumeSource
-	if in.GitRepo != nil {
-		out.GitRepo = new(v1.GitRepoVolumeSource)
-		if err := Convert_api_GitRepoVolumeSource_To_v1_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
-			return err
-		}
-	} else {
-		out.GitRepo = nil
-	}
-	// unable to generate simple pointer conversion for api.SecretVolumeSource -> v1.SecretVolumeSource
-	if in.Secret != nil {
-		out.Secret = new(v1.SecretVolumeSource)
-		if err := Convert_api_SecretVolumeSource_To_v1_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
-	}
-	// unable to generate simple pointer conversion for api.NFSVolumeSource -> v1.NFSVolumeSource
-	if in.NFS != nil {
-		out.NFS = new(v1.NFSVolumeSource)
-		if err := Convert_api_NFSVolumeSource_To_v1_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.NFS = nil
-	}
-	// unable to generate simple pointer conversion for api.ISCSIVolumeSource -> v1.ISCSIVolumeSource
-	if in.ISCSI != nil {
-		out.ISCSI = new(v1.ISCSIVolumeSource)
-		if err := Convert_api_ISCSIVolumeSource_To_v1_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
-			return err
-		}
-	} else {
-		out.ISCSI = nil
-	}
-	// unable to generate simple pointer conversion for api.GlusterfsVolumeSource -> v1.GlusterfsVolumeSource
-	if in.Glusterfs != nil {
-		out.Glusterfs = new(v1.GlusterfsVolumeSource)
-		if err := Convert_api_GlusterfsVolumeSource_To_v1_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
-			return err
-		}
-	} else {
-		out.Glusterfs = nil
-	}
-	// unable to generate simple pointer conversion for api.PersistentVolumeClaimVolumeSource -> v1.PersistentVolumeClaimVolumeSource
-	if in.PersistentVolumeClaim != nil {
-		out.PersistentVolumeClaim = new(v1.PersistentVolumeClaimVolumeSource)
-		if err := Convert_api_PersistentVolumeClaimVolumeSource_To_v1_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
-			return err
-		}
-	} else {
-		out.PersistentVolumeClaim = nil
-	}
-	// unable to generate simple pointer conversion for api.RBDVolumeSource -> v1.RBDVolumeSource
-	if in.RBD != nil {
-		out.RBD = new(v1.RBDVolumeSource)
-		if err := Convert_api_RBDVolumeSource_To_v1_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
-			return err
-		}
-	} else {
-		out.RBD = nil
-	}
-	// unable to generate simple pointer conversion for api.FlexVolumeSource -> v1.FlexVolumeSource
-	if in.FlexVolume != nil {
-		out.FlexVolume = new(v1.FlexVolumeSource)
-		if err := Convert_api_FlexVolumeSource_To_v1_FlexVolumeSource(in.FlexVolume, out.FlexVolume, s); err != nil {
-			return err
-		}
-	} else {
-		out.FlexVolume = nil
-	}
-	// unable to generate simple pointer conversion for api.CinderVolumeSource -> v1.CinderVolumeSource
-	if in.Cinder != nil {
-		out.Cinder = new(v1.CinderVolumeSource)
-		if err := Convert_api_CinderVolumeSource_To_v1_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
-			return err
-		}
-	} else {
-		out.Cinder = nil
-	}
-	// unable to generate simple pointer conversion for api.CephFSVolumeSource -> v1.CephFSVolumeSource
-	if in.CephFS != nil {
-		out.CephFS = new(v1.CephFSVolumeSource)
-		if err := Convert_api_CephFSVolumeSource_To_v1_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
-	}
-	// unable to generate simple pointer conversion for api.FlockerVolumeSource -> v1.FlockerVolumeSource
-	if in.Flocker != nil {
-		out.Flocker = new(v1.FlockerVolumeSource)
-		if err := Convert_api_FlockerVolumeSource_To_v1_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
-			return err
-		}
-	} else {
-		out.Flocker = nil
-	}
-	// unable to generate simple pointer conversion for api.DownwardAPIVolumeSource -> v1.DownwardAPIVolumeSource
-	if in.DownwardAPI != nil {
-		out.DownwardAPI = new(v1.DownwardAPIVolumeSource)
-		if err := Convert_api_DownwardAPIVolumeSource_To_v1_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
-			return err
-		}
-	} else {
-		out.DownwardAPI = nil
-	}
-	// unable to generate simple pointer conversion for api.FCVolumeSource -> v1.FCVolumeSource
-	if in.FC != nil {
-		out.FC = new(v1.FCVolumeSource)
-		if err := Convert_api_FCVolumeSource_To_v1_FCVolumeSource(in.FC, out.FC, s); err != nil {
-			return err
-		}
-	} else {
-		out.FC = nil
-	}
-	// unable to generate simple pointer conversion for api.AzureFileVolumeSource -> v1.AzureFileVolumeSource
-	if in.AzureFile != nil {
-		out.AzureFile = new(v1.AzureFileVolumeSource)
-		if err := Convert_api_AzureFileVolumeSource_To_v1_AzureFileVolumeSource(in.AzureFile, out.AzureFile, s); err != nil {
-			return err
-		}
-	} else {
-		out.AzureFile = nil
-	}
-	// unable to generate simple pointer conversion for api.ConfigMapVolumeSource -> v1.ConfigMapVolumeSource
-	if in.ConfigMap != nil {
-		out.ConfigMap = new(v1.ConfigMapVolumeSource)
-		if err := Convert_api_ConfigMapVolumeSource_To_v1_ConfigMapVolumeSource(in.ConfigMap, out.ConfigMap, s); err != nil {
-			return err
-		}
-	} else {
-		out.ConfigMap = nil
-	}
-	return nil
-}
-
-func Convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *v1.VolumeSource, s conversion.Scope) error {
-	return autoConvert_api_VolumeSource_To_v1_VolumeSource(in, out, s)
 }
 
 func autoConvert_unversioned_LabelSelector_To_v1_LabelSelector(in *unversioned.LabelSelector, out *LabelSelector, s conversion.Scope) error {
@@ -2088,7 +1891,7 @@ func autoConvert_v1_PodSpec_To_api_PodSpec(in *v1.PodSpec, out *api.PodSpec, s c
 	if in.Volumes != nil {
 		out.Volumes = make([]api.Volume, len(in.Volumes))
 		for i := range in.Volumes {
-			if err := Convert_v1_Volume_To_api_Volume(&in.Volumes[i], &out.Volumes[i], s); err != nil {
+			if err := s.Convert(&in.Volumes[i], &out.Volumes[i], 0); err != nil {
 				return err
 			}
 		}
@@ -2369,21 +2172,6 @@ func Convert_v1_TCPSocketAction_To_api_TCPSocketAction(in *v1.TCPSocketAction, o
 	return autoConvert_v1_TCPSocketAction_To_api_TCPSocketAction(in, out, s)
 }
 
-func autoConvert_v1_Volume_To_api_Volume(in *v1.Volume, out *api.Volume, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.Volume))(in)
-	}
-	out.Name = in.Name
-	if err := Convert_v1_VolumeSource_To_api_VolumeSource(&in.VolumeSource, &out.VolumeSource, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-func Convert_v1_Volume_To_api_Volume(in *v1.Volume, out *api.Volume, s conversion.Scope) error {
-	return autoConvert_v1_Volume_To_api_Volume(in, out, s)
-}
-
 func autoConvert_v1_VolumeMount_To_api_VolumeMount(in *v1.VolumeMount, out *api.VolumeMount, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*v1.VolumeMount))(in)
@@ -2396,188 +2184,6 @@ func autoConvert_v1_VolumeMount_To_api_VolumeMount(in *v1.VolumeMount, out *api.
 
 func Convert_v1_VolumeMount_To_api_VolumeMount(in *v1.VolumeMount, out *api.VolumeMount, s conversion.Scope) error {
 	return autoConvert_v1_VolumeMount_To_api_VolumeMount(in, out, s)
-}
-
-func autoConvert_v1_VolumeSource_To_api_VolumeSource(in *v1.VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.VolumeSource))(in)
-	}
-	// unable to generate simple pointer conversion for v1.HostPathVolumeSource -> api.HostPathVolumeSource
-	if in.HostPath != nil {
-		out.HostPath = new(api.HostPathVolumeSource)
-		if err := Convert_v1_HostPathVolumeSource_To_api_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
-			return err
-		}
-	} else {
-		out.HostPath = nil
-	}
-	// unable to generate simple pointer conversion for v1.EmptyDirVolumeSource -> api.EmptyDirVolumeSource
-	if in.EmptyDir != nil {
-		out.EmptyDir = new(api.EmptyDirVolumeSource)
-		if err := Convert_v1_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
-			return err
-		}
-	} else {
-		out.EmptyDir = nil
-	}
-	// unable to generate simple pointer conversion for v1.GCEPersistentDiskVolumeSource -> api.GCEPersistentDiskVolumeSource
-	if in.GCEPersistentDisk != nil {
-		out.GCEPersistentDisk = new(api.GCEPersistentDiskVolumeSource)
-		if err := Convert_v1_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
-			return err
-		}
-	} else {
-		out.GCEPersistentDisk = nil
-	}
-	// unable to generate simple pointer conversion for v1.AWSElasticBlockStoreVolumeSource -> api.AWSElasticBlockStoreVolumeSource
-	if in.AWSElasticBlockStore != nil {
-		out.AWSElasticBlockStore = new(api.AWSElasticBlockStoreVolumeSource)
-		if err := Convert_v1_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
-			return err
-		}
-	} else {
-		out.AWSElasticBlockStore = nil
-	}
-	// unable to generate simple pointer conversion for v1.GitRepoVolumeSource -> api.GitRepoVolumeSource
-	if in.GitRepo != nil {
-		out.GitRepo = new(api.GitRepoVolumeSource)
-		if err := Convert_v1_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
-			return err
-		}
-	} else {
-		out.GitRepo = nil
-	}
-	// unable to generate simple pointer conversion for v1.SecretVolumeSource -> api.SecretVolumeSource
-	if in.Secret != nil {
-		out.Secret = new(api.SecretVolumeSource)
-		if err := Convert_v1_SecretVolumeSource_To_api_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
-	}
-	// unable to generate simple pointer conversion for v1.NFSVolumeSource -> api.NFSVolumeSource
-	if in.NFS != nil {
-		out.NFS = new(api.NFSVolumeSource)
-		if err := Convert_v1_NFSVolumeSource_To_api_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.NFS = nil
-	}
-	// unable to generate simple pointer conversion for v1.ISCSIVolumeSource -> api.ISCSIVolumeSource
-	if in.ISCSI != nil {
-		out.ISCSI = new(api.ISCSIVolumeSource)
-		if err := Convert_v1_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
-			return err
-		}
-	} else {
-		out.ISCSI = nil
-	}
-	// unable to generate simple pointer conversion for v1.GlusterfsVolumeSource -> api.GlusterfsVolumeSource
-	if in.Glusterfs != nil {
-		out.Glusterfs = new(api.GlusterfsVolumeSource)
-		if err := Convert_v1_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
-			return err
-		}
-	} else {
-		out.Glusterfs = nil
-	}
-	// unable to generate simple pointer conversion for v1.PersistentVolumeClaimVolumeSource -> api.PersistentVolumeClaimVolumeSource
-	if in.PersistentVolumeClaim != nil {
-		out.PersistentVolumeClaim = new(api.PersistentVolumeClaimVolumeSource)
-		if err := Convert_v1_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
-			return err
-		}
-	} else {
-		out.PersistentVolumeClaim = nil
-	}
-	// unable to generate simple pointer conversion for v1.RBDVolumeSource -> api.RBDVolumeSource
-	if in.RBD != nil {
-		out.RBD = new(api.RBDVolumeSource)
-		if err := Convert_v1_RBDVolumeSource_To_api_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
-			return err
-		}
-	} else {
-		out.RBD = nil
-	}
-	// unable to generate simple pointer conversion for v1.FlexVolumeSource -> api.FlexVolumeSource
-	if in.FlexVolume != nil {
-		out.FlexVolume = new(api.FlexVolumeSource)
-		if err := Convert_v1_FlexVolumeSource_To_api_FlexVolumeSource(in.FlexVolume, out.FlexVolume, s); err != nil {
-			return err
-		}
-	} else {
-		out.FlexVolume = nil
-	}
-	// unable to generate simple pointer conversion for v1.CinderVolumeSource -> api.CinderVolumeSource
-	if in.Cinder != nil {
-		out.Cinder = new(api.CinderVolumeSource)
-		if err := Convert_v1_CinderVolumeSource_To_api_CinderVolumeSource(in.Cinder, out.Cinder, s); err != nil {
-			return err
-		}
-	} else {
-		out.Cinder = nil
-	}
-	// unable to generate simple pointer conversion for v1.CephFSVolumeSource -> api.CephFSVolumeSource
-	if in.CephFS != nil {
-		out.CephFS = new(api.CephFSVolumeSource)
-		if err := Convert_v1_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
-	}
-	// unable to generate simple pointer conversion for v1.FlockerVolumeSource -> api.FlockerVolumeSource
-	if in.Flocker != nil {
-		out.Flocker = new(api.FlockerVolumeSource)
-		if err := Convert_v1_FlockerVolumeSource_To_api_FlockerVolumeSource(in.Flocker, out.Flocker, s); err != nil {
-			return err
-		}
-	} else {
-		out.Flocker = nil
-	}
-	// unable to generate simple pointer conversion for v1.DownwardAPIVolumeSource -> api.DownwardAPIVolumeSource
-	if in.DownwardAPI != nil {
-		out.DownwardAPI = new(api.DownwardAPIVolumeSource)
-		if err := Convert_v1_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
-			return err
-		}
-	} else {
-		out.DownwardAPI = nil
-	}
-	// unable to generate simple pointer conversion for v1.FCVolumeSource -> api.FCVolumeSource
-	if in.FC != nil {
-		out.FC = new(api.FCVolumeSource)
-		if err := Convert_v1_FCVolumeSource_To_api_FCVolumeSource(in.FC, out.FC, s); err != nil {
-			return err
-		}
-	} else {
-		out.FC = nil
-	}
-	// unable to generate simple pointer conversion for v1.AzureFileVolumeSource -> api.AzureFileVolumeSource
-	if in.AzureFile != nil {
-		out.AzureFile = new(api.AzureFileVolumeSource)
-		if err := Convert_v1_AzureFileVolumeSource_To_api_AzureFileVolumeSource(in.AzureFile, out.AzureFile, s); err != nil {
-			return err
-		}
-	} else {
-		out.AzureFile = nil
-	}
-	// unable to generate simple pointer conversion for v1.ConfigMapVolumeSource -> api.ConfigMapVolumeSource
-	if in.ConfigMap != nil {
-		out.ConfigMap = new(api.ConfigMapVolumeSource)
-		if err := Convert_v1_ConfigMapVolumeSource_To_api_ConfigMapVolumeSource(in.ConfigMap, out.ConfigMap, s); err != nil {
-			return err
-		}
-	} else {
-		out.ConfigMap = nil
-	}
-	return nil
-}
-
-func Convert_v1_VolumeSource_To_api_VolumeSource(in *v1.VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	return autoConvert_v1_VolumeSource_To_api_VolumeSource(in, out, s)
 }
 
 func autoConvert_v1_Job_To_extensions_Job(in *Job, out *extensions.Job, s conversion.Scope) error {
@@ -2996,8 +2602,6 @@ func init() {
 		autoConvert_api_SecurityContext_To_v1_SecurityContext,
 		autoConvert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		autoConvert_api_VolumeMount_To_v1_VolumeMount,
-		autoConvert_api_VolumeSource_To_v1_VolumeSource,
-		autoConvert_api_Volume_To_v1_Volume,
 		autoConvert_extensions_JobCondition_To_v1_JobCondition,
 		autoConvert_extensions_JobList_To_v1_JobList,
 		autoConvert_extensions_JobSpec_To_v1_JobSpec,
@@ -3056,8 +2660,6 @@ func init() {
 		autoConvert_v1_SecurityContext_To_api_SecurityContext,
 		autoConvert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		autoConvert_v1_VolumeMount_To_api_VolumeMount,
-		autoConvert_v1_VolumeSource_To_api_VolumeSource,
-		autoConvert_v1_Volume_To_api_Volume,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
