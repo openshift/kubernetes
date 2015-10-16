@@ -166,6 +166,10 @@ var ResourcesShortcutStatic = []ResourceShortcuts{
 		ShortForm: schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterquota"},
 		LongForm:  schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterResourceQuota"},
 	},
+	{
+		ShortForm: schema.GroupResource{Resource: "scc"},
+		LongForm:  schema.GroupResource{Resource: "securityContextConstraints"},
+	},
 }
 
 // ResourceShortFormFor looks up for a short form of resource names.

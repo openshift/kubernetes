@@ -107,6 +107,8 @@ var (
 	certificateSigningRequestColumns = []string{"NAME", "AGE", "REQUESTOR", "CONDITION"}
 	podPresetColumns                 = []string{"NAME", "AGE"}
 	controllerRevisionColumns        = []string{"NAME", "CONTROLLER", "REVISION", "AGE"}
+
+	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY", "READONLYROOTFS", "VOLUMES"}
 )
 
 // AddHandlers adds print handlers for default Kubernetes types dealing with internal versions.
@@ -201,6 +203,8 @@ func AddHandlers(h printers.PrintHandler) {
 	h.Handler(statusColumns, nil, printStatus)
 	h.Handler(controllerRevisionColumns, nil, printControllerRevision)
 	h.Handler(controllerRevisionColumns, nil, printControllerRevisionList)
+	h.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraints)
+	h.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraintsList)
 }
 
 // Pass ports=nil for all ports.
@@ -2030,5 +2034,28 @@ func printControllerRevisionList(list *apps.ControllerRevisionList, w io.Writer,
 			return err
 		}
 	}
+
+	return nil
+}
+
+func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, options printers.PrintOptions) error {
+	priority := "<none>"
+	if item.Priority != nil {
+		priority = fmt.Sprintf("%d", *item.Priority)
+	}
+
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%s\t%s\t%s\t%s\t%s\t%t\t%v\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.SELinuxContext.Type,
+		item.RunAsUser.Type, item.FSGroup.Type, item.SupplementalGroups.Type, priority, item.ReadOnlyRootFilesystem, item.Volumes)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, options printers.PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, options); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
