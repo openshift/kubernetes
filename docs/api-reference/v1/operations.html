@@ -23567,10 +23567,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_list_or_watch_objects_of_kind_serviceaccount_2">list or watch objects of kind ServiceAccount</h3>
+<h3 id="_list_or_watch_objects_of_kind_securitycontextconstraints">list or watch objects of kind SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/serviceaccounts</pre>
+<pre>GET /api/v1/securitycontextconstraints</pre>
 </div>
 </div>
 <div class="sect3">
@@ -23666,7 +23666,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_serviceaccountlist">v1.ServiceAccountList</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraintslist">v1.SecurityContextConstraintsList</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -23707,10 +23707,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_list_or_watch_objects_of_kind_service_2">list or watch objects of kind Service</h3>
+<h3 id="_delete_collection_of_securitycontextconstraints">delete collection of SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/services</pre>
+<pre>DELETE /api/v1/securitycontextconstraints</pre>
 </div>
 </div>
 <div class="sect3">
@@ -23806,7 +23806,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_servicelist">v1.ServiceList</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_unversioned_status">unversioned.Status</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -23847,10 +23847,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_configmap">watch individual changes to a list of ConfigMap</h3>
+<h3 id="_create_a_securitycontextconstraints">create a SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/configmaps</pre>
+<pre>POST /api/v1/securitycontextconstraints</pre>
 </div>
 </div>
 <div class="sect3">
@@ -23884,43 +23884,11 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BodyParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">body</p></td>
 <td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraints">v1.SecurityContextConstraints</a></p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
@@ -23946,7 +23914,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraints">v1.SecurityContextConstraints</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -23969,6 +23937,9 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li>
 <p>application/json</p>
 </li>
+<li>
+<p>application/yaml</p>
+</li>
 </ul>
 </div>
 </div>
@@ -23984,10 +23955,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_endpoints">watch individual changes to a list of Endpoints</h3>
+<h3 id="_read_the_specified_securitycontextconstraints">read the specified SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/endpoints</pre>
+<pre>GET /api/v1/securitycontextconstraints/{name}</pre>
 </div>
 </div>
 <div class="sect3">
@@ -24022,42 +23993,26 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">export</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Should this value be exported.  Export strips fields that a user can not specify.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">exact</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Should the export be exact.  Exact export maintains cluster-specific fields like <em>Namespace</em></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the SecurityContextConstraints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
@@ -24083,7 +24038,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraints">v1.SecurityContextConstraints</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -24106,6 +24061,9 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li>
 <p>application/json</p>
 </li>
+<li>
+<p>application/yaml</p>
+</li>
 </ul>
 </div>
 </div>
@@ -24121,10 +24079,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_event">watch individual changes to a list of Event</h3>
+<h3 id="_replace_the_specified_securitycontextconstraints">replace the specified SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/events</pre>
+<pre>PUT /api/v1/securitycontextconstraints/{name}</pre>
 </div>
 </div>
 <div class="sect3">
@@ -24158,43 +24116,19 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BodyParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">body</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraints">v1.SecurityContextConstraints</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the SecurityContextConstraints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
@@ -24220,7 +24154,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraints">v1.SecurityContextConstraints</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -24243,6 +24177,9 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li>
 <p>application/json</p>
 </li>
+<li>
+<p>application/yaml</p>
+</li>
 </ul>
 </div>
 </div>
@@ -24258,10 +24195,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_limitrange">watch individual changes to a list of LimitRange</h3>
+<h3 id="_delete_a_securitycontextconstraints">delete a SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/limitranges</pre>
+<pre>DELETE /api/v1/securitycontextconstraints/{name}</pre>
 </div>
 </div>
 <div class="sect3">
@@ -24295,43 +24232,19 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BodyParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">body</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_deleteoptions">v1.DeleteOptions</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the SecurityContextConstraints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
@@ -24357,7 +24270,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_unversioned_status">unversioned.Status</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -24380,6 +24293,9 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li>
 <p>application/json</p>
 </li>
+<li>
+<p>application/yaml</p>
+</li>
 </ul>
 </div>
 </div>
@@ -24395,14 +24311,136 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_namespace">watch individual changes to a list of Namespace</h3>
+<h3 id="_partially_update_the_specified_securitycontextconstraints">partially update the specified SecurityContextConstraints</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/namespaces</pre>
+<pre>PATCH /api/v1/securitycontextconstraints/{name}</pre>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_parameters_192">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BodyParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">body</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_unversioned_patch">unversioned.Patch</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the SecurityContextConstraints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_193">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_securitycontextconstraints">v1.SecurityContextConstraints</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_193">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json-patch+json</p>
+</li>
+<li>
+<p>application/merge-patch+json</p>
+</li>
+<li>
+<p>application/strategic-merge-patch+json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_193">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+<li>
+<p>application/yaml</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_193">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_list_or_watch_objects_of_kind_serviceaccount_2">list or watch objects of kind ServiceAccount</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/serviceaccounts</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_193">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -24476,7 +24514,287 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_193">Responses</h4>
+<h4 id="_responses_194">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_serviceaccountlist">v1.ServiceAccountList</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_194">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_194">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+<li>
+<p>application/yaml</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_194">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_list_or_watch_objects_of_kind_service_2">list or watch objects of kind Service</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/services</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_194">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_195">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_v1_servicelist">v1.ServiceList</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_195">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_195">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+<li>
+<p>application/yaml</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_195">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_configmap">watch individual changes to a list of ConfigMap</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/configmaps</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_195">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_196">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -24501,7 +24819,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_193">Consumes</h4>
+<h4 id="_consumes_196">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24511,7 +24829,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_193">Produces</h4>
+<h4 id="_produces_196">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24521,7 +24839,555 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_193">Tags</h4>
+<h4 id="_tags_196">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_endpoints">watch individual changes to a list of Endpoints</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/endpoints</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_196">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_197">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_197">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_197">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_197">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_event">watch individual changes to a list of Event</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/events</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_197">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_198">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_198">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_198">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_198">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_limitrange">watch individual changes to a list of LimitRange</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/limitranges</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_198">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_199">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_199">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_199">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_199">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_namespace">watch individual changes to a list of Namespace</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/namespaces</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_199">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_200">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_200">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_200">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_200">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24539,7 +25405,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_193">Parameters</h4>
+<h4 id="_parameters_200">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -24621,7 +25487,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_194">Responses</h4>
+<h4 id="_responses_201">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -24646,7 +25512,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_194">Consumes</h4>
+<h4 id="_consumes_201">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24656,7 +25522,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_194">Produces</h4>
+<h4 id="_produces_201">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24666,7 +25532,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_194">Tags</h4>
+<h4 id="_tags_201">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24684,7 +25550,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_194">Parameters</h4>
+<h4 id="_parameters_201">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -24774,7 +25640,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_195">Responses</h4>
+<h4 id="_responses_202">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -24799,7 +25665,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_195">Consumes</h4>
+<h4 id="_consumes_202">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24809,7 +25675,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_195">Produces</h4>
+<h4 id="_produces_202">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24819,7 +25685,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_195">Tags</h4>
+<h4 id="_tags_202">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24837,7 +25703,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_195">Parameters</h4>
+<h4 id="_parameters_202">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -24919,7 +25785,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_196">Responses</h4>
+<h4 id="_responses_203">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -24944,7 +25810,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_196">Consumes</h4>
+<h4 id="_consumes_203">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24954,7 +25820,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_196">Produces</h4>
+<h4 id="_produces_203">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24964,7 +25830,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_196">Tags</h4>
+<h4 id="_tags_203">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -24982,7 +25848,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_196">Parameters</h4>
+<h4 id="_parameters_203">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25072,7 +25938,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_197">Responses</h4>
+<h4 id="_responses_204">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25097,7 +25963,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_197">Consumes</h4>
+<h4 id="_consumes_204">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25107,7 +25973,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_197">Produces</h4>
+<h4 id="_produces_204">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25117,7 +25983,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_197">Tags</h4>
+<h4 id="_tags_204">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25135,7 +26001,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_197">Parameters</h4>
+<h4 id="_parameters_204">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25217,7 +26083,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_198">Responses</h4>
+<h4 id="_responses_205">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25242,7 +26108,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_198">Consumes</h4>
+<h4 id="_consumes_205">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25252,7 +26118,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_198">Produces</h4>
+<h4 id="_produces_205">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25262,7 +26128,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_198">Tags</h4>
+<h4 id="_tags_205">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25280,7 +26146,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_198">Parameters</h4>
+<h4 id="_parameters_205">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25370,7 +26236,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_199">Responses</h4>
+<h4 id="_responses_206">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25395,7 +26261,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_199">Consumes</h4>
+<h4 id="_consumes_206">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25405,7 +26271,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_199">Produces</h4>
+<h4 id="_produces_206">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25415,7 +26281,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_199">Tags</h4>
+<h4 id="_tags_206">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25433,7 +26299,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_199">Parameters</h4>
+<h4 id="_parameters_206">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25515,7 +26381,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_200">Responses</h4>
+<h4 id="_responses_207">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25540,7 +26406,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_200">Consumes</h4>
+<h4 id="_consumes_207">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25550,7 +26416,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_200">Produces</h4>
+<h4 id="_produces_207">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25560,7 +26426,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_200">Tags</h4>
+<h4 id="_tags_207">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25578,7 +26444,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_200">Parameters</h4>
+<h4 id="_parameters_207">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25668,7 +26534,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_201">Responses</h4>
+<h4 id="_responses_208">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25693,7 +26559,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_201">Consumes</h4>
+<h4 id="_consumes_208">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25703,7 +26569,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_201">Produces</h4>
+<h4 id="_produces_208">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25713,7 +26579,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_201">Tags</h4>
+<h4 id="_tags_208">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25731,7 +26597,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_201">Parameters</h4>
+<h4 id="_parameters_208">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25813,7 +26679,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_202">Responses</h4>
+<h4 id="_responses_209">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25838,7 +26704,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_202">Consumes</h4>
+<h4 id="_consumes_209">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25848,7 +26714,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_202">Produces</h4>
+<h4 id="_produces_209">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25858,7 +26724,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_202">Tags</h4>
+<h4 id="_tags_209">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -25876,7 +26742,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_202">Parameters</h4>
+<h4 id="_parameters_209">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -25966,7 +26832,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_203">Responses</h4>
+<h4 id="_responses_210">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -25991,7 +26857,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_203">Consumes</h4>
+<h4 id="_consumes_210">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26001,7 +26867,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_203">Produces</h4>
+<h4 id="_produces_210">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26011,7 +26877,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_203">Tags</h4>
+<h4 id="_tags_210">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26029,7 +26895,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_203">Parameters</h4>
+<h4 id="_parameters_210">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -26111,7 +26977,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_204">Responses</h4>
+<h4 id="_responses_211">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -26136,7 +27002,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_204">Consumes</h4>
+<h4 id="_consumes_211">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26146,7 +27012,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_204">Produces</h4>
+<h4 id="_produces_211">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26156,7 +27022,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_204">Tags</h4>
+<h4 id="_tags_211">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26174,7 +27040,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_204">Parameters</h4>
+<h4 id="_parameters_211">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -26264,7 +27130,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_205">Responses</h4>
+<h4 id="_responses_212">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -26289,7 +27155,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_205">Consumes</h4>
+<h4 id="_consumes_212">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26299,7 +27165,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_205">Produces</h4>
+<h4 id="_produces_212">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26309,7 +27175,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_205">Tags</h4>
+<h4 id="_tags_212">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26327,7 +27193,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_205">Parameters</h4>
+<h4 id="_parameters_212">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -26409,7 +27275,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_206">Responses</h4>
+<h4 id="_responses_213">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -26434,7 +27300,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_206">Consumes</h4>
+<h4 id="_consumes_213">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26444,7 +27310,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_206">Produces</h4>
+<h4 id="_produces_213">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26454,7 +27320,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_206">Tags</h4>
+<h4 id="_tags_213">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26472,7 +27338,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_206">Parameters</h4>
+<h4 id="_parameters_213">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -26562,7 +27428,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_207">Responses</h4>
+<h4 id="_responses_214">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -26587,7 +27453,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_207">Consumes</h4>
+<h4 id="_consumes_214">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26597,7 +27463,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_207">Produces</h4>
+<h4 id="_produces_214">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26607,7 +27473,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_207">Tags</h4>
+<h4 id="_tags_214">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26625,7 +27491,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_207">Parameters</h4>
+<h4 id="_parameters_214">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -26707,7 +27573,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_208">Responses</h4>
+<h4 id="_responses_215">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -26732,7 +27598,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_208">Consumes</h4>
+<h4 id="_consumes_215">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26742,7 +27608,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_208">Produces</h4>
+<h4 id="_produces_215">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26752,7 +27618,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_208">Tags</h4>
+<h4 id="_tags_215">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26770,7 +27636,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_208">Parameters</h4>
+<h4 id="_parameters_215">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -26860,7 +27726,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_209">Responses</h4>
+<h4 id="_responses_216">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -26885,7 +27751,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_209">Consumes</h4>
+<h4 id="_consumes_216">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26895,7 +27761,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_209">Produces</h4>
+<h4 id="_produces_216">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26905,7 +27771,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_209">Tags</h4>
+<h4 id="_tags_216">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -26923,7 +27789,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_209">Parameters</h4>
+<h4 id="_parameters_216">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27005,7 +27871,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_210">Responses</h4>
+<h4 id="_responses_217">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27030,7 +27896,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_210">Consumes</h4>
+<h4 id="_consumes_217">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27040,7 +27906,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_210">Produces</h4>
+<h4 id="_produces_217">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27050,7 +27916,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_210">Tags</h4>
+<h4 id="_tags_217">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27068,7 +27934,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_210">Parameters</h4>
+<h4 id="_parameters_217">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27158,7 +28024,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_211">Responses</h4>
+<h4 id="_responses_218">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27183,7 +28049,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_211">Consumes</h4>
+<h4 id="_consumes_218">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27193,7 +28059,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_211">Produces</h4>
+<h4 id="_produces_218">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27203,7 +28069,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_211">Tags</h4>
+<h4 id="_tags_218">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27221,7 +28087,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_211">Parameters</h4>
+<h4 id="_parameters_218">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27303,7 +28169,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_212">Responses</h4>
+<h4 id="_responses_219">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27328,7 +28194,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_212">Consumes</h4>
+<h4 id="_consumes_219">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27338,7 +28204,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_212">Produces</h4>
+<h4 id="_produces_219">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27348,7 +28214,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_212">Tags</h4>
+<h4 id="_tags_219">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27366,7 +28232,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_212">Parameters</h4>
+<h4 id="_parameters_219">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27456,7 +28322,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_213">Responses</h4>
+<h4 id="_responses_220">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27481,7 +28347,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_213">Consumes</h4>
+<h4 id="_consumes_220">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27491,7 +28357,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_213">Produces</h4>
+<h4 id="_produces_220">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27501,7 +28367,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_213">Tags</h4>
+<h4 id="_tags_220">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27519,7 +28385,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_213">Parameters</h4>
+<h4 id="_parameters_220">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27601,7 +28467,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_214">Responses</h4>
+<h4 id="_responses_221">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27626,7 +28492,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_214">Consumes</h4>
+<h4 id="_consumes_221">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27636,7 +28502,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_214">Produces</h4>
+<h4 id="_produces_221">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27646,7 +28512,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_214">Tags</h4>
+<h4 id="_tags_221">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27664,7 +28530,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_214">Parameters</h4>
+<h4 id="_parameters_221">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27754,7 +28620,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_215">Responses</h4>
+<h4 id="_responses_222">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27779,7 +28645,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_215">Consumes</h4>
+<h4 id="_consumes_222">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27789,7 +28655,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_215">Produces</h4>
+<h4 id="_produces_222">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27799,7 +28665,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_215">Tags</h4>
+<h4 id="_tags_222">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27817,7 +28683,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_215">Parameters</h4>
+<h4 id="_parameters_222">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -27899,7 +28765,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_216">Responses</h4>
+<h4 id="_responses_223">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -27924,7 +28790,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_216">Consumes</h4>
+<h4 id="_consumes_223">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27934,7 +28800,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_216">Produces</h4>
+<h4 id="_produces_223">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27944,7 +28810,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_216">Tags</h4>
+<h4 id="_tags_223">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -27962,7 +28828,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_216">Parameters</h4>
+<h4 id="_parameters_223">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -28052,7 +28918,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_217">Responses</h4>
+<h4 id="_responses_224">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -28077,7 +28943,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_217">Consumes</h4>
+<h4 id="_consumes_224">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -28087,7 +28953,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_217">Produces</h4>
+<h4 id="_produces_224">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -28097,7 +28963,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_217">Tags</h4>
+<h4 id="_tags_224">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -28115,7 +28981,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_parameters_217">Parameters</h4>
+<h4 id="_parameters_224">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -28197,981 +29063,6 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_218">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_218">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_218">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_218">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_node">watch individual changes to a list of Node</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/nodes</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_218">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_responses_219">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_219">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_219">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_219">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_changes_to_an_object_of_kind_node">watch changes to an object of kind Node</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/nodes/{name}</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_219">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">name of the Node</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_responses_220">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_220">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_220">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_220">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_persistentvolumeclaim_2">watch individual changes to a list of PersistentVolumeClaim</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/persistentvolumeclaims</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_220">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_responses_221">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_221">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_221">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_221">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_persistentvolume">watch individual changes to a list of PersistentVolume</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/persistentvolumes</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_221">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_responses_222">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_222">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_222">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_222">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_changes_to_an_object_of_kind_persistentvolume">watch changes to an object of kind PersistentVolume</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/persistentvolumes/{name}</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_222">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">name of the PersistentVolume</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_responses_223">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_223">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_223">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_223">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_pod_2">watch individual changes to a list of Pod</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/pods</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_223">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_responses_224">Responses</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:33%;">
-<col style="width:33%;">
-<col style="width:33%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">HTTP Code</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
-<h4 id="_consumes_224">Consumes</h4>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>/</strong></p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_produces_224">Produces</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>application/json</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_tags_224">Tags</h4>
-<div class="ulist">
-<ul>
-<li>
-<p>apiv1</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_podtemplate_2">watch individual changes to a list of PodTemplate</h3>
-<div class="listingblock">
-<div class="content">
-<pre>GET /api/v1/watch/podtemplates</pre>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_parameters_224">Parameters</h4>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;">
-<col style="width:16%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Type</th>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect3">
 <h4 id="_responses_225">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
@@ -29228,10 +29119,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_replicationcontroller_2">watch individual changes to a list of ReplicationController</h3>
+<h3 id="_watch_individual_changes_to_a_list_of_node">watch individual changes to a list of Node</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/replicationcontrollers</pre>
+<pre>GET /api/v1/watch/nodes</pre>
 </div>
 </div>
 <div class="sect3">
@@ -29365,10 +29256,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_resourcequota_2">watch individual changes to a list of ResourceQuota</h3>
+<h3 id="_watch_changes_to_an_object_of_kind_node">watch changes to an object of kind Node</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/resourcequotas</pre>
+<pre>GET /api/v1/watch/nodes/{name}</pre>
 </div>
 </div>
 <div class="sect3">
@@ -29441,6 +29332,14 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the Node</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
 </tbody>
 </table>
 
@@ -29502,10 +29401,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_secret_2">watch individual changes to a list of Secret</h3>
+<h3 id="_watch_individual_changes_to_a_list_of_persistentvolumeclaim_2">watch individual changes to a list of PersistentVolumeClaim</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/secrets</pre>
+<pre>GET /api/v1/watch/persistentvolumeclaims</pre>
 </div>
 </div>
 <div class="sect3">
@@ -29639,10 +29538,10 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_serviceaccount_2">watch individual changes to a list of ServiceAccount</h3>
+<h3 id="_watch_individual_changes_to_a_list_of_persistentvolume">watch individual changes to a list of PersistentVolume</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/serviceaccounts</pre>
+<pre>GET /api/v1/watch/persistentvolumes</pre>
 </div>
 </div>
 <div class="sect3">
@@ -29776,14 +29675,159 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect2">
-<h3 id="_watch_individual_changes_to_a_list_of_service_2">watch individual changes to a list of Service</h3>
+<h3 id="_watch_changes_to_an_object_of_kind_persistentvolume">watch changes to an object of kind PersistentVolume</h3>
 <div class="listingblock">
 <div class="content">
-<pre>GET /api/v1/watch/services</pre>
+<pre>GET /api/v1/watch/persistentvolumes/{name}</pre>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_parameters_229">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the PersistentVolume</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_230">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_230">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_230">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_230">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_pod_2">watch individual changes to a list of Pod</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/pods</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_230">Parameters</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:16%;">
@@ -29857,7 +29901,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_responses_230">Responses</h4>
+<h4 id="_responses_231">Responses</h4>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
 <col style="width:33%;">
@@ -29882,7 +29926,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect3">
-<h4 id="_consumes_230">Consumes</h4>
+<h4 id="_consumes_231">Consumes</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -29892,7 +29936,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_produces_230">Produces</h4>
+<h4 id="_produces_231">Produces</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -29902,7 +29946,1111 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 </div>
 <div class="sect3">
-<h4 id="_tags_230">Tags</h4>
+<h4 id="_tags_231">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_podtemplate_2">watch individual changes to a list of PodTemplate</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/podtemplates</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_231">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_232">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_232">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_232">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_232">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_replicationcontroller_2">watch individual changes to a list of ReplicationController</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/replicationcontrollers</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_232">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_233">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_233">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_233">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_233">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_resourcequota_2">watch individual changes to a list of ResourceQuota</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/resourcequotas</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_233">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_234">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_234">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_234">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_234">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_secret_2">watch individual changes to a list of Secret</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/secrets</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_234">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_235">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_235">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_235">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_235">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_securitycontextconstraints">watch individual changes to a list of SecurityContextConstraints</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/securitycontextconstraints</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_235">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_236">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_236">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_236">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_236">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_changes_to_an_object_of_kind_securitycontextconstraints">watch changes to an object of kind SecurityContextConstraints</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/securitycontextconstraints/{name}</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_236">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PathParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name of the SecurityContextConstraints</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_237">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_237">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_237">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_237">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_serviceaccount_2">watch individual changes to a list of ServiceAccount</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/serviceaccounts</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_237">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_238">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_238">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_238">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_238">Tags</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>apiv1</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_watch_individual_changes_to_a_list_of_service_2">watch individual changes to a list of Service</h3>
+<div class="listingblock">
+<div class="content">
+<pre>GET /api/v1/watch/services</pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_parameters_238">Parameters</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;">
+<col style="width:16%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Type</th>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pretty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If <em>true</em>, then the output is pretty printed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">labelSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their labels. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">fieldSelector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A selector to restrict the list of returned objects by their fields. Defaults to everything.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">watch</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">QueryParameter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">timeoutSeconds</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for the list/watch call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_responses_239">Responses</h4>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:33%;">
+<col style="width:33%;">
+<col style="width:33%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">HTTP Code</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">200</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">success</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="definitions.html#_json_watchevent">json.WatchEvent</a></p></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect3">
+<h4 id="_consumes_239">Consumes</h4>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>/</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_produces_239">Produces</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>application/json</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tags_239">Tags</h4>
 <div class="ulist">
 <ul>
 <li>
@@ -29917,7 +31065,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-03-05 16:17:11 UTC
+Last updated 2016-03-09 18:29:30 UTC
 </div>
 </div>
 </body>
