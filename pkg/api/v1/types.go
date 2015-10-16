@@ -351,6 +351,11 @@ type VolumeSource struct {
 	// StorageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.
 	// +optional
 	StorageOS *StorageOSVolumeSource `json:"storageos,omitempty" protobuf:"bytes,27,opt,name=storageos"`
+
+	// Metadata represents metadata about the pod that should populate this volume
+	// Deprecated: Use downwardAPI instead.
+	// +k8s:conversion-gen=false
+	Metadata *DeprecatedDownwardAPIVolumeSource `json:"metadata,omitempty" protobuf:"-"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -4485,6 +4490,36 @@ type DownwardAPIProjection struct {
 	// Items is a list of DownwardAPIVolume file
 	// +optional
 	Items []DownwardAPIVolumeFile `json:"items,omitempty" protobuf:"bytes,1,rep,name=items"`
+}
+
+// DeprecatedDownwardAPIVolumeSource represents a volume containing downward API info.
+// This type is deprecated and should be replaced by use of the downwardAPI volume source.
+type DeprecatedDownwardAPIVolumeSource struct {
+	// Items is a list of downward API volume file
+	Items []DeprecatedDownwardAPIVolumeFile `json:"items,omitempty" protobuf:"-"`
+	// Optional: mode bits to use on created files by default. Must be a
+	// value between 0 and 0777. Defaults to 0644.
+	// Directories within the path are not affected by this setting.
+	// This might be in conflict with other options that affect the file
+	// mode, like fsGroup, and the result can be other mode bits set.
+	DefaultMode *int32 `json:"defaultMode,omitempty" protobuf:"-"`
+}
+
+// DeprecatedDownwardAPIVolumeFile represents information to create the file containing the pod field
+// This type is deprecated and should be replaced by use of the downwardAPI volume source.
+type DeprecatedDownwardAPIVolumeFile struct {
+	// Required: Name is the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
+	Path string `json:"name" protobuf:"-"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty" protobuf:"-"`
+	// Selects a resource of the container: only resources limits and requests
+	// (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+	ResourceFieldRef *ResourceFieldSelector `json:"resourceFieldRef,omitempty" protobuf:"-"`
+	// Optional: mode bits to use on this file, must be a value between 0
+	// and 0777. If not specified, the volume defaultMode will be used.
+	// This might be in conflict with other options that affect the file
+	// mode, like fsGroup, and the result can be other mode bits set.
+	Mode *int32 `json:"mode,omitempty" protobuf:"-"`
 }
 
 // SecurityContext holds security configuration that will be applied to a container.
