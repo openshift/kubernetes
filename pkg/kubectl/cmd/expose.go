@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -163,7 +164,7 @@ func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 		case 1:
 			params["port"] = ports[0]
 		default:
-			return cmdutil.UsageError(cmd, fmt.Sprintf("multiple ports to choose from: %v, please explicitly specify a port using the --port flag.", ports))
+			params["ports"] = strings.Join(ports, ",")
 		}
 	}
 	if kubectl.IsZero(params["labels"]) {
@@ -205,11 +206,7 @@ func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 	}
 
 	// Serialize the object with the annotation applied.
-	data, err := info.Mapping.Codec.Encode(object)
-	if err != nil {
-		return err
-	}
-	object, err = resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
+	object, err = resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, object)
 	if err != nil {
 		return err
 	}

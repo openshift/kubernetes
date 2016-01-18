@@ -25,7 +25,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/latest"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/api/resource"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -34,6 +34,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+var fixedTimestamp = time.Date(2015, time.November, 10, 12, 30, 0, 0, time.UTC)
 
 func (w fakeResponseWrapper) DoRaw() ([]byte, error) {
 	return w.raw, nil
@@ -62,6 +64,7 @@ type testCase struct {
 	desiredValue          int64
 	desiredError          error
 	targetResource        api.ResourceName
+	targetTimestamp       int
 	reportedMetricsPoints [][]metricPoint
 	namespace             string
 	selector              map[string]string
@@ -81,13 +84,24 @@ func (tc *testCase) prepareTestClient(t *testing.T) *testclient.Fake {
 		for i := 0; i < tc.replicas; i++ {
 			podName := fmt.Sprintf("%s-%d", podNamePrefix, i)
 			pod := api.Pod{
-				Status: api.PodStatus{
-					Phase: api.PodRunning,
-				},
 				ObjectMeta: api.ObjectMeta{
 					Name:      podName,
 					Namespace: namespace,
 					Labels:    selector,
+				},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{
+							Resources: api.ResourceRequirements{
+								Requests: api.ResourceList{
+									tc.targetResource: resource.MustParse("10"),
+								},
+							},
+						},
+					},
+				},
+				Status: api.PodStatus{
+					Phase: api.PodRunning,
 				},
 			}
 			obj.Items = append(obj.Items, pod)
@@ -97,12 +111,11 @@ func (tc *testCase) prepareTestClient(t *testing.T) *testclient.Fake {
 
 	fakeClient.AddProxyReactor("services", func(action testclient.Action) (handled bool, ret client.ResponseWrapper, err error) {
 		metrics := heapster.MetricResultList{}
-		firstTimestamp := time.Now()
 		var latestTimestamp time.Time
 		for _, reportedMetricPoints := range tc.reportedMetricsPoints {
 			var heapsterMetricPoints []heapster.MetricPoint
 			for _, reportedMetricPoint := range reportedMetricPoints {
-				timestamp := firstTimestamp.Add(time.Duration(reportedMetricPoint.timestamp) * time.Minute)
+				timestamp := fixedTimestamp.Add(time.Duration(reportedMetricPoint.timestamp) * time.Minute)
 				if latestTimestamp.Before(timestamp) {
 					latestTimestamp = timestamp
 				}
@@ -122,7 +135,7 @@ func (tc *testCase) prepareTestClient(t *testing.T) *testclient.Fake {
 	return fakeClient
 }
 
-func (tc *testCase) verifyResults(t *testing.T, val *extensions.ResourceConsumption, err error) {
+func (tc *testCase) verifyResults(t *testing.T, val *ResourceConsumption, timestamp time.Time, err error) {
 	assert.Equal(t, tc.desiredError, err)
 	if tc.desiredError != nil {
 		return
@@ -133,13 +146,15 @@ func (tc *testCase) verifyResults(t *testing.T, val *extensions.ResourceConsumpt
 	if tc.targetResource == api.ResourceMemory {
 		assert.Equal(t, tc.desiredValue, val.Quantity.Value())
 	}
+	targetTimestamp := fixedTimestamp.Add(time.Duration(tc.targetTimestamp) * time.Minute)
+	assert.Equal(t, targetTimestamp, timestamp)
 }
 
 func (tc *testCase) runTest(t *testing.T) {
 	testClient := tc.prepareTestClient(t)
-	metricsClient := NewHeapsterMetricsClient(testClient)
-	val, err := metricsClient.ResourceConsumption(tc.namespace).Get(tc.targetResource, tc.selector)
-	tc.verifyResults(t, val, err)
+	metricsClient := NewHeapsterMetricsClient(testClient, "kube-system", "", "heapster", "")
+	val, _, timestamp, err := metricsClient.GetResourceConsumptionAndRequest(tc.targetResource, tc.namespace, tc.selector)
+	tc.verifyResults(t, val, timestamp, err)
 }
 
 func TestCPU(t *testing.T) {
@@ -147,6 +162,7 @@ func TestCPU(t *testing.T) {
 		replicas:              3,
 		desiredValue:          5000,
 		targetResource:        api.ResourceCPU,
+		targetTimestamp:       1,
 		reportedMetricsPoints: [][]metricPoint{{{5000, 1}}, {{5000, 1}}, {{5000, 1}}},
 	}
 	tc.runTest(t)
@@ -157,6 +173,7 @@ func TestMemory(t *testing.T) {
 		replicas:              3,
 		desiredValue:          5000,
 		targetResource:        api.ResourceMemory,
+		targetTimestamp:       1,
 		reportedMetricsPoints: [][]metricPoint{{{5000, 1}}, {{5000, 2}}, {{5000, 4}}},
 	}
 	tc.runTest(t)
@@ -167,6 +184,7 @@ func TestCPUSumEqualZero(t *testing.T) {
 		replicas:              3,
 		desiredValue:          0,
 		targetResource:        api.ResourceCPU,
+		targetTimestamp:       0,
 		reportedMetricsPoints: [][]metricPoint{{{0, 0}}, {{0, 0}}, {{0, 0}}},
 	}
 	tc.runTest(t)
@@ -177,6 +195,7 @@ func TestMemorySumEqualZero(t *testing.T) {
 		replicas:              3,
 		desiredValue:          0,
 		targetResource:        api.ResourceMemory,
+		targetTimestamp:       0,
 		reportedMetricsPoints: [][]metricPoint{{{0, 0}}, {{0, 0}}, {{0, 0}}},
 	}
 	tc.runTest(t)
@@ -184,9 +203,10 @@ func TestMemorySumEqualZero(t *testing.T) {
 
 func TestCPUMoreMetrics(t *testing.T) {
 	tc := testCase{
-		replicas:       5,
-		desiredValue:   5000,
-		targetResource: api.ResourceCPU,
+		replicas:        5,
+		desiredValue:    5000,
+		targetResource:  api.ResourceCPU,
+		targetTimestamp: 10,
 		reportedMetricsPoints: [][]metricPoint{
 			{{0, 3}, {0, 6}, {5, 4}, {9000, 10}},
 			{{5000, 2}, {10, 5}, {66, 1}, {0, 10}},
@@ -199,9 +219,10 @@ func TestCPUMoreMetrics(t *testing.T) {
 
 func TestMemoryMoreMetrics(t *testing.T) {
 	tc := testCase{
-		replicas:       5,
-		desiredValue:   5000,
-		targetResource: api.ResourceMemory,
+		replicas:        5,
+		desiredValue:    5000,
+		targetResource:  api.ResourceMemory,
+		targetTimestamp: 10,
 		reportedMetricsPoints: [][]metricPoint{
 			{{0, 3}, {0, 6}, {5, 4}, {9000, 10}},
 			{{5000, 2}, {10, 5}, {66, 1}, {0, 10}},
@@ -217,6 +238,7 @@ func TestCPUResultIsFloat(t *testing.T) {
 		replicas:              6,
 		desiredValue:          4783,
 		targetResource:        api.ResourceCPU,
+		targetTimestamp:       4,
 		reportedMetricsPoints: [][]metricPoint{{{4000, 4}}, {{9500, 4}}, {{3000, 4}}, {{7000, 4}}, {{3200, 4}}, {{2000, 4}}},
 	}
 	tc.runTest(t)
@@ -227,6 +249,7 @@ func TestMemoryResultIsFloat(t *testing.T) {
 		replicas:              6,
 		desiredValue:          4783,
 		targetResource:        api.ResourceMemory,
+		targetTimestamp:       4,
 		reportedMetricsPoints: [][]metricPoint{{{4000, 4}}, {{9500, 4}}, {{3000, 4}}, {{7000, 4}}, {{3200, 4}}, {{2000, 4}}},
 	}
 	tc.runTest(t)
@@ -234,22 +257,24 @@ func TestMemoryResultIsFloat(t *testing.T) {
 
 func TestCPUSamplesWithRandomTimestamps(t *testing.T) {
 	tc := testCase{
-		replicas:       3,
-		desiredValue:   3000,
-		targetResource: api.ResourceCPU,
+		replicas:        3,
+		desiredValue:    3000,
+		targetResource:  api.ResourceCPU,
+		targetTimestamp: 3,
 		reportedMetricsPoints: [][]metricPoint{
-			{{1, 1}, {3000, 3}, {2, 2}},
+			{{1, 1}, {3000, 5}, {2, 2}},
 			{{2, 2}, {1, 1}, {3000, 3}},
-			{{3000, 3}, {1, 1}, {2, 2}}},
+			{{3000, 4}, {1, 1}, {2, 2}}},
 	}
 	tc.runTest(t)
 }
 
 func TestMemorySamplesWithRandomTimestamps(t *testing.T) {
 	tc := testCase{
-		replicas:       3,
-		desiredValue:   3000,
-		targetResource: api.ResourceMemory,
+		replicas:        3,
+		desiredValue:    3000,
+		targetResource:  api.ResourceMemory,
+		targetTimestamp: 3,
 		reportedMetricsPoints: [][]metricPoint{
 			{{1, 1}, {3000, 3}, {2, 2}},
 			{{2, 2}, {1, 1}, {3000, 3}},
@@ -331,7 +356,7 @@ func TestCPUZeroReplicas(t *testing.T) {
 	tc := testCase{
 		replicas:              0,
 		targetResource:        api.ResourceCPU,
-		desiredValue:          0,
+		desiredError:          fmt.Errorf("some pods do not have request for cpu"),
 		reportedMetricsPoints: [][]metricPoint{},
 	}
 	tc.runTest(t)
@@ -341,7 +366,7 @@ func TestMemoryZeroReplicas(t *testing.T) {
 	tc := testCase{
 		replicas:              0,
 		targetResource:        api.ResourceMemory,
-		desiredValue:          0,
+		desiredError:          fmt.Errorf("some pods do not have request for memory"),
 		reportedMetricsPoints: [][]metricPoint{},
 	}
 	tc.runTest(t)
@@ -366,3 +391,5 @@ func TestMemoryEmptyMetricsForOnePod(t *testing.T) {
 	}
 	tc.runTest(t)
 }
+
+// TODO: add proper tests for request

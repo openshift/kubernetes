@@ -222,18 +222,23 @@ func TestGetAPIRequestInfo(t *testing.T) {
 
 		{"GET", "/api/v1/namespaces/other/pods", "list", "api", "", "v1", "other", "pods", "", "", []string{"pods"}},
 		{"GET", "/api/v1/namespaces/other/pods/foo", "get", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
+		{"HEAD", "/api/v1/namespaces/other/pods/foo", "get", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
 		{"GET", "/api/v1/pods", "list", "api", "", "v1", api.NamespaceAll, "pods", "", "", []string{"pods"}},
+		{"HEAD", "/api/v1/pods", "list", "api", "", "v1", api.NamespaceAll, "pods", "", "", []string{"pods"}},
 		{"GET", "/api/v1/namespaces/other/pods/foo", "get", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
 		{"GET", "/api/v1/namespaces/other/pods", "list", "api", "", "v1", "other", "pods", "", "", []string{"pods"}},
 
 		// special verbs
 		{"GET", "/api/v1/proxy/namespaces/other/pods/foo", "proxy", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
+		{"GET", "/api/v1/proxy/namespaces/other/pods/foo/subpath/not/a/subresource", "proxy", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo", "subpath", "not", "a", "subresource"}},
 		{"GET", "/api/v1/redirect/namespaces/other/pods/foo", "redirect", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo"}},
+		{"GET", "/api/v1/redirect/namespaces/other/pods/foo/subpath/not/a/subresource", "redirect", "api", "", "v1", "other", "pods", "", "foo", []string{"pods", "foo", "subpath", "not", "a", "subresource"}},
 		{"GET", "/api/v1/watch/pods", "watch", "api", "", "v1", api.NamespaceAll, "pods", "", "", []string{"pods"}},
 		{"GET", "/api/v1/watch/namespaces/other/pods", "watch", "api", "", "v1", "other", "pods", "", "", []string{"pods"}},
 
 		// subresource identification
 		{"GET", "/api/v1/namespaces/other/pods/foo/status", "get", "api", "", "v1", "other", "pods", "status", "foo", []string{"pods", "foo", "status"}},
+		{"GET", "/api/v1/namespaces/other/pods/foo/proxy/subpath", "get", "api", "", "v1", "other", "pods", "proxy", "foo", []string{"pods", "foo", "proxy", "subpath"}},
 		{"PUT", "/api/v1/namespaces/other/finalize", "update", "api", "", "v1", "other", "finalize", "", "", []string{"finalize"}},
 
 		// verb identification
@@ -248,14 +253,17 @@ func TestGetAPIRequestInfo(t *testing.T) {
 		{"POST", "/apis/extensions/v1beta3/namespaces/other/pods", "create", "api", "extensions", "v1beta3", "other", "pods", "", "", []string{"pods"}},
 	}
 
-	apiRequestInfoResolver := newTestAPIRequestInfoResolver()
+	requestInfoResolver := newTestRequestInfoResolver()
 
 	for _, successCase := range successCases {
 		req, _ := http.NewRequest(successCase.method, successCase.url, nil)
 
-		apiRequestInfo, err := apiRequestInfoResolver.GetAPIRequestInfo(req)
+		apiRequestInfo, err := requestInfoResolver.GetRequestInfo(req)
 		if err != nil {
 			t.Errorf("Unexpected error for url: %s %v", successCase.url, err)
+		}
+		if !apiRequestInfo.IsResourceRequest {
+			t.Errorf("Expected resource request")
 		}
 		if successCase.expectedVerb != apiRequestInfo.Verb {
 			t.Errorf("Unexpected verb for url: %s, expected: %s, actual: %s", successCase.url, successCase.expectedVerb, apiRequestInfo.Verb)
@@ -293,9 +301,48 @@ func TestGetAPIRequestInfo(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error %v", err)
 		}
-		_, err = apiRequestInfoResolver.GetAPIRequestInfo(req)
-		if err == nil {
-			t.Errorf("Expected error for key: %s", k)
+		apiRequestInfo, err := requestInfoResolver.GetRequestInfo(req)
+		if err != nil {
+			t.Errorf("%s: Unexpected error %v", k, err)
+		}
+		if apiRequestInfo.IsResourceRequest {
+			t.Errorf("%s: expected non-resource request", k)
+		}
+	}
+}
+
+func TestGetNonAPIRequestInfo(t *testing.T) {
+	tests := map[string]struct {
+		url      string
+		expected bool
+	}{
+		"simple groupless":  {"/api/version/resource", true},
+		"simple group":      {"/apis/group/version/resource/name/subresource", true},
+		"more steps":        {"/api/version/resource/name/subresource", true},
+		"group list":        {"/apis/extensions/v1beta1/job", true},
+		"group get":         {"/apis/extensions/v1beta1/job/foo", true},
+		"group subresource": {"/apis/extensions/v1beta1/job/foo/scale", true},
+
+		"bad root":                     {"/not-api/version/resource", false},
+		"group without enough steps":   {"/apis/extensions/v1beta1", false},
+		"group without enough steps 2": {"/apis/extensions/v1beta1/", false},
+		"not enough steps":             {"/api/version", false},
+		"one step":                     {"/api", false},
+		"zero step":                    {"/", false},
+		"empty":                        {"", false},
+	}
+
+	requestInfoResolver := newTestRequestInfoResolver()
+
+	for testName, tc := range tests {
+		req, _ := http.NewRequest("GET", tc.url, nil)
+
+		apiRequestInfo, err := requestInfoResolver.GetRequestInfo(req)
+		if err != nil {
+			t.Errorf("%s: Unexpected error %v", testName, err)
+		}
+		if e, a := tc.expected, apiRequestInfo.IsResourceRequest; e != a {
+			t.Errorf("%s: expected %v, actual %v", testName, e, a)
 		}
 	}
 }

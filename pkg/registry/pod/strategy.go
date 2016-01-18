@@ -109,6 +109,10 @@ func (podStrategy) CheckGracefulDelete(obj runtime.Object, options *api.DeleteOp
 	if len(pod.Spec.NodeName) == 0 {
 		period = 0
 	}
+	// if the pod is already terminated, delete immediately
+	if pod.Status.Phase == api.PodFailed || pod.Status.Phase == api.PodSucceeded {
+		period = 0
+	}
 	// ensure the options and the pod are in sync
 	options.GracePeriodSeconds = &period
 	return true
@@ -231,12 +235,24 @@ func LogLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter, ct
 	}
 
 	// Try to figure out a container
+	// If a container was provided, it must be valid
 	container := opts.Container
 	if container == "" {
 		if len(pod.Spec.Containers) == 1 {
 			container = pod.Spec.Containers[0].Name
 		} else {
 			return nil, nil, errors.NewBadRequest(fmt.Sprintf("a container name must be specified for pod %s", name))
+		}
+	} else {
+		found := false
+		for _, c := range pod.Spec.Containers {
+			if c.Name == container {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, nil, errors.NewBadRequest(fmt.Sprintf("container %s is not valid for pod %s", container, name))
 		}
 	}
 	nodeHost := pod.Spec.NodeName
@@ -273,7 +289,7 @@ func LogLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter, ct
 	loc := &url.URL{
 		Scheme:   nodeScheme,
 		Host:     fmt.Sprintf("%s:%d", nodeHost, nodePort),
-		Path:     fmt.Sprintf("/containerLogs/%s/%s/%s", pod.Namespace, name, container),
+		Path:     fmt.Sprintf("/containerLogs/%s/%s/%s", pod.Namespace, pod.Name, container),
 		RawQuery: params.Encode(),
 	}
 	return loc, nodeTransport, nil
@@ -335,11 +351,23 @@ func streamLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter,
 	}
 
 	// Try to figure out a container
+	// If a container was provided, it must be valid
 	if container == "" {
 		if len(pod.Spec.Containers) == 1 {
 			container = pod.Spec.Containers[0].Name
 		} else {
 			return nil, nil, errors.NewBadRequest(fmt.Sprintf("a container name must be specified for pod %s", name))
+		}
+	} else {
+		found := false
+		for _, c := range pod.Spec.Containers {
+			if c.Name == container {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, nil, errors.NewBadRequest(fmt.Sprintf("container %s is not valid for pod %s", container, name))
 		}
 	}
 	nodeHost := pod.Spec.NodeName
@@ -358,7 +386,7 @@ func streamLocation(getter ResourceGetter, connInfo client.ConnectionInfoGetter,
 	loc := &url.URL{
 		Scheme:   nodeScheme,
 		Host:     fmt.Sprintf("%s:%d", nodeHost, nodePort),
-		Path:     fmt.Sprintf("/%s/%s/%s/%s", path, pod.Namespace, name, container),
+		Path:     fmt.Sprintf("/%s/%s/%s/%s", path, pod.Namespace, pod.Name, container),
 		RawQuery: params.Encode(),
 	}
 	return loc, nodeTransport, nil
@@ -383,7 +411,7 @@ func PortForwardLocation(getter ResourceGetter, connInfo client.ConnectionInfoGe
 	loc := &url.URL{
 		Scheme: nodeScheme,
 		Host:   fmt.Sprintf("%s:%d", nodeHost, nodePort),
-		Path:   fmt.Sprintf("/portForward/%s/%s", pod.Namespace, name),
+		Path:   fmt.Sprintf("/portForward/%s/%s", pod.Namespace, pod.Name),
 	}
 	return loc, nodeTransport, nil
 }

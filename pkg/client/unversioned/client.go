@@ -35,6 +35,7 @@ import (
 // an interface to allow mock testing.
 type Interface interface {
 	PodsNamespacer
+	PodLogsNamespacer
 	PodTemplatesNamespacer
 	ReplicationControllersNamespacer
 	ServicesNamespacer
@@ -52,6 +53,8 @@ type Interface interface {
 	ComponentStatusesInterface
 	SwaggerSchemaInterface
 	Extensions() ExtensionsInterface
+
+	SecurityContextConstraintsInterface
 }
 
 func (c *Client) ReplicationControllers(namespace string) ReplicationControllerInterface {
@@ -60,6 +63,10 @@ func (c *Client) ReplicationControllers(namespace string) ReplicationControllerI
 
 func (c *Client) Nodes() NodeInterface {
 	return newNodes(c)
+}
+
+func (c *Client) SecurityContextConstraints() SecurityContextConstraintInterface {
+	return newSecurityContextConstraints(c)
 }
 
 func (c *Client) Events(namespace string) EventInterface {
@@ -72,6 +79,10 @@ func (c *Client) Endpoints(namespace string) EndpointsInterface {
 
 func (c *Client) Pods(namespace string) PodInterface {
 	return newPods(c, namespace)
+}
+
+func (c *Client) PodLogs(namespace string) PodLogsInterface {
+	return newPodLogs(c, namespace)
 }
 
 func (c *Client) PodTemplates(namespace string) PodTemplateInterface {

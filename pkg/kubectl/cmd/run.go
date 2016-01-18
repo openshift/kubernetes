@@ -25,11 +25,9 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 const (
@@ -90,6 +88,7 @@ func NewCmdRun(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *c
 	cmd.Flags().BoolP("stdin", "i", false, "Keep stdin open on the container(s) in the pod, even if nothing is attached.")
 	cmd.Flags().Bool("tty", false, "Allocated a TTY for each container in the pod.  Because -t is currently shorthand for --template, -t is not supported for --tty. This shorthand is deprecated and we expect to adopt -t for --tty soon.")
 	cmd.Flags().Bool("attach", false, "If true, wait for the Pod to start running, and then attach to the Pod as if 'kubectl attach ...' were called.  Default false, unless '-i/--interactive' is set, in which case the default is true.")
+	cmd.Flags().Bool("leave-stdin-open", false, "If the pod is started in interactive mode or with stdin, leave stdin open after the first attach completes. By default, stdin will be closed after the first attach completes.")
 	cmd.Flags().String("restart", "Always", "The restart policy for this Pod.  Legal values [Always, OnFailure, Never].  If set to 'Always' a replication controller is created for this pod, if set to OnFailure or Never, only the Pod is created and --replicas must be 1.  Default 'Always'")
 	cmd.Flags().Bool("command", false, "If true and extra arguments are present, use them as the 'command' field in the container, rather than the 'args' field which is the default.")
 	cmd.Flags().String("requests", "", "The resource requirement requests for this container.  For example, 'cpu=100m,memory=256Mi'")
@@ -126,7 +125,7 @@ func Run(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cob
 		return err
 	}
 	if restartPolicy != api.RestartPolicyAlways && replicas != 1 {
-		return cmdutil.UsageError(cmd, fmt.Sprintf("--restart=%s requires that --repliacs=1, found %d", restartPolicy, replicas))
+		return cmdutil.UsageError(cmd, fmt.Sprintf("--restart=%s requires that --replicas=1, found %d", restartPolicy, replicas))
 	}
 	generatorName := cmdutil.GetFlagString(cmd, "generator")
 	if len(generatorName) == 0 {
@@ -195,13 +194,7 @@ func Run(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cob
 			return err
 		}
 
-		// Serialize the object with the annotation applied.
-		data, err := mapping.Codec.Encode(info.Object)
-		if err != nil {
-			return err
-		}
-
-		obj, err = resource.NewHelper(client, mapping).Create(namespace, false, data)
+		obj, err = resource.NewHelper(client, mapping).Create(namespace, false, info.Object)
 		if err != nil {
 			return err
 		}
@@ -235,15 +228,12 @@ func Run(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cob
 			return err
 		}
 		opts.Client = client
-		// TODO: this should be abstracted into Factory to support other types
-		switch t := obj.(type) {
-		case *api.ReplicationController:
-			return handleAttachReplicationController(client, t, opts)
-		case *api.Pod:
-			return handleAttachPod(client, t, opts)
-		default:
-			return fmt.Errorf("cannot attach to %s: not implemented", kind)
+
+		attachablePod, err := f.AttachablePodForObject(obj)
+		if err != nil {
+			return err
 		}
+		return handleAttachPod(f, client, attachablePod, opts)
 	}
 
 	outputFormat := cmdutil.GetFlagString(cmd, "output")
@@ -282,36 +272,40 @@ func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status ap
 	}
 }
 
-func handleAttachReplicationController(c *client.Client, controller *api.ReplicationController, opts *AttachOptions) error {
-	var pods *api.PodList
-	for pods == nil || len(pods.Items) == 0 {
-		var err error
-		if pods, err = c.Pods(controller.Namespace).List(labels.SelectorFromSet(controller.Spec.Selector), fields.Everything()); err != nil {
-			return err
-		}
-		if len(pods.Items) == 0 {
-			fmt.Fprint(opts.Out, "Waiting for pod to be scheduled\n")
-			time.Sleep(2 * time.Second)
-		}
-	}
-	pod := &pods.Items[0]
-	return handleAttachPod(c, pod, opts)
-}
-
-func handleAttachPod(c *client.Client, pod *api.Pod, opts *AttachOptions) error {
+func handleAttachPod(f *cmdutil.Factory, c *client.Client, pod *api.Pod, opts *AttachOptions) error {
 	status, err := waitForPodRunning(c, pod, opts.Out)
 	if err != nil {
 		return err
 	}
 	if status == api.PodSucceeded || status == api.PodFailed {
-		return handleLog(c, pod.Namespace, pod.Name, &api.PodLogOptions{Container: opts.GetContainerName(pod)}, opts.Out)
+		req, err := f.LogsForObject(pod, &api.PodLogOptions{Container: opts.GetContainerName(pod)})
+		if err != nil {
+			return err
+		}
+		readCloser, err := req.Stream()
+		if err != nil {
+			return err
+		}
+		defer readCloser.Close()
+		_, err = io.Copy(opts.Out, readCloser)
+		return err
 	}
 	opts.Client = c
 	opts.PodName = pod.Name
 	opts.Namespace = pod.Namespace
 	if err := opts.Run(); err != nil {
 		fmt.Fprintf(opts.Out, "Error attaching, falling back to logs: %v\n", err)
-		return handleLog(c, pod.Namespace, pod.Name, &api.PodLogOptions{Container: opts.GetContainerName(pod)}, opts.Out)
+		req, err := f.LogsForObject(pod, &api.PodLogOptions{Container: opts.GetContainerName(pod)})
+		if err != nil {
+			return err
+		}
+		readCloser, err := req.Stream()
+		if err != nil {
+			return err
+		}
+		defer readCloser.Close()
+		_, err = io.Copy(opts.Out, readCloser)
+		return err
 	}
 	return nil
 }

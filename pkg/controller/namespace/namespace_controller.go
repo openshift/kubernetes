@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -141,7 +142,14 @@ func finalizeNamespaceFunc(kubeClient client.Interface, namespace *api.Namespace
 	for _, value := range finalizerSet.List() {
 		namespaceFinalize.Spec.Finalizers = append(namespaceFinalize.Spec.Finalizers, api.FinalizerName(value))
 	}
-	return kubeClient.Namespaces().Finalize(&namespaceFinalize)
+	namespace, err := kubeClient.Namespaces().Finalize(&namespaceFinalize)
+	if err != nil {
+		// it was removed already, so life is good
+		if errors.IsNotFound(err) {
+			return namespace, nil
+		}
+	}
+	return namespace, err
 }
 
 type contentRemainingError struct {
@@ -218,26 +226,26 @@ func deleteAllContent(kubeClient client.Interface, experimentalMode bool, namesp
 	return estimate, nil
 }
 
+// maxRetriesOnConflict is set to prevent infinite loops that block the progress of a controller
+const maxRetriesOnConflict = 10
+
 // updateNamespaceFunc is a function that makes an update to a namespace
 type updateNamespaceFunc func(kubeClient client.Interface, namespace *api.Namespace) (*api.Namespace, error)
 
 // retryOnConflictError retries the specified fn if there was a conflict error
-// TODO RetryOnConflict should be a generic concept in client code
 func retryOnConflictError(kubeClient client.Interface, namespace *api.Namespace, fn updateNamespaceFunc) (result *api.Namespace, err error) {
-	latestNamespace := namespace
-	for {
-		result, err = fn(kubeClient, latestNamespace)
-		if err == nil {
-			return result, nil
+	result = namespace
+	err = client.RetryOnConflict(wait.Backoff{Steps: maxRetriesOnConflict}, func() error {
+		if result == nil {
+			if result, err = kubeClient.Namespaces().Get(namespace.Name); err != nil {
+				return err
+			}
 		}
-		if !errors.IsConflict(err) {
-			return nil, err
+		if result, err = fn(kubeClient, result); err != nil {
+			result = nil
 		}
-		latestNamespace, err = kubeClient.Namespaces().Get(latestNamespace.Name)
-		if err != nil {
-			return nil, err
-		}
-	}
+		return err
+	})
 	return
 }
 
@@ -254,10 +262,22 @@ func updateNamespaceStatusFunc(kubeClient client.Interface, namespace *api.Names
 }
 
 // syncNamespace orchestrates deletion of a Namespace and its associated content.
-func syncNamespace(kubeClient client.Interface, experimentalMode bool, namespace *api.Namespace) (err error) {
+func syncNamespace(kubeClient client.Interface, experimentalMode bool, namespace *api.Namespace) error {
 	if namespace.DeletionTimestamp == nil {
 		return nil
 	}
+
+	// multiple controllers may edit a namespace during termination
+	// first get the latest state of the namespace before proceeding
+	// if the namespace was deleted already, don't do anything
+	namespace, err := kubeClient.Namespaces().Get(namespace.Name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
 	glog.V(4).Infof("Syncing namespace %s", namespace.Name)
 
 	// ensure that the status is up to date on the namespace

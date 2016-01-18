@@ -44,6 +44,7 @@ var RepairMalformedUpdates bool = true
 
 const cIdentifierErrorMsg string = `must be a C identifier (matching regex ` + validation.CIdentifierFmt + `): e.g. "my_name" or "MyName"`
 const isNegativeErrorMsg string = `must be non-negative`
+const isNotIntegerErrorMsg string = `must be an integer`
 
 func intervalErrorMsg(lo, hi int) string {
 	return fmt.Sprintf(`must be greater than %d and less than %d`, lo, hi)
@@ -58,7 +59,7 @@ var pdPartitionErrorMsg string = intervalErrorMsg(0, 255)
 var portRangeErrorMsg string = intervalErrorMsg(0, 65536)
 var portNameErrorMsg string = fmt.Sprintf(`must be an IANA_SVC_NAME (at most 15 characters, matching regex %s, it must contain at least one letter [a-z], and hyphens cannot be adjacent to other hyphens): e.g. "http"`, validation.IdentifierNoHyphensBeginEndFmt)
 
-const totalAnnotationSizeLimitB int = 64 * (1 << 10) // 64 kB
+const totalAnnotationSizeLimitB int = 256 * (1 << 10) // 256 kB
 
 func ValidateLabelName(labelName, fieldName string) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
@@ -179,6 +180,14 @@ func ValidateServiceAccountName(name string, prefix bool) (bool, string) {
 // Prefix indicates this name will be used as part of generation, in which case
 // trailing dashes are allowed.
 func ValidateEndpointsName(name string, prefix bool) (bool, string) {
+	return NameIsDNSSubdomain(name, prefix)
+}
+
+// ValidateSecurityContextConstraintsName can be used to check whether the given
+// security context constraint name is valid.
+// Prefix indicates this name will be used as part of generation, in which case
+// trailing dashes are allowed.
+func ValidateSecurityContextConstraintsName(name string, prefix bool) (bool, string) {
 	return NameIsDNSSubdomain(name, prefix)
 }
 
@@ -1129,6 +1138,12 @@ func ValidatePodSpec(spec *api.PodSpec) errs.ValidationErrorList {
 		}
 	}
 
+	if len(spec.NodeName) > 0 {
+		if ok, msg := ValidateNodeName(spec.NodeName, false); !ok {
+			allErrs = append(allErrs, errs.NewFieldInvalid("nodeName", spec.NodeName, msg))
+		}
+	}
+
 	if spec.ActiveDeadlineSeconds != nil {
 		if *spec.ActiveDeadlineSeconds <= 0 {
 			allErrs = append(allErrs, errs.NewFieldInvalid("activeDeadlineSeconds", spec.ActiveDeadlineSeconds, "activeDeadlineSeconds must be a positive integer greater than 0"))
@@ -1160,6 +1175,15 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 		allErrs = append(allErrs, errs.NewFieldInvalid("spec.containers", "content of spec.containers is not printed out, please refer to the \"details\"", "may not add or remove containers"))
 		return allErrs
 	}
+
+	// for updates, we are allowing ActiveDeadlineSeconds to be 0
+	// since a user may just want to terminate the containers without deleting the pod
+	if newPod.Spec.ActiveDeadlineSeconds != nil {
+		if *newPod.Spec.ActiveDeadlineSeconds <= 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid("activeDeadlineSeconds", newPod.Spec.ActiveDeadlineSeconds, "activeDeadlineSeconds must be a positive integer greater than 0"))
+		}
+	}
+
 	pod := *newPod
 	// Tricky, we need to copy the container list so that we don't overwrite the update
 	var newContainers []api.Container
@@ -1168,6 +1192,14 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) errs.ValidationErrorList {
 		newContainers = append(newContainers, container)
 	}
 	pod.Spec.Containers = newContainers
+
+	// allow ActiveDeadlineSeconds to be updated as well
+	pod.Spec.ActiveDeadlineSeconds = nil
+	if oldPod.Spec.ActiveDeadlineSeconds != nil {
+		activeDeadlineSeconds := *oldPod.Spec.ActiveDeadlineSeconds
+		pod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+	}
+
 	if !api.Semantic.DeepEqual(pod.Spec, oldPod.Spec) {
 		//TODO: Pinpoint the specific field that causes the invalid error after we have strategic merge diff
 		allErrs = append(allErrs, errs.NewFieldInvalid("spec", "content of spec is not printed out, please refer to the \"details\"", "may not update fields other than container.image"))
@@ -1765,15 +1797,27 @@ func ValidateResourceQuota(resourceQuota *api.ResourceQuota) errs.ValidationErro
 
 	for k, v := range resourceQuota.Spec.Hard {
 		allErrs = append(allErrs, validateResourceName(string(k), string(resourceQuota.TypeMeta.Kind))...)
-		allErrs = append(allErrs, ValidatePositiveQuantity(v, string(k))...)
+		allErrs = append(allErrs, validateResourceQuantityValue(string(k), v)...)
 	}
 	for k, v := range resourceQuota.Status.Hard {
 		allErrs = append(allErrs, validateResourceName(string(k), string(resourceQuota.TypeMeta.Kind))...)
-		allErrs = append(allErrs, ValidatePositiveQuantity(v, string(k))...)
+		allErrs = append(allErrs, validateResourceQuantityValue(string(k), v)...)
 	}
 	for k, v := range resourceQuota.Status.Used {
 		allErrs = append(allErrs, validateResourceName(string(k), string(resourceQuota.TypeMeta.Kind))...)
-		allErrs = append(allErrs, ValidatePositiveQuantity(v, string(k))...)
+		allErrs = append(allErrs, validateResourceQuantityValue(string(k), v)...)
+	}
+	return allErrs
+}
+
+// validateResourceQuantityValue enforces that specified quantity is valid for specified resource
+func validateResourceQuantityValue(resource string, value resource.Quantity) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidatePositiveQuantity(value, resource)...)
+	if api.IsIntegerResourceName(resource) {
+		if value.MilliValue()%int64(1000) != int64(0) {
+			allErrs = append(allErrs, errs.NewFieldInvalid(resource, value, isNotIntegerErrorMsg))
+		}
 	}
 	return allErrs
 }
@@ -1783,8 +1827,9 @@ func ValidateResourceQuota(resourceQuota *api.ResourceQuota) errs.ValidationErro
 func ValidateResourceQuotaUpdate(newResourceQuota, oldResourceQuota *api.ResourceQuota) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}
 	allErrs = append(allErrs, ValidateObjectMetaUpdate(&newResourceQuota.ObjectMeta, &oldResourceQuota.ObjectMeta).Prefix("metadata")...)
-	for k := range newResourceQuota.Spec.Hard {
+	for k, v := range newResourceQuota.Spec.Hard {
 		allErrs = append(allErrs, validateResourceName(string(k), string(newResourceQuota.TypeMeta.Kind))...)
+		allErrs = append(allErrs, validateResourceQuantityValue(string(k), v)...)
 	}
 	newResourceQuota.Status = oldResourceQuota.Status
 	return allErrs
@@ -1798,11 +1843,13 @@ func ValidateResourceQuotaStatusUpdate(newResourceQuota, oldResourceQuota *api.R
 	if newResourceQuota.ResourceVersion == "" {
 		allErrs = append(allErrs, errs.NewFieldRequired("resourceVersion"))
 	}
-	for k := range newResourceQuota.Status.Hard {
+	for k, v := range newResourceQuota.Status.Hard {
 		allErrs = append(allErrs, validateResourceName(string(k), string(newResourceQuota.TypeMeta.Kind))...)
+		allErrs = append(allErrs, validateResourceQuantityValue(string(k), v)...)
 	}
-	for k := range newResourceQuota.Status.Used {
+	for k, v := range newResourceQuota.Status.Used {
 		allErrs = append(allErrs, validateResourceName(string(k), string(newResourceQuota.TypeMeta.Kind))...)
+		allErrs = append(allErrs, validateResourceQuantityValue(string(k), v)...)
 	}
 	newResourceQuota.Spec = oldResourceQuota.Spec
 	return allErrs
@@ -2006,5 +2053,117 @@ func ValidatePodLogOptions(opts *api.PodLogOptions) errs.ValidationErrorList {
 			allErrs = append(allErrs, errs.NewFieldInvalid("sinceSeconds", *opts.SinceSeconds, "sinceSeconds must be a positive integer"))
 		}
 	}
+	return allErrs
+}
+
+func ValidateSecurityContextConstraints(scc *api.SecurityContextConstraints) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMeta(&scc.ObjectMeta, false, ValidateSecurityContextConstraintsName).Prefix("metadata")...)
+
+	if scc.Priority != nil {
+		if *scc.Priority < 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid("priority", *scc.Priority, "priority cannot be negative"))
+		}
+	}
+
+	// ensure the user strat has a valid type
+	switch scc.RunAsUser.Type {
+	case api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange:
+		//good types
+	default:
+		msg := fmt.Sprintf("invalid strategy type.  Valid values are %s, %s, %s", api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyRunAsAny)
+		allErrs = append(allErrs, errs.NewFieldInvalid("runAsUser.type", scc.RunAsUser.Type, msg))
+	}
+
+	// if specified, uid cannot be negative
+	if scc.RunAsUser.UID != nil {
+		if *scc.RunAsUser.UID < 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid("runAsUser.uid", *scc.RunAsUser.UID, "uid cannot be negative"))
+		}
+	}
+
+	// ensure the selinux strat has a valid type
+	switch scc.SELinuxContext.Type {
+	case api.SELinuxStrategyMustRunAs, api.SELinuxStrategyRunAsAny:
+		//good types
+	default:
+		msg := fmt.Sprintf("invalid strategy type.  Valid values are %s, %s", api.SELinuxStrategyMustRunAs, api.SELinuxStrategyRunAsAny)
+		allErrs = append(allErrs, errs.NewFieldInvalid("seLinuxContext.type", scc.SELinuxContext.Type, msg))
+	}
+
+	// ensure the fsgroup strat has a valid type
+	if scc.FSGroup.Type != api.FSGroupStrategyMustRunAs && scc.FSGroup.Type != api.FSGroupStrategyRunAsAny {
+		allErrs = append(allErrs, errs.NewFieldValueNotSupported("fsGroup.type", scc.FSGroup.Type,
+			[]string{string(api.FSGroupStrategyMustRunAs), string(api.FSGroupStrategyRunAsAny)}))
+	}
+	allErrs = append(allErrs, validateIDRanges(scc.FSGroup.Ranges).Prefix("fsGroup")...)
+
+	if scc.SupplementalGroups.Type != api.SupplementalGroupsStrategyMustRunAs &&
+		scc.SupplementalGroups.Type != api.SupplementalGroupsStrategyRunAsAny {
+		allErrs = append(allErrs, errs.NewFieldValueNotSupported("supplementalGroups.type", scc.SupplementalGroups.Type,
+			[]string{string(api.SupplementalGroupsStrategyMustRunAs), string(api.SupplementalGroupsStrategyRunAsAny)}))
+	}
+	allErrs = append(allErrs, validateIDRanges(scc.SupplementalGroups.Ranges).Prefix("supplementalGroups")...)
+
+	// validate capabilities
+	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.DefaultAddCapabilities, "defaultAddCapabilities")...)
+	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.AllowedCapabilities, "allowedCapabilities")...)
+
+	return allErrs
+}
+
+// validateSCCCapsAgainstDrops ensures an allowed cap is not listed in the required drops.
+func validateSCCCapsAgainstDrops(requiredDrops []api.Capability, capsToCheck []api.Capability, fieldName string) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	if requiredDrops == nil {
+		return allErrs
+	}
+	for _, cap := range capsToCheck {
+		if hasCap(cap, requiredDrops) {
+			allErrs = append(allErrs, errs.NewFieldInvalid(fieldName, cap,
+				fmt.Sprintf("capability is listed in %s and requiredDropCapabilities", fieldName)))
+		}
+	}
+	return allErrs
+}
+
+// hasCap checks for needle in haystack.
+func hasCap(needle api.Capability, haystack []api.Capability) bool {
+	for _, c := range haystack {
+		if needle == c {
+			return true
+		}
+	}
+	return false
+}
+
+// validateIDRanges ensures the range is valid.
+func validateIDRanges(rng []api.IDRange) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+
+	for i, r := range rng {
+		// if 0 <= Min <= Max then we do not need to validate max.  It is always greater than or
+		// equal to 0 and Min.
+		minField := fmt.Sprintf("ranges[%d].min", i)
+		maxField := fmt.Sprintf("ranges[%d].max", i)
+
+		if r.Min < 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid(minField, r.Min, "min cannot be negative"))
+		}
+		if r.Max < 0 {
+			allErrs = append(allErrs, errs.NewFieldInvalid(maxField, r.Max, "max cannot be negative"))
+		}
+		if r.Min > r.Max {
+			allErrs = append(allErrs, errs.NewFieldInvalid(minField, r, "min cannot be greater than max"))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateSecurityContextConstraintsUpdate(old *api.SecurityContextConstraints, new *api.SecurityContextConstraints) errs.ValidationErrorList {
+	allErrs := errs.ValidationErrorList{}
+	allErrs = append(allErrs, ValidateObjectMetaUpdate(&old.ObjectMeta, &new.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateSecurityContextConstraints(new)...)
 	return allErrs
 }

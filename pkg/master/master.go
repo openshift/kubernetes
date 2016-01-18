@@ -66,6 +66,7 @@ import (
 	podtemplateetcd "k8s.io/kubernetes/pkg/registry/podtemplate/etcd"
 	resourcequotaetcd "k8s.io/kubernetes/pkg/registry/resourcequota/etcd"
 	secretetcd "k8s.io/kubernetes/pkg/registry/secret/etcd"
+	sccetcd "k8s.io/kubernetes/pkg/registry/securitycontextconstraints/etcd"
 	"k8s.io/kubernetes/pkg/registry/service"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	serviceetcd "k8s.io/kubernetes/pkg/registry/service/etcd"
@@ -77,7 +78,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
-	"k8s.io/kubernetes/pkg/ui"
+	//"k8s.io/kubernetes/pkg/ui"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -550,6 +551,8 @@ func (m *Master) init(c *Config) {
 	endpointsStorage := endpointsetcd.NewREST(dbClient("endpoints"), c.EnableWatchCache)
 	m.endpointRegistry = endpoint.NewRegistry(endpointsStorage)
 
+	securityContextConstraintsStorage := sccetcd.NewStorage(dbClient("securityContextConstraints"))
+
 	nodeStorage, nodeStatusStorage := nodeetcd.NewREST(dbClient("nodes"), c.EnableWatchCache, c.KubeletClient, m.proxyTransport)
 	m.nodeRegistry = node.NewRegistry(nodeStorage)
 
@@ -606,6 +609,7 @@ func (m *Master) init(c *Config) {
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
+		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,
@@ -633,7 +637,7 @@ func (m *Master) init(c *Config) {
 
 	apiserver.InstallSupport(m.muxHelper, m.rootWebService, c.EnableProfiling, healthzChecks...)
 	apiserver.AddApiWebService(m.handlerContainer, c.APIPrefix, apiVersions)
-	apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newAPIRequestInfoResolver(), apiVersions)
+	apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newRequestInfoResolver(), apiVersions)
 
 	// allGroups records all supported groups at /apis
 	allGroups := []unversioned.APIGroup{}
@@ -667,7 +671,7 @@ func (m *Master) init(c *Config) {
 		}
 		apiserver.AddGroupWebService(m.handlerContainer, c.APIGroupPrefix+"/"+latest.GroupOrDie("extensions").Group+"/", group)
 		allGroups = append(allGroups, group)
-		apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newAPIRequestInfoResolver(), []string{expVersion.Version})
+		apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newRequestInfoResolver(), []string{expVersion.Version})
 	}
 
 	// This should be done after all groups are registered
@@ -684,9 +688,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	if c.EnableUISupport {
-		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
-	}
+	/*if c.EnableUISupport {
+		ui.InstallSupport(m.mux)
+	}*/
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -710,7 +714,7 @@ func (m *Master) init(c *Config) {
 
 	m.InsecureHandler = handler
 
-	attributeGetter := apiserver.NewRequestAttributeGetter(m.requestContextMapper, m.newAPIRequestInfoResolver())
+	attributeGetter := apiserver.NewRequestAttributeGetter(m.requestContextMapper, m.newRequestInfoResolver())
 	handler = apiserver.WithAuthorizationCheck(handler, attributeGetter, m.authorizer)
 
 	// Install Authenticator
@@ -840,8 +844,8 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 	return serversToValidate
 }
 
-func (m *Master) newAPIRequestInfoResolver() *apiserver.APIRequestInfoResolver {
-	return &apiserver.APIRequestInfoResolver{
+func (m *Master) newRequestInfoResolver() *apiserver.RequestInfoResolver {
+	return &apiserver.RequestInfoResolver{
 		sets.NewString(strings.Trim(m.apiPrefix, "/"), strings.Trim(thirdpartyprefix, "/")), // all possible API prefixes
 		sets.NewString(strings.Trim(m.apiPrefix, "/")),                                      // APIPrefixes that won't have groups (legacy)
 	}
@@ -849,8 +853,8 @@ func (m *Master) newAPIRequestInfoResolver() *apiserver.APIRequestInfoResolver {
 
 func (m *Master) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	return &apiserver.APIGroupVersion{
-		Root: m.apiPrefix,
-		APIRequestInfoResolver: m.newAPIRequestInfoResolver(),
+		Root:                m.apiPrefix,
+		RequestInfoResolver: m.newRequestInfoResolver(),
 
 		Mapper: latest.GroupOrDie("").RESTMapper,
 
@@ -987,7 +991,7 @@ func (m *Master) InstallThirdPartyResource(rsrc *expapi.ThirdPartyResource) erro
 	}
 	apiserver.AddGroupWebService(m.handlerContainer, path, apiGroup)
 	m.addThirdPartyResourceStorage(path, thirdparty.Storage[strings.ToLower(kind)+"s"].(*thirdpartyresourcedataetcd.REST))
-	apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newAPIRequestInfoResolver(), []string{thirdparty.Version})
+	apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newRequestInfoResolver(), []string{thirdparty.Version})
 	return nil
 }
 
@@ -1001,9 +1005,9 @@ func (m *Master) thirdpartyapi(group, kind, version string) *apiserver.APIGroupV
 	}
 
 	return &apiserver.APIGroupVersion{
-		Root:                   apiRoot,
-		Version:                apiutil.GetGroupVersion(group, version),
-		APIRequestInfoResolver: m.newAPIRequestInfoResolver(),
+		Root:                apiRoot,
+		Version:             apiutil.GetGroupVersion(group, version),
+		RequestInfoResolver: m.newRequestInfoResolver(),
 
 		Creater:   thirdpartyresourcedata.NewObjectCreator(group, version, api.Scheme),
 		Convertor: api.Scheme,
@@ -1063,8 +1067,8 @@ func (m *Master) experimental(c *Config) *apiserver.APIGroupVersion {
 	expMeta := latest.GroupOrDie("extensions")
 
 	return &apiserver.APIGroupVersion{
-		Root: m.apiGroupPrefix,
-		APIRequestInfoResolver: m.newAPIRequestInfoResolver(),
+		Root:                m.apiGroupPrefix,
+		RequestInfoResolver: m.newRequestInfoResolver(),
 
 		Creater:   api.Scheme,
 		Convertor: api.Scheme,

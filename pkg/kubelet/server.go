@@ -44,9 +44,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	"k8s.io/kubernetes/pkg/healthz"
 	"k8s.io/kubernetes/pkg/httplog"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/kubelet/portforward"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/flushwriter"
@@ -104,6 +106,8 @@ func ListenAndServeKubeletServer(host HostInterface, address net.IP, port uint, 
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
 		Handler:        &handler,
+		ReadTimeout:    60 * time.Minute,
+		WriteTimeout:   60 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
 	if tlsOptions != nil {
@@ -122,6 +126,8 @@ func ListenAndServeKubeletReadOnlyServer(host HostInterface, address net.IP, por
 	server := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
 		Handler:        &s,
+		ReadTimeout:    60 * time.Minute,
+		WriteTimeout:   60 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
 	glog.Fatal(server.ListenAndServe())
@@ -685,6 +691,13 @@ func (s *Server) createStreams(request *restful.Request, response *restful.Respo
 		return streams[0], streams[1], streams[2], streams[3], conn, tty, true
 	}
 
+	supportedStreamProtocols := []string{remotecommand.StreamProtocolV2Name, remotecommand.StreamProtocolV1Name}
+	_, err := httpstream.Handshake(request.Request, response.ResponseWriter, supportedStreamProtocols, remotecommand.StreamProtocolV1Name)
+	// negotiated protocol isn't used server side at the moment, but could be in the future
+	if err != nil {
+		return nil, nil, nil, nil, nil, false, false
+	}
+
 	streamCh := make(chan httpstream.Stream)
 
 	upgrader := spdy.NewResponseUpgrader()
@@ -779,6 +792,15 @@ func (s *Server) getPortForward(request *restful.Request, response *restful.Resp
 // connections; i.e., multiple `curl http://localhost:8888/` requests will be
 // handled by a single invocation of ServePortForward.
 func ServePortForward(w http.ResponseWriter, req *http.Request, portForwarder PortForwarder, podName string, uid types.UID, idleTimeout time.Duration, streamCreationTimeout time.Duration) {
+	supportedPortForwardProtocols := []string{portforward.PortForwardProtocolV1Name}
+	_, err := httpstream.Handshake(req, w, supportedPortForwardProtocols, portforward.PortForwardProtocolV1Name)
+	// negotiated protocol isn't currently used server side, but could be in the future
+	if err != nil {
+		// Handshake writes the error to the client
+		util.HandleError(err)
+		return
+	}
+
 	streamChan := make(chan httpstream.Stream, 1)
 
 	glog.V(5).Infof("Upgrading port forward response")

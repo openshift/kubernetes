@@ -44,10 +44,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/hairpin"
-	"k8s.io/kubernetes/pkg/kubelet/prober"
+	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/probe"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -119,8 +118,8 @@ type DockerManager struct {
 	// Network plugin.
 	networkPlugin network.NetworkPlugin
 
-	// Health check prober.
-	prober prober.Prober
+	// Health check results.
+	livenessManager proberesults.Manager
 
 	// Generator of runtime container options.
 	generator kubecontainer.RunContainerOptionsGenerator
@@ -147,7 +146,7 @@ type DockerManager struct {
 func NewDockerManager(
 	client DockerInterface,
 	recorder record.EventRecorder,
-	prober prober.Prober,
+	livenessManager proberesults.Manager,
 	containerRefManager *kubecontainer.RefManager,
 	machineInfo *cadvisorApi.MachineInfo,
 	podInfraContainerImage string,
@@ -162,7 +161,8 @@ func NewDockerManager(
 	oomAdjuster *oom.OOMAdjuster,
 	procFs procfs.ProcFsInterface,
 	cpuCFSQuota bool,
-	imageBackOff *util.Backoff) *DockerManager {
+	imageBackOff *util.Backoff,
+	serializeImagePulls bool) *DockerManager {
 
 	// Work out the location of the Docker runtime, defaulting to /var/lib/docker
 	// if there are any problems.
@@ -208,7 +208,7 @@ func NewDockerManager(
 		dockerRoot:             dockerRoot,
 		containerLogsDir:       containerLogsDir,
 		networkPlugin:          networkPlugin,
-		prober:                 prober,
+		livenessManager:        livenessManager,
 		generator:              generator,
 		execHandler:            execHandler,
 		oomAdjuster:            oomAdjuster,
@@ -216,7 +216,11 @@ func NewDockerManager(
 		cpuCFSQuota:            cpuCFSQuota,
 	}
 	dm.runner = lifecycle.NewHandlerRunner(httpClient, dm, dm)
-	dm.imagePuller = kubecontainer.NewImagePuller(recorder, dm, imageBackOff)
+	if serializeImagePulls {
+		dm.imagePuller = kubecontainer.NewSerializedImagePuller(recorder, dm, imageBackOff)
+	} else {
+		dm.imagePuller = kubecontainer.NewImagePuller(recorder, dm, imageBackOff)
+	}
 	dm.containerGC = NewContainerGC(client, containerLogsDir)
 
 	return dm
@@ -285,7 +289,7 @@ func (dm *DockerManager) GetContainerLogs(pod *api.Pod, containerID kubecontaine
 		RawTerminal:  false,
 	}
 
-	if !logOptions.Follow && logOptions.TailLines != nil {
+	if logOptions.TailLines != nil {
 		opts.Tail = strconv.FormatInt(*logOptions.TailLines, 10)
 	}
 
@@ -312,22 +316,6 @@ type containerStatusResult struct {
 }
 
 const podIPDownwardAPISelector = "status.podIP"
-
-// podDependsOnIP returns whether any containers in a pod depend on using the pod IP via
-// the downward API.
-func podDependsOnPodIP(pod *api.Pod) bool {
-	for _, container := range pod.Spec.Containers {
-		for _, env := range container.Env {
-			if env.ValueFrom != nil &&
-				env.ValueFrom.FieldRef != nil &&
-				env.ValueFrom.FieldRef.FieldPath == podIPDownwardAPISelector {
-				return true
-			}
-		}
-	}
-
-	return false
-}
 
 // determineContainerIP determines the IP address of the given container.  It is expected
 // that the container passed is the infrastructure container of a pod and the responsibility
@@ -626,12 +614,28 @@ func makeEnvList(envs []kubecontainer.EnvVar) (result []string) {
 // can be understood by docker.
 // Each element in the string is in the form of:
 // '<HostPath>:<ContainerPath>', or
-// '<HostPath>:<ContainerPath>:ro', if the path is read only.
-func makeMountBindings(mounts []kubecontainer.Mount) (result []string) {
+// '<HostPath>:<ContainerPath>:ro', if the path is read only, or
+// '<HostPath>:<ContainerPath>:Z', if the volume requires SELinux
+// relabeling and the pod provides an SELinux label
+func makeMountBindings(mounts []kubecontainer.Mount, podHasSELinuxLabel bool) (result []string) {
 	for _, m := range mounts {
 		bind := fmt.Sprintf("%s:%s", m.HostPath, m.ContainerPath)
 		if m.ReadOnly {
 			bind += ":ro"
+		}
+		// Only request relabeling if the pod provides an
+		// SELinux context. If the pod does not provide an
+		// SELinux context relabeling will label the volume
+		// with the container's randomly allocated MCS label.
+		// This would restrict access to the volume to the
+		// container which mounts it first.
+		if m.SELinuxRelabel && podHasSELinuxLabel {
+			if m.ReadOnly {
+				bind += ",Z"
+			} else {
+				bind += ":Z"
+			}
+
 		}
 		result = append(result, bind)
 	}
@@ -760,6 +764,7 @@ func (dm *DockerManager) runContainer(
 			Labels:     labels,
 			// Interactive containers:
 			OpenStdin: container.Stdin,
+			StdinOnce: container.StdinOnce,
 			Tty:       container.TTY,
 		},
 	}
@@ -782,7 +787,8 @@ func (dm *DockerManager) runContainer(
 		dm.recorder.Eventf(ref, "Created", "Created with docker id %v", util.ShortenString(dockerContainer.ID, 12))
 	}
 
-	binds := makeMountBindings(opts.Mounts)
+	podHasSELinuxLabel := pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.SELinuxOptions != nil
+	binds := makeMountBindings(opts.Mounts, podHasSELinuxLabel)
 
 	// The reason we create and mount the log file in here (not in kubelet) is because
 	// the file's location depends on the ID of the container, and we need to create and
@@ -1761,20 +1767,13 @@ func (dm *DockerManager) computePodContainerChanges(pod *api.Pod, runningPod kub
 			continue
 		}
 
-		result, err := dm.prober.ProbeLiveness(pod, podStatus, container, c.ID, c.Created)
-		if err != nil {
-			// TODO(vmarmol): examine this logic.
-			glog.V(2).Infof("probe no-error: %q", container.Name)
-			containersToKeep[containerID] = index
-			continue
-		}
-		if result == probe.Success {
-			glog.V(4).Infof("probe success: %q", container.Name)
+		liveness, found := dm.livenessManager.Get(c.ID)
+		if !found || liveness == proberesults.Success {
 			containersToKeep[containerID] = index
 			continue
 		}
 		if pod.Spec.RestartPolicy != api.RestartPolicyNever {
-			glog.Infof("pod %q container %q is unhealthy (probe result: %v), it will be killed and re-created.", podFullName, container.Name, result)
+			glog.Infof("pod %q container %q is unhealthy, it will be killed and re-created.", podFullName, container.Name)
 			containersToStart[index] = empty{}
 		}
 	}
@@ -1882,21 +1881,20 @@ func (dm *DockerManager) SyncPod(pod *api.Pod, runningPod kubecontainer.Pod, pod
 			return err
 		}
 
-		// Setup the host interface (FIXME: move to networkPlugin when ready)
+		// Setup the host interface unless the pod is on the host's network (FIXME: move to networkPlugin when ready)
 		podInfraContainer, err := dm.client.InspectContainer(string(podInfraContainerID))
 		if err != nil {
 			glog.Errorf("Failed to inspect pod infra container: %v; Skipping pod %q", err, podFullName)
 			return err
 		}
-		if err = hairpin.SetUpContainer(podInfraContainer.State.Pid, "eth0"); err != nil {
-			glog.Warningf("Hairpin setup failed for pod %q: %v", podFullName, err)
+		if !(pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork) {
+			if err = hairpin.SetUpContainer(podInfraContainer.State.Pid, "eth0"); err != nil {
+				glog.Warningf("Hairpin setup failed for pod %q: %v", podFullName, err)
+			}
 		}
-		if podDependsOnPodIP(pod) {
-			// Find the pod IP after starting the infra container in order to expose
-			// it safely via the downward API without a race.
-			pod.Status.PodIP = dm.determineContainerIP(pod.Name, pod.Namespace, podInfraContainer)
-		}
-
+		// Find the pod IP after starting the infra container in order to expose
+		// it safely via the downward API without a race.
+		pod.Status.PodIP = dm.determineContainerIP(pod.Name, pod.Namespace, podInfraContainer)
 	}
 
 	// Start everything
@@ -1916,7 +1914,7 @@ func (dm *DockerManager) SyncPod(pod *api.Pod, runningPod kubecontainer.Pod, pod
 			continue
 		}
 
-		if container.SecurityContext != nil && container.SecurityContext.RunAsNonRoot {
+		if container.SecurityContext != nil && container.SecurityContext.RunAsNonRoot != nil && *container.SecurityContext.RunAsNonRoot {
 			err := dm.verifyNonRoot(container)
 			dm.updateReasonCache(pod, container, "VerifyNonRootError", err)
 			if err != nil {

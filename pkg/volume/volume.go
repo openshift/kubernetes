@@ -45,6 +45,18 @@ type Builder interface {
 	// IsReadOnly is a flag that gives the builder's ReadOnly attribute.
 	// All persistent volumes have a private readOnly flag in their builders.
 	IsReadOnly() bool
+	// SupportsOwnershipManagement returns whether this builder wants
+	// ownership management for the volume.  If this method returns true,
+	// the Kubelet will:
+	//
+	// 1. Make the volume owned by group FSGroup
+	// 2. Set the setgid bit is set (new files created in the volume will be owned by FSGroup)
+	// 3. Logical OR the permission bits with rw-rw----
+	SupportsOwnershipManagement() bool
+	// SupportsSELinux reports whether the given builder supports
+	// SELinux and would like the kubelet to relabel the volume to
+	// match the pod to which it will be attached.
+	SupportsSELinux() bool
 }
 
 // Cleaner interface provides methods to cleanup/unmount the volumes.
@@ -66,10 +78,16 @@ type Recycler interface {
 	Recycle() error
 }
 
-// Create adds a new resource in the storage provider and creates a PersistentVolume for the new resource.
-// Calls to Create should block until complete.
-type Creater interface {
-	Create() (*api.PersistentVolume, error)
+// Provisioner is an interface that creates templates for PersistentVolumes and can create the volume
+// as a new resource in the infrastructure provider.
+type Provisioner interface {
+	// Provision creates the resource by allocating the underlying volume in a storage system.
+	// This method should block until completion.
+	Provision(*api.PersistentVolume) error
+	// NewPersistentVolumeTemplate creates a new PersistentVolume to be used as a template before saving.
+	// The provisioner will want to tweak its properties, assign correct annotations, etc.
+	// This func should *NOT* persist the PV in the API.  That is left to the caller.
+	NewPersistentVolumeTemplate() (*api.PersistentVolume, error)
 }
 
 // Delete removes the resource from the underlying storage provider.  Calls to this method should block until
@@ -77,6 +95,7 @@ type Creater interface {
 // A nil return indicates success.
 type Deleter interface {
 	Volume
+	// This method should block until completion.
 	Delete() error
 }
 

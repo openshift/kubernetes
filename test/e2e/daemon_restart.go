@@ -185,7 +185,7 @@ func getContainerRestarts(c *client.Client, ns string, labelSelector labels.Sele
 
 var _ = Describe("DaemonRestart", func() {
 
-	framework := Framework{BaseName: "daemonrestart"}
+	framework := NewFramework("daemonrestart")
 	rcName := "daemonrestart" + strconv.Itoa(numPods) + "-" + string(util.NewUUID())
 	labelSelector := labels.Set(map[string]string{"name": rcName}).AsSelector()
 	existingPods := cache.NewStore(cache.MetaNamespaceKeyFunc)
@@ -197,14 +197,12 @@ var _ = Describe("DaemonRestart", func() {
 	var tracker *podTracker
 
 	BeforeEach(func() {
-
 		// These tests require SSH
 		// TODO: Enable on gke after testing (#11834)
 		if !providerIs("gce") {
 			By(fmt.Sprintf("Skipping test, which is not implemented for %s", testContext.Provider))
 			return
 		}
-		framework.beforeEach()
 		ns = framework.Namespace.Name
 
 		// All the restart tests need an rc and a watch on pods of the rc.
@@ -250,8 +248,6 @@ var _ = Describe("DaemonRestart", func() {
 
 	AfterEach(func() {
 		close(stopCh)
-		expectNoError(DeleteRC(framework.Client, ns, rcName))
-		framework.afterEach()
 	})
 
 	It("Controller Manager should not create/delete replicas across restart", func() {

@@ -191,10 +191,10 @@ func TestValidateAnnotations(t *testing.T) {
 		{"1234/5678": "bar"},
 		{"1.2.3.4/5678": "bar"},
 		{"UpperCase123": "bar"},
-		{"a": strings.Repeat("b", (64*1024)-1)},
+		{"a": strings.Repeat("b", totalAnnotationSizeLimitB-1)},
 		{
-			"a": strings.Repeat("b", (32*1024)-1),
-			"c": strings.Repeat("d", (32*1024)-1),
+			"a": strings.Repeat("b", totalAnnotationSizeLimitB/2-1),
+			"c": strings.Repeat("d", totalAnnotationSizeLimitB/2-1),
 		},
 	}
 	for i := range successCases {
@@ -221,10 +221,10 @@ func TestValidateAnnotations(t *testing.T) {
 		}
 	}
 	totalSizeErrorCases := []map[string]string{
-		{"a": strings.Repeat("b", 64*1024)},
+		{"a": strings.Repeat("b", totalAnnotationSizeLimitB)},
 		{
-			"a": strings.Repeat("b", 32*1024),
-			"c": strings.Repeat("d", 32*1024),
+			"a": strings.Repeat("b", totalAnnotationSizeLimitB/2),
+			"c": strings.Repeat("d", totalAnnotationSizeLimitB/2),
 		},
 	}
 	for i := range totalSizeErrorCases {
@@ -1348,6 +1348,13 @@ func TestValidatePodSpec(t *testing.T) {
 			DNSPolicy:             api.DNSClusterFirst,
 			ActiveDeadlineSeconds: &activeDeadlineSeconds,
 		},
+		"bad nodeName": {
+			NodeName:      "node name",
+			Volumes:       []api.Volume{{Name: "vol", VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}}},
+			Containers:    []api.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			RestartPolicy: api.RestartPolicyAlways,
+			DNSPolicy:     api.DNSClusterFirst,
+		},
 	}
 	for k, v := range failureCases {
 		if errs := ValidatePodSpec(&v); len(errs) == 0 {
@@ -1438,6 +1445,9 @@ func TestValidatePodUpdate(t *testing.T) {
 	now := unversioned.Now()
 	grace := int64(30)
 	grace2 := int64(31)
+	activeDeadlineSecondsZero := int64(0)
+	activeDeadlineSecondsNegative := int64(-30)
+	activeDeadlineSecondsPositive := int64(30)
 	tests := []struct {
 		a       api.Pod
 		b       api.Pod
@@ -1523,6 +1533,46 @@ func TestValidatePodUpdate(t *testing.T) {
 			},
 			false,
 			"more containers",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsZero,
+				},
+			},
+			api.Pod{},
+			false,
+			"activedeadlineseconds change to 0",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			api.Pod{},
+			true,
+			"activedeadlineseconds change to positive",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsNegative,
+				},
+			},
+			api.Pod{},
+			false,
+			"activedeadlineseconds change to negative",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			api.Pod{},
+			true,
+			"activedeadlineseconds change back to nil",
 		},
 		{
 			api.Pod{
@@ -3244,6 +3294,21 @@ func TestValidateResourceQuota(t *testing.T) {
 		},
 	}
 
+	fractionalComputeSpec := api.ResourceQuotaSpec{
+		Hard: api.ResourceList{
+			api.ResourceCPU: resource.MustParse("100m"),
+		},
+	}
+
+	fractionalPodSpec := api.ResourceQuotaSpec{
+		Hard: api.ResourceList{
+			api.ResourcePods:                   resource.MustParse(".1"),
+			api.ResourceServices:               resource.MustParse(".5"),
+			api.ResourceReplicationControllers: resource.MustParse("1.25"),
+			api.ResourceQuotas:                 resource.MustParse("2.5"),
+		},
+	}
+
 	successCases := []api.ResourceQuota{
 		{
 			ObjectMeta: api.ObjectMeta{
@@ -3251,6 +3316,13 @@ func TestValidateResourceQuota(t *testing.T) {
 				Namespace: "foo",
 			},
 			Spec: spec,
+		},
+		{
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc",
+				Namespace: "foo",
+			},
+			Spec: fractionalComputeSpec,
 		},
 	}
 
@@ -3283,6 +3355,10 @@ func TestValidateResourceQuota(t *testing.T) {
 		"negative-limits": {
 			api.ResourceQuota{ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: negativeSpec},
 			isNegativeErrorMsg,
+		},
+		"fractional-api-resource": {
+			api.ResourceQuota{ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: fractionalPodSpec},
+			isNotIntegerErrorMsg,
 		},
 	}
 	for k, v := range errorCases {
@@ -4018,6 +4094,227 @@ func TestValidPodLogOptions(t *testing.T) {
 		errs := ValidatePodLogOptions(&test.opt)
 		if test.errs != len(errs) {
 			t.Errorf("%d: Unexpected errors: %v", i, errs)
+		}
+	}
+}
+
+func TestValidateSecurityContextConstraints(t *testing.T) {
+	var invalidUID int64 = -1
+	var invalidPriority = -1
+	var validPriority = 1
+
+	validSCC := func() *api.SecurityContextConstraints {
+		return &api.SecurityContextConstraints{
+			ObjectMeta: api.ObjectMeta{Name: "foo"},
+			SELinuxContext: api.SELinuxContextStrategyOptions{
+				Type: api.SELinuxStrategyRunAsAny,
+			},
+			RunAsUser: api.RunAsUserStrategyOptions{
+				Type: api.RunAsUserStrategyRunAsAny,
+			},
+			FSGroup: api.FSGroupStrategyOptions{
+				Type: api.FSGroupStrategyRunAsAny,
+			},
+			SupplementalGroups: api.SupplementalGroupsStrategyOptions{
+				Type: api.SupplementalGroupsStrategyRunAsAny,
+			},
+			Priority: &validPriority,
+		}
+	}
+
+	noUserOptions := validSCC()
+	noUserOptions.RunAsUser.Type = ""
+
+	noSELinuxOptions := validSCC()
+	noSELinuxOptions.SELinuxContext.Type = ""
+
+	invalidUserStratType := validSCC()
+	invalidUserStratType.RunAsUser.Type = "invalid"
+
+	invalidSELinuxStratType := validSCC()
+	invalidSELinuxStratType.SELinuxContext.Type = "invalid"
+
+	invalidUIDSCC := validSCC()
+	invalidUIDSCC.RunAsUser.Type = api.RunAsUserStrategyMustRunAs
+	invalidUIDSCC.RunAsUser.UID = &invalidUID
+
+	missingObjectMetaName := validSCC()
+	missingObjectMetaName.ObjectMeta.Name = ""
+
+	noFSGroupOptions := validSCC()
+	noFSGroupOptions.FSGroup.Type = ""
+
+	invalidFSGroupStratType := validSCC()
+	invalidFSGroupStratType.FSGroup.Type = "invalid"
+
+	noSupplementalGroupsOptions := validSCC()
+	noSupplementalGroupsOptions.SupplementalGroups.Type = ""
+
+	invalidSupGroupStratType := validSCC()
+	invalidSupGroupStratType.SupplementalGroups.Type = "invalid"
+
+	invalidRangeMinGreaterThanMax := validSCC()
+	invalidRangeMinGreaterThanMax.FSGroup.Ranges = []api.IDRange{
+		{Min: 2, Max: 1},
+	}
+
+	invalidRangeNegativeMin := validSCC()
+	invalidRangeNegativeMin.FSGroup.Ranges = []api.IDRange{
+		{Min: -1, Max: 10},
+	}
+
+	invalidRangeNegativeMax := validSCC()
+	invalidRangeNegativeMax.FSGroup.Ranges = []api.IDRange{
+		{Min: 1, Max: -10},
+	}
+
+	negativePriority := validSCC()
+	negativePriority.Priority = &invalidPriority
+
+	requiredCapAddAndDrop := validSCC()
+	requiredCapAddAndDrop.DefaultAddCapabilities = []api.Capability{"foo"}
+	requiredCapAddAndDrop.RequiredDropCapabilities = []api.Capability{"foo"}
+
+	allowedCapListedInRequiredDrop := validSCC()
+	allowedCapListedInRequiredDrop.RequiredDropCapabilities = []api.Capability{"foo"}
+	allowedCapListedInRequiredDrop.AllowedCapabilities = []api.Capability{"foo"}
+
+	errorCases := map[string]struct {
+		scc         *api.SecurityContextConstraints
+		errorType   fielderrors.ValidationErrorType
+		errorDetail string
+	}{
+		"no user options": {
+			scc:         noUserOptions,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+		},
+		"no selinux options": {
+			scc:         noSELinuxOptions,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, RunAsAny",
+		},
+		"no fsgroup options": {
+			scc:         noFSGroupOptions,
+			errorType:   errors.ValidationErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"no sup group options": {
+			scc:         noSupplementalGroupsOptions,
+			errorType:   errors.ValidationErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"invalid user strategy type": {
+			scc:         invalidUserStratType,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+		},
+		"invalid selinux strategy type": {
+			scc:         invalidSELinuxStratType,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, RunAsAny",
+		},
+		"invalid sup group strategy type": {
+			scc:         invalidSupGroupStratType,
+			errorType:   errors.ValidationErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"invalid fs group strategy type": {
+			scc:         invalidFSGroupStratType,
+			errorType:   errors.ValidationErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"invalid uid": {
+			scc:         invalidUIDSCC,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "uid cannot be negative",
+		},
+		"missing object meta name": {
+			scc:         missingObjectMetaName,
+			errorType:   errors.ValidationErrorTypeRequired,
+			errorDetail: "name or generateName is required",
+		},
+		"invalid range min greater than max": {
+			scc:         invalidRangeMinGreaterThanMax,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "min cannot be greater than max",
+		},
+		"invalid range negative min": {
+			scc:         invalidRangeNegativeMin,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "min cannot be negative",
+		},
+		"invalid range negative max": {
+			scc:         invalidRangeNegativeMax,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "max cannot be negative",
+		},
+		"negative priority": {
+			scc:         negativePriority,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "priority cannot be negative",
+		},
+		"invalid required caps": {
+			scc:         requiredCapAddAndDrop,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "capability is listed in defaultAddCapabilities and requiredDropCapabilities",
+		},
+		"allowed cap listed in required drops": {
+			scc:         allowedCapListedInRequiredDrop,
+			errorType:   errors.ValidationErrorTypeInvalid,
+			errorDetail: "capability is listed in allowedCapabilities and requiredDropCapabilities",
+		},
+	}
+
+	for k, v := range errorCases {
+		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) == 0 || errs[0].(*errors.ValidationError).Type != v.errorType || errs[0].(*errors.ValidationError).Detail != v.errorDetail {
+			t.Errorf("Expected error type %s with detail %s for %s, got %v", v.errorType, v.errorDetail, k, errs)
+		}
+	}
+
+	var validUID int64 = 1
+
+	mustRunAs := validSCC()
+	mustRunAs.FSGroup.Type = api.FSGroupStrategyMustRunAs
+	mustRunAs.SupplementalGroups.Type = api.SupplementalGroupsStrategyMustRunAs
+	mustRunAs.RunAsUser.Type = api.RunAsUserStrategyMustRunAs
+	mustRunAs.RunAsUser.UID = &validUID
+	mustRunAs.SELinuxContext.Type = api.SELinuxStrategyMustRunAs
+
+	runAsNonRoot := validSCC()
+	runAsNonRoot.RunAsUser.Type = api.RunAsUserStrategyMustRunAsNonRoot
+
+	caseInsensitiveAddDrop := validSCC()
+	caseInsensitiveAddDrop.DefaultAddCapabilities = []api.Capability{"foo"}
+	caseInsensitiveAddDrop.RequiredDropCapabilities = []api.Capability{"FOO"}
+
+	caseInsensitiveAllowedDrop := validSCC()
+	caseInsensitiveAllowedDrop.RequiredDropCapabilities = []api.Capability{"FOO"}
+	caseInsensitiveAllowedDrop.AllowedCapabilities = []api.Capability{"foo"}
+
+	successCases := map[string]struct {
+		scc *api.SecurityContextConstraints
+	}{
+		"must run as": {
+			scc: mustRunAs,
+		},
+		"run as any": {
+			scc: validSCC(),
+		},
+		"run as non-root (user only)": {
+			scc: runAsNonRoot,
+		},
+		"comparison for add -> drop is case sensitive": {
+			scc: caseInsensitiveAddDrop,
+		},
+		"comparison for allowed -> drop is case sensitive": {
+			scc: caseInsensitiveAllowedDrop,
+		},
+	}
+
+	for k, v := range successCases {
+		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) != 0 {
+			t.Errorf("Expected success for %s, got %v", k, errs)
 		}
 	}
 }

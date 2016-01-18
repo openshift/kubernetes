@@ -166,7 +166,8 @@ func TestGetUnknownSchemaObjectListGeneric(t *testing.T) {
 			outputVersion:   "unlikelyversion",
 			listVersion:     testapi.Default.Version(),
 			testtypeVersion: "unlikelyversion",
-			rcVersion:       testapi.Default.Version(), // see expected behavior 3b
+			// TODO figure out which part of the test harness is broken.
+			rcVersion: "v1beta3", // see expected behavior 3b
 		},
 		"handles common version": {
 			outputVersion:   testapi.Default.Version(),
@@ -587,6 +588,29 @@ func TestGetMultipleTypeObjectsWithDirectReference(t *testing.T) {
 		t.Errorf("unexpected empty output")
 	}
 }
+
+func TestGetByNameForcesFlag(t *testing.T) {
+	pods, _, _ := testData()
+
+	f, tf, codec := NewAPIFactory()
+	tf.Printer = &testPrinter{}
+	tf.Client = &fake.RESTClient{
+		Codec: codec,
+		Resp:  &http.Response{StatusCode: 200, Body: objBody(codec, &pods.Items[0])},
+	}
+	tf.Namespace = "test"
+	buf := bytes.NewBuffer([]byte{})
+
+	cmd := NewCmdGet(f, buf)
+	cmd.SetOutput(buf)
+	cmd.Run(cmd, []string{"pods", "foo"})
+
+	showAllFlag, _ := cmd.Flags().GetBool("show-all")
+	if !showAllFlag {
+		t.Errorf("expected showAll to be true when getting resource by name")
+	}
+}
+
 func watchTestData() ([]api.Pod, []watch.Event) {
 	pods := []api.Pod{
 		{

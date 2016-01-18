@@ -885,7 +885,8 @@ func describeJob(job *extensions.Job, events *api.EventList) (string, error) {
 		fmt.Fprintf(out, "Name:\t%s\n", job.Name)
 		fmt.Fprintf(out, "Namespace:\t%s\n", job.Namespace)
 		fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&job.Spec.Template.Spec))
-		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(job.Spec.Selector))
+		selector, _ := extensions.PodSelectorAsSelector(job.Spec.Selector)
+		fmt.Fprintf(out, "Selector:\t%s\n", selector)
 		fmt.Fprintf(out, "Parallelism:\t%d\n", *job.Spec.Parallelism)
 		fmt.Fprintf(out, "Completions:\t%d\n", *job.Spec.Completions)
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(job.Labels))
@@ -972,7 +973,8 @@ func describeSecret(secret *api.Secret) (string, error) {
 		fmt.Fprintf(out, "\nData\n====\n")
 		for k, v := range secret.Data {
 			switch {
-			case k == api.ServiceAccountTokenKey && secret.Type == api.SecretTypeServiceAccountToken:
+			case k == api.ServiceAccountTokenKey && secret.Type == api.SecretTypeServiceAccountToken,
+				k == api.DockerConfigKey && secret.Type == api.SecretTypeDockercfg:
 				fmt.Fprintf(out, "%s:\t%s\n", k, string(v))
 			default:
 				fmt.Fprintf(out, "%s:\t%d bytes\n", k, len(v))
@@ -1244,30 +1246,31 @@ func (d *HorizontalPodAutoscalerDescriber) Describe(namespace, name string) (str
 		fmt.Fprintf(out, "Namespace:\t%s\n", hpa.Namespace)
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(hpa.Labels))
 		fmt.Fprintf(out, "CreationTimestamp:\t%s\n", hpa.CreationTimestamp.Time.Format(time.RFC1123Z))
-		fmt.Fprintf(out, "Reference:\t%s/%s/%s/%s\n",
+		fmt.Fprintf(out, "Reference:\t%s/%s/%s\n",
 			hpa.Spec.ScaleRef.Kind,
-			hpa.Spec.ScaleRef.Namespace,
 			hpa.Spec.ScaleRef.Name,
 			hpa.Spec.ScaleRef.Subresource)
-		fmt.Fprintf(out, "Target resource consumption:\t%s %s\n",
-			hpa.Spec.Target.Quantity.String(),
-			hpa.Spec.Target.Resource)
-		fmt.Fprintf(out, "Current resource consumption:\t")
-
-		if hpa.Status.CurrentConsumption != nil {
-			fmt.Fprintf(out, "%s %s\n",
-				hpa.Status.CurrentConsumption.Quantity.String(),
-				hpa.Status.CurrentConsumption.Resource)
-		} else {
-			fmt.Fprintf(out, "<not available>\n")
+		if hpa.Spec.CPUUtilization != nil {
+			fmt.Fprintf(out, "Target CPU utilization:\t%d%%\n", hpa.Spec.CPUUtilization.TargetPercentage)
+			fmt.Fprintf(out, "Current CPU utilization:\t")
+			if hpa.Status.CurrentCPUUtilizationPercentage != nil {
+				fmt.Fprintf(out, "%d%%\n", *hpa.Status.CurrentCPUUtilizationPercentage)
+			} else {
+				fmt.Fprintf(out, "<not available>\n")
+			}
 		}
-		fmt.Fprintf(out, "Min pods:\t%d\n", hpa.Spec.MinReplicas)
-		fmt.Fprintf(out, "Max pods:\t%d\n", hpa.Spec.MaxReplicas)
+
+		minReplicas := "<unset>"
+		if hpa.Spec.MinReplicas != nil {
+			minReplicas = fmt.Sprintf("%d", *hpa.Spec.MinReplicas)
+		}
+		fmt.Fprintf(out, "Min replicas:\t%s\n", minReplicas)
+		fmt.Fprintf(out, "Max replicas:\t%d\n", hpa.Spec.MaxReplicas)
 
 		// TODO: switch to scale subresource once the required code is submitted.
 		if strings.ToLower(hpa.Spec.ScaleRef.Kind) == "replicationcontroller" {
 			fmt.Fprintf(out, "ReplicationController pods:\t")
-			rc, err := d.client.ReplicationControllers(hpa.Spec.ScaleRef.Namespace).Get(hpa.Spec.ScaleRef.Name)
+			rc, err := d.client.ReplicationControllers(hpa.Namespace).Get(hpa.Spec.ScaleRef.Name)
 			if err == nil {
 				fmt.Fprintf(out, "%d current / %d desired\n", rc.Status.Replicas, rc.Spec.Replicas)
 			} else {

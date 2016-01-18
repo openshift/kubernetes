@@ -228,6 +228,10 @@ func (c *Fake) Nodes() client.NodeInterface {
 	return &FakeNodes{Fake: c}
 }
 
+func (c *Fake) SecurityContextConstraints() client.SecurityContextConstraintInterface {
+	return &FakeSecurityContextConstraints{Fake: c}
+}
+
 func (c *Fake) Events(namespace string) client.EventInterface {
 	return &FakeEvents{Fake: c, Namespace: namespace}
 }
@@ -246,6 +250,10 @@ func (c *Fake) PersistentVolumeClaims(namespace string) client.PersistentVolumeC
 
 func (c *Fake) Pods(namespace string) client.PodInterface {
 	return &FakePods{Fake: c, Namespace: namespace}
+}
+
+func (c *Fake) PodLogs(namespace string) client.PodLogsInterface {
+	return &FakePodLogs{Fake: c, Namespace: namespace}
 }
 
 func (c *Fake) PodTemplates(namespace string) client.PodTemplateInterface {

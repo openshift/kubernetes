@@ -24,15 +24,28 @@ import (
 	"k8s.io/kubernetes/pkg/conversion"
 )
 
+const (
+	// Annotation key used to identify mirror pods.
+	mirrorAnnotationKey = "kubernetes.io/config.mirror"
+
+	// Value used to identify mirror pods from pre-v1.1 kubelet.
+	mirrorAnnotationValue_1_0 = "mirror"
+)
+
 func addConversionFuncs() {
 	// Add non-generated conversion functions
 	err := api.Scheme.AddConversionFuncs(
+		convert_api_Pod_To_v1_Pod,
 		convert_api_PodSpec_To_v1_PodSpec,
 		convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec,
 		convert_api_ServiceSpec_To_v1_ServiceSpec,
+		convert_v1_Pod_To_api_Pod,
 		convert_v1_PodSpec_To_api_PodSpec,
 		convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec,
 		convert_v1_ServiceSpec_To_api_ServiceSpec,
+
+		convert_api_VolumeSource_To_v1_VolumeSource,
+		convert_v1_VolumeSource_To_api_VolumeSource,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -289,6 +302,8 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 			return err
 		}
 
+		// the host namespace fields have to be handled here for backward compatibilty
+		// with v1.0.0
 		out.HostPID = in.SecurityContext.HostPID
 		out.HostNetwork = in.SecurityContext.HostNetwork
 		out.HostIPC = in.SecurityContext.HostIPC
@@ -303,6 +318,10 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	} else {
 		out.ImagePullSecrets = nil
 	}
+
+	// carry conversion
+	out.DeprecatedHost = in.NodeName
+
 	return nil
 }
 
@@ -359,18 +378,28 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 		out.ServiceAccountName = in.DeprecatedServiceAccount
 	}
 	out.NodeName = in.NodeName
+
+	// carry conversion
+	if in.NodeName == "" {
+		out.NodeName = in.DeprecatedHost
+	}
+
 	if in.SecurityContext != nil {
 		out.SecurityContext = new(api.PodSecurityContext)
 		if err := convert_v1_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
 			return err
 		}
 	}
+
+	// the host namespace fields have to be handled specially for backward compatibility
+	// with v1.0.0
 	if out.SecurityContext == nil {
 		out.SecurityContext = new(api.PodSecurityContext)
 	}
 	out.SecurityContext.HostNetwork = in.HostNetwork
 	out.SecurityContext.HostPID = in.HostPID
 	out.SecurityContext.HostIPC = in.HostIPC
+
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -381,7 +410,30 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 	} else {
 		out.ImagePullSecrets = nil
 	}
+
 	return nil
+}
+
+func convert_api_Pod_To_v1_Pod(in *api.Pod, out *Pod, s conversion.Scope) error {
+	if err := autoconvert_api_Pod_To_v1_Pod(in, out, s); err != nil {
+		return err
+	}
+	// We need to reset certain fields for mirror pods from pre-v1.1 kubelet
+	// (#15960).
+	// TODO: Remove this code after we drop support for v1.0 kubelets.
+	if value, ok := in.Annotations[mirrorAnnotationKey]; ok && value == mirrorAnnotationValue_1_0 {
+		// Reset the TerminationGracePeriodSeconds.
+		out.Spec.TerminationGracePeriodSeconds = nil
+		// Reset the resource requests.
+		for i := range out.Spec.Containers {
+			out.Spec.Containers[i].Resources.Requests = nil
+		}
+	}
+	return nil
+}
+
+func convert_v1_Pod_To_api_Pod(in *Pod, out *api.Pod, s conversion.Scope) error {
+	return autoconvert_v1_Pod_To_api_Pod(in, out, s)
 }
 
 func convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *ServiceSpec, s conversion.Scope) error {
@@ -413,6 +465,34 @@ func convert_api_PodSecurityContext_To_v1_PodSecurityContext(in *api.PodSecurity
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.PodSecurityContext))(in)
 	}
+
+	out.SupplementalGroups = in.SupplementalGroups
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(SELinuxOptions)
+		if err := convert_api_SELinuxOptions_To_v1_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
+	if in.FSGroup != nil {
+		out.FSGroup = new(int64)
+		*out.FSGroup = *in.FSGroup
+	} else {
+		out.FSGroup = nil
+	}
 	return nil
 }
 
@@ -420,5 +500,131 @@ func convert_v1_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurityCont
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*PodSecurityContext))(in)
 	}
+
+	out.SupplementalGroups = in.SupplementalGroups
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(api.SELinuxOptions)
+		if err := convert_v1_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	if in.RunAsNonRoot != nil {
+		out.RunAsNonRoot = new(bool)
+		*out.RunAsNonRoot = *in.RunAsNonRoot
+	} else {
+		out.RunAsNonRoot = nil
+	}
+	if in.FSGroup != nil {
+		out.FSGroup = new(int64)
+		*out.FSGroup = *in.FSGroup
+	} else {
+		out.FSGroup = nil
+	}
+	return nil
+}
+
+// This will convert our internal represantation of VolumeSource to its v1 representation
+// Used for keeping backwards compatibility for the Metadata field
+func convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.VolumeSource))(in)
+	}
+
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	if in.DownwardAPI != nil {
+		out.Metadata = new(MetadataVolumeSource)
+		if err := convert_api_DownwardAPIVolumeSource_To_v1_MetadataVolumeSource(in.DownwardAPI, out.Metadata, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// downward -> metadata (api -> v1)
+func convert_api_DownwardAPIVolumeSource_To_v1_MetadataVolumeSource(in *api.DownwardAPIVolumeSource, out *MetadataVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.DownwardAPIVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_DownwardAPIVolumeFile_To_v1_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func convert_api_DownwardAPIVolumeFile_To_v1_MetadataFile(in *api.DownwardAPIVolumeFile, out *MetadataFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.DownwardAPIVolumeFile))(in)
+	}
+	out.Name = in.Path
+	if err := convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// This will convert the v1 representation of VolumeSource to our internal representation
+// Used for keeping backwards compatibility for the Metadata field
+func convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*VolumeSource))(in)
+	}
+
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	if in.Metadata != nil {
+		out.DownwardAPI = new(api.DownwardAPIVolumeSource)
+		if err := convert_v1_MetadataVolumeSource_To_api_DownwardAPIVolumeSource(in.Metadata, out.DownwardAPI, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// metadata -> downward (v1 -> api)
+func convert_v1_MetadataVolumeSource_To_api_DownwardAPIVolumeSource(in *MetadataVolumeSource, out *api.DownwardAPIVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*MetadataVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]api.DownwardAPIVolumeFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(in *MetadataFile, out *api.DownwardAPIVolumeFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*MetadataFile))(in)
+	}
+	out.Path = in.Name
+	if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+
 	return nil
 }
