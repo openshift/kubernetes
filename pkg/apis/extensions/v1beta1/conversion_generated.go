@@ -2223,6 +2223,7 @@ func autoConvert_v1_PodSpec_To_api_PodSpec(in *v1.PodSpec, out *api.PodSpec, s c
 	} else {
 		out.NodeSelector = nil
 	}
+	// in.DeprecatedHost has no peer in out
 	out.ServiceAccountName = in.ServiceAccountName
 	// in.DeprecatedServiceAccount has no peer in out
 	out.NodeName = in.NodeName
