@@ -79,6 +79,9 @@ func addKnownTypes(scheme *runtime.Scheme) {
 		&ComponentStatusList{},
 		&SerializedReference{},
 		&RangeAllocation{},
+
+		&SecurityContextConstraints{},
+		&SecurityContextConstraintsList{},
 	)
 
 	// Add common types
@@ -127,3 +130,8 @@ func (obj *ComponentStatusList) GetObjectKind() unversioned.ObjectKind       { r
 func (obj *SerializedReference) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
 func (obj *RangeAllocation) GetObjectKind() unversioned.ObjectKind           { return &obj.TypeMeta }
 func (obj *ExportOptions) GetObjectKind() unversioned.ObjectKind             { return &obj.TypeMeta }
+
+func (obj *SecurityContextConstraints) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *SecurityContextConstraintsList) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}

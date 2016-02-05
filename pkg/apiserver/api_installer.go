@@ -141,6 +141,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 	for _, fqKind := range fqKinds {
 		if fqKind.Group == a.group.GroupVersion.Group {
 			fqKindToRegister = fqKind
+			fqKindToRegister.Version = a.group.GroupVersion.Version
 			break
 		}
 
@@ -152,18 +153,23 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		}
 	}
 
+	// Allow overriding the group/version/kind for a given path
+	if nonDefaultGroupVersionKind, exists := a.group.NonDefaultGroupVersionKinds[path]; exists {
+		fqKindToRegister = nonDefaultGroupVersionKind
+	}
+
 	if fqKindToRegister.IsEmpty() {
 		return nil, fmt.Errorf("unable to locate fully qualified kind for %v: found %v when registering for %v", reflect.TypeOf(object), fqKinds, a.group.GroupVersion)
 	}
 	kind := fqKindToRegister.Kind
 
-	versionedPtr, err := a.group.Creater.New(a.group.GroupVersion.WithKind(kind))
+	versionedPtr, err := a.group.Creater.New(fqKindToRegister)
 	if err != nil {
 		return nil, err
 	}
 	versionedObject := indirectArbitraryPointer(versionedPtr)
 
-	mapping, err := a.group.Mapper.RESTMapping(fqKindToRegister.GroupKind(), a.group.GroupVersion.Version)
+	mapping, err := a.group.Mapper.RESTMapping(fqKindToRegister.GroupKind(), fqKindToRegister.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -408,6 +414,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		if !hasSubresource {
 			namer = scopeNaming{scope, a.group.Linker, gpath.Join(a.prefix, itemPath), true}
 			actions = appendIf(actions, action{"LIST", resource, params, namer}, isLister)
+			actions = appendIf(actions, action{"POST", resource, params, namer}, isCreater)
 			actions = appendIf(actions, action{"WATCHLIST", "watch/" + resource, params, namer}, allowWatchList)
 		}
 		break
@@ -441,7 +448,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 
 		Resource:    a.group.GroupVersion.WithResource(resource),
 		Subresource: subresource,
-		Kind:        a.group.GroupVersion.WithKind(kind),
+		Kind:        fqKindToRegister,
 	}
 	for _, action := range actions {
 		reqScope.Namer = action.Namer

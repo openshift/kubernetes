@@ -1710,9 +1710,17 @@ func TestValidatePod(t *testing.T) {
 }
 
 func TestValidatePodUpdate(t *testing.T) {
-	now := unversioned.Now()
-	grace := int64(30)
-	grace2 := int64(31)
+	var (
+		activeDeadlineSecondsZero     = int64(0)
+		activeDeadlineSecondsNegative = int64(-30)
+		activeDeadlineSecondsPositive = int64(30)
+		activeDeadlineSecondsLarger   = int64(31)
+
+		now    = unversioned.Now()
+		grace  = int64(30)
+		grace2 = int64(31)
+	)
+
 	tests := []struct {
 		a       api.Pod
 		b       api.Pod
@@ -1852,6 +1860,150 @@ func TestValidatePodUpdate(t *testing.T) {
 				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
 					Containers: []api.Container{
+						{},
+					},
+				},
+			},
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{
+							Image: "foo:V2",
+						},
+					},
+				},
+			},
+			false,
+			"image change to empty",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{},
+			},
+			api.Pod{
+				Spec: api.PodSpec{},
+			},
+			true,
+			"activeDeadlineSeconds no change, nil",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			true,
+			"activeDeadlineSeconds no change, set",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			api.Pod{},
+			true,
+			"activeDeadlineSeconds change to positive from nil",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsLarger,
+				},
+			},
+			true,
+			"activeDeadlineSeconds change to smaller positive",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsLarger,
+				},
+			},
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			false,
+			"activeDeadlineSeconds change to larger positive",
+		},
+
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsNegative,
+				},
+			},
+			api.Pod{},
+			false,
+			"activeDeadlineSeconds change to negative from nil",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsNegative,
+				},
+			},
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			false,
+			"activeDeadlineSeconds change to negative from positive",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsZero,
+				},
+			},
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			false,
+			"activeDeadlineSeconds change to zero from positive",
+		},
+		{
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsZero,
+				},
+			},
+			api.Pod{},
+			false,
+			"activeDeadlineSeconds change to zero from nil",
+		},
+		{
+			api.Pod{},
+			api.Pod{
+				Spec: api.PodSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSecondsPositive,
+				},
+			},
+			false,
+			"activeDeadlineSeconds change to nil from positive",
+		},
+
+		{
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
 						{
 							Image: "foo:V1",
 							Resources: api.ResourceRequirements{
@@ -1935,11 +2087,11 @@ func TestValidatePodUpdate(t *testing.T) {
 		errs := ValidatePodUpdate(&test.a, &test.b)
 		if test.isValid {
 			if len(errs) != 0 {
-				t.Errorf("unexpected invalid: %s %v, %v", test.test, test.a, test.b)
+				t.Errorf("unexpected invalid: %s (%+v)\nA: %+v\nB: %+v", test.test, errs, test.a, test.b)
 			}
 		} else {
 			if len(errs) == 0 {
-				t.Errorf("unexpected valid: %s %v, %v", test.test, test.a, test.b)
+				t.Errorf("unexpected valid: %s\nA: %+v\nB: %+v", test.test, test.a, test.b)
 			}
 		}
 	}
@@ -4452,6 +4604,227 @@ func TestValidPodLogOptions(t *testing.T) {
 		errs := ValidatePodLogOptions(&test.opt)
 		if test.errs != len(errs) {
 			t.Errorf("%d: Unexpected errors: %v", i, errs)
+		}
+	}
+}
+
+func TestValidateSecurityContextConstraints(t *testing.T) {
+	var invalidUID int64 = -1
+	var invalidPriority = -1
+	var validPriority = 1
+
+	validSCC := func() *api.SecurityContextConstraints {
+		return &api.SecurityContextConstraints{
+			ObjectMeta: api.ObjectMeta{Name: "foo"},
+			SELinuxContext: api.SELinuxContextStrategyOptions{
+				Type: api.SELinuxStrategyRunAsAny,
+			},
+			RunAsUser: api.RunAsUserStrategyOptions{
+				Type: api.RunAsUserStrategyRunAsAny,
+			},
+			FSGroup: api.FSGroupStrategyOptions{
+				Type: api.FSGroupStrategyRunAsAny,
+			},
+			SupplementalGroups: api.SupplementalGroupsStrategyOptions{
+				Type: api.SupplementalGroupsStrategyRunAsAny,
+			},
+			Priority: &validPriority,
+		}
+	}
+
+	noUserOptions := validSCC()
+	noUserOptions.RunAsUser.Type = ""
+
+	noSELinuxOptions := validSCC()
+	noSELinuxOptions.SELinuxContext.Type = ""
+
+	invalidUserStratType := validSCC()
+	invalidUserStratType.RunAsUser.Type = "invalid"
+
+	invalidSELinuxStratType := validSCC()
+	invalidSELinuxStratType.SELinuxContext.Type = "invalid"
+
+	invalidUIDSCC := validSCC()
+	invalidUIDSCC.RunAsUser.Type = api.RunAsUserStrategyMustRunAs
+	invalidUIDSCC.RunAsUser.UID = &invalidUID
+
+	missingObjectMetaName := validSCC()
+	missingObjectMetaName.ObjectMeta.Name = ""
+
+	noFSGroupOptions := validSCC()
+	noFSGroupOptions.FSGroup.Type = ""
+
+	invalidFSGroupStratType := validSCC()
+	invalidFSGroupStratType.FSGroup.Type = "invalid"
+
+	noSupplementalGroupsOptions := validSCC()
+	noSupplementalGroupsOptions.SupplementalGroups.Type = ""
+
+	invalidSupGroupStratType := validSCC()
+	invalidSupGroupStratType.SupplementalGroups.Type = "invalid"
+
+	invalidRangeMinGreaterThanMax := validSCC()
+	invalidRangeMinGreaterThanMax.FSGroup.Ranges = []api.IDRange{
+		{Min: 2, Max: 1},
+	}
+
+	invalidRangeNegativeMin := validSCC()
+	invalidRangeNegativeMin.FSGroup.Ranges = []api.IDRange{
+		{Min: -1, Max: 10},
+	}
+
+	invalidRangeNegativeMax := validSCC()
+	invalidRangeNegativeMax.FSGroup.Ranges = []api.IDRange{
+		{Min: 1, Max: -10},
+	}
+
+	negativePriority := validSCC()
+	negativePriority.Priority = &invalidPriority
+
+	requiredCapAddAndDrop := validSCC()
+	requiredCapAddAndDrop.DefaultAddCapabilities = []api.Capability{"foo"}
+	requiredCapAddAndDrop.RequiredDropCapabilities = []api.Capability{"foo"}
+
+	allowedCapListedInRequiredDrop := validSCC()
+	allowedCapListedInRequiredDrop.RequiredDropCapabilities = []api.Capability{"foo"}
+	allowedCapListedInRequiredDrop.AllowedCapabilities = []api.Capability{"foo"}
+
+	errorCases := map[string]struct {
+		scc         *api.SecurityContextConstraints
+		errorType   field.ErrorType
+		errorDetail string
+	}{
+		"no user options": {
+			scc:         noUserOptions,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+		},
+		"no selinux options": {
+			scc:         noSELinuxOptions,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, RunAsAny",
+		},
+		"no fsgroup options": {
+			scc:         noFSGroupOptions,
+			errorType:   field.ErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"no sup group options": {
+			scc:         noSupplementalGroupsOptions,
+			errorType:   field.ErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"invalid user strategy type": {
+			scc:         invalidUserStratType,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+		},
+		"invalid selinux strategy type": {
+			scc:         invalidSELinuxStratType,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, RunAsAny",
+		},
+		"invalid sup group strategy type": {
+			scc:         invalidSupGroupStratType,
+			errorType:   field.ErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"invalid fs group strategy type": {
+			scc:         invalidFSGroupStratType,
+			errorType:   field.ErrorTypeNotSupported,
+			errorDetail: "supported values: MustRunAs, RunAsAny",
+		},
+		"invalid uid": {
+			scc:         invalidUIDSCC,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "uid cannot be negative",
+		},
+		"missing object meta name": {
+			scc:         missingObjectMetaName,
+			errorType:   field.ErrorTypeRequired,
+			errorDetail: "name or generateName is required",
+		},
+		"invalid range min greater than max": {
+			scc:         invalidRangeMinGreaterThanMax,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "min cannot be greater than max",
+		},
+		"invalid range negative min": {
+			scc:         invalidRangeNegativeMin,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "min cannot be negative",
+		},
+		"invalid range negative max": {
+			scc:         invalidRangeNegativeMax,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "max cannot be negative",
+		},
+		"negative priority": {
+			scc:         negativePriority,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "priority cannot be negative",
+		},
+		"invalid required caps": {
+			scc:         requiredCapAddAndDrop,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "capability is listed in defaultAddCapabilities and requiredDropCapabilities",
+		},
+		"allowed cap listed in required drops": {
+			scc:         allowedCapListedInRequiredDrop,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "capability is listed in allowedCapabilities and requiredDropCapabilities",
+		},
+	}
+
+	for k, v := range errorCases {
+		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) == 0 || errs[0].Type != v.errorType || errs[0].Detail != v.errorDetail {
+			t.Errorf("Expected error type %s with detail %s for %s, got %v", v.errorType, v.errorDetail, k, errs)
+		}
+	}
+
+	var validUID int64 = 1
+
+	mustRunAs := validSCC()
+	mustRunAs.FSGroup.Type = api.FSGroupStrategyMustRunAs
+	mustRunAs.SupplementalGroups.Type = api.SupplementalGroupsStrategyMustRunAs
+	mustRunAs.RunAsUser.Type = api.RunAsUserStrategyMustRunAs
+	mustRunAs.RunAsUser.UID = &validUID
+	mustRunAs.SELinuxContext.Type = api.SELinuxStrategyMustRunAs
+
+	runAsNonRoot := validSCC()
+	runAsNonRoot.RunAsUser.Type = api.RunAsUserStrategyMustRunAsNonRoot
+
+	caseInsensitiveAddDrop := validSCC()
+	caseInsensitiveAddDrop.DefaultAddCapabilities = []api.Capability{"foo"}
+	caseInsensitiveAddDrop.RequiredDropCapabilities = []api.Capability{"FOO"}
+
+	caseInsensitiveAllowedDrop := validSCC()
+	caseInsensitiveAllowedDrop.RequiredDropCapabilities = []api.Capability{"FOO"}
+	caseInsensitiveAllowedDrop.AllowedCapabilities = []api.Capability{"foo"}
+
+	successCases := map[string]struct {
+		scc *api.SecurityContextConstraints
+	}{
+		"must run as": {
+			scc: mustRunAs,
+		},
+		"run as any": {
+			scc: validSCC(),
+		},
+		"run as non-root (user only)": {
+			scc: runAsNonRoot,
+		},
+		"comparison for add -> drop is case sensitive": {
+			scc: caseInsensitiveAddDrop,
+		},
+		"comparison for allowed -> drop is case sensitive": {
+			scc: caseInsensitiveAllowedDrop,
+		},
+	}
+
+	for k, v := range successCases {
+		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) != 0 {
+			t.Errorf("Expected success for %s, got %v", k, errs)
 		}
 	}
 }

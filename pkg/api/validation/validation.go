@@ -186,6 +186,14 @@ func ValidateEndpointsName(name string, prefix bool) (bool, string) {
 	return NameIsDNSSubdomain(name, prefix)
 }
 
+// ValidateSecurityContextConstraintsName can be used to check whether the given
+// security context constraint name is valid.
+// Prefix indicates this name will be used as part of generation, in which case
+// trailing dashes are allowed.
+func ValidateSecurityContextConstraintsName(name string, prefix bool) (bool, string) {
+	return NameIsDNSSubdomain(name, prefix)
+}
+
 // NameIsDNSSubdomain is a ValidateNameFunc for names that must be a DNS subdomain.
 func NameIsDNSSubdomain(name string, prefix bool) (bool, string) {
 	if prefix {
@@ -1380,17 +1388,56 @@ func ValidatePodUpdate(newPod, oldPod *api.Pod) field.ErrorList {
 		allErrs = append(allErrs, field.Forbidden(specPath.Child("containers"), "pod updates may not add or remove containers"))
 		return allErrs
 	}
-	pod := *newPod
-	// Tricky, we need to copy the container list so that we don't overwrite the update
+
+	// validate updateable fields:
+	// 1.  containers[*].image
+	// 2.  spec.activeDeadlineSeconds
+
+	// validate updated container images
+	for i, ctr := range newPod.Spec.Containers {
+		if len(ctr.Image) == 0 {
+			allErrs = append(allErrs, field.Required(specPath.Child("containers").Index(i).Child("image"), ""))
+		}
+	}
+
+	// validate updated spec.activeDeadlineSeconds.  two types of updated are allowed:
+	// 1.  from nil to a positive value
+	// 2.  from a positive value to a lesser positive value
+	if newPod.Spec.ActiveDeadlineSeconds != nil {
+		newActiveDeadlineSeconds := *newPod.Spec.ActiveDeadlineSeconds
+		if newActiveDeadlineSeconds <= 0 {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("activeDeadlineSeconds"), newActiveDeadlineSeconds, "must be greater than 0"))
+			return allErrs
+		}
+		if oldPod.Spec.ActiveDeadlineSeconds != nil {
+			oldActiveDeadlineSeconds := *oldPod.Spec.ActiveDeadlineSeconds
+			if oldActiveDeadlineSeconds < newActiveDeadlineSeconds {
+				allErrs = append(allErrs, field.Invalid(specPath.Child("activeDeadlineSeconds"), newActiveDeadlineSeconds, "must be less than or equal to previous value"))
+				return allErrs
+			}
+		}
+	} else if oldPod.Spec.ActiveDeadlineSeconds != nil {
+		allErrs = append(allErrs, field.Invalid(specPath.Child("activeDeadlineSeconds"), newPod.Spec.ActiveDeadlineSeconds, "must not update from a positive integer to nil value"))
+	}
+
+	// handle updateable fields by munging those fields prior to deep equal comparison.
+	mungedPod := *newPod
+	// munge containers[*].image
 	var newContainers []api.Container
-	for ix, container := range pod.Spec.Containers {
+	for ix, container := range mungedPod.Spec.Containers {
 		container.Image = oldPod.Spec.Containers[ix].Image
 		newContainers = append(newContainers, container)
 	}
-	pod.Spec.Containers = newContainers
-	if !api.Semantic.DeepEqual(pod.Spec, oldPod.Spec) {
+	mungedPod.Spec.Containers = newContainers
+	// munge spec.activeDeadlineSeconds
+	mungedPod.Spec.ActiveDeadlineSeconds = nil
+	if oldPod.Spec.ActiveDeadlineSeconds != nil {
+		activeDeadlineSeconds := *oldPod.Spec.ActiveDeadlineSeconds
+		mungedPod.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+	}
+	if !api.Semantic.DeepEqual(mungedPod.Spec, oldPod.Spec) {
 		//TODO: Pinpoint the specific field that causes the invalid error after we have strategic merge diff
-		allErrs = append(allErrs, field.Forbidden(specPath, "pod updates may not change fields other than `containers[*].image`"))
+		allErrs = append(allErrs, field.Forbidden(specPath, "pod updates may not change fields other than `containers[*].image` or `spec.activeDeadlineSeconds`"))
 	}
 
 	newPod.Status = oldPod.Status
@@ -2321,5 +2368,117 @@ func ValidateLoadBalancerStatus(status *api.LoadBalancerStatus, fldPath *field.P
 			}
 		}
 	}
+	return allErrs
+}
+
+func ValidateSecurityContextConstraints(scc *api.SecurityContextConstraints) field.ErrorList {
+	allErrs := ValidateObjectMeta(&scc.ObjectMeta, false, ValidateSecurityContextConstraintsName, field.NewPath("metadata"))
+
+	if scc.Priority != nil {
+		if *scc.Priority < 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("priority"), *scc.Priority, "priority cannot be negative"))
+		}
+	}
+
+	// ensure the user strat has a valid type
+	runAsUserPath := field.NewPath("runAsUser")
+	switch scc.RunAsUser.Type {
+	case api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange:
+		//good types
+	default:
+		msg := fmt.Sprintf("invalid strategy type.  Valid values are %s, %s, %s", api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyRunAsAny)
+		allErrs = append(allErrs, field.Invalid(runAsUserPath.Child("type"), scc.RunAsUser.Type, msg))
+	}
+
+	// if specified, uid cannot be negative
+	if scc.RunAsUser.UID != nil {
+		if *scc.RunAsUser.UID < 0 {
+			allErrs = append(allErrs, field.Invalid(runAsUserPath.Child("uid"), *scc.RunAsUser.UID, "uid cannot be negative"))
+		}
+	}
+
+	// ensure the selinux strat has a valid type
+	seLinuxContextPath := field.NewPath("seLinuxContext")
+	switch scc.SELinuxContext.Type {
+	case api.SELinuxStrategyMustRunAs, api.SELinuxStrategyRunAsAny:
+		//good types
+	default:
+		msg := fmt.Sprintf("invalid strategy type.  Valid values are %s, %s", api.SELinuxStrategyMustRunAs, api.SELinuxStrategyRunAsAny)
+		allErrs = append(allErrs, field.Invalid(seLinuxContextPath.Child("type"), scc.SELinuxContext.Type, msg))
+	}
+
+	// ensure the fsgroup strat has a valid type
+	if scc.FSGroup.Type != api.FSGroupStrategyMustRunAs && scc.FSGroup.Type != api.FSGroupStrategyRunAsAny {
+		allErrs = append(allErrs, field.NotSupported(field.NewPath("fsGroup", "type"), scc.FSGroup.Type,
+			[]string{string(api.FSGroupStrategyMustRunAs), string(api.FSGroupStrategyRunAsAny)}))
+	}
+	allErrs = append(allErrs, validateIDRanges(scc.FSGroup.Ranges, field.NewPath("fsGroup"))...)
+
+	if scc.SupplementalGroups.Type != api.SupplementalGroupsStrategyMustRunAs &&
+		scc.SupplementalGroups.Type != api.SupplementalGroupsStrategyRunAsAny {
+		allErrs = append(allErrs, field.NotSupported(field.NewPath("supplementalGroups", "type"), scc.SupplementalGroups.Type,
+			[]string{string(api.SupplementalGroupsStrategyMustRunAs), string(api.SupplementalGroupsStrategyRunAsAny)}))
+	}
+	allErrs = append(allErrs, validateIDRanges(scc.SupplementalGroups.Ranges, field.NewPath("supplementalGroups"))...)
+
+	// validate capabilities
+	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.DefaultAddCapabilities, field.NewPath("defaultAddCapabilities"))...)
+	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.AllowedCapabilities, field.NewPath("allowedCapabilities"))...)
+
+	return allErrs
+}
+
+// validateSCCCapsAgainstDrops ensures an allowed cap is not listed in the required drops.
+func validateSCCCapsAgainstDrops(requiredDrops []api.Capability, capsToCheck []api.Capability, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if requiredDrops == nil {
+		return allErrs
+	}
+	for _, cap := range capsToCheck {
+		if hasCap(cap, requiredDrops) {
+			allErrs = append(allErrs, field.Invalid(fldPath, cap,
+				fmt.Sprintf("capability is listed in %s and requiredDropCapabilities", fldPath.String())))
+		}
+	}
+	return allErrs
+}
+
+// hasCap checks for needle in haystack.
+func hasCap(needle api.Capability, haystack []api.Capability) bool {
+	for _, c := range haystack {
+		if needle == c {
+			return true
+		}
+	}
+	return false
+}
+
+// validateIDRanges ensures the range is valid.
+func validateIDRanges(rng []api.IDRange, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	for i, r := range rng {
+		// if 0 <= Min <= Max then we do not need to validate max.  It is always greater than or
+		// equal to 0 and Min.
+		minPath := fldPath.Child("ranges").Index(i).Child("min")
+		maxPath := fldPath.Child("ranges").Index(i).Child("max")
+
+		if r.Min < 0 {
+			allErrs = append(allErrs, field.Invalid(minPath, r.Min, "min cannot be negative"))
+		}
+		if r.Max < 0 {
+			allErrs = append(allErrs, field.Invalid(maxPath, r.Max, "max cannot be negative"))
+		}
+		if r.Min > r.Max {
+			allErrs = append(allErrs, field.Invalid(minPath, r, "min cannot be greater than max"))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateSecurityContextConstraintsUpdate(newScc, oldScc *api.SecurityContextConstraints) field.ErrorList {
+	allErrs := ValidateObjectMetaUpdate(&newScc.ObjectMeta, &oldScc.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateSecurityContextConstraints(newScc)...)
 	return allErrs
 }

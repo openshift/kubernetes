@@ -17,11 +17,11 @@ limitations under the License.
 package runtime
 
 import (
-	"encoding/json"
 	"io"
 
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/util/json"
 )
 
 // UnstructuredJSONScheme is capable of converting JSON data into the Unstructured
@@ -69,11 +69,22 @@ func (s unstructuredJSONScheme) Decode(data []byte, _ *unversioned.GroupVersionK
 func (s unstructuredJSONScheme) EncodeToStream(obj Object, w io.Writer, overrides ...unversioned.GroupVersion) error {
 	switch t := obj.(type) {
 	case *Unstructured:
-		return json.NewEncoder(w).Encode(t.Object)
+		bytes, err := json.Marshal(t.Object)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(bytes)
+		return err
+
 	case *Unknown:
 		_, err := w.Write(t.RawJSON)
 		return err
 	default:
-		return json.NewEncoder(w).Encode(t)
+		bytes, err := json.Marshal(t)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(bytes)
+		return err
 	}
 }

@@ -151,7 +151,7 @@ func KindToResource(kind unversioned.GroupVersionKind, mixedCase bool) (plural, 
 	}
 
 	singularName := singular.Resource
-	if strings.HasSuffix(singularName, "endpoints") {
+	if strings.HasSuffix(singularName, "endpoints") || strings.HasSuffix(singularName, "securitycontextconstraints") {
 		plural = singular
 	} else {
 		switch string(singularName[len(singularName)-1]) {

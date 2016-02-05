@@ -23,6 +23,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -188,12 +189,27 @@ func (o AnnotateOptions) RunAnnotate() error {
 		return err
 	}
 
+	clientConfig, err := o.f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	// TODO: get the negotiated version per group
+	negotiatedVersion := ""
+	if clientConfig.GroupVersion != nil {
+		negotiatedVersion = clientConfig.GroupVersion.String()
+	}
+
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
 		}
 
-		name, namespace, obj := info.Name, info.Namespace, info.Object
+		// if the resource can't be converted to the negotiated version, AsVersionedObject falls back to the info.Mapping.GroupVersion
+		obj, err := resource.AsVersionedObject([]*resource.Info{info}, false, negotiatedVersion, o.f.JSONEncoder())
+		if err != nil {
+			return err
+		}
+		name, namespace := info.Name, info.Namespace
 		oldData, err := json.Marshal(obj)
 		if err != nil {
 			return err
@@ -206,8 +222,9 @@ func (o AnnotateOptions) RunAnnotate() error {
 			return err
 		}
 		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+		createdPatch := err == nil
 		if err != nil {
-			return err
+			glog.V(2).Infof("couldn't compute patch: %v", err)
 		}
 
 		mapping := info.ResourceMapping()
@@ -217,7 +234,12 @@ func (o AnnotateOptions) RunAnnotate() error {
 		}
 		helper := resource.NewHelper(client, mapping)
 
-		outputObj, err := helper.Patch(namespace, name, api.StrategicMergePatchType, patchBytes)
+		var outputObj runtime.Object
+		if createdPatch {
+			outputObj, err = helper.Patch(namespace, name, api.StrategicMergePatchType, patchBytes)
+		} else {
+			outputObj, err = helper.Replace(namespace, name, false, obj)
+		}
 		if err != nil {
 			return err
 		}

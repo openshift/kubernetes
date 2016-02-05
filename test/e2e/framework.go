@@ -51,6 +51,9 @@ type Framework struct {
 	logsSizeWaitGroup    sync.WaitGroup
 	logsSizeCloseChannel chan bool
 	logsSizeVerifier     *LogsSizeVerifier
+
+	// Allows to override the initialization of the namespace
+	nsCreateFunc func(string, *client.Client, map[string]string) (*api.Namespace, error)
 }
 
 type TestDataSummary interface {
@@ -61,9 +64,16 @@ type TestDataSummary interface {
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewFramework(baseName string) *Framework {
+	return InitializeFramework(baseName, createTestingNS)
+}
+
+// InitializeFramework initialize the framework by allowing to pass a custom
+// namespace creation function.
+func InitializeFramework(baseName string, nsCreateFunc func(string, *client.Client, map[string]string) (*api.Namespace, error)) *Framework {
 	f := &Framework{
 		BaseName:                 baseName,
 		addonResourceConstraints: make(map[string]resourceConstraint),
+		nsCreateFunc:             nsCreateFunc,
 	}
 
 	BeforeEach(f.beforeEach)
@@ -81,7 +91,7 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := createTestingNS(f.BaseName, f.Client, map[string]string{
+	namespace, err := f.nsCreateFunc(f.BaseName, f.Client, map[string]string{
 		"e2e-framework": f.BaseName,
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -198,6 +208,11 @@ func (f *Framework) afterEach() {
 	// Paranoia-- prevent reuse!
 	f.Namespace = nil
 	f.Client = nil
+}
+
+// WaitForPodTerminated waits for the pod to be terminated with the given reason.
+func (f *Framework) WaitForPodTerminated(podName, reason string) error {
+	return waitForPodTerminatedInNamespace(f.Client, podName, reason, f.Namespace.Name)
 }
 
 // WaitForPodRunning waits for the pod to run in the namespace.
