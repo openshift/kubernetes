@@ -41,6 +41,7 @@ import (
 	deploymentutil "k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"strconv"
 )
 
 // Describer generates output for the named resource or an error
@@ -72,18 +73,19 @@ func (e ErrNoDescriber) Error() string {
 
 func describerMap(c *client.Client) map[unversioned.GroupKind]Describer {
 	m := map[unversioned.GroupKind]Describer{
-		api.Kind("Pod"):                   &PodDescriber{c},
-		api.Kind("ReplicationController"): &ReplicationControllerDescriber{c},
-		api.Kind("Secret"):                &SecretDescriber{c},
-		api.Kind("Service"):               &ServiceDescriber{c},
-		api.Kind("ServiceAccount"):        &ServiceAccountDescriber{c},
-		api.Kind("Node"):                  &NodeDescriber{c},
-		api.Kind("LimitRange"):            &LimitRangeDescriber{c},
-		api.Kind("ResourceQuota"):         &ResourceQuotaDescriber{c},
-		api.Kind("PersistentVolume"):      &PersistentVolumeDescriber{c},
-		api.Kind("PersistentVolumeClaim"): &PersistentVolumeClaimDescriber{c},
-		api.Kind("Namespace"):             &NamespaceDescriber{c},
-		api.Kind("Endpoints"):             &EndpointsDescriber{c},
+		api.Kind("Pod"):                        &PodDescriber{c},
+		api.Kind("ReplicationController"):      &ReplicationControllerDescriber{c},
+		api.Kind("Secret"):                     &SecretDescriber{c},
+		api.Kind("Service"):                    &ServiceDescriber{c},
+		api.Kind("ServiceAccount"):             &ServiceAccountDescriber{c},
+		api.Kind("Node"):                       &NodeDescriber{c},
+		api.Kind("LimitRange"):                 &LimitRangeDescriber{c},
+		api.Kind("ResourceQuota"):              &ResourceQuotaDescriber{c},
+		api.Kind("PersistentVolume"):           &PersistentVolumeDescriber{c},
+		api.Kind("PersistentVolumeClaim"):      &PersistentVolumeClaimDescriber{c},
+		api.Kind("Namespace"):                  &NamespaceDescriber{c},
+		api.Kind("Endpoints"):                  &EndpointsDescriber{c},
+		api.Kind("SecurityContextConstraints"): &SecurityContextConstraintsDescriber{c},
 
 		extensions.Kind("HorizontalPodAutoscaler"): &HorizontalPodAutoscalerDescriber{c},
 		extensions.Kind("DaemonSet"):               &DaemonSetDescriber{c},
@@ -411,6 +413,98 @@ func describeQuota(resourceQuota *api.ResourceQuota) (string, error) {
 		}
 		return nil
 	})
+}
+
+// SecurityContextConstraintsDescriber generates information about an SCC
+type SecurityContextConstraintsDescriber struct {
+	client.Interface
+}
+
+func (d *SecurityContextConstraintsDescriber) Describe(namespace, name string) (string, error) {
+	scc, err := d.SecurityContextConstraints().Get(name)
+	if err != nil {
+		return "", err
+	}
+	return describeSecurityContextConstraints(scc)
+}
+
+func describeSecurityContextConstraints(scc *api.SecurityContextConstraints) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", scc.Name)
+
+		if scc.Priority != nil {
+			fmt.Fprintf(out, "Priority:\t%s\n", strconv.Itoa(*scc.Priority))
+		}
+
+		fmt.Fprintf(out, "Access:\t\n")
+		fmt.Fprintf(out, "  Users:\t%s\n", strings.Join(scc.Users, ","))
+		fmt.Fprintf(out, "  Groups:\t%s\n", strings.Join(scc.Groups, ","))
+
+
+		fmt.Fprintf(out, "Settings:\t\n")
+		fmt.Fprintf(out, "  Allow Privileged:\t%t\n", scc.AllowPrivilegedContainer)
+		fmt.Fprintf(out, "  Default Add Capabilities:\t%s\n", capsToString(scc.DefaultAddCapabilities))
+		fmt.Fprintf(out, "  Required Drop Capabilities:\t%s\n", capsToString(scc.RequiredDropCapabilities))
+		fmt.Fprintf(out, "  Allowed Capabilities:\t%s\n", capsToString(scc.AllowedCapabilities))
+		fmt.Fprintf(out, "  Allow Host Dir Volumes:\t%t\n", scc.AllowHostDirVolumePlugin)
+		fmt.Fprintf(out, "  Allow Host Network:\t%t\n", scc.AllowHostNetwork)
+		fmt.Fprintf(out, "  Allow Host Ports:\t%t\n", scc.AllowHostPorts)
+		fmt.Fprintf(out, "  Allow Host PID:\t%t\n", scc.AllowHostPID)
+		fmt.Fprintf(out, "  Allow Host IPC:\t%t\n", scc.AllowHostIPC)
+
+		fmt.Fprintf(out, "  Run As User Strategy:\t\n")
+		fmt.Fprintf(out, "    Type:\t%s\n", string(scc.RunAsUser.Type))
+		if scc.RunAsUser.UID != nil {
+			fmt.Fprintf(out, "    UID:\t%d\n", *scc.RunAsUser.UID)
+		}
+		if scc.RunAsUser.UIDRangeMin != nil {
+			fmt.Fprintf(out, "    UID Range Min:\t%d\n", *scc.RunAsUser.UIDRangeMin)
+		}
+		if scc.RunAsUser.UIDRangeMax != nil {
+			fmt.Fprintf(out, "    UID Range Max:\t%d\n", *scc.RunAsUser.UIDRangeMax)
+		}
+
+		fmt.Fprintf(out, "  SELinux Context Strategy:\t\n")
+		fmt.Fprintf(out, "    Type:\t%s\n", string(scc.SELinuxContext.Type))
+		if scc.SELinuxContext.SELinuxOptions != nil {
+			fmt.Fprintf(out, "    User:\t%s\n", string(scc.SELinuxContext.SELinuxOptions.User))
+			fmt.Fprintf(out, "    Role:\t%s\n", string(scc.SELinuxContext.SELinuxOptions.Role))
+			fmt.Fprintf(out, "    Type:\t%s\n", string(scc.SELinuxContext.SELinuxOptions.Type))
+			fmt.Fprintf(out, "    Level:\t%s\n", string(scc.SELinuxContext.SELinuxOptions.Level))
+		}
+
+		fmt.Fprintf(out, "  FSGroup Strategy:\t\n")
+		fmt.Fprintf(out, "    Type:\t%s\n", string(scc.FSGroup.Type))
+		fmt.Fprintf(out, "    Ranges:\t%s\n", idRangeToString(scc.FSGroup.Ranges))
+
+		fmt.Fprintf(out, "  Supplemental Groups Strategy:\t\n")
+		fmt.Fprintf(out, "    Type:\t%s\n", string(scc.SupplementalGroups.Type))
+		fmt.Fprintf(out, "    Ranges:\t%s\n", idRangeToString(scc.SupplementalGroups.Ranges))
+
+		return nil
+	})
+}
+
+func idRangeToString(ranges []api.IDRange) string {
+	if ranges != nil {
+		strRanges := []string{}
+		for _, r := range ranges{
+			strRanges = append(strRanges, fmt.Sprintf("%d-%d", r.Min, r.Max))
+		}
+		return strings.Join(strRanges, ",")
+	}
+	return ""
+}
+
+func capsToString(caps []api.Capability) string {
+	if caps != nil {
+		strCaps := []string{}
+		for _, c := range caps {
+			strCaps = append(strCaps, string(c))
+		}
+		return strings.Join(strCaps, ",")
+	}
+	return ""
 }
 
 // PodDescriber generates information about a pod and the replication controllers that
