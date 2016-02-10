@@ -31,7 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/testapi"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/test/integration/framework"
@@ -43,7 +43,7 @@ func TestClient(t *testing.T) {
 
 	ns := api.NamespaceDefault
 	framework.DeleteAllEtcdKeys()
-	client := client.NewOrDie(&client.Config{Host: s.URL, GroupVersion: testapi.Default.GroupVersion()})
+	client := client.NewOrDie(&client.Config{Host: s.URL, ContentConfig: client.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
 	info, err := client.Discovery().ServerVersion()
 	if err != nil {
@@ -113,7 +113,7 @@ func TestSingleWatch(t *testing.T) {
 
 	ns := "blargh"
 	deleteAllEtcdKeys()
-	client := client.NewOrDie(&client.Config{Host: s.URL, GroupVersion: testapi.Default.GroupVersion()})
+	client := client.NewOrDie(&client.Config{Host: s.URL, ContentConfig: client.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
 	mkEvent := func(i int) *api.Event {
 		name := fmt.Sprintf("event-%v", i)
@@ -160,8 +160,8 @@ func TestSingleWatch(t *testing.T) {
 	defer w.Stop()
 
 	select {
-	case <-time.After(util.ForeverTestTimeout):
-		t.Fatalf("watch took longer than %s", util.ForeverTestTimeout.String())
+	case <-time.After(wait.ForeverTestTimeout):
+		t.Fatalf("watch took longer than %s", wait.ForeverTestTimeout.String())
 	case got, ok := <-w.ResultChan():
 		if !ok {
 			t.Fatal("Watch channel closed unexpectedly.")
@@ -197,7 +197,7 @@ func TestMultiWatch(t *testing.T) {
 	defer s.Close()
 
 	ns := api.NamespaceDefault
-	client := client.NewOrDie(&client.Config{Host: s.URL, GroupVersion: testapi.Default.GroupVersion()})
+	client := client.NewOrDie(&client.Config{Host: s.URL, ContentConfig: client.ContentConfig{GroupVersion: testapi.Default.GroupVersion()}})
 
 	dummyEvent := func(i int) *api.Event {
 		name := fmt.Sprintf("unrelated-%v", i)

@@ -55,14 +55,13 @@ type Config struct {
 	Host string
 	// APIPath is a sub-path that points to an API root.
 	APIPath string
-	// GroupVersion is the API version to talk to. Must be provided when initializing
-	// a RESTClient directly. When initializing a Client, will be set with the default
-	// code version.
-	GroupVersion *unversioned.GroupVersion
-	// Codec specifies the encoding and decoding behavior for runtime.Objects passed
-	// to a RESTClient or Client. Required when initializing a RESTClient, optional
-	// when initializing a Client.
-	Codec runtime.Codec
+	// Prefix is the sub path of the server. If not specified, the client will set
+	// a default value.  Use "/" to indicate the server root should be used
+	Prefix string
+
+	// ContentConfig contains settings that affect how objects are transformed when
+	// sent to the server.
+	ContentConfig
 
 	// Server requires Basic authentication
 	Username string
@@ -120,6 +119,22 @@ type TLSClientConfig struct {
 	CAData []byte
 }
 
+type ContentConfig struct {
+	// ContentType specifies the wire format used to communicate with the server.
+	// This value will be set as the Accept header on requests made to the server, and
+	// as the default content type on any object sent to the server. If not set,
+	// "application/json" is used.
+	ContentType string
+	// GroupVersion is the API version to talk to. Must be provided when initializing
+	// a RESTClient directly. When initializing a Client, will be set with the default
+	// code version.
+	GroupVersion *unversioned.GroupVersion
+	// Codec specifies the encoding and decoding behavior for runtime.Objects passed
+	// to a RESTClient or Client. Required when initializing a RESTClient, optional
+	// when initializing a Client.
+	Codec runtime.Codec
+}
+
 // New creates a Kubernetes client for the given config. This client works with pods,
 // replication controllers, daemons, and services. It allows operations such as list, get, update
 // and delete on these objects. An error is returned if the provided configuration
@@ -135,7 +150,7 @@ func New(c *Config) (*Client, error) {
 	}
 
 	discoveryConfig := *c
-	discoveryClient, err := NewDiscoveryClient(&discoveryConfig)
+	discoveryClient, err := NewDiscoveryClientForConfig(&discoveryConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -407,16 +422,18 @@ func RESTClientFor(config *Config) (*RESTClient, error) {
 		return nil, err
 	}
 
-	client := NewRESTClient(baseURL, versionedAPIPath, *config.GroupVersion, config.Codec, config.QPS, config.Burst)
-
 	transport, err := TransportFor(config)
 	if err != nil {
 		return nil, err
 	}
 
+	var httpClient *http.Client
 	if transport != http.DefaultTransport {
-		client.Client = &http.Client{Transport: transport}
+		httpClient = &http.Client{Transport: transport}
 	}
+
+	client := NewRESTClient(baseURL, versionedAPIPath, config.ContentConfig, config.QPS, config.Burst, httpClient)
+
 	return client, nil
 }
 
@@ -432,16 +449,23 @@ func UnversionedRESTClientFor(config *Config) (*RESTClient, error) {
 		return nil, err
 	}
 
-	client := NewRESTClient(baseURL, versionedAPIPath, unversioned.SchemeGroupVersion, config.Codec, config.QPS, config.Burst)
-
 	transport, err := TransportFor(config)
 	if err != nil {
 		return nil, err
 	}
 
+	var httpClient *http.Client
 	if transport != http.DefaultTransport {
-		client.Client = &http.Client{Transport: transport}
+		httpClient = &http.Client{Transport: transport}
 	}
+
+	versionConfig := config.ContentConfig
+	if versionConfig.GroupVersion == nil {
+		v := unversioned.SchemeGroupVersion
+		versionConfig.GroupVersion = &v
+	}
+
+	client := NewRESTClient(baseURL, versionedAPIPath, versionConfig, config.QPS, config.Burst, httpClient)
 	return client, nil
 }
 
@@ -557,4 +581,48 @@ func DefaultKubernetesUserAgent() string {
 	seg := strings.SplitN(version, "-", 2)
 	version = seg[0]
 	return fmt.Sprintf("%s/%s (%s/%s) kubernetes/%s", path.Base(os.Args[0]), version, gruntime.GOOS, gruntime.GOARCH, commit)
+}
+
+// LoadTLSFiles copies the data from the CertFile, KeyFile, and CAFile fields into the CertData,
+// KeyData, and CAFile fields, or returns an error. If no error is returned, all three fields are
+// either populated or were empty to start.
+func LoadTLSFiles(c *Config) error {
+	var err error
+	c.CAData, err = dataFromSliceOrFile(c.CAData, c.CAFile)
+	if err != nil {
+		return err
+	}
+
+	c.CertData, err = dataFromSliceOrFile(c.CertData, c.CertFile)
+	if err != nil {
+		return err
+	}
+
+	c.KeyData, err = dataFromSliceOrFile(c.KeyData, c.KeyFile)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// dataFromSliceOrFile returns data from the slice (if non-empty), or from the file,
+// or an error if an error occurred reading the file
+func dataFromSliceOrFile(data []byte, file string) ([]byte, error) {
+	if len(data) > 0 {
+		return data, nil
+	}
+	if len(file) > 0 {
+		fileData, err := ioutil.ReadFile(file)
+		if err != nil {
+			return []byte{}, err
+		}
+		return fileData, nil
+	}
+	return nil, nil
+}
+
+func AddUserAgent(config *Config, userAgent string) *Config {
+	fullUserAgent := DefaultKubernetesUserAgent() + "/" + userAgent
+	config.UserAgent = fullUserAgent
+	return config
 }

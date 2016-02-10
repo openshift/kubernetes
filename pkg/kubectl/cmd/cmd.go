@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -124,6 +125,7 @@ __custom_func() {
    * persistentvolumeclaims (aka 'pvc')
    * quota
    * resourcequotas (aka 'quota')
+   * replicasets (aka 'rs')
    * replicationcontrollers (aka 'rc')
    * secrets
    * serviceaccounts
@@ -175,6 +177,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdStop(f, out))
 	cmds.AddCommand(NewCmdExposeService(f, out))
 	cmds.AddCommand(NewCmdAutoscale(f, out))
+	cmds.AddCommand(rollout.NewCmdRollout(f, out))
 
 	cmds.AddCommand(NewCmdLabel(f, out))
 	cmds.AddCommand(NewCmdAnnotate(f, out))
