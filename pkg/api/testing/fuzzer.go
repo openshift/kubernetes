@@ -324,13 +324,14 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			}
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
+			v1beta3GroupVersion := unversioned.GroupVersion{Group: "", Version: "v1beta3"}
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
-			if c.RandBool() {
+			if c.RandBool() || version == v1beta3GroupVersion {
 				priv := c.RandBool()
 				sc.Privileged = &priv
 			}
 
-			if c.RandBool() {
+			if c.RandBool() || version == v1beta3GroupVersion {
 				sc.Capabilities = &api.Capabilities{
 					Add:  make([]api.Capability, 0),
 					Drop: make([]api.Capability, 0),
@@ -412,6 +413,17 @@ func FuzzerFor(t *testing.T, version unversioned.GroupVersion, src rand.Source) 
 			psp.RunAsUser.Rule = runAsUserRules[c.Rand.Intn(len(runAsUserRules))]
 			seLinuxRules := []extensions.SELinuxStrategy{extensions.SELinuxStrategyRunAsAny, extensions.SELinuxStrategyMustRunAs}
 			psp.SELinux.Rule = seLinuxRules[c.Rand.Intn(len(seLinuxRules))]
+		},
+		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
+			c.FuzzNoCustom(scc) // fuzz self without calling this function again
+			userTypes := []api.RunAsUserStrategyType{api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange}
+			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
+			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
+			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
+			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyRunAsAny}
+			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
+			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
+			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
 		},
 	)
 	return f

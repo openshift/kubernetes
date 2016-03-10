@@ -102,6 +102,9 @@ func AddToScheme(scheme *runtime.Scheme) {
 		&RangeAllocation{},
 		&ConfigMap{},
 		&ConfigMapList{},
+
+		&SecurityContextConstraints{},
+		&SecurityContextConstraintsList{},
 	)
 
 	// Register Unversioned types under their own special group
@@ -181,3 +184,8 @@ func (obj *ExportOptions) GetObjectKind() unversioned.ObjectKind             { r
 func (obj *ConfigMap) GetObjectMeta() meta.Object                            { return &obj.ObjectMeta }
 func (obj *ConfigMap) GetObjectKind() unversioned.ObjectKind                 { return &obj.TypeMeta }
 func (obj *ConfigMapList) GetObjectKind() unversioned.ObjectKind             { return &obj.TypeMeta }
+
+func (obj *SecurityContextConstraints) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *SecurityContextConstraintsList) GetObjectKind() unversioned.ObjectKind {
+	return &obj.TypeMeta
+}

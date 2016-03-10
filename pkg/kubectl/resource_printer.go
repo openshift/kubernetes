@@ -25,6 +25,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -419,6 +420,7 @@ var withNamespacePrefixColumns = []string{"NAMESPACE"} // TODO(erictune): print 
 var deploymentColumns = []string{"NAME", "DESIRED", "CURRENT", "UP-TO-DATE", "AVAILABLE", "AGE"}
 var configMapColumns = []string{"NAME", "DATA", "AGE"}
 var podSecurityPolicyColumns = []string{"NAME", "PRIV", "CAPS", "VOLUMEPLUGINS", "SELINUX", "RUNASUSER"}
+var securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -470,6 +472,9 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(configMapColumns, printConfigMapList)
 	h.Handler(podSecurityPolicyColumns, printPodSecurityPolicy)
 	h.Handler(podSecurityPolicyColumns, printPodSecurityPolicyList)
+
+	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
+	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -2001,4 +2006,26 @@ func (j *JSONPathPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 // TODO: implement HandledResources()
 func (p *JSONPathPrinter) HandledResources() []string {
 	return []string{}
+}
+
+func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, options PrintOptions) error {
+	priority := "<none>"
+	if item.Priority != nil {
+		priority = strconv.Itoa(*item.Priority)
+	}
+
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\t%s\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
+		item.RunAsUser.Type, item.FSGroup.Type, item.SupplementalGroups.Type, priority)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, options PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, options); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
