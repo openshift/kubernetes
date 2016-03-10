@@ -1461,8 +1461,9 @@ type PodSpec struct {
 	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/node-selection/README.md
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// DeprecatedHost is a request to schedule this pod onto a specific node
-	DeprecatedHost string `json:"host,omitempty" description:"deprecated, use nodeName instead"`
+	// A request to schedule this pod onto a specific node
+	// Deprecated: Use nodeName instead.
+	DeprecatedHost string `json:"host,omitempty"`
 
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod.
 	// More info: http://releases.k8s.io/release-1.2/docs/design/service_accounts.md
@@ -1788,8 +1789,9 @@ type ServiceSpec struct {
 	// More info: http://releases.k8s.io/release-1.2/docs/user-guide/services.md#overview
 	Selector map[string]string `json:"selector,omitempty"`
 
-	// DeprecatedPortalIP
-	DeprecatedPortalIP string `json:"portalIP,omitempty" description:"deprecated, use clusterIP instead"`
+	// The IP Address of the service.
+	// Deprecated: Use clusterIP instead.
+	DeprecatedPortalIP string `json:"portalIP,omitempty"`
 
 	// ClusterIP is usually assigned by the master and is the IP address of the service.
 	// If specified, it will be allocated to the service if it is unused

@@ -3254,9 +3254,6 @@ func autoConvert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Ser
 	} else {
 		out.Selector = nil
 	}
-
-	// Carry conversion
-	out.DeprecatedPortalIP = in.ClusterIP
 	out.ClusterIP = in.ClusterIP
 	if in.ExternalIPs != nil {
 		out.ExternalIPs = make([]string, len(in.ExternalIPs))

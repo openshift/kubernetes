@@ -463,6 +463,8 @@ func Convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Service
 	for _, ip := range in.ExternalIPs {
 		out.DeprecatedPublicIPs = append(out.DeprecatedPublicIPs, ip)
 	}
+	// Carry conversion
+	out.DeprecatedPortalIP = in.ClusterIP
 	return nil
 }
 
