@@ -2538,6 +2538,8 @@ const (
 	DefaultSchedulerName = "default-scheduler"
 )
 
+// +genclient=true,nonNamespaced=true
+
 // SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
 // that will be applied to a container.
 type SecurityContextConstraints struct {
