@@ -691,6 +691,44 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "v1beta1.DaemonSet",
+      "method": "POST",
+      "summary": "create a DaemonSet",
+      "nickname": "createDaemonSet",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.DaemonSet",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.DaemonSet"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -1507,6 +1545,44 @@
         "code": 200,
         "message": "OK",
         "responseModel": "v1beta1.DeploymentList"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "POST",
+      "summary": "create a Deployment",
+      "nickname": "createDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Deployment",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
        }
       ],
       "produces": [
@@ -2563,6 +2639,44 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "v1beta1.HorizontalPodAutoscaler",
+      "method": "POST",
+      "summary": "create a HorizontalPodAutoscaler",
+      "nickname": "createHorizontalPodAutoscaler",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.HorizontalPodAutoscaler",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.HorizontalPodAutoscaler"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -3379,6 +3493,44 @@
         "code": 200,
         "message": "OK",
         "responseModel": "v1beta1.IngressList"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Ingress",
+      "method": "POST",
+      "summary": "create a Ingress",
+      "nickname": "createIngress",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Ingress",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Ingress"
        }
       ],
       "produces": [
@@ -4213,6 +4365,44 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "v1beta1.Job",
+      "method": "POST",
+      "summary": "create a Job",
+      "nickname": "createJob",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Job",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Job"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -5038,6 +5228,44 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "v1beta1.ReplicaSet",
+      "method": "POST",
+      "summary": "create a ReplicaSet",
+      "nickname": "createReplicaSet",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.ReplicaSet",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.ReplicaSet"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -5765,7 +5993,7 @@
      },
      "host": {
       "type": "string",
-      "description": "DeprecatedHost is a request to schedule this pod onto a specific node"
+      "description": "A request to schedule this pod onto a specific node Deprecated: Use nodeName instead."
      },
      "serviceAccountName": {
       "type": "string",
@@ -5890,6 +6118,10 @@
      "configMap": {
       "$ref": "v1.ConfigMapVolumeSource",
       "description": "ConfigMap represents a configMap that should populate this volume"
+     },
+     "metadata": {
+      "$ref": "v1.MetadataVolumeSource",
+      "description": "Metadata represents metadata about the pod that should populate this volume Deprecated: Use downwardAPI instead."
      }
     }
    },
@@ -6386,6 +6618,37 @@
      "path": {
       "type": "string",
       "description": "The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'."
+     }
+    }
+   },
+   "v1.MetadataVolumeSource": {
+    "id": "v1.MetadataVolumeSource",
+    "description": "MetadataVolumeSource represents a volume containing metadata about a pod. NOTE: Deprecated in favor of DownwardAPIVolumeSource",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.MetadataFile"
+      },
+      "description": "Items is a list of metadata file name"
+     }
+    }
+   },
+   "v1.MetadataFile": {
+    "id": "v1.MetadataFile",
+    "description": "MetadataFile expresses information about a file holding pod metadata. NOTE: Deprecated in favor of DownwardAPIVolumeFile",
+    "required": [
+     "name",
+     "fieldRef"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the file to be created"
+     },
+     "fieldRef": {
+      "$ref": "v1.ObjectFieldSelector",
+      "description": "Selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"
      }
     }
    },
