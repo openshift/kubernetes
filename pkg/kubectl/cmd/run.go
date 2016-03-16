@@ -93,7 +93,16 @@ type RunObject struct {
 	Mapping *meta.RESTMapping
 }
 
+type RunOptions struct {
+	DefaultRestartAlwaysGenerator string
+	DefaultGenerator              string
+}
+
 func NewCmdRun(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
+	return NewCmdRunWithOptions(f, nil, cmdIn, cmdOut, cmdErr)
+}
+
+func NewCmdRunWithOptions(f cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "run NAME --image=image [--env=\"key=value\"] [--port=port] [--replicas=replicas] [--dry-run=bool] [--overrides=inline-json] [--command] -- [COMMAND] [args...]",
 		DisableFlagsInUseLine: true,
@@ -102,7 +111,7 @@ func NewCmdRun(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *co
 		Example: runExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			argsLenAtDash := cmd.ArgsLenAtDash()
-			err := RunRun(f, cmdIn, cmdOut, cmdErr, cmd, args, argsLenAtDash)
+			err := RunRun(f, opts, cmdIn, cmdOut, cmdErr, cmd, args, argsLenAtDash)
 			cmdutil.CheckErr(err)
 		},
 	}
@@ -144,7 +153,7 @@ func addRunFlags(cmd *cobra.Command) {
 	cmd.Flags().String("schedule", "", i18n.T("A schedule in the Cron format the job should be run with."))
 }
 
-func RunRun(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cobra.Command, args []string, argsLenAtDash int) error {
+func RunRun(f cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cobra.Command, args []string, argsLenAtDash int) error {
 	// Let kubectl run follow rules for `--`, see #13004 issue
 	if len(args) == 0 || argsLenAtDash == 0 {
 		return cmdutil.UsageErrorf(cmd, "NAME is required for run")
@@ -226,6 +235,14 @@ func RunRun(f cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *c
 			generatorName = cmdutil.CronJobV1Beta1GeneratorName
 		} else {
 			generatorName = cmdutil.CronJobV2Alpha1GeneratorName
+		}
+	}
+	if len(generatorName) == 0 && opts != nil {
+		switch {
+		case restartPolicy == api.RestartPolicyAlways:
+			generatorName = opts.DefaultRestartAlwaysGenerator
+		default:
+			generatorName = opts.DefaultGenerator
 		}
 	}
 	if len(generatorName) == 0 {
