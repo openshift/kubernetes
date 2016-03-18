@@ -2052,6 +2052,16 @@ func deepCopy_v1beta3_SecurityContextConstraints(in SecurityContextConstraints, 
 	} else {
 		out.AllowedCapabilities = nil
 	}
+
+	if in.Volumes != nil {
+		out.Volumes = make([]FSType, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = FSType(in.Volumes[i])
+		}
+	} else {
+		out.Volumes = nil
+	}
+
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts

@@ -2053,7 +2053,22 @@ func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraint
 	} else {
 		out.AllowedCapabilities = nil
 	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+
+	if in.Volumes != nil {
+		out.Volumes = make([]FSType, len(in.Volumes))
+		for i, v := range in.Volumes {
+			out.Volumes[i] = FSType(in.Volumes[i])
+
+			// set the Allow* fields based on the existence in the volume slice
+			switch v {
+			case api.FSTypeHostPath, api.FSTypeAll:
+				out.AllowHostDirVolumePlugin = true
+			}
+		}
+	} else {
+		out.Volumes = nil
+	}
+
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
@@ -4317,7 +4332,18 @@ func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraint
 	} else {
 		out.AllowedCapabilities = nil
 	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+
+	// only set based on the Volumes slice and not the Allow* fields for volumes.  This slice
+	// should be correctly populated by the defaulters based on the Allow* fields.
+	if in.Volumes != nil {
+		out.Volumes = make([]api.FSType, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = api.FSType(in.Volumes[i])
+		}
+	} else {
+		out.Volumes = nil
+	}
+
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
