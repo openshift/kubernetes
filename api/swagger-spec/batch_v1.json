@@ -691,6 +691,44 @@
       "consumes": [
        "*/*"
       ]
+     },
+     {
+      "type": "v1.Job",
+      "method": "POST",
+      "summary": "create a Job",
+      "nickname": "createNamespacedJob",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Job",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Job"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml"
+      ],
+      "consumes": [
+       "*/*"
+      ]
      }
     ]
    },
@@ -1111,6 +1149,10 @@
       "type": "any",
       "description": "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md"
      },
+     "host": {
+      "type": "string",
+      "description": "A request to schedule this pod onto a specific node Deprecated: Use nodeName instead."
+     },
      "serviceAccountName": {
       "type": "string",
       "description": "ServiceAccountName is the name of the ServiceAccount to use to run this pod. More info: http://releases.k8s.io/HEAD/docs/design/service_accounts.md"
@@ -1234,6 +1276,10 @@
      "configMap": {
       "$ref": "v1.ConfigMapVolumeSource",
       "description": "ConfigMap represents a configMap that should populate this volume"
+     },
+     "metadata": {
+      "$ref": "v1.MetadataVolumeSource",
+      "description": "Metadata represents metadata about the pod that should populate this volume Deprecated: Use downwardAPI instead."
      }
     }
    },
@@ -1730,6 +1776,37 @@
      "path": {
       "type": "string",
       "description": "The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'."
+     }
+    }
+   },
+   "v1.MetadataVolumeSource": {
+    "id": "v1.MetadataVolumeSource",
+    "description": "MetadataVolumeSource represents a volume containing metadata about a pod. NOTE: Deprecated in favor of DownwardAPIVolumeSource",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.MetadataFile"
+      },
+      "description": "Items is a list of metadata file name"
+     }
+    }
+   },
+   "v1.MetadataFile": {
+    "id": "v1.MetadataFile",
+    "description": "MetadataFile expresses information about a file holding pod metadata. NOTE: Deprecated in favor of DownwardAPIVolumeFile",
+    "required": [
+     "name",
+     "fieldRef"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the file to be created"
+     },
+     "fieldRef": {
+      "$ref": "v1.ObjectFieldSelector",
+      "description": "Selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"
      }
     }
    },

@@ -50,8 +50,7 @@ if ! $ALL ; then
 	echo "Running in short-circuit mode; run with -a to force all scripts to run."
 fi
 
-BASH_TARGETS="codecgen
-	generated-conversions
+BASH_TARGETS="generated-conversions
 	generated-docs
 	generated-swagger-docs
 	swagger-spec

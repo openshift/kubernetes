@@ -317,6 +317,7 @@ func (nc *NodeController) getCondition(status *api.NodeStatus, conditionType api
 }
 
 var gracefulDeletionVersion = version.MustParse("v1.1.0")
+var gracefulDeletionVersionAlpha = version.MustParse("v1.1.0-alpha")
 
 // maybeDeleteTerminatingPod non-gracefully deletes pods that are terminating
 // that should not be gracefully terminated.
@@ -365,7 +366,7 @@ func (nc *NodeController) maybeDeleteTerminatingPod(obj interface{}) {
 		utilruntime.HandleError(nc.forcefullyDeletePod(pod))
 		return
 	}
-	if gracefulDeletionVersion.GT(v) {
+	if gracefulDeletionVersion.GT(v) || gracefulDeletionVersionAlpha.EQ(v) {
 		utilruntime.HandleError(nc.forcefullyDeletePod(pod))
 		return
 	}

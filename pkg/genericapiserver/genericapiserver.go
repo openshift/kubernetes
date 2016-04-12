@@ -44,7 +44,6 @@ import (
 	ipallocator "k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/ui"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/crypto"
 	utilnet "k8s.io/kubernetes/pkg/util/net"
@@ -548,9 +547,9 @@ func (s *GenericAPIServer) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(s.MuxHelper)
 	}
-	if c.EnableUISupport {
-		ui.InstallSupport(s.MuxHelper, s.enableSwaggerSupport && s.enableSwaggerUI)
-	}
+	// if c.EnableUISupport {
+	// 	ui.InstallSupport(s.MuxHelper, s.enableSwaggerSupport && s.enableSwaggerUI)
+	// }
 
 	if c.EnableProfiling {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -767,6 +766,12 @@ func (s *GenericAPIServer) InstallAPIGroup(apiGroupInfo *APIGroupInfo) error {
 	// Install REST handlers for all the versions in this group.
 	apiVersions := []string{}
 	for _, groupVersion := range apiGroupInfo.GroupMeta.GroupVersions {
+		// Don't serve any versions other than v1 from the legacy group
+		// TODO: plumb API-enabled versions here, so we can choose to enable/disable particular versions in an API group
+		if apiGroupInfo.IsLegacyGroup && groupVersion.Group == "" && groupVersion.Version != "v1" {
+			continue
+		}
+
 		apiVersions = append(apiVersions, groupVersion.Version)
 
 		apiGroupVersion, err := s.getAPIGroupVersion(apiGroupInfo, groupVersion, apiPrefix)
