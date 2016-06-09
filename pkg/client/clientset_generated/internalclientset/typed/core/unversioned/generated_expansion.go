@@ -34,6 +34,8 @@ type ReplicationControllerExpansion interface{}
 
 type ResourceQuotaExpansion interface{}
 
+type SecurityContextConstraintsExpansion interface{}
+
 type SecretExpansion interface{}
 
 type ServiceAccountExpansion interface{}

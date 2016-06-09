@@ -66,6 +66,7 @@ kube-controller-manager
       --concurrent-namespace-syncs=2: The number of namespace objects that are allowed to sync concurrently. Larger number = more responsive namespace termination, but more CPU (and network) load
       --concurrent-replicaset-syncs=5: The number of replica sets that are allowed to sync concurrently. Larger number = more responsive replica management, but more CPU (and network) load
       --concurrent-resource-quota-syncs=5: The number of resource quotas that are allowed to sync concurrently. Larger number = more responsive quota management, but more CPU (and network) load
+      --concurrent-serviceaccount-token-syncs=5: The number of service account token objects that are allowed to sync concurrently. Larger number = more responsive token generation, but more CPU (and network) load
       --concurrent_rc_syncs=5: The number of replication controllers that are allowed to sync concurrently. Larger number = more responsive replica management, but more CPU (and network) load
       --controller-start-interval=0: Interval between starting controller managers.
       --daemonset-lookup-cache-size=1024: The the size of lookup cache for daemonsets. Larger number = more responsive daemonsets, but more MEM load.

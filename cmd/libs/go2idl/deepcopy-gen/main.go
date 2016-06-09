@@ -35,6 +35,7 @@ func main() {
 	arguments.InputDirs = []string{
 		"k8s.io/kubernetes/pkg/api",
 		"k8s.io/kubernetes/pkg/api/v1",
+		"k8s.io/kubernetes/pkg/api/v1beta3",
 		"k8s.io/kubernetes/pkg/apis/authorization",
 		"k8s.io/kubernetes/pkg/apis/authorization/v1beta1",
 		"k8s.io/kubernetes/pkg/apis/autoscaling",
