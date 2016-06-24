@@ -177,14 +177,16 @@ type ObjectMeta struct {
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 
 	// List of objects depended by this object. If ALL objects in the list have
-	// been deleted, this object will be garbage collected.
+	// been deleted, this object will be garbage collected. If this object is managed by a controller,
+	// then an entry in this list will point to this controller, with the controller field set to true.
+	// There cannot be more than one managing controller.
 	OwnerReferences []OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
 
 	// Must be empty before the object is deleted from the registry. Each entry
 	// is an identifier for the responsible component that will remove the entry
 	// from the list. If the deletionTimestamp of the object is non-nil, entries
 	// in this list can only be removed.
-	Finalizers []string `json:"finalizers,omitempty" protobuf:"bytes,14,rep,name=finalizers"`
+	Finalizers []string `json:"finalizers,omitempty" patchStrategy:"merge" protobuf:"bytes,14,rep,name=finalizers"`
 }
 
 const (
@@ -273,6 +275,13 @@ type VolumeSource struct {
 	AzureFile *AzureFileVolumeSource `json:"azureFile,omitempty" protobuf:"bytes,18,opt,name=azureFile"`
 	// ConfigMap represents a configMap that should populate this volume
 	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty" protobuf:"bytes,19,opt,name=configMap"`
+	// VsphereVolume represents a vSphere volume attached and mounted on kubelets host machine
+	VsphereVolume *VsphereVirtualDiskVolumeSource `json:"vsphereVolume,omitempty" protobuf:"bytes,20,opt,name=vsphereVolume"`
+
+	// Metadata represents metadata about the pod that should populate this volume
+	// Deprecated: Use downwardAPI instead.
+	// +genconversion=false
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty" protobuf:"-"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -333,6 +342,8 @@ type PersistentVolumeSource struct {
 	FlexVolume *FlexVolumeSource `json:"flexVolume,omitempty" protobuf:"bytes,12,opt,name=flexVolume"`
 	// AzureFile represents an Azure File Service mount on the host and bind mount to the pod.
 	AzureFile *AzureFileVolumeSource `json:"azureFile,omitempty" protobuf:"bytes,13,opt,name=azureFile"`
+	// VsphereVolume represents a vSphere volume attached and mounted on kubelets host machine
+	VsphereVolume *VsphereVirtualDiskVolumeSource `json:"vsphereVolume,omitempty" protobuf:"bytes,14,opt,name=vsphereVolume"`
 }
 
 // +genclient=true,nonNamespaced=true
@@ -452,6 +463,8 @@ type PersistentVolumeClaimSpec struct {
 	// AccessModes contains the desired access modes the volume should have.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#access-modes-1
 	AccessModes []PersistentVolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=PersistentVolumeAccessMode"`
+	// A label query over volumes to consider for binding.
+	Selector *unversioned.LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=selector"`
 	// Resources represents the minimum resources the volume should have.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#resources
 	Resources ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,2,opt,name=resources"`
@@ -506,6 +519,10 @@ const (
 	ClaimPending PersistentVolumeClaimPhase = "Pending"
 	// used for PersistentVolumeClaims that are bound
 	ClaimBound PersistentVolumeClaimPhase = "Bound"
+	// used for PersistentVolumeClaims that lost their underlying
+	// PersistentVolume. The claim was bound to a PersistentVolume and this
+	// volume does not exist any longer and all data on it was lost.
+	ClaimLost PersistentVolumeClaimPhase = "Lost"
 )
 
 // Represents a host path mapped into a pod.
@@ -561,20 +578,20 @@ type RBDVolumeSource struct {
 	// The rados pool name.
 	// Default is rbd.
 	// More info: http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it.
-	RBDPool string `json:"pool" protobuf:"bytes,4,opt,name=pool"`
+	RBDPool string `json:"pool,omitempty" protobuf:"bytes,4,opt,name=pool"`
 	// The rados user name.
 	// Default is admin.
 	// More info: http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it
-	RadosUser string `json:"user" protobuf:"bytes,5,opt,name=user"`
+	RadosUser string `json:"user,omitempty" protobuf:"bytes,5,opt,name=user"`
 	// Keyring is the path to key ring for RBDUser.
 	// Default is /etc/ceph/keyring.
 	// More info: http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it
-	Keyring string `json:"keyring" protobuf:"bytes,6,opt,name=keyring"`
+	Keyring string `json:"keyring,omitempty" protobuf:"bytes,6,opt,name=keyring"`
 	// SecretRef is name of the authentication secret for RBDUser. If provided
 	// overrides keyring.
-	// Default is empty.
+	// Default is nil.
 	// More info: http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it
-	SecretRef *LocalObjectReference `json:"secretRef" protobuf:"bytes,7,opt,name=secretRef"`
+	SecretRef *LocalObjectReference `json:"secretRef,omitempty" protobuf:"bytes,7,opt,name=secretRef"`
 	// ReadOnly here will force the ReadOnly setting in VolumeMounts.
 	// Defaults to false.
 	// More info: http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it
@@ -749,6 +766,14 @@ type SecretVolumeSource struct {
 	// Name of the secret in the pod's namespace to use.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#secrets
 	SecretName string `json:"secretName,omitempty" protobuf:"bytes,1,opt,name=secretName"`
+	// If unspecified, each key-value pair in the Data field of the referenced
+	// Secret will be projected into the volume as a file whose name is the
+	// key and content is the value. If specified, the listed keys will be
+	// projected into the specified paths, and unlisted keys will not be
+	// present. If a key is specified which is not present in the Secret,
+	// the volume setup will error. Paths must be relative and may not contain
+	// the '..' path or start with '..'.
+	Items []KeyToPath `json:"items,omitempty" protobuf:"bytes,2,rep,name=items"`
 }
 
 // Represents an NFS mount that lasts the lifetime of a pod.
@@ -820,6 +845,16 @@ type AzureFileVolumeSource struct {
 	// Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty" protobuf:"varint,3,opt,name=readOnly"`
+}
+
+// Represents a vSphere volume resource.
+type VsphereVirtualDiskVolumeSource struct {
+	// Path that identifies vSphere volume vmdk
+	VolumePath string `json:"volumePath" protobuf:"bytes,1,opt,name=volumePath"`
+	// Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
+	FSType string `json:"fsType,omitempty" protobuf:"bytes,2,opt,name=fsType"`
 }
 
 // Adapts a ConfigMap into a volume.
@@ -912,10 +947,13 @@ type EnvVar struct {
 type EnvVarSource struct {
 	// Selects a field of the pod; only name and namespace are supported.
 	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty" protobuf:"bytes,1,opt,name=fieldRef"`
+	// Selects a resource of the container: only resources limits and requests
+	// (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+	ResourceFieldRef *ResourceFieldSelector `json:"resourceFieldRef,omitempty" protobuf:"bytes,2,opt,name=resourceFieldRef"`
 	// Selects a key of a ConfigMap.
-	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty" protobuf:"bytes,2,opt,name=configMapKeyRef"`
+	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty" protobuf:"bytes,3,opt,name=configMapKeyRef"`
 	// Selects a key of a secret in the pod's namespace
-	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty" protobuf:"bytes,3,opt,name=secretKeyRef"`
+	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty" protobuf:"bytes,4,opt,name=secretKeyRef"`
 }
 
 // ObjectFieldSelector selects an APIVersioned field of an object.
@@ -924,6 +962,16 @@ type ObjectFieldSelector struct {
 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,1,opt,name=apiVersion"`
 	// Path of the field to select in the specified API version.
 	FieldPath string `json:"fieldPath" protobuf:"bytes,2,opt,name=fieldPath"`
+}
+
+// ResourceFieldSelector represents container resources (cpu, memory) and their output format
+type ResourceFieldSelector struct {
+	// Container name: required for volumes, optional for env vars
+	ContainerName string `json:"containerName,omitempty" protobuf:"bytes,1,opt,name=containerName"`
+	// Required: resource to select
+	Resource string `json:"resource" protobuf:"bytes,2,opt,name=resource"`
+	// Specifies the output format of the exposed resources, defaults to "1"
+	Divisor resource.Quantity `json:"divisor,omitempty" protobuf:"bytes,3,opt,name=divisor"`
 }
 
 // Selects a key from a ConfigMap.
@@ -1106,7 +1154,7 @@ type Container struct {
 	// Cannot be updated.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#resources
 	Resources ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
-	// Pod volumes to mount into the container's filesyste.
+	// Pod volumes to mount into the container's filesystem.
 	// Cannot be updated.
 	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,9,rep,name=volumeMounts"`
 	// Periodic probe of container liveness.
@@ -1301,6 +1349,8 @@ type PodConditionType string
 
 // These are valid conditions of pod.
 const (
+	// PodScheduled represents status of the scheduling process for this pod.
+	PodScheduled PodConditionType = "PodScheduled"
 	// PodReady means the pod is able to service requests and should be added to the
 	// load balancing pools of all matching services.
 	PodReady PodConditionType = "Ready"
@@ -1539,11 +1589,103 @@ type PreferredSchedulingTerm struct {
 	Preference NodeSelectorTerm `json:"preference" protobuf:"bytes,2,opt,name=preference"`
 }
 
+// The node this Taint is attached to has the effect "effect" on
+// any pod that that does not tolerate the Taint.
+type Taint struct {
+	// Required. The taint key to be applied to a node.
+	Key string `json:"key" patchStrategy:"merge" patchMergeKey:"key" protobuf:"bytes,1,opt,name=key"`
+	// Required. The taint value corresponding to the taint key.
+	Value string `json:"value,omitempty" protobuf:"bytes,2,opt,name=value"`
+	// Required. The effect of the taint on pods
+	// that do not tolerate the taint.
+	// Valid effects are NoSchedule and PreferNoSchedule.
+	Effect TaintEffect `json:"effect" protobuf:"bytes,3,opt,name=effect,casttype=TaintEffect"`
+}
+
+type TaintEffect string
+
+const (
+	// Do not allow new pods to schedule onto the node unless they tolerate the taint,
+	// but allow all pods submitted to Kubelet without going through the scheduler
+	// to start, and allow all already-running pods to continue running.
+	// Enforced by the scheduler.
+	TaintEffectNoSchedule TaintEffect = "NoSchedule"
+	// Like TaintEffectNoSchedule, but the scheduler tries not to schedule
+	// new pods onto the node, rather than prohibiting new pods from scheduling
+	// onto the node entirely. Enforced by the scheduler.
+	TaintEffectPreferNoSchedule TaintEffect = "PreferNoSchedule"
+	// NOT YET IMPLEMENTED. TODO: Uncomment field once it is implemented.
+	// Do not allow new pods to schedule onto the node unless they tolerate the taint,
+	// do not allow pods to start on Kubelet unless they tolerate the taint,
+	// but allow all already-running pods to continue running.
+	// Enforced by the scheduler and Kubelet.
+	// TaintEffectNoScheduleNoAdmit TaintEffect = "NoScheduleNoAdmit"
+	// NOT YET IMPLEMENTED. TODO: Uncomment field once it is implemented.
+	// Do not allow new pods to schedule onto the node unless they tolerate the taint,
+	// do not allow pods to start on Kubelet unless they tolerate the taint,
+	// and evict any already-running pods that do not tolerate the taint.
+	// Enforced by the scheduler and Kubelet.
+	// TaintEffectNoScheduleNoAdmitNoExecute = "NoScheduleNoAdmitNoExecute"
+)
+
+// The pod this Toleration is attached to tolerates any taint that matches
+// the triple <key,value,effect> using the matching operator <operator>.
+type Toleration struct {
+	// Required. Key is the taint key that the toleration applies to.
+	Key string `json:"key,omitempty" patchStrategy:"merge" patchMergeKey:"key" protobuf:"bytes,1,opt,name=key"`
+	// operator represents a key's relationship to the value.
+	// Valid operators are Exists and Equal. Defaults to Equal.
+	// Exists is equivalent to wildcard for value, so that a pod can
+	// tolerate all taints of a particular category.
+	Operator TolerationOperator `json:"operator,omitempty" protobuf:"bytes,2,opt,name=operator,casttype=TolerationOperator"`
+	// Value is the taint value the toleration matches to.
+	// If the operator is Exists, the value should be empty, otherwise just a regular string.
+	Value string `json:"value,omitempty" protobuf:"bytes,3,opt,name=value"`
+	// Effect indicates the taint effect to match. Empty means match all taint effects.
+	// When specified, allowed values are NoSchedule and PreferNoSchedule.
+	Effect TaintEffect `json:"effect,omitempty" protobuf:"bytes,4,opt,name=effect,casttype=TaintEffect"`
+	// TODO: For forgiveness (#1574), we'd eventually add at least a grace period
+	// here, and possibly an occurrence threshold and period.
+}
+
+// A toleration operator is the set of operators that can be used in a toleration.
+type TolerationOperator string
+
+const (
+	TolerationOpExists TolerationOperator = "Exists"
+	TolerationOpEqual  TolerationOperator = "Equal"
+)
+
+const (
+	// This annotation key will be used to contain an array of v1 JSON encoded Containers
+	// for init containers. The annotation will be placed into the internal type and cleared.
+	PodInitContainersAnnotationKey = "pod.alpha.kubernetes.io/init-containers"
+	// This annotation key will be used to contain an array of v1 JSON encoded
+	// ContainerStatuses for init containers. The annotation will be placed into the internal
+	// type and cleared.
+	PodInitContainerStatusesAnnotationKey = "pod.alpha.kubernetes.io/init-container-statuses"
+)
+
 // PodSpec is a description of a pod.
 type PodSpec struct {
 	// List of volumes that can be mounted by containers belonging to the pod.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md
 	Volumes []Volume `json:"volumes,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,1,rep,name=volumes"`
+	// List of initialization containers belonging to the pod.
+	// Init containers are executed in order prior to containers being started. If any
+	// init container fails, the pod is considered to have failed and is handled according
+	// to its restartPolicy. The name for an init container or normal container must be
+	// unique among all containers.
+	// Init containers may not have Lifecycle actions, Readiness probes, or Liveness probes.
+	// The resourceRequirements of an init container are taken into account during scheduling
+	// by finding the highest request/limit for each resource type, and then using the max of
+	// of that value or the sum of the normal containers. Limits are applied to init containers
+	// in a similar fashion.
+	// Init containers cannot currently be added or removed.
+	// Init containers are in alpha state and may change without notice.
+	// Cannot be updated.
+	// More info: http://releases.k8s.io/HEAD/docs/user-guide/containers.md
+	InitContainers []Container `json:"-"  patchStrategy:"merge" patchMergeKey:"name"`
 	// List of containers belonging to the pod.
 	// Containers cannot currently be added or removed.
 	// There must be at least one container in a Pod.
@@ -1575,6 +1717,10 @@ type PodSpec struct {
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
+
+	// A request to schedule this pod onto a specific node
+	// Deprecated: Use nodeName instead.
+	DeprecatedHost string `json:"host,omitempty" protobuf:"bytes,18,opt,name=host"`
 
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod.
 	// More info: http://releases.k8s.io/HEAD/docs/design/service_accounts.md
@@ -1677,6 +1823,12 @@ type PodStatus struct {
 	// This is before the Kubelet pulled the container image(s) for the pod.
 	StartTime *unversioned.Time `json:"startTime,omitempty" protobuf:"bytes,7,opt,name=startTime"`
 
+	// The list has one entry per init container in the manifest. The most recent successful
+	// init container will have ready = true, the most recently started container will have
+	// startTime set.
+	// Init containers are in alpha state and may change without notice.
+	// More info: http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-statuses
+	InitContainerStatuses []ContainerStatus `json:"-"`
 	// The list has one entry per container in the manifest. Each entry is currently the output
 	// of `docker inspect`.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-statuses
@@ -1909,6 +2061,11 @@ type ServiceSpec struct {
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/services.md#overview
 	Selector map[string]string `json:"selector,omitempty" protobuf:"bytes,2,rep,name=selector"`
 
+	// The IP Address of the service.
+	// Deprecated: Use clusterIP instead.
+	// +genconversion=false
+	DeprecatedPortalIP string `json:"portalIP,omitempty" protobuf:"-"`
+
 	// ClusterIP is usually assigned by the master and is the IP address of the service.
 	// If specified, it will be allocated to the service if it is unused
 	// or else creation of the service will fail.
@@ -1953,6 +2110,12 @@ type ServiceSpec struct {
 	// the loadBalancerIP when a load balancer is created.
 	// This field will be ignored if the cloud-provider does not support the feature.
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty" protobuf:"bytes,8,opt,name=loadBalancerIP"`
+
+	// If specified and supported by the platform, this will restrict traffic through the cloud-provider
+	// load-balancer will be restricted to the specified client IPs. This field will be ignored if the
+	// cloud-provider does not support the feature."
+	// More info: http://releases.k8s.io/HEAD/docs/user-guide/services-firewalls.md
+	LoadBalancerSourceRanges []string `json:"loadBalancerSourceRanges,omitempty" protobuf:"bytes,9,opt,name=loadBalancerSourceRanges"`
 }
 
 // ServicePort contains information on service's port.
@@ -2206,6 +2369,10 @@ type NodeSystemInfo struct {
 	KubeletVersion string `json:"kubeletVersion" protobuf:"bytes,7,opt,name=kubeletVersion"`
 	// KubeProxy Version reported by the node.
 	KubeProxyVersion string `json:"kubeProxyVersion" protobuf:"bytes,8,opt,name=kubeProxyVersion"`
+	// The Operating System reported by the node
+	OperatingSystem string `json:"operatingSystem" protobuf:"bytes,9,opt,name=operatingSystem"`
+	// The Architecture reported by the node
+	Architecture string `json:"architecture" protobuf:"bytes,10,opt,name=architecture"`
 }
 
 // NodeStatus is information about the current status of a node.
@@ -2233,6 +2400,21 @@ type NodeStatus struct {
 	NodeInfo NodeSystemInfo `json:"nodeInfo,omitempty" protobuf:"bytes,7,opt,name=nodeInfo"`
 	// List of container images on this node
 	Images []ContainerImage `json:"images,omitempty" protobuf:"bytes,8,rep,name=images"`
+	// List of attachable volumes in use (mounted) by the node.
+	VolumesInUse []UniqueVolumeName `json:"volumesInUse,omitempty" protobuf:"bytes,9,rep,name=volumesInUse"`
+	// List of volumes that are attached to the node.
+	VolumesAttached []AttachedVolume `json:"volumesAttached,omitempty" protobuf:"bytes,10,rep,name=volumesAttached"`
+}
+
+type UniqueVolumeName string
+
+// AttachedVolume describes a volume attached to a node
+type AttachedVolume struct {
+	// Name of the attached volume
+	Name UniqueVolumeName `json:"name" protobuf:"bytes,1,rep,name=name"`
+
+	// DevicePath represents the device path where the volume should be avilable
+	DevicePath string `json:"devicePath" protobuf:"bytes,2,rep,name=devicePath"`
 }
 
 // Describe a container image
@@ -2267,6 +2449,10 @@ const (
 	// NodeOutOfDisk means the kubelet will not accept new pods due to insufficient free disk
 	// space on the node.
 	NodeOutOfDisk NodeConditionType = "OutOfDisk"
+	// NodeMemoryPressure means the kubelet is under pressure due to insufficient available memory.
+	NodeMemoryPressure NodeConditionType = "MemoryPressure"
+	// NodeNetworkUnavailable means that network for the node is not correctly configured.
+	NodeNetworkUnavailable NodeConditionType = "NetworkUnavailable"
 )
 
 // NodeCondition contains condition infromation for a node.
@@ -2305,6 +2491,11 @@ type NodeAddress struct {
 // ResourceName is the name identifying various resources in a ResourceList.
 type ResourceName string
 
+// Resource names must be not more than 63 characters, consisting of upper- or lower-case alphanumeric characters,
+// with the -, _, and . characters allowed anywhere, except the first or last character.
+// The default convention, matching that for annotations, is to use lower-case names, with dashes, rather than
+// camel case, separating compound words.
+// Fully-qualified resource typenames are constructed from a DNS-style subdomain, followed by a slash `/` and a name.
 const (
 	// CPU, in cores. (500m = .5 cores)
 	ResourceCPU ResourceName = "cpu"
@@ -2312,6 +2503,9 @@ const (
 	ResourceMemory ResourceName = "memory"
 	// Volume size, in bytes (e,g. 5Gi = 5GiB = 5 * 1024 * 1024 * 1024)
 	ResourceStorage ResourceName = "storage"
+	// NVIDIA GPU, in devices. Alpha, might change: although fractional and allowing values >1, only one whole device per node is assigned.
+	ResourceNvidiaGPU ResourceName = "alpha.kubernetes.io/nvidia-gpu"
+	// Number of Pods that may be running on this Node: see ResourcePods
 )
 
 // ResourceList is a set of (resource name, quantity) pairs.
@@ -2614,6 +2808,8 @@ type OwnerReference struct {
 	// UID of the referent.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids
 	UID types.UID `json:"uid" protobuf:"bytes,4,opt,name=uid,casttype=k8s.io/kubernetes/pkg/types.UID"`
+	// If true, this reference points to the managing controller.
+	Controller *bool `json:"controller,omitempty" protobuf:"varint,6,opt,name=controller"`
 }
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
@@ -2818,13 +3014,13 @@ const (
 	// ResourceServicesLoadBalancers, number
 	ResourceServicesLoadBalancers ResourceName = "services.loadbalancers"
 	// CPU request, in cores. (500m = .5 cores)
-	ResourceCPURequest ResourceName = "cpu.request"
-	// CPU limit, in cores. (500m = .5 cores)
-	ResourceCPULimit ResourceName = "cpu.limit"
+	ResourceRequestsCPU ResourceName = "requests.cpu"
 	// Memory request, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-	ResourceMemoryRequest ResourceName = "memory.request"
+	ResourceRequestsMemory ResourceName = "requests.memory"
+	// CPU limit, in cores. (500m = .5 cores)
+	ResourceLimitsCPU ResourceName = "limits.cpu"
 	// Memory limit, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-	ResourceMemoryLimit ResourceName = "memory.limit"
+	ResourceLimitsMemory ResourceName = "limits.memory"
 )
 
 // A ResourceQuotaScope defines a filter that must match each object tracked by a quota
@@ -3050,6 +3246,22 @@ type ComponentStatusList struct {
 	Items []ComponentStatus `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+// NOTE: Deprecated in favor of DownwardAPIVolumeSource
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty" protobuf:"bytes,1,rep,name=items"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+// NOTE: Deprecated in favor of DownwardAPIVolumeFile
+type MetadataFile struct {
+	// Name of the file to be created
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	// Selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace
+	FieldRef *ObjectFieldSelector `json:"fieldRef" protobuf:"bytes,2,opt,name=fieldRef"`
+}
+
 // DownwardAPIVolumeSource represents a volume containing downward API info.
 // Downward API volumes support ownership management and SELinux relabeling.
 type DownwardAPIVolumeSource struct {
@@ -3062,7 +3274,10 @@ type DownwardAPIVolumeFile struct {
 	// Required: Path is  the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
 	Path string `json:"path" protobuf:"bytes,1,opt,name=path"`
 	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-	FieldRef ObjectFieldSelector `json:"fieldRef" protobuf:"bytes,2,opt,name=fieldRef"`
+	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty" protobuf:"bytes,2,opt,name=fieldRef"`
+	// Selects a resource of the container: only resources limits and requests
+	// (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.
+	ResourceFieldRef *ResourceFieldSelector `json:"resourceFieldRef,omitempty" protobuf:"bytes,3,opt,name=resourceFieldRef"`
 }
 
 // SecurityContext holds security configuration that will be applied to a container.
@@ -3127,3 +3342,188 @@ const (
 	// "default-scheduler" is the name of default scheduler.
 	DefaultSchedulerName = "default-scheduler"
 )
+
+// +genclient=true,nonNamespaced=true
+
+// SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
+// that will be applied to a container.
+type SecurityContextConstraints struct {
+	unversioned.TypeMeta `json:",inline"`
+	ObjectMeta           `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
+	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
+	// higher priority.  If scores for multiple SCCs are equal they will be sorted by name.
+	Priority *int32 `json:"priority" description:"determines which SCC is used when multiple SCCs allow a particular pod; higher priority SCCs are preferred" protobuf:"varint,2,opt,name=priority"`
+
+	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
+	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer" description:"allow containers to run as privileged" protobuf:"varint,3,opt,name=allowPrivilegedContainer"`
+	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
+	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
+	// DefaultAddCapabilities and RequiredDropCapabilities.
+	DefaultAddCapabilities []Capability `json:"defaultAddCapabilities" description:"capabilities that are added by default but may be dropped" protobuf:"bytes,4,rep,name=defaultAddCapabilities,casttype=Capability"`
+	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
+	// are required to be dropped and cannot be added.
+	RequiredDropCapabilities []Capability `json:"requiredDropCapabilities" description:"capabilities that will be dropped by default and may not be added" protobuf:"bytes,5,rep,name=requiredDropCapabilities,casttype=Capability"`
+	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
+	// Capabilities in this field maybe added at the pod author's discretion.
+	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
+	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added" protobuf:"bytes,6,rep,name=allowedCapabilities,casttype=Capability"`
+	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
+	// +genconversion=false
+	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin" protobuf:"varint,7,opt,name=allowHostDirVolumePlugin"`
+	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
+	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.
+	Volumes []FSType `json:"volumes" protobuf:"bytes,8,rep,name=volumes,casttype=FSType"`
+	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
+	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec" protobuf:"varint,9,opt,name=allowHostNetwork"`
+	// AllowHostPorts determines if the policy allows host ports in the containers.
+	AllowHostPorts bool `json:"allowHostPorts" description:"allow the use of the host ports in the containers" protobuf:"varint,10,opt,name=allowHostPorts"`
+	// AllowHostPID determines if the policy allows host pid in the containers.
+	AllowHostPID bool `json:"allowHostPID" description:"allow the use of the host pid in the containers" protobuf:"varint,11,opt,name=allowHostPID"`
+	// AllowHostIPC determines if the policy allows host ipc in the containers.
+	AllowHostIPC bool `json:"allowHostIPC" description:"allow the use of the host ipc in the containers" protobuf:"varint,12,opt,name=allowHostIPC"`
+	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
+	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions" protobuf:"bytes,13,opt,name=seLinuxContext"`
+	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" description:"strategy used to generate RunAsUser" protobuf:"bytes,14,opt,name=runAsUser"`
+	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+	SupplementalGroups SupplementalGroupsStrategyOptions `json:"supplementalGroups,omitempty" description:"strategy used to generate supplemental groups" protobuf:"bytes,15,opt,name=supplementalGroups"`
+	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+	FSGroup FSGroupStrategyOptions `json:"fsGroup,omitempty" description:"strategy used to generate fsGroup" protobuf:"bytes,16,opt,name=fsGroup"`
+	// ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file
+	// system.  If the container specifically requests to run with a non-read only root file system
+	// the SCC should deny the pod.
+	// If set to false the container may run with a read only root file system if it wishes but it
+	// will not be forced to.
+	ReadOnlyRootFilesystem bool `json:"readOnlyRootFilesystem" description:"require containers to run with a read only root filesystem" protobuf:"varint,17,opt,name=readOnlyRootFilesystem"`
+
+	// The users who have permissions to use this security context constraints
+	Users []string `json:"users,omitempty" description:"users allowed to use this SecurityContextConstraints" protobuf:"bytes,18,rep,name=users"`
+	// The groups that have permission to use this security context constraints
+	Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints" protobuf:"bytes,19,rep,name=groups"`
+}
+
+// FS Type gives strong typing to different file systems that are used by volumes.
+type FSType string
+
+var (
+	FSTypeAzureFile             FSType = "azureFile"
+	FSTypeFlocker               FSType = "flocker"
+	FSTypeFlexVolume            FSType = "flexVolume"
+	FSTypeHostPath              FSType = "hostPath"
+	FSTypeEmptyDir              FSType = "emptyDir"
+	FSTypeGCEPersistentDisk     FSType = "gcePersistentDisk"
+	FSTypeAWSElasticBlockStore  FSType = "awsElasticBlockStore"
+	FSTypeGitRepo               FSType = "gitRepo"
+	FSTypeSecret                FSType = "secret"
+	FSTypeNFS                   FSType = "nfs"
+	FSTypeISCSI                 FSType = "iscsi"
+	FSTypeGlusterfs             FSType = "glusterfs"
+	FSTypePersistentVolumeClaim FSType = "persistentVolumeClaim"
+	FSTypeRBD                   FSType = "rbd"
+	FSTypeCinder                FSType = "cinder"
+	FSTypeCephFS                FSType = "cephFS"
+	FSTypeDownwardAPI           FSType = "downwardAPI"
+	FSTypeFC                    FSType = "fc"
+	FSTypeConfigMap             FSType = "configMap"
+	FSTypeAll                   FSType = "*"
+)
+
+// SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
+type SELinuxContextStrategyOptions struct {
+	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
+	Type SELinuxContextStrategyType `json:"type,omitempty" description:"strategy used to generate the SELinux context" protobuf:"bytes,1,opt,name=type,casttype=SELinuxContextStrategyType"`
+	// seLinuxOptions required to run as; required for MustRunAs
+	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty" description:"seLinuxOptions required to run as; required for MustRunAs" protobuf:"bytes,2,opt,name=seLinuxOptions"`
+}
+
+// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
+type RunAsUserStrategyOptions struct {
+	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	Type RunAsUserStrategyType `json:"type,omitempty" description:"strategy used to generate RunAsUser" protobuf:"bytes,1,opt,name=type,casttype=RunAsUserStrategyType"`
+	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
+	// namespace/service account allocated uids.
+	UID *int64 `json:"uid,omitempty" description:"the uid to always run as; required for MustRunAs" protobuf:"varint,2,opt,name=uid"`
+	// UIDRangeMin defines the min value for a strategy that allocates by range.
+	UIDRangeMin *int64 `json:"uidRangeMin,omitempty" description:"min value for range based allocators" protobuf:"varint,3,opt,name=uidRangeMin"`
+	// UIDRangeMax defines the max value for a strategy that allocates by range.
+	UIDRangeMax *int64 `json:"uidRangeMax,omitempty" description:"max value for range based allocators" protobuf:"varint,4,opt,name=uidRangeMax"`
+}
+
+// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
+type FSGroupStrategyOptions struct {
+	// Type is the strategy that will dictate what FSGroup is used in the SecurityContext.
+	Type FSGroupStrategyType `json:"type,omitempty" description:"strategy used to generate fsGroup" protobuf:"bytes,1,opt,name=type,casttype=FSGroupStrategyType"`
+	// Ranges are the allowed ranges of fs groups.  If you would like to force a single
+	// fs group then supply a single range with the same start and end.
+	Ranges []IDRange `json:"ranges,omitempty" description:"ranges of allowable IDs for fsGroup" protobuf:"bytes,2,rep,name=ranges"`
+}
+
+// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
+type SupplementalGroupsStrategyOptions struct {
+	// Type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
+	Type SupplementalGroupsStrategyType `json:"type,omitempty" description:"strategy used to generate supplemental groups" protobuf:"bytes,1,opt,name=type,casttype=SupplementalGroupsStrategyType"`
+	// Ranges are the allowed ranges of supplemental groups.  If you would like to force a single
+	// supplemental group then supply a single range with the same start and end.
+	Ranges []IDRange `json:"ranges,omitempty" description:"ranges of allowable IDs for supplemental groups" protobuf:"bytes,2,rep,name=ranges"`
+}
+
+// IDRange provides a min/max of an allowed range of IDs.
+// TODO: this could be reused for UIDs.
+type IDRange struct {
+	// Min is the start of the range, inclusive.
+	Min int64 `json:"min,omitempty" description:"min value for the range" protobuf:"varint,1,opt,name=min"`
+	// Max is the end of the range, inclusive.
+	Max int64 `json:"max,omitempty" description:"min value for the range" protobuf:"varint,2,opt,name=max"`
+}
+
+// SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
+// SecurityContext
+type SELinuxContextStrategyType string
+
+// RunAsUserStrategyType denotes strategy types for generating RunAsUser values for a
+// SecurityContext
+type RunAsUserStrategyType string
+
+// SupplementalGroupsStrategyType denotes strategy types for determining valid supplemental
+// groups for a SecurityContext.
+type SupplementalGroupsStrategyType string
+
+// FSGroupStrategyType denotes strategy types for generating FSGroup values for a
+// SecurityContext
+type FSGroupStrategyType string
+
+const (
+	// container must have SELinux labels of X applied.
+	SELinuxStrategyMustRunAs SELinuxContextStrategyType = "MustRunAs"
+	// container may make requests for any SELinux context labels.
+	SELinuxStrategyRunAsAny SELinuxContextStrategyType = "RunAsAny"
+
+	// container must run as a particular uid.
+	RunAsUserStrategyMustRunAs RunAsUserStrategyType = "MustRunAs"
+	// container must run as a particular uid.
+	RunAsUserStrategyMustRunAsRange RunAsUserStrategyType = "MustRunAsRange"
+	// container must run as a non-root uid
+	RunAsUserStrategyMustRunAsNonRoot RunAsUserStrategyType = "MustRunAsNonRoot"
+	// container may make requests for any uid.
+	RunAsUserStrategyRunAsAny RunAsUserStrategyType = "RunAsAny"
+
+	// container must have FSGroup of X applied.
+	FSGroupStrategyMustRunAs FSGroupStrategyType = "MustRunAs"
+	// container may make requests for any FSGroup labels.
+	FSGroupStrategyRunAsAny FSGroupStrategyType = "RunAsAny"
+
+	// container must run as a particular gid.
+	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
+	// container may make requests for any gid.
+	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
+)
+
+// SecurityContextConstraintsList is a list of SecurityContextConstraints objects
+type SecurityContextConstraintsList struct {
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	Items []SecurityContextConstraints `json:"items" protobuf:"bytes,2,rep,name=items"`
+}

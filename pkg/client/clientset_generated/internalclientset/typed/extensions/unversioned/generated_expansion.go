@@ -18,12 +18,14 @@ package unversioned
 
 type DaemonSetExpansion interface{}
 
-type HorizontalPodAutoscalerExpansion interface{}
+type DeploymentExpansion interface{}
 
 type IngressExpansion interface{}
 
-type JobExpansion interface{}
-
-type ThirdPartyResourceExpansion interface{}
+type PodSecurityPolicyExpansion interface{}
 
 type ReplicaSetExpansion interface{}
+
+type ScaleExpansion interface{}
+
+type ThirdPartyResourceExpansion interface{}

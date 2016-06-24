@@ -20,9 +20,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/gofuzz"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/meta/metatypes"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 )
@@ -39,6 +43,10 @@ func TestAPIObjectMeta(t *testing.T) {
 			SelfLink:        "some/place/only/we/know",
 			Labels:          map[string]string{"foo": "bar"},
 			Annotations:     map[string]string{"x": "y"},
+			Finalizers: []string{
+				"finalizer.1",
+				"finalizer.2",
+			},
 		},
 	}
 	var _ meta.Object = &j.ObjectMeta
@@ -68,6 +76,9 @@ func TestAPIObjectMeta(t *testing.T) {
 	if e, a := "some/place/only/we/know", accessor.GetSelfLink(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+	if e, a := []string{"finalizer.1", "finalizer.2"}, accessor.GetFinalizers(); !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
+	}
 
 	typeAccessor, err := meta.TypeAccessor(j)
 	if err != nil {
@@ -88,6 +99,7 @@ func TestAPIObjectMeta(t *testing.T) {
 	typeAccessor.SetKind("d")
 	accessor.SetResourceVersion("2")
 	accessor.SetSelfLink("google.com")
+	accessor.SetFinalizers([]string{"finalizer.3"})
 
 	// Prove that accessor changes the original object.
 	if e, a := "baz", j.Namespace; e != a {
@@ -114,6 +126,9 @@ func TestAPIObjectMeta(t *testing.T) {
 	if e, a := "google.com", j.SelfLink; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+	if e, a := []string{"finalizer.3"}, j.Finalizers; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
+	}
 
 	typeAccessor.SetAPIVersion("d")
 	typeAccessor.SetKind("e")
@@ -127,17 +142,19 @@ func TestAPIObjectMeta(t *testing.T) {
 
 func TestGenericTypeMeta(t *testing.T) {
 	type TypeMeta struct {
-		Kind              string            `json:"kind,omitempty"`
-		Namespace         string            `json:"namespace,omitempty"`
-		Name              string            `json:"name,omitempty"`
-		GenerateName      string            `json:"generateName,omitempty"`
-		UID               string            `json:"uid,omitempty"`
-		CreationTimestamp unversioned.Time  `json:"creationTimestamp,omitempty"`
-		SelfLink          string            `json:"selfLink,omitempty"`
-		ResourceVersion   string            `json:"resourceVersion,omitempty"`
-		APIVersion        string            `json:"apiVersion,omitempty"`
-		Labels            map[string]string `json:"labels,omitempty"`
-		Annotations       map[string]string `json:"annotations,omitempty"`
+		Kind              string               `json:"kind,omitempty"`
+		Namespace         string               `json:"namespace,omitempty"`
+		Name              string               `json:"name,omitempty"`
+		GenerateName      string               `json:"generateName,omitempty"`
+		UID               string               `json:"uid,omitempty"`
+		CreationTimestamp unversioned.Time     `json:"creationTimestamp,omitempty"`
+		SelfLink          string               `json:"selfLink,omitempty"`
+		ResourceVersion   string               `json:"resourceVersion,omitempty"`
+		APIVersion        string               `json:"apiVersion,omitempty"`
+		Labels            map[string]string    `json:"labels,omitempty"`
+		Annotations       map[string]string    `json:"annotations,omitempty"`
+		OwnerReferences   []api.OwnerReference `json:"ownerReferences,omitempty"`
+		Finalizers        []string             `json:"finalizers,omitempty"`
 	}
 	type Object struct {
 		TypeMeta `json:",inline"`
@@ -154,6 +171,7 @@ func TestGenericTypeMeta(t *testing.T) {
 			SelfLink:        "some/place/only/we/know",
 			Labels:          map[string]string{"foo": "bar"},
 			Annotations:     map[string]string{"x": "y"},
+			Finalizers:      []string{"finalizer.1", "finalizer.2"},
 		},
 	}
 	accessor, err := meta.Accessor(&j)
@@ -178,6 +196,9 @@ func TestGenericTypeMeta(t *testing.T) {
 	if e, a := "some/place/only/we/know", accessor.GetSelfLink(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+	if e, a := []string{"finalizer.1", "finalizer.2"}, accessor.GetFinalizers(); !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
+	}
 
 	typeAccessor, err := meta.TypeAccessor(&j)
 	if err != nil {
@@ -198,6 +219,7 @@ func TestGenericTypeMeta(t *testing.T) {
 	typeAccessor.SetKind("d")
 	accessor.SetResourceVersion("2")
 	accessor.SetSelfLink("google.com")
+	accessor.SetFinalizers([]string{"finalizer.3"})
 
 	// Prove that accessor changes the original object.
 	if e, a := "baz", j.Namespace; e != a {
@@ -224,6 +246,9 @@ func TestGenericTypeMeta(t *testing.T) {
 	if e, a := "google.com", j.SelfLink; e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+	if e, a := []string{"finalizer.3"}, j.Finalizers; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
+	}
 
 	typeAccessor.SetAPIVersion("d")
 	typeAccessor.SetKind("e")
@@ -236,27 +261,30 @@ func TestGenericTypeMeta(t *testing.T) {
 }
 
 type InternalTypeMeta struct {
-	Kind              string            `json:"kind,omitempty"`
-	Namespace         string            `json:"namespace,omitempty"`
-	Name              string            `json:"name,omitempty"`
-	GenerateName      string            `json:"generateName,omitempty"`
-	UID               string            `json:"uid,omitempty"`
-	CreationTimestamp unversioned.Time  `json:"creationTimestamp,omitempty"`
-	SelfLink          string            `json:"selfLink,omitempty"`
-	ResourceVersion   string            `json:"resourceVersion,omitempty"`
-	APIVersion        string            `json:"apiVersion,omitempty"`
-	Labels            map[string]string `json:"labels,omitempty"`
-	Annotations       map[string]string `json:"annotations,omitempty"`
+	Kind              string               `json:"kind,omitempty"`
+	Namespace         string               `json:"namespace,omitempty"`
+	Name              string               `json:"name,omitempty"`
+	GenerateName      string               `json:"generateName,omitempty"`
+	UID               string               `json:"uid,omitempty"`
+	CreationTimestamp unversioned.Time     `json:"creationTimestamp,omitempty"`
+	SelfLink          string               `json:"selfLink,omitempty"`
+	ResourceVersion   string               `json:"resourceVersion,omitempty"`
+	APIVersion        string               `json:"apiVersion,omitempty"`
+	Labels            map[string]string    `json:"labels,omitempty"`
+	Annotations       map[string]string    `json:"annotations,omitempty"`
+	Finalizers        []string             `json:"finalizers,omitempty"`
+	OwnerReferences   []api.OwnerReference `json:"ownerReferences,omitempty"`
 }
+
 type InternalObject struct {
 	TypeMeta InternalTypeMeta `json:",inline"`
 }
 
 func (obj *InternalObject) GetObjectKind() unversioned.ObjectKind { return obj }
-func (obj *InternalObject) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+func (obj *InternalObject) SetGroupVersionKind(gvk unversioned.GroupVersionKind) {
 	obj.TypeMeta.APIVersion, obj.TypeMeta.Kind = gvk.ToAPIVersionAndKind()
 }
-func (obj *InternalObject) GroupVersionKind() *unversioned.GroupVersionKind {
+func (obj *InternalObject) GroupVersionKind() unversioned.GroupVersionKind {
 	return unversioned.FromAPIVersionAndKind(obj.TypeMeta.APIVersion, obj.TypeMeta.Kind)
 }
 
@@ -273,6 +301,7 @@ func TestGenericTypeMetaAccessor(t *testing.T) {
 			SelfLink:        "some/place/only/we/know",
 			Labels:          map[string]string{"foo": "bar"},
 			Annotations:     map[string]string{"x": "y"},
+			// OwnerReferences are tested separately
 		},
 	}
 	accessor := meta.NewAccessor()
@@ -418,15 +447,17 @@ func TestGenericObjectMeta(t *testing.T) {
 		APIVersion string `json:"apiVersion,omitempty"`
 	}
 	type ObjectMeta struct {
-		Namespace         string            `json:"namespace,omitempty"`
-		Name              string            `json:"name,omitempty"`
-		GenerateName      string            `json:"generateName,omitempty"`
-		UID               string            `json:"uid,omitempty"`
-		CreationTimestamp unversioned.Time  `json:"creationTimestamp,omitempty"`
-		SelfLink          string            `json:"selfLink,omitempty"`
-		ResourceVersion   string            `json:"resourceVersion,omitempty"`
-		Labels            map[string]string `json:"labels,omitempty"`
-		Annotations       map[string]string `json:"annotations,omitempty"`
+		Namespace         string               `json:"namespace,omitempty"`
+		Name              string               `json:"name,omitempty"`
+		GenerateName      string               `json:"generateName,omitempty"`
+		UID               string               `json:"uid,omitempty"`
+		CreationTimestamp unversioned.Time     `json:"creationTimestamp,omitempty"`
+		SelfLink          string               `json:"selfLink,omitempty"`
+		ResourceVersion   string               `json:"resourceVersion,omitempty"`
+		Labels            map[string]string    `json:"labels,omitempty"`
+		Annotations       map[string]string    `json:"annotations,omitempty"`
+		Finalizers        []string             `json:"finalizers,omitempty"`
+		OwnerReferences   []api.OwnerReference `json:"ownerReferences,omitempty"`
 	}
 	type Object struct {
 		TypeMeta   `json:",inline"`
@@ -446,6 +477,10 @@ func TestGenericObjectMeta(t *testing.T) {
 			SelfLink:        "some/place/only/we/know",
 			Labels:          map[string]string{"foo": "bar"},
 			Annotations:     map[string]string{"a": "b"},
+			Finalizers: []string{
+				"finalizer.1",
+				"finalizer.2",
+			},
 		},
 	}
 	accessor, err := meta.Accessor(&j)
@@ -476,6 +511,9 @@ func TestGenericObjectMeta(t *testing.T) {
 	if e, a := 1, len(accessor.GetAnnotations()); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}
+	if e, a := []string{"finalizer.1", "finalizer.2"}, accessor.GetFinalizers(); !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
+	}
 
 	typeAccessor, err := meta.TypeAccessor(&j)
 	if err != nil {
@@ -498,6 +536,7 @@ func TestGenericObjectMeta(t *testing.T) {
 	accessor.SetSelfLink("google.com")
 	accessor.SetLabels(map[string]string{"other": "label"})
 	accessor.SetAnnotations(map[string]string{"c": "d"})
+	accessor.SetFinalizers([]string{"finalizer.3"})
 
 	// Prove that accessor changes the original object.
 	if e, a := "baz", j.Namespace; e != a {
@@ -529,6 +568,9 @@ func TestGenericObjectMeta(t *testing.T) {
 	}
 	if e, a := map[string]string{"c": "d"}, j.Annotations; !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %#v, got %#v", e, a)
+	}
+	if e, a := []string{"finalizer.3"}, j.Finalizers; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
 	}
 }
 
@@ -610,10 +652,10 @@ type MyAPIObject struct {
 }
 
 func (obj *MyAPIObject) GetObjectKind() unversioned.ObjectKind { return obj }
-func (obj *MyAPIObject) SetGroupVersionKind(gvk *unversioned.GroupVersionKind) {
+func (obj *MyAPIObject) SetGroupVersionKind(gvk unversioned.GroupVersionKind) {
 	obj.TypeMeta.APIVersion, obj.TypeMeta.Kind = gvk.ToAPIVersionAndKind()
 }
-func (obj *MyAPIObject) GroupVersionKind() *unversioned.GroupVersionKind {
+func (obj *MyAPIObject) GroupVersionKind() unversioned.GroupVersionKind {
 	return unversioned.FromAPIVersionAndKind(obj.TypeMeta.APIVersion, obj.TypeMeta.Kind)
 }
 
@@ -719,6 +761,67 @@ func TestTypeMetaSelfLinker(t *testing.T) {
 				t.Errorf("%v: expected %v, got %v", name, e, a)
 			}
 		}
+	}
+}
+
+type MyAPIObject2 struct {
+	unversioned.TypeMeta
+	v1.ObjectMeta
+}
+
+func getObjectMetaAndOwnerRefereneces() (myAPIObject2 MyAPIObject2, metaOwnerReferences []metatypes.OwnerReference) {
+	fuzz.New().NilChance(.5).NumElements(1, 5).Fuzz(&myAPIObject2)
+	references := myAPIObject2.ObjectMeta.OwnerReferences
+	// This is necessary for the test to pass because the getter will return a
+	// non-nil slice.
+	metaOwnerReferences = make([]metatypes.OwnerReference, 0)
+	for i := 0; i < len(references); i++ {
+		metaOwnerReferences = append(metaOwnerReferences, metatypes.OwnerReference{
+			Kind:       references[i].Kind,
+			Name:       references[i].Name,
+			UID:        references[i].UID,
+			APIVersion: references[i].APIVersion,
+			Controller: references[i].Controller,
+		})
+	}
+	if len(references) == 0 {
+		// This is necessary for the test to pass because the setter will make a
+		// non-nil slice.
+		myAPIObject2.ObjectMeta.OwnerReferences = make([]v1.OwnerReference, 0)
+	}
+	return myAPIObject2, metaOwnerReferences
+}
+
+func testGetOwnerReferences(t *testing.T) {
+	obj, expected := getObjectMetaAndOwnerRefereneces()
+	accessor, err := meta.Accessor(&obj)
+	if err != nil {
+		t.Error(err)
+	}
+	references := accessor.GetOwnerReferences()
+	if !reflect.DeepEqual(references, expected) {
+		t.Errorf("expect %#v\n got %#v", expected, references)
+	}
+}
+
+func testSetOwnerReferences(t *testing.T) {
+	expected, references := getObjectMetaAndOwnerRefereneces()
+	obj := MyAPIObject2{}
+	accessor, err := meta.Accessor(&obj)
+	if err != nil {
+		t.Error(err)
+	}
+	accessor.SetOwnerReferences(references)
+	if e, a := expected.ObjectMeta.OwnerReferences, obj.ObjectMeta.OwnerReferences; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %#v\n got %#v", e, a)
+	}
+}
+
+func TestAccessOwnerReferences(t *testing.T) {
+	fuzzIter := 5
+	for i := 0; i < fuzzIter; i++ {
+		testGetOwnerReferences(t)
+		testSetOwnerReferences(t)
 	}
 }
 

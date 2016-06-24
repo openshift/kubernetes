@@ -21,7 +21,7 @@ refer to the docs that go with that version.
 <!-- TAG RELEASE_LINK, added by the munger automatically -->
 <strong>
 The latest release of this document can be found
-[here](http://releases.k8s.io/release-1.2/examples/spark/README.md).
+[here](http://releases.k8s.io/release-1.3/examples/spark/README.md).
 
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
@@ -156,7 +156,7 @@ kubectl proxy --port=8001
 ```
 
 At which point the UI will be available at
-[http://localhost:8001/api/v1/proxy/namespaces/default/services/spark-webui/](http://localhost:8001/api/v1/proxy/namespaces/default/services/spark-webui/).
+[http://localhost:8001/api/v1/proxy/namespaces/spark-cluster/services/spark-webui/](http://localhost:8001/api/v1/proxy/namespaces/default/services/spark-webui/).
 
 ## Step Three: Start your Spark workers
 
@@ -294,7 +294,7 @@ kubectl get pods -lcomponent=zeppelin # Get the driver pod to interact with.
 ```
 
 At which point the Master UI will be available at
-[http://localhost:8001/api/v1/proxy/namespaces/default/services/spark-webui/](http://localhost:8001/api/v1/proxy/namespaces/default/services/spark-webui/).
+[http://localhost:8001/api/v1/proxy/namespaces/spark-cluster/services/spark-webui/](http://localhost:8001/api/v1/proxy/namespaces/default/services/spark-webui/).
 
 You can either interact with the Spark cluster the traditional `spark-shell` /
 `spark-subsubmit` / `pyspark` commands by using `kubectl exec` against the

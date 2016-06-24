@@ -24,25 +24,41 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/golang/glog"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/types"
+	more_reporters "github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 )
 
 var e2es *e2eService
 
+var prePullImages = flag.Bool("prepull-images", true, "If true, prepull images so image pull failures do not cause test failures.")
+var junitFileNumber = flag.Int("junit-file-number", 1, "Used to create junit filename - e.g. junit_01.xml.")
+
 func TestE2eNode(t *testing.T) {
 	flag.Parse()
+
 	rand.Seed(time.Now().UTC().UnixNano())
 	RegisterFailHandler(Fail)
-	reporters := []Reporter{&LogReporter{}}
+	reporters := []Reporter{}
+	if *reportDir != "" {
+		// Create the directory if it doesn't already exists
+		if err := os.MkdirAll(*reportDir, 0755); err != nil {
+			glog.Errorf("Failed creating report directory: %v", err)
+		} else {
+			// Configure a junit reporter to write to the directory
+			junitFile := fmt.Sprintf("junit_%02d.xml", *junitFileNumber)
+			junitPath := path.Join(*reportDir, junitFile)
+			reporters = append(reporters, more_reporters.NewJUnitReporter(junitPath))
+		}
+	}
 	RunSpecsWithDefaultAndCustomReporters(t, "E2eNode Suite", reporters)
 }
 
@@ -57,6 +73,14 @@ var _ = BeforeSuite(func() {
 			glog.Fatalf("Could not get node name from hostname %v.  Output:\n%s", err, output)
 		}
 		*nodeName = strings.TrimSpace(fmt.Sprintf("%s", output))
+	}
+
+	// Pre-pull the images tests depend on so we can fail immediately if there is an image pull issue
+	// This helps with debugging test flakes since it is hard to tell when a test failure is due to image pulling.
+	if *prePullImages {
+		glog.Infof("Pre-pulling images so that they are cached for the tests.")
+		err := PrePullAllImages()
+		Expect(err).ShouldNot(HaveOccurred())
 	}
 
 	// TODO(yifan): Temporary workaround to disable coreos from auto restart
@@ -77,46 +101,16 @@ var _ = BeforeSuite(func() {
 
 // Tear down the kubelet on the node
 var _ = AfterSuite(func() {
-	if e2es != nil && *startServices && *stopServices {
-		glog.Infof("Stopping node services...")
-		e2es.stop()
+	if e2es != nil {
+		e2es.getLogFiles()
+		if *startServices && *stopServices {
+			glog.Infof("Stopping node services...")
+			e2es.stop()
+		}
 	}
+
 	glog.Infof("Tests Finished")
 })
-
-var _ Reporter = &LogReporter{}
-
-type LogReporter struct{}
-
-func (lr *LogReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
-	b := &bytes.Buffer{}
-	b.WriteString("******************************************************\n")
-	glog.Infof(b.String())
-}
-
-func (lr *LogReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {}
-
-func (lr *LogReporter) SpecWillRun(specSummary *types.SpecSummary) {}
-
-func (lr *LogReporter) SpecDidComplete(specSummary *types.SpecSummary) {}
-
-func (lr *LogReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {}
-
-func (lr *LogReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
-	// Only log the binary output if the suite failed.
-	b := &bytes.Buffer{}
-	if e2es != nil && !summary.SuiteSucceeded {
-		b.WriteString(fmt.Sprintf("Process Log For Failed Suite On %s\n", *nodeName))
-		b.WriteString("-------------------------------------------------------------\n")
-		b.WriteString(fmt.Sprintf("kubelet output:\n%s\n", e2es.kubeletCombinedOut.String()))
-		b.WriteString("-------------------------------------------------------------\n")
-		b.WriteString(fmt.Sprintf("apiserver output:\n%s\n", e2es.apiServerCombinedOut.String()))
-		b.WriteString("-------------------------------------------------------------\n")
-		b.WriteString(fmt.Sprintf("etcd output:\n%s\n", e2es.etcdCombinedOut.String()))
-	}
-	b.WriteString("******************************************************\n")
-	glog.Infof(b.String())
-}
 
 func maskLocksmithdOnCoreos() {
 	data, err := ioutil.ReadFile("/etc/os-release")
@@ -127,6 +121,6 @@ func maskLocksmithdOnCoreos() {
 		if output, err := exec.Command("sudo", "systemctl", "mask", "--now", "locksmithd").CombinedOutput(); err != nil {
 			glog.Fatalf("Could not mask locksmithd: %v, output: %q", err, string(output))
 		}
+		glog.Infof("Locksmithd is masked successfully")
 	}
-	glog.Infof("Locksmithd is masked successfully")
 }

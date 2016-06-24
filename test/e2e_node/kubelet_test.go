@@ -38,9 +38,8 @@ import (
 )
 
 var _ = framework.KubeDescribe("Kubelet", func() {
+	f := NewDefaultFramework("kubelet-test")
 	Context("when scheduling a busybox command in a pod", func() {
-		// Setup the framework
-		f := NewDefaultFramework("pod-scheduling")
 		podName := "busybox-scheduling-" + string(util.NewUUID())
 		It("it should print the output to logs", func() {
 			podClient := f.Client.Pods(f.Namespace.Name)
@@ -55,7 +54,7 @@ var _ = framework.KubeDescribe("Kubelet", func() {
 					RestartPolicy: api.RestartPolicyNever,
 					Containers: []api.Container{
 						{
-							Image:   "gcr.io/google_containers/busybox",
+							Image:   ImageRegistry[busyBoxImage],
 							Name:    podName,
 							Command: []string{"sh", "-c", "echo 'Hello World' ; sleep 240"},
 						},
@@ -81,7 +80,6 @@ var _ = framework.KubeDescribe("Kubelet", func() {
 	})
 
 	Context("when scheduling a read only busybox container", func() {
-		f := NewDefaultFramework("pod-scheduling")
 		podName := "busybox-readonly-fs" + string(util.NewUUID())
 		It("it should not write to root filesystem", func() {
 			podClient := f.Client.Pods(f.Namespace.Name)
@@ -97,7 +95,7 @@ var _ = framework.KubeDescribe("Kubelet", func() {
 					RestartPolicy: api.RestartPolicyNever,
 					Containers: []api.Container{
 						{
-							Image:   "gcr.io/google_containers/busybox",
+							Image:   ImageRegistry[busyBoxImage],
 							Name:    podName,
 							Command: []string{"sh", "-c", "echo test > /file; sleep 240"},
 							SecurityContext: &api.SecurityContext{
@@ -123,8 +121,6 @@ var _ = framework.KubeDescribe("Kubelet", func() {
 		})
 	})
 	Describe("metrics api", func() {
-		// Setup the framework
-		f := NewDefaultFramework("kubelet-metrics-api")
 		Context("when querying /stats/summary", func() {
 			It("it should report resource usage through the stats api", func() {
 				podNamePrefix := "stats-busybox-" + string(util.NewUUID())
@@ -179,8 +175,8 @@ func createSummaryTestPods(f *framework.Framework, podNamePrefix string, count i
 	for _, podName := range podNames.List() {
 		createPod(f, podName, []api.Container{
 			{
-				Image:   "gcr.io/google_containers/busybox",
-				Command: []string{"sh", "-c", "while true; do echo 'hello world' | tee ~/file | tee /test-empty-dir-mnt ; sleep 1; done"},
+				Image:   ImageRegistry[busyBoxImage],
+				Command: []string{"sh", "-c", "while true; do echo 'hello world' | tee /test-empty-dir-mnt/file ; sleep 1; done"},
 				Name:    podName + containerSuffix,
 				VolumeMounts: []api.VolumeMount{
 					{MountPath: "/test-empty-dir-mnt", Name: volumeNamePrefix},

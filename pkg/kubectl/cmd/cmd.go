@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/flag"
 
@@ -151,14 +152,21 @@ __custom_func() {
 	// If you add a resource to this list, please also take a look at pkg/kubectl/kubectl.go
 	// and add a short forms entry in expandResourceShortcut() when appropriate.
 	valid_resources = `Valid resource types include:
+   * buildconfigs (aka 'bc')
+   * builds
    * componentstatuses (aka 'cs')
    * configmaps
    * daemonsets (aka 'ds')
+   * deploymentconfigs (aka 'dc')
    * deployments
    * events (aka 'ev')
    * endpoints (aka 'ep')
    * horizontalpodautoscalers (aka 'hpa')
+   * imagestreamimages (aka 'isimage')
+   * imagestreams (aka 'is')
+   * imagestreamtags (aka 'istag')
    * ingress (aka 'ing')
+   * groups
    * jobs
    * limitranges (aka 'limits')
    * nodes (aka 'no')
@@ -166,13 +174,18 @@ __custom_func() {
    * pods (aka 'po')
    * persistentvolumes (aka 'pv')
    * persistentvolumeclaims (aka 'pvc')
+   * policies
+   * projects
    * quota
    * resourcequotas (aka 'quota')
    * replicasets (aka 'rs')
    * replicationcontrollers (aka 'rc')
+   * rolebindings
+   * routes
    * secrets
    * serviceaccounts (aka 'sa')
    * services (aka 'svc')
+   * users
 `
 )
 
@@ -196,6 +209,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.SetGlobalNormalizationFunc(flag.WarnWordSepNormalizeFunc)
 
 	cmds.AddCommand(NewCmdGet(f, out))
+	cmds.AddCommand(set.NewCmdSet(f, out))
 	cmds.AddCommand(NewCmdDescribe(f, out))
 	cmds.AddCommand(NewCmdCreate(f, out))
 	cmds.AddCommand(NewCmdReplace(f, out))
@@ -225,6 +239,7 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 
 	cmds.AddCommand(NewCmdLabel(f, out))
 	cmds.AddCommand(NewCmdAnnotate(f, out))
+	cmds.AddCommand(NewCmdTaint(f, out))
 
 	cmds.AddCommand(cmdconfig.NewCmdConfig(clientcmd.NewDefaultPathOptions(), out))
 	cmds.AddCommand(NewCmdClusterInfo(f, out))
@@ -232,14 +247,17 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdVersion(f, out))
 	cmds.AddCommand(NewCmdExplain(f, out))
 	cmds.AddCommand(NewCmdConvert(f, out))
+	cmds.AddCommand(NewCmdCompletion(f, out))
 
-	if cmds.Flag("namespace").Annotations == nil {
-		cmds.Flag("namespace").Annotations = map[string][]string{}
+	if cmds.Flag("namespace") != nil {
+		if cmds.Flag("namespace").Annotations == nil {
+			cmds.Flag("namespace").Annotations = map[string][]string{}
+		}
+		cmds.Flag("namespace").Annotations[cobra.BashCompCustom] = append(
+			cmds.Flag("namespace").Annotations[cobra.BashCompCustom],
+			"__kubectl_get_namespaces",
+		)
 	}
-	cmds.Flag("namespace").Annotations[cobra.BashCompCustom] = append(
-		cmds.Flag("namespace").Annotations[cobra.BashCompCustom],
-		"__kubectl_get_namespaces",
-	)
 
 	return cmds
 }

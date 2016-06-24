@@ -30,6 +30,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
@@ -40,14 +41,17 @@ import (
 	autoscalingapiv1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batchapiv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
+	batchapiv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/genericapiserver"
 	"k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/registry/thirdpartyresourcedata"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
@@ -63,7 +67,7 @@ import (
 
 // setUp is a convience function for setting up for (most) tests.
 func setUp(t *testing.T) (*Master, *etcdtesting.EtcdTestServer, Config, *assert.Assertions) {
-	server := etcdtesting.NewEtcdTestClientServer(t)
+	server := etcdtesting.NewUnsecuredEtcdTestClientServer(t)
 
 	master := &Master{
 		GenericAPIServer: &genericapiserver.GenericAPIServer{},
@@ -88,6 +92,7 @@ func setUp(t *testing.T) (*Master, *etcdtesting.EtcdTestServer, Config, *assert.
 	resourceEncoding.SetVersionEncoding(batch.GroupName, *testapi.Batch.GroupVersion(), unversioned.GroupVersion{Group: batch.GroupName, Version: runtime.APIVersionInternal})
 	resourceEncoding.SetVersionEncoding(apps.GroupName, *testapi.Apps.GroupVersion(), unversioned.GroupVersion{Group: apps.GroupName, Version: runtime.APIVersionInternal})
 	resourceEncoding.SetVersionEncoding(extensions.GroupName, *testapi.Extensions.GroupVersion(), unversioned.GroupVersion{Group: extensions.GroupName, Version: runtime.APIVersionInternal})
+	resourceEncoding.SetVersionEncoding(rbac.GroupName, *testapi.Rbac.GroupVersion(), unversioned.GroupVersion{Group: rbac.GroupName, Version: runtime.APIVersionInternal})
 	storageFactory := genericapiserver.NewDefaultStorageFactory(storageConfig, testapi.StorageMediaType(), api.Codecs, resourceEncoding, DefaultAPIResourceConfigSource())
 
 	config.StorageFactory = storageFactory
@@ -128,7 +133,9 @@ func newMaster(t *testing.T) (*Master, *etcdtesting.EtcdTestServer, Config, *ass
 // limitedAPIResourceConfigSource only enables the core group, the extensions group, the batch group, and the autoscaling group.
 func limitedAPIResourceConfigSource() *genericapiserver.ResourceConfig {
 	ret := genericapiserver.NewResourceConfig()
-	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion, batchapiv1.SchemeGroupVersion, appsapi.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion)
+	ret.EnableVersions(apiv1.SchemeGroupVersion, extensionsapiv1beta1.SchemeGroupVersion,
+		batchapiv1.SchemeGroupVersion, batchapiv2alpha1.SchemeGroupVersion,
+		appsapi.SchemeGroupVersion, autoscalingapiv1.SchemeGroupVersion)
 	return ret
 }
 
@@ -250,10 +257,9 @@ func TestNewBootstrapController(t *testing.T) {
 	controller := master.NewBootstrapController()
 
 	assert.Equal(controller.NamespaceRegistry, master.namespaceRegistry)
-	assert.Equal(controller.EndpointRegistry, master.endpointRegistry)
+	assert.Equal(controller.EndpointReconciler, NewMasterCountEndpointReconciler(master.MasterCount, master.endpointRegistry))
 	assert.Equal(controller.ServiceRegistry, master.serviceRegistry)
 	assert.Equal(controller.ServiceNodePortRange, portRange)
-	assert.Equal(controller.MasterCount, master.MasterCount)
 	assert.Equal(controller.ServicePort, master.ServiceReadWritePort)
 	assert.Equal(controller.PublicServicePort, master.PublicReadWritePort)
 }
@@ -423,10 +429,17 @@ func TestDiscoveryAtAPIS(t *testing.T) {
 				Version:      testapi.Autoscaling.GroupVersion().Version,
 			},
 		},
+		// batch is using its pkg/apis/batch/ types here since during installation
+		// both versions get installed and testapi.go currently does not support
+		// multi-versioned clients
 		batch.GroupName: {
 			{
-				GroupVersion: testapi.Batch.GroupVersion().String(),
-				Version:      testapi.Batch.GroupVersion().Version,
+				GroupVersion: batchapiv1.SchemeGroupVersion.String(),
+				Version:      batchapiv1.SchemeGroupVersion.Version,
+			},
+			{
+				GroupVersion: batchapiv2alpha1.SchemeGroupVersion.String(),
+				Version:      batchapiv2alpha1.SchemeGroupVersion.Version,
 			},
 		},
 		apps.GroupName: {
@@ -519,12 +532,11 @@ type FooList struct {
 	Items []Foo `json:"items"`
 }
 
-func initThirdParty(t *testing.T, version string) (*Master, *etcdtesting.EtcdTestServer, *httptest.Server, *assert.Assertions) {
+func initThirdParty(t *testing.T, version, name string) (*Master, *etcdtesting.EtcdTestServer, *httptest.Server, *assert.Assertions) {
 	master, etcdserver, _, assert := newMaster(t)
-
 	api := &extensions.ThirdPartyResource{
 		ObjectMeta: api.ObjectMeta{
-			Name: "foo.company.com",
+			Name: name,
 		},
 		Versions: []extensions.APIVersion{
 			{
@@ -551,10 +563,22 @@ func TestInstallThirdPartyAPIList(t *testing.T) {
 func testInstallThirdPartyAPIListVersion(t *testing.T, version string) {
 	tests := []struct {
 		items []Foo
+		name  string
+		test  string
 	}{
-		{},
+		{
+			name: "foo.company.com",
+			test: "null",
+		},
 		{
 			items: []Foo{},
+			name:  "foo.company.com",
+			test:  "empty",
+		},
+		{
+			items: []Foo{},
+			name:  "policy.company.com",
+			test:  "plurals",
 		},
 		{
 			items: []Foo{
@@ -581,46 +605,61 @@ func testInstallThirdPartyAPIListVersion(t *testing.T, version string) {
 					OtherField: 20,
 				},
 			},
+			name: "foo.company.com",
+			test: "real list",
 		},
 	}
 	for _, test := range tests {
 		func() {
-			master, etcdserver, server, assert := initThirdParty(t, version)
+			master, etcdserver, server, assert := initThirdParty(t, version, test.name)
 			defer server.Close()
 			defer etcdserver.Terminate(t)
 
+			kind, group, err := thirdpartyresourcedata.ExtractApiGroupAndKind(
+				&extensions.ThirdPartyResource{ObjectMeta: api.ObjectMeta{Name: test.name}})
+			assert.NoError(err, test.test)
+
+			plural, _ := meta.KindToResource(unversioned.GroupVersionKind{
+				Group:   group,
+				Version: version,
+				Kind:    kind,
+			})
+
 			if test.items != nil {
-				err := createThirdPartyList(master.thirdPartyStorage, "/ThirdPartyResourceData/company.com/foos/default", test.items)
-				if !assert.NoError(err) {
+				err := createThirdPartyList(master.thirdPartyStorage,
+					fmt.Sprintf("/ThirdPartyResourceData/%s/%s/default", group, plural.Resource),
+					test.items)
+				if !assert.NoError(err, test.test) {
 					return
 				}
 			}
 
-			resp, err := http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos")
-			if !assert.NoError(err) {
+			resp, err := http.Get(
+				fmt.Sprintf("%s/apis/%s/%s/namespaces/default/%s", server.URL, group, version, plural.Resource))
+			if !assert.NoError(err, test.test) {
 				return
 			}
 			defer resp.Body.Close()
 
-			assert.Equal(http.StatusOK, resp.StatusCode)
+			assert.Equal(http.StatusOK, resp.StatusCode, test.test)
 
 			data, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err)
+			assert.NoError(err, test.test)
 
 			list := FooList{}
 			if err = json.Unmarshal(data, &list); err != nil {
-				t.Errorf("unexpected error: %v", err)
+				assert.NoError(err, "unexpected error: %v %s", err, test.test)
 			}
 
 			if test.items == nil {
 				if len(list.Items) != 0 {
-					t.Errorf("expected no items, saw: %v", list.Items)
+					assert.NoError(err, "expected no items, saw: %v %s", err, list.Items, test.test)
 				}
 				return
 			}
 
 			if len(list.Items) != len(test.items) {
-				t.Fatalf("unexpected length: %d vs %d", len(list.Items), len(test.items))
+				t.Fatalf("(%s) unexpected length: %d vs %d", test.name, len(list.Items), len(test.items))
 			}
 			// The order of elements in LIST is not guaranteed.
 			mapping := make(map[string]int)
@@ -639,7 +678,7 @@ func testInstallThirdPartyAPIListVersion(t *testing.T, version string) {
 				// We endure the order of items by sorting them (using 'mapping')
 				// so that this function passes.
 				if !reflect.DeepEqual(list.Items[ix], expectedObj) {
-					t.Errorf("expected:\n%#v\nsaw:\n%#v\n", expectedObj, list.Items[ix])
+					t.Errorf("(%s) expected:\n%#v\nsaw:\n%#v\n", test.name, expectedObj, list.Items[ix])
 				}
 			}
 		}()
@@ -695,7 +734,7 @@ func TestInstallThirdPartyAPIGet(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIGetVersion(t *testing.T, version string) {
-	master, etcdserver, server, assert := initThirdParty(t, version)
+	master, etcdserver, server, assert := initThirdParty(t, version, "foo.company.com")
 	defer server.Close()
 	defer etcdserver.Terminate(t)
 
@@ -736,13 +775,15 @@ func testInstallThirdPartyAPIGetVersion(t *testing.T, version string) {
 }
 
 func TestInstallThirdPartyAPIPost(t *testing.T) {
+	registered.AddThirdPartyAPIGroupVersions(unversioned.GroupVersion{Group: "company.com", Version: "v1"}, unversioned.GroupVersion{Group: "company.com", Version: "v3"})
+
 	for _, version := range versionsToTest {
 		testInstallThirdPartyAPIPostForVersion(t, version)
 	}
 }
 
 func testInstallThirdPartyAPIPostForVersion(t *testing.T, version string) {
-	master, etcdserver, server, assert := initThirdParty(t, version)
+	master, etcdserver, server, assert := initThirdParty(t, version, "foo.company.com")
 	defer server.Close()
 	defer etcdserver.Terminate(t)
 
@@ -806,7 +847,7 @@ func TestInstallThirdPartyAPIDelete(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIDeleteVersion(t *testing.T, version string) {
-	master, etcdserver, server, assert := initThirdParty(t, version)
+	master, etcdserver, server, assert := initThirdParty(t, version, "foo.company.com")
 	defer server.Close()
 	defer etcdserver.Terminate(t)
 
@@ -883,7 +924,7 @@ func TestInstallThirdPartyAPIListOptions(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIListOptionsForVersion(t *testing.T, version string) {
-	_, etcdserver, server, assert := initThirdParty(t, version)
+	_, etcdserver, server, assert := initThirdParty(t, version, "foo.company.com")
 	defer server.Close()
 	defer etcdserver.Terminate(t)
 
@@ -915,7 +956,7 @@ func TestInstallThirdPartyResourceRemove(t *testing.T) {
 }
 
 func testInstallThirdPartyResourceRemove(t *testing.T, version string) {
-	master, etcdserver, server, assert := initThirdParty(t, version)
+	master, etcdserver, server, assert := initThirdParty(t, version, "foo.company.com")
 	defer server.Close()
 	defer etcdserver.Terminate(t)
 
@@ -1036,7 +1077,7 @@ func TestIsTunnelSyncHealthy(t *testing.T) {
 }
 
 func testThirdPartyDiscovery(t *testing.T, version string) {
-	_, etcdserver, server, assert := initThirdParty(t, version)
+	_, etcdserver, server, assert := initThirdParty(t, version, "foo.company.com")
 	defer server.Close()
 	defer etcdserver.Terminate(t)
 

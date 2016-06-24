@@ -18,6 +18,11 @@
 If you are using a released version of Kubernetes, you should
 refer to the docs that go with that version.
 
+<!-- TAG RELEASE_LINK, added by the munger automatically -->
+<strong>
+The latest release of this document can be found
+[here](http://releases.k8s.io/release-1.3/examples/cassandra/java/README.md).
+
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
 </strong>
@@ -43,6 +48,7 @@ The following environment variables may be used to override the default configur
 | KUBERNETES_PORT_443_TCP_PORT   | 443                                   | API port number                  |
 | CASSANDRA_SERVICE              | cassandra                             | Default service name for lookup  |
 | POD_NAMESPACE                  | default                               | Default pod service namespace    |
+| K8S_ACCOUNT_TOKEN 		 | /var/run/secrets/kubernetes.io/serviceaccount/token | Default path to service token |
 
 # Using
 

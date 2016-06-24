@@ -21,7 +21,7 @@ refer to the docs that go with that version.
 <!-- TAG RELEASE_LINK, added by the munger automatically -->
 <strong>
 The latest release of this document can be found
-[here](http://releases.k8s.io/release-1.2/examples/mysql-wordpress-pd/README.md).
+[here](http://releases.k8s.io/release-1.3/examples/mysql-wordpress-pd/README.md).
 
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
@@ -98,7 +98,7 @@ this example.
 * Kubernetes version 1.2 is required due to using newer features, such
   at PV Claims and Deployments. Run `kubectl version` to see your
   cluster version.
-* [Cluster DNS](../../cluster/addons/dns/) will be used for service discovery.
+* [Cluster DNS](../../build/kube-dns/) will be used for service discovery.
 * An [external load balancer](http://kubernetes.io/docs/user-guide/services/#type-loadbalancer)
   will be used to access WordPress.
 * [Persistent Volume Claims](http://kubernetes.io/docs/user-guide/persistent-volumes/)

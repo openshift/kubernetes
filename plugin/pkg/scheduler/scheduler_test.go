@@ -19,7 +19,6 @@ package scheduler
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"sync"
 	"testing"
@@ -27,7 +26,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client/cache"
+	clientcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/diff"
@@ -42,6 +41,12 @@ type fakeBinder struct {
 }
 
 func (fb fakeBinder) Bind(binding *api.Binding) error { return fb.b(binding) }
+
+type fakePodConditionUpdater struct{}
+
+func (fc fakePodConditionUpdater) Update(pod *api.Pod, podCondition *api.PodCondition) error {
+	return nil
+}
 
 func podWithID(id, desiredHost string) *api.Pod {
 	return &api.Pod{
@@ -128,6 +133,7 @@ func TestScheduler(t *testing.T) {
 				gotBinding = b
 				return item.injectBindError
 			}},
+			PodConditionUpdater: fakePodConditionUpdater{},
 			Error: func(p *api.Pod, err error) {
 				gotPod = p
 				gotError = err
@@ -196,8 +202,8 @@ func TestSchedulerForgetAssumedPodAfterDelete(t *testing.T) {
 	// Setup stores to test pod's workflow:
 	// - queuedPodStore: pods queued before processing
 	// - scheduledPodStore: pods that has a scheduling decision
-	scheduledPodStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	queuedPodStore := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	scheduledPodStore := clientcache.NewStore(clientcache.MetaNamespaceKeyFunc)
+	queuedPodStore := clientcache.NewFIFO(clientcache.MetaNamespaceKeyFunc)
 
 	// Port is the easiest way to cause a fit predicate failure
 	podPort := 8080
@@ -211,8 +217,7 @@ func TestSchedulerForgetAssumedPodAfterDelete(t *testing.T) {
 		cache,
 		map[string]algorithm.FitPredicate{"PodFitsHostPorts": predicates.PodFitsHostPorts},
 		[]algorithm.PriorityConfig{},
-		[]algorithm.SchedulerExtender{},
-		rand.New(rand.NewSource(time.Now().UnixNano())))
+		[]algorithm.SchedulerExtender{})
 
 	var gotBinding *api.Binding
 	c := &Config{
@@ -227,7 +232,7 @@ func TestSchedulerForgetAssumedPodAfterDelete(t *testing.T) {
 			return nil
 		}},
 		NextPod: func() *api.Pod {
-			return queuedPodStore.Pop().(*api.Pod)
+			return clientcache.Pop(queuedPodStore).(*api.Pod)
 		},
 		Error: func(p *api.Pod, err error) {
 			t.Errorf("Unexpected error when scheduling pod %+v: %v", p, err)

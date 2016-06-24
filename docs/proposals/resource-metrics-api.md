@@ -18,6 +18,11 @@
 If you are using a released version of Kubernetes, you should
 refer to the docs that go with that version.
 
+<!-- TAG RELEASE_LINK, added by the munger automatically -->
+<strong>
+The latest release of this document can be found
+[here](http://releases.k8s.io/release-1.3/docs/proposals/resource-metrics-api.md).
+
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
 </strong>
@@ -28,8 +33,6 @@ Documentation for other releases can be found at
 <!-- END MUNGE: UNVERSIONED_WARNING -->
 
 # Resource Metrics API
-
-*This proposal is based on and supersedes [compute-resource-metrics-api.md](compute-resource-metrics-api.md).*
 
 This document describes API part of MVP version of Resource Metrics API effort in Kubernetes.
 Once the agreement will be made the document will be extended to also cover implementation details.

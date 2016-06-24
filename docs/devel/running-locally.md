@@ -21,7 +21,7 @@ refer to the docs that go with that version.
 <!-- TAG RELEASE_LINK, added by the munger automatically -->
 <strong>
 The latest release of this document can be found
-[here](http://releases.k8s.io/release-1.2/docs/devel/running-locally.md).
+[here](http://releases.k8s.io/release-1.3/docs/devel/running-locally.md).
 
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
@@ -189,7 +189,7 @@ KUBE_DNS_DOMAIN="cluster.local"
 KUBE_DNS_REPLICAS=1
 ```
 
-To know more on DNS service you can look [here](http://issue.k8s.io/6667). Related documents can be found [here](../../cluster/addons/dns/#how-do-i-configure-it)
+To know more on DNS service you can look [here](http://issue.k8s.io/6667). Related documents can be found [here](../../build/kube-dns/#how-do-i-configure-it)
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->

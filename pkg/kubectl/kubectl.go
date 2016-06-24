@@ -43,7 +43,7 @@ type NamespaceInfo struct {
 }
 
 func listOfImages(spec *api.PodSpec) []string {
-	var images []string
+	images := make([]string, 0, len(spec.Containers))
 	for _, container := range spec.Containers {
 		images = append(images, container.Image)
 	}
@@ -64,7 +64,7 @@ func NewThirdPartyResourceMapper(gvs []unversioned.GroupVersion, gvks []unversio
 				}, nil
 			}
 		}
-		groupVersions := []string{}
+		groupVersions := make([]string, 0, len(gvs))
 		for ix := range gvs {
 			groupVersions = append(groupVersions, gvs[ix].String())
 		}
@@ -161,6 +161,7 @@ var shortForms = map[string]string{
 	"rc":     "replicationcontrollers",
 	"rs":     "replicasets",
 	"sa":     "serviceaccounts",
+	"scc":    "securitycontextconstraints",
 	"svc":    "services",
 }
 

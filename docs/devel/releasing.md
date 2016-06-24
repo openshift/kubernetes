@@ -21,7 +21,7 @@ refer to the docs that go with that version.
 <!-- TAG RELEASE_LINK, added by the munger automatically -->
 <strong>
 The latest release of this document can be found
-[here](http://releases.k8s.io/release-1.2/docs/devel/releasing.md).
+[here](http://releases.k8s.io/release-1.3/docs/devel/releasing.md).
 
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
@@ -82,11 +82,11 @@ from, and other prerequisites.
   * You should still look for green tests, (see below).
 
 No matter what you're cutting, you're going to want to look at
-[Jenkins](http://go/k8s-test/).  Figure out what branch you're cutting from,
-(see above,) and look at the critical jobs building from that branch.  First
-glance through builds and look for nice solid rows of green builds, and then
-check temporally with the other critical builds to make sure they're solid
-around then as well.
+[Jenkins](http://kubekins.dls.corp.google.com/) (Google internal only).  Figure
+out what branch you're cutting from, (see above,) and look at the critical jobs
+building from that branch.  First glance through builds and look for nice solid
+rows of green builds, and then check temporally with the other critical builds
+to make sure they're solid around then as well.
 
 If you're doing an alpha release or cutting a new release series, you can
 choose an arbitrary build.  If you are doing an official release, you have to

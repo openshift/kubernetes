@@ -18,6 +18,7 @@ package resourcequota
 
 import (
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -27,13 +28,15 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 func init() {
 	admission.RegisterPlugin("ResourceQuota",
 		func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
 			registry := install.NewRegistry(client)
-			return NewResourceQuota(client, registry, 5)
+			// TODO: expose a stop channel in admission factory
+			return NewResourceQuota(client, registry, 5, make(chan struct{}))
 		})
 }
 
@@ -52,12 +55,14 @@ type liveLookupEntry struct {
 // NewResourceQuota configures an admission controller that can enforce quota constraints
 // using the provided registry.  The registry must have the capability to handle group/kinds that
 // are persisted by the server this admission controller is intercepting
-func NewResourceQuota(client clientset.Interface, registry quota.Registry, numEvaluators int) (admission.Interface, error) {
+func NewResourceQuota(client clientset.Interface, registry quota.Registry, numEvaluators int, stopCh <-chan struct{}) (admission.Interface, error) {
 	evaluator, err := newQuotaEvaluator(client, registry)
 	if err != nil {
 		return nil, err
 	}
-	evaluator.Run(numEvaluators)
+
+	defer utilruntime.HandleCrash()
+	go evaluator.Run(numEvaluators, stopCh)
 
 	return &quotaAdmission{
 		Handler:   admission.NewHandler(admission.Create, admission.Update),
@@ -91,10 +96,17 @@ func (q *quotaAdmission) Admit(a admission.Attributes) (err error) {
 }
 
 // prettyPrint formats a resource list for usage in errors
+// it outputs resources sorted in increasing order
 func prettyPrint(item api.ResourceList) string {
 	parts := []string{}
-	for key, value := range item {
-		constraint := string(key) + "=" + value.String()
+	keys := []string{}
+	for key := range item {
+		keys = append(keys, string(key))
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		value := item[api.ResourceName(key)]
+		constraint := key + "=" + value.String()
 		parts = append(parts, constraint)
 	}
 	return strings.Join(parts, ",")

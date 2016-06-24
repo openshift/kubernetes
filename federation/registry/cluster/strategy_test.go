@@ -23,7 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"reflect"
@@ -39,7 +38,7 @@ func validNewCluster() *federation.Cluster {
 			},
 		},
 		Spec: federation.ClusterSpec{
-			ServerAddressByClientCIDRs: []unversioned.ServerAddressByClientCIDR{
+			ServerAddressByClientCIDRs: []federation.ServerAddressByClientCIDR{
 				{
 					ClientCIDR:    "0.0.0.0/0",
 					ServerAddress: "localhost:8888",
@@ -55,13 +54,11 @@ func validNewCluster() *federation.Cluster {
 }
 
 func invalidNewCluster() *federation.Cluster {
+	// Create a cluster with empty ServerAddressByClientCIDRs (which is a required field).
 	return &federation.Cluster{
 		ObjectMeta: api.ObjectMeta{
 			Name:            "foo2",
 			ResourceVersion: "5",
-		},
-		Spec: federation.ClusterSpec{
-			Credential: "bar",
 		},
 		Status: federation.ClusterStatus{
 			Conditions: []federation.ClusterCondition{

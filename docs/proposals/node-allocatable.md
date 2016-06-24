@@ -21,7 +21,7 @@ refer to the docs that go with that version.
 <!-- TAG RELEASE_LINK, added by the munger automatically -->
 <strong>
 The latest release of this document can be found
-[here](http://releases.k8s.io/release-1.2/docs/proposals/node-allocatable.md).
+[here](http://releases.k8s.io/release-1.3/docs/proposals/node-allocatable.md).
 
 Documentation for other releases can be found at
 [releases.k8s.io](http://releases.k8s.io).
@@ -41,7 +41,7 @@ Documentation for other releases can be found at
 Currently Node.Status has Capacity, but no concept of node Allocatable. We need additional
 parameters to serve several purposes:
 
-1. [Kubernetes metrics](compute-resource-metrics-api.md) provides "/docker-daemon", "/kubelet",
+1. Kubernetes metrics provides "/docker-daemon", "/kubelet",
    "/kube-proxy", "/system" etc. raw containers for monitoring system component resource usage
    patterns and detecting regressions. Eventually we want to cap system component usage to a certain
    limit / request. However this is not currently feasible due to a variety of reasons including:

@@ -70,6 +70,7 @@ func DefaultNameSystem() string {
 var fallbackPackages = []string{
 	"k8s.io/kubernetes/pkg/api/unversioned",
 	"k8s.io/kubernetes/pkg/apis/extensions",
+	"k8s.io/kubernetes/pkg/apis/autoscaling",
 	"k8s.io/kubernetes/pkg/apis/batch",
 }
 
@@ -366,6 +367,18 @@ func isDirectlyConvertible(in, out *types.Type, preexisting conversions) bool {
 	return false
 }
 
+func areTypesAliased(in, out *types.Type) bool {
+	// If one of the types is Alias, resolve it.
+	if in.Kind == types.Alias {
+		return areTypesAliased(in.Underlying, out)
+	}
+	if out.Kind == types.Alias {
+		return areTypesAliased(in, out.Underlying)
+	}
+
+	return in == out
+}
+
 const (
 	apiPackagePath        = "k8s.io/kubernetes/pkg/api"
 	conversionPackagePath = "k8s.io/kubernetes/pkg/conversion"
@@ -379,6 +392,8 @@ type genConversion struct {
 	defaulters    defaulters
 	imports       namer.ImportTracker
 	typesForInit  []conversionType
+
+	globalVariables map[string]interface{}
 }
 
 func NewGenConversion(sanitizedName, targetPackage string, preexisting conversions, defaulters defaulters) generator.Generator {
@@ -459,12 +474,6 @@ func (g *genConversion) isOtherPackage(pkg string) bool {
 
 func (g *genConversion) Imports(c *generator.Context) (imports []string) {
 	var importLines []string
-	if g.isOtherPackage(apiPackagePath) {
-		importLines = append(importLines, "api \""+apiPackagePath+"\"")
-	}
-	if g.isOtherPackage(conversionPackagePath) {
-		importLines = append(importLines, "conversion \""+conversionPackagePath+"\"")
-	}
 	for _, singleImport := range g.imports.ImportLines() {
 		if g.isOtherPackage(singleImport) {
 			importLines = append(importLines, singleImport)
@@ -473,7 +482,16 @@ func (g *genConversion) Imports(c *generator.Context) (imports []string) {
 	return importLines
 }
 
-func argsFromType(inType, outType *types.Type) interface{} {
+func (g *genConversion) withGlobals(args map[string]interface{}) map[string]interface{} {
+	for k, v := range g.globalVariables {
+		if _, ok := args[k]; !ok {
+			args[k] = v
+		}
+	}
+	return args
+}
+
+func argsFromType(inType, outType *types.Type) map[string]interface{} {
 	return map[string]interface{}{
 		"inType":  inType,
 		"outType": outType,
@@ -498,13 +516,20 @@ func (g *genConversion) preexists(inType, outType *types.Type) (*types.Type, boo
 }
 
 func (g *genConversion) Init(c *generator.Context, w io.Writer) error {
+	scheme := c.Universe.Variable(types.Name{Package: apiPackagePath, Name: "Scheme"})
+	g.imports.AddType(scheme)
+	scope := c.Universe.Type(types.Name{Package: conversionPackagePath, Name: "Scope"})
+	g.imports.AddType(scope)
+	g.globalVariables = map[string]interface{}{
+		"scheme": scheme,
+		"Scope":  scope,
+	}
+
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	sw.Do("func init() {\n", nil)
-	if g.targetPackage == apiPackagePath {
-		sw.Do("if err := Scheme.AddGeneratedConversionFuncs(\n", nil)
-	} else {
-		sw.Do("if err := api.Scheme.AddGeneratedConversionFuncs(\n", nil)
-	}
+	sw.Do("if err := $.scheme|raw$.AddGeneratedConversionFuncs(\n", map[string]interface{}{
+		"scheme": scheme,
+	})
 	for _, conv := range g.typesForInit {
 		funcName := g.funcNameTmpl(conv.inType, conv.outType)
 		sw.Do(fmt.Sprintf("%s,\n", funcName), argsFromType(conv.inType, conv.outType))
@@ -531,27 +556,19 @@ func (g *genConversion) GenerateType(c *generator.Context, t *types.Type, w io.W
 
 func (g *genConversion) generateConversion(inType, outType *types.Type, sw *generator.SnippetWriter) {
 	funcName := g.funcNameTmpl(inType, outType)
-	if g.targetPackage == conversionPackagePath {
-		sw.Do(fmt.Sprintf("func auto%s(in *$.inType|raw$, out *$.outType|raw$, s Scope) error {\n", funcName), argsFromType(inType, outType))
-	} else {
-		sw.Do(fmt.Sprintf("func auto%s(in *$.inType|raw$, out *$.outType|raw$, s conversion.Scope) error {\n", funcName), argsFromType(inType, outType))
-	}
+
+	sw.Do(fmt.Sprintf("func auto%s(in *$.inType|raw$, out *$.outType|raw$, s $.Scope|raw$) error {\n", funcName), g.withGlobals(argsFromType(inType, outType)))
 	// if no defaulter of form SetDefaults_XXX is defined, do not inline a check for defaulting.
 	if function, ok := g.defaulters[inType]; ok {
 		sw.Do("$.|raw$(in)\n", function)
 	}
-
 	g.generateFor(inType, outType, sw)
 	sw.Do("return nil\n", nil)
 	sw.Do("}\n\n", nil)
 
 	// If there is no public preexisting Convert method, generate it.
 	if _, ok := g.preexists(inType, outType); !ok {
-		if g.targetPackage == conversionPackagePath {
-			sw.Do(fmt.Sprintf("func %s(in *$.inType|raw$, out *$.outType|raw$, s Scope) error {\n", funcName), argsFromType(inType, outType))
-		} else {
-			sw.Do(fmt.Sprintf("func %s(in *$.inType|raw$, out *$.outType|raw$, s conversion.Scope) error {\n", funcName), argsFromType(inType, outType))
-		}
+		sw.Do(fmt.Sprintf("func %s(in *$.inType|raw$, out *$.outType|raw$, s $.Scope|raw$) error {\n", funcName), g.withGlobals(argsFromType(inType, outType)))
 		sw.Do(fmt.Sprintf("return auto%s(in, out, s)\n", funcName), argsFromType(inType, outType))
 		sw.Do("}\n\n", nil)
 	}
@@ -688,6 +705,11 @@ func (g *genConversion) doStruct(inType, outType *types.Type, sw *generator.Snip
 				sw.Do("out.$.name$ = $.outType|raw$(in.$.name$)\n", args)
 			}
 		case types.Map, types.Slice, types.Pointer:
+			if g.isDirectlyAssignable(m.Type, outMember.Type) {
+				sw.Do("out.$.name$ = in.$.name$\n", args)
+				continue
+			}
+
 			sw.Do("if in.$.name$ != nil {\n", args)
 			sw.Do("in, out := &in.$.name$, &out.$.name$\n", args)
 			g.generateFor(m.Type, outMember.Type, sw)
@@ -695,6 +717,10 @@ func (g *genConversion) doStruct(inType, outType *types.Type, sw *generator.Snip
 			sw.Do("out.$.name$ = nil\n", args)
 			sw.Do("}\n", nil)
 		case types.Struct:
+			if g.isDirectlyAssignable(m.Type, outMember.Type) {
+				sw.Do("out.$.name$ = in.$.name$\n", args)
+				continue
+			}
 			if g.convertibleOnlyWithinPackage(m.Type, outMember.Type) {
 				funcName := g.funcNameTmpl(m.Type, outMember.Type)
 				sw.Do(fmt.Sprintf("if err := %s(&in.$.name$, &out.$.name$, s); err != nil {\n", funcName), args)
@@ -734,6 +760,10 @@ func (g *genConversion) doStruct(inType, outType *types.Type, sw *generator.Snip
 			sw.Do("}\n", nil)
 		}
 	}
+}
+
+func (g *genConversion) isDirectlyAssignable(inType, outType *types.Type) bool {
+	return inType == outType || areTypesAliased(inType, outType)
 }
 
 func (g *genConversion) doPointer(inType, outType *types.Type, sw *generator.SnippetWriter) {

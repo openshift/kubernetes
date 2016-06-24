@@ -75,7 +75,7 @@ addon-dir-create:
 {% if pillar.get('enable_cluster_dns', '').lower() == 'true' %}
 /etc/kubernetes/addons/dns/skydns-svc.yaml:
   file.managed:
-    - source: salt://kube-addons/dns/skydns-svc.yaml.in
+    - source: salt://kube-dns/skydns-svc.yaml.in
     - template: jinja
     - group: root
     - dir_mode: 755
@@ -83,7 +83,7 @@ addon-dir-create:
 
 /etc/kubernetes/addons/dns/skydns-rc.yaml:
   file.managed:
-    - source: salt://kube-addons/dns/skydns-rc.yaml.in
+    - source: salt://kube-dns/skydns-rc.yaml.in
     - template: jinja
     - group: root
     - dir_mode: 755
@@ -148,6 +148,16 @@ addon-dir-create:
     - group: root
     - dir_mode: 755
     - file_mode: 644
+{% endif %}
+
+{% if pillar.get('enable_node_problem_detector', '').lower() == 'true' %}
+/etc/kubernetes/addons/node-problem-detector/node-problem-detector.yaml:
+  file.managed:
+    - source: salt://kube-addons/node-problem-detector/node-problem-detector.yaml
+    - user: root
+    - group: root
+    - file_mode: 644
+    - makedirs: True
 {% endif %}
 
 /etc/kubernetes/manifests/kube-addon-manager.yaml:

@@ -109,6 +109,7 @@ function check-curl-proxy-code()
 function kubectl-with-retry()
 {
   ERROR_FILE="${KUBE_TEMP}/kubectl-error"
+  preserve_err_file=${PRESERVE_ERR_FILE-false}
   for count in $(seq 0 3); do
     kubectl "$@" 2> ${ERROR_FILE} || true
     if grep -q "the object has been modified" "${ERROR_FILE}"; then
@@ -116,15 +117,22 @@ function kubectl-with-retry()
       rm "${ERROR_FILE}"
       sleep $((2**count))
     else
-      rm "${ERROR_FILE}"
+      if [ "$preserve_err_file" != true ] ; then
+        rm "${ERROR_FILE}"
+      fi
       break
     fi
   done
 }
 
 kube::util::trap_add cleanup EXIT SIGINT
-
 kube::util::ensure-temp-dir
+
+"${KUBE_ROOT}/hack/build-go.sh" \
+    cmd/kubectl \
+    cmd/kube-apiserver \
+    cmd/kube-controller-manager
+
 kube::etcd::start
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
@@ -144,12 +152,25 @@ IMAGE_PERL="gcr.io/google-containers/perl"
 # ensure ~/.kube/config isn't loaded by tests
 HOME="${KUBE_TEMP}"
 
+# Find a standard sed instance for use with edit scripts
+SED=sed
+if which gsed &>/dev/null; then
+  SED=gsed
+fi
+if ! ($SED --version 2>&1 | grep -q GNU); then
+  echo "!!! GNU sed is required.  If on OS X, use 'brew install gnu-sed'."
+  exit 1
+fi
+
 # Check kubectl
 kube::log::status "Running kubectl with no options"
 "${KUBE_OUTPUT_HOSTBIN}/kubectl"
 
 # Only run kubelet on platforms it supports
 if [[ "$(go env GOHOSTOS)" == "linux" ]]; then
+
+"${KUBE_ROOT}/hack/build-go.sh" \
+    cmd/kubelet
 
 kube::log::status "Starting kubelet in masterless mode"
 "${KUBE_OUTPUT_HOSTBIN}/kubelet" \
@@ -285,12 +306,13 @@ runTests() {
   image_field="(index .spec.containers 0).image"
   hpa_min_field=".spec.minReplicas"
   hpa_max_field=".spec.maxReplicas"
-  hpa_cpu_field=".spec.cpuUtilization.targetPercentage"
+  hpa_cpu_field=".spec.targetCPUUtilizationPercentage"
   job_parallelism_field=".spec.parallelism"
   deployment_replicas=".spec.replicas"
   secret_data=".data"
   secret_type=".type"
   deployment_image_field="(index .spec.template.spec.containers 0).image"
+  deployment_second_image_field="(index .spec.template.spec.containers 1).image"
   change_cause_annotation='.*kubernetes.io/change-cause.*'
 
   # Passing no arguments to create is an error
@@ -305,12 +327,12 @@ runTests() {
   kubectl config set-cluster test-cluster --server="https://does-not-work"
 
   # Get the api cert and add a comment to avoid flag parsing problems
-  cert_data=$(echo "#Comment" && cat "${TMPDIR:-/tmp/}apiserver.crt")
+  cert_data=$(echo "#Comment" && cat "${TMPDIR:-/tmp}/apiserver.crt")
 
   kubectl config set clusters.test-cluster.certificate-authority-data "$cert_data" --set-raw-bytes
   r_writen=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name == "test-cluster")].cluster.certificate-authority-data}')
 
-  encoded=$(echo -n "$cert_data" | base64 --wrap=0)
+  encoded=$(echo -n "$cert_data" | base64)
   kubectl config set clusters.test-cluster.certificate-authority-data "$encoded"
   e_writen=$(kubectl config view --raw -o jsonpath='{.clusters[?(@.name == "test-cluster")].cluster.certificate-authority-data}')
 
@@ -322,9 +344,9 @@ runTests() {
 
   # Make sure the UI can be proxied
   start-proxy
-  check-curl-proxy-code /ui 301
+  # check-curl-proxy-code /ui 301
   check-curl-proxy-code /metrics 200
-  check-curl-proxy-code /api/ui 404
+  # check-curl-proxy-code /api/ui 404
   if [[ -n "${version}" ]]; then
     check-curl-proxy-code /api/${version}/namespaces 200
   fi
@@ -339,7 +361,7 @@ runTests() {
 
   # Custom paths let you see everything.
   start-proxy /custom
-  check-curl-proxy-code /custom/ui 301
+  # check-curl-proxy-code /custom/ui 301
   check-curl-proxy-code /custom/metrics 200
   if [[ -n "${version}" ]]; then
     check-curl-proxy-code /custom/api/${version}/namespaces 200
@@ -435,7 +457,7 @@ runTests() {
   create_and_use_new_namespace
   kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
   # Command
-  echo "${output_pod}" | sed '/namespace:/d' | kubectl create -f - "${kube_flags[@]}"
+  echo "${output_pod}" | $SED '/namespace:/d' | kubectl create -f - "${kube_flags[@]}"
   # Post-condition: valid-pod POD is created
   kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'valid-pod:'
 
@@ -674,7 +696,7 @@ runTests() {
 
   ## --force replace pod can change other field, e.g., spec.container.name
   # Command
-  kubectl get "${kube_flags[@]}" pod valid-pod -o json | sed 's/"kubernetes-serve-hostname"/"replaced-k8s-serve-hostname"/g' > /tmp/tmp-valid-pod.json
+  kubectl get "${kube_flags[@]}" pod valid-pod -o json | $SED 's/"kubernetes-serve-hostname"/"replaced-k8s-serve-hostname"/g' > /tmp/tmp-valid-pod.json
   kubectl replace "${kube_flags[@]}" --force -f /tmp/tmp-valid-pod.json
   # Post-condition: spec.container.name = "replaced-k8s-serve-hostname"
   kube::test::get_object_assert 'pod valid-pod' "{{(index .spec.containers 0).name}}" 'replaced-k8s-serve-hostname'
@@ -704,16 +726,20 @@ __EOF__
 __EOF__
   # Post-condition: the node command succeeds
   kube::test::get_object_assert "node node-${version}-test" "{{.metadata.annotations.a}}" 'b'
-  kubectl delete node node-${version}-test
+  kubectl delete node node-${version}-test "${kube_flags[@]}"
 
   ## kubectl edit can update the image field of a POD. tmp-editor.sh is a fake editor
-  echo -e '#!/bin/bash\nsed -i "s/nginx/gcr.io\/google_containers\/serve_hostname/g" $1' > /tmp/tmp-editor.sh
+  echo -e "#!/bin/bash\n$SED -i \"s/nginx/gcr.io\/google_containers\/serve_hostname/g\" \$1" > /tmp/tmp-editor.sh
   chmod +x /tmp/tmp-editor.sh
-  EDITOR=/tmp/tmp-editor.sh ${KUBE_OUTPUT_HOSTBIN}/kubectl edit "${kube_flags[@]}" pods/valid-pod
+  # Pre-condition: valid-pod POD has image nginx
+  kube::test::get_object_assert pods "{{range.items}}{{$image_field}}:{{end}}" 'nginx:'
+  EDITOR=/tmp/tmp-editor.sh kubectl edit "${kube_flags[@]}" pods/valid-pod
   # Post-condition: valid-pod POD has image gcr.io/google_containers/serve_hostname
   kube::test::get_object_assert pods "{{range.items}}{{$image_field}}:{{end}}" 'gcr.io/google_containers/serve_hostname:'
   # cleaning
   rm /tmp/tmp-editor.sh
+
+  ## kubectl edit should work on Windows
   [ "$(EDITOR=cat kubectl edit pod/valid-pod 2>&1 | grep 'Edit cancelled')" ]
   [ "$(EDITOR=cat kubectl edit pod/valid-pod | grep 'name: valid-pod')" ]
   [ "$(EDITOR=cat kubectl edit --windows-line-endings pod/valid-pod | file - | grep CRLF)" ]
@@ -772,7 +798,7 @@ __EOF__
   # Post-Condition: pod "test-pod" doesn't have configuration annotation
   ! [[ "$(kubectl get pods test-pod -o yaml "${kube_flags[@]}" | grep kubectl.kubernetes.io/last-applied-configuration)" ]]
   ## 2. kubectl replace doesn't set the annotation
-  kubectl get pods test-pod -o yaml "${kube_flags[@]}" | sed 's/test-pod-label/test-pod-replaced/g' > "${KUBE_TEMP}"/test-pod-replace.yaml
+  kubectl get pods test-pod -o yaml "${kube_flags[@]}" | $SED 's/test-pod-label/test-pod-replaced/g' > "${KUBE_TEMP}"/test-pod-replace.yaml
   # Command: replace the pod "test-pod"
   kubectl replace -f "${KUBE_TEMP}"/test-pod-replace.yaml "${kube_flags[@]}"
   # Post-Condition: pod "test-pod" is replaced
@@ -788,7 +814,7 @@ __EOF__
   [[ "$(kubectl get pods test-pod -o yaml "${kube_flags[@]}" | grep kubectl.kubernetes.io/last-applied-configuration)" ]]
   kubectl get pods test-pod -o yaml "${kube_flags[@]}" | grep kubectl.kubernetes.io/last-applied-configuration > "${KUBE_TEMP}"/annotation-configuration
   ## 4. kubectl replace updates an existing annotation
-  kubectl get pods test-pod -o yaml "${kube_flags[@]}" | sed 's/test-pod-applied/test-pod-replaced/g' > "${KUBE_TEMP}"/test-pod-replace.yaml
+  kubectl get pods test-pod -o yaml "${kube_flags[@]}" | $SED 's/test-pod-applied/test-pod-replaced/g' > "${KUBE_TEMP}"/test-pod-replace.yaml
   # Command: replace the pod "test-pod"
   kubectl replace -f "${KUBE_TEMP}"/test-pod-replace.yaml "${kube_flags[@]}"
   # Post-Condition: pod "test-pod" is replaced
@@ -820,7 +846,7 @@ __EOF__
   ! [[ "$(kubectl get pods test-pod -o yaml "${kube_flags[@]}" | grep kubectl.kubernetes.io/last-applied-configuration)" ]]
   # Command: edit the pod "test-pod"
   temp_editor="${KUBE_TEMP}/tmp-editor.sh"
-  echo -e '#!/bin/bash\nsed -i "s/test-pod-label/test-pod-label-edited/g" $@' > "${temp_editor}"
+  echo -e "#!/bin/bash\n$SED -i \"s/test-pod-label/test-pod-label-edited/g\" \$@" > "${temp_editor}"
   chmod +x "${temp_editor}"
   EDITOR=${temp_editor} kubectl edit pod test-pod --save-config "${kube_flags[@]}"
   # Post-Condition: pod "test-pod" has configuration annotation
@@ -866,7 +892,7 @@ __EOF__
   [[ "$(kubectl get hpa.v1beta1.extensions frontend -o yaml "${kube_flags[@]}" | grep kubectl.kubernetes.io/last-applied-configuration)" ]]
   # Ensure we can interact with HPA objects in lists through both the extensions/v1beta1 and autoscaling/v1 APIs
   output_message=$(kubectl get hpa -o=jsonpath='{.items[0].apiVersion}' 2>&1 "${kube_flags[@]}")
-  kube::test::if_has_string "${output_message}" 'extensions/v1beta1'
+  kube::test::if_has_string "${output_message}" 'autoscaling/v1'
   output_message=$(kubectl get hpa.extensions -o=jsonpath='{.items[0].apiVersion}' 2>&1 "${kube_flags[@]}")
   kube::test::if_has_string "${output_message}" 'extensions/v1beta1'
   output_message=$(kubectl get hpa.autoscaling -o=jsonpath='{.items[0].apiVersion}' 2>&1 "${kube_flags[@]}")
@@ -914,6 +940,77 @@ __EOF__
   # Clean up
   kubectl delete deployment nginx "${kube_flags[@]}"
 
+  ###############
+  # Kubectl get #
+  ###############
+
+  ### Test retrieval of non-existing pods
+  # Pre-condition: no POD exists
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  output_message=$(! kubectl get pods abc 2>&1 "${kube_flags[@]}")
+  # Post-condition: POD abc should error since it doesn't exist
+  kube::test::if_has_string "${output_message}" 'pods "abc" not found'
+
+  ### Test retrieval of non-existing POD with output flag specified
+  # Pre-condition: no POD exists
+  kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  output_message=$(! kubectl get pods abc 2>&1 "${kube_flags[@]}" -o name)
+  # Post-condition: POD abc should error since it doesn't exist
+  kube::test::if_has_string "${output_message}" 'pods "abc" not found'
+
+  #####################################
+  # Third Party Resources             #
+  #####################################
+  create_and_use_new_namespace
+  kubectl "${kube_flags[@]}" create -f - "${kube_flags[@]}" << __EOF__
+{
+  "kind": "ThirdPartyResource",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "foo.company.com"
+  },
+  "versions": [
+    {
+      "name": "v1"
+    }
+  ]
+}
+__EOF__
+
+  # Post-Condition: assertion object exist
+  kube::test::get_object_assert thirdpartyresources "{{range.items}}{{$id_field}}:{{end}}" 'foo.company.com:'
+
+  kube::util::wait_for_url "http://127.0.0.1:${API_PORT}/apis/company.com/v1" "third party api"
+
+  # Test that we can list this new third party resource
+  kube::test::get_object_assert foos "{{range.items}}{{$id_field}}:{{end}}" ''
+
+  # Test that we can create a new resource of type Foo
+ kubectl "${kube_flags[@]}" create -f - "${kube_flags[@]}" << __EOF__
+ {
+  "kind": "Foo",
+  "apiVersion": "company.com/v1",
+  "metadata": {
+    "name": "test"
+  },
+  "some-field": "field1",
+  "other-field": "field2"
+}
+__EOF__
+
+  # Test that we can list this new third party resource
+  kube::test::get_object_assert foos "{{range.items}}{{$id_field}}:{{end}}" 'test:'
+
+  # Delete the resource
+  kubectl "${kube_flags[@]}" delete foos test
+
+  # Make sure it's gone
+  kube::test::get_object_assert foos "{{range.items}}{{$id_field}}:{{end}}" ''
+
+  # teardown
+  kubectl delete thirdpartyresources foo.company.com "${kube_flags[@]}"
 
   #####################################
   # Recursive Resources via directory #
@@ -979,11 +1076,10 @@ __EOF__
   # Pre-condition: busybox0 & busybox1 PODs exist
   kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
   # Command
-  output_message1=$(kubectl get -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}" -o go-template="{{range.items}}{{$id_field}}:{{end}}")
-  output_message2=$(! kubectl get -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}")
+  output_message=$(! kubectl get -f hack/testdata/recursive/pod --recursive 2>&1 "${kube_flags[@]}" -o go-template="{{range.items}}{{$id_field}}:{{end}}")
   # Post-condition: busybox0 & busybox1 PODs are retrieved, but because busybox2 is malformed, it should not show up
-  kube::test::if_has_string "${output_message1}" "busybox0:busybox1:"
-  kube::test::if_has_string "${output_message2}" "Object 'Kind' is missing"
+  kube::test::if_has_string "${output_message}" "busybox0:busybox1:"
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
 
   ## Label multiple busybox PODs recursively from directory of YAML files
   # Pre-condition: busybox0 & busybox1 PODs exist
@@ -1032,8 +1128,8 @@ __EOF__
   output_message=$(! kubectl autoscale --min=1 --max=2 -f hack/testdata/recursive/rc --recursive 2>&1 "${kube_flags[@]}")
   # Post-condition: busybox0 & busybox replication controllers are autoscaled
   # with min. of 1 replica & max of 2 replicas, and since busybox2 is malformed, it should error
-  kube::test::get_object_assert 'hpa busybox0' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 80'
-  kube::test::get_object_assert 'hpa busybox1' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 80'
+  kube::test::get_object_assert 'hpa busybox0' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 <no value>'
+  kube::test::get_object_assert 'hpa busybox1' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 <no value>'
   kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
   kubectl delete hpa busybox0 "${kube_flags[@]}"
   kubectl delete hpa busybox1 "${kube_flags[@]}"
@@ -1059,7 +1155,7 @@ __EOF__
   kube::test::get_object_assert 'rc busybox1' "{{$rc_replicas_field}}" '1'
   # Command
   output_message=$(! kubectl scale --current-replicas=1 --replicas=2 -f hack/testdata/recursive/rc --recursive 2>&1 "${kube_flags[@]}")
-  # Post-condition: busybox0 & busybox replication controllers are scaled to 2 # replicas, and since busybox2 is malformed, it should error
+  # Post-condition: busybox0 & busybox1 replication controllers are scaled to 2 replicas, and since busybox2 is malformed, it should error
   kube::test::get_object_assert 'rc busybox0' "{{$rc_replicas_field}}" '2'
   kube::test::get_object_assert 'rc busybox1' "{{$rc_replicas_field}}" '2'
   kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
@@ -1073,6 +1169,72 @@ __EOF__
   kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
   kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
 
+  ### Rollout on multiple deployments recursively
+  # Pre-condition: no deployments exist
+  kube::test::get_object_assert deployment "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  # Create deployments (revision 1) recursively from directory of YAML files
+  ! kubectl create -f hack/testdata/recursive/deployment --recursive "${kube_flags[@]}"
+  kube::test::get_object_assert deployment "{{range.items}}{{$id_field}}:{{end}}" 'nginx0-deployment:nginx1-deployment:'
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_NGINX}:${IMAGE_NGINX}:"
+  ## Rollback the deployments to revision 1 recursively
+  output_message=$(! kubectl rollout undo -f hack/testdata/recursive/deployment --recursive --to-revision=1 2>&1 "${kube_flags[@]}")
+  # Post-condition: nginx0 & nginx1 should be a no-op, and since nginx2 is malformed, it should error
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_NGINX}:${IMAGE_NGINX}:"
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  ## Pause the deployments recursively
+  PRESERVE_ERR_FILE=true
+  kubectl-with-retry rollout pause -f hack/testdata/recursive/deployment --recursive "${kube_flags[@]}"
+  output_message=$(cat ${ERROR_FILE})
+  # Post-condition: nginx0 & nginx1 should both have paused set to true, and since nginx2 is malformed, it should error
+  kube::test::get_object_assert deployment "{{range.items}}{{.spec.paused}}:{{end}}" "true:true:"
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  ## Resume the deployments recursively
+  kubectl-with-retry rollout resume -f hack/testdata/recursive/deployment --recursive "${kube_flags[@]}"
+  output_message=$(cat ${ERROR_FILE})
+  # Post-condition: nginx0 & nginx1 should both have paused set to nothing, and since nginx2 is malformed, it should error
+  kube::test::get_object_assert deployment "{{range.items}}{{.spec.paused}}:{{end}}" "<no value>:<no value>:"
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  ## Retrieve the rollout history of the deployments recursively
+  output_message=$(! kubectl rollout history -f hack/testdata/recursive/deployment --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: nginx0 & nginx1 should both have a history, and since nginx2 is malformed, it should error
+  kube::test::if_has_string "${output_message}" "nginx0-deployment"
+  kube::test::if_has_string "${output_message}" "nginx1-deployment"
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  # Clean up
+  unset PRESERVE_ERR_FILE
+  rm "${ERROR_FILE}"
+  ! kubectl delete -f hack/testdata/recursive/deployment --recursive "${kube_flags[@]}" --grace-period=0
+  sleep 1
+
+  ### Rollout on multiple replication controllers recursively - these tests ensure that rollouts cannot be performed on resources that don't support it
+  # Pre-condition: no replication controller exists
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  # Create replication controllers recursively from directory of YAML files
+  ! kubectl create -f hack/testdata/recursive/rc --recursive "${kube_flags[@]}"
+  kube::test::get_object_assert rc "{{range.items}}{{$id_field}}:{{end}}" 'busybox0:busybox1:'
+  # Command
+  ## Attempt to rollback the replication controllers to revision 1 recursively
+  output_message=$(! kubectl rollout undo -f hack/testdata/recursive/rc --recursive --to-revision=1 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 should error as they are RC's, and since busybox2 is malformed, it should error
+  kube::test::if_has_string "${output_message}" 'no rollbacker has been implemented for {"" "ReplicationController"}'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  ## Attempt to pause the replication controllers recursively
+  output_message=$(! kubectl rollout pause -f hack/testdata/recursive/rc --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 should error as they are RC's, and since busybox2 is malformed, it should error
+  kube::test::if_has_string "${output_message}" 'error when pausing "hack/testdata/recursive/rc/busybox.yaml'
+  kube::test::if_has_string "${output_message}" 'error when pausing "hack/testdata/recursive/rc/rc/busybox.yaml'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  ## Attempt to resume the replication controllers recursively
+  output_message=$(! kubectl rollout resume -f hack/testdata/recursive/rc --recursive 2>&1 "${kube_flags[@]}")
+  # Post-condition: busybox0 & busybox1 should error as they are RC's, and since busybox2 is malformed, it should error
+  kube::test::if_has_string "${output_message}" 'error when resuming "hack/testdata/recursive/rc/busybox.yaml'
+  kube::test::if_has_string "${output_message}" 'error when resuming "hack/testdata/recursive/rc/rc/busybox.yaml'
+  kube::test::if_has_string "${output_message}" "Object 'Kind' is missing"
+  # Clean up
+  ! kubectl delete -f hack/testdata/recursive/rc --recursive "${kube_flags[@]}" --grace-period=0
+  sleep 1
 
   ##############
   # Namespaces #
@@ -1152,6 +1314,16 @@ __EOF__
   kube::test::get_object_assert 'secret/test-secret --namespace=test-secrets' "{{$id_field}}" 'test-secret'
   kube::test::get_object_assert 'secret/test-secret --namespace=test-secrets' "{{$secret_type}}" 'kubernetes.io/dockercfg'
   [[ "$(kubectl get secret/test-secret --namespace=test-secrets -o yaml "${kube_flags[@]}" | grep '.dockercfg:')" ]]
+  # Clean-up
+  kubectl delete secret test-secret --namespace=test-secrets
+
+  ### Create a tls secret
+  # Pre-condition: no SECRET exists
+  kube::test::get_object_assert 'secrets --namespace=test-secrets' "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Command
+  kubectl create secret tls test-secret --namespace=test-secrets --key=hack/testdata/tls.key --cert=hack/testdata/tls.crt
+  kube::test::get_object_assert 'secret/test-secret --namespace=test-secrets' "{{$id_field}}" 'test-secret'
+  kube::test::get_object_assert 'secret/test-secret --namespace=test-secrets' "{{$secret_type}}" 'kubernetes.io/tls'
   # Clean-up
   kubectl delete secret test-secret --namespace=test-secrets
 
@@ -1558,14 +1730,27 @@ __EOF__
   kubectl autoscale -f hack/testdata/frontend-controller.yaml "${kube_flags[@]}" --max=2 --cpu-percent=70
   kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 70'
   kubectl delete hpa frontend "${kube_flags[@]}"
-  # autoscale 2~3 pods, default CPU utilization (80%), rc specified by name
+  # autoscale 1~2 pods, CPU utilization 70%, rc specified by file, using old generator
+  kubectl autoscale -f hack/testdata/frontend-controller.yaml "${kube_flags[@]}" --max=2 --cpu-percent=70 --generator=horizontalpodautoscaler/v1beta1
+  kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 70'
+  kubectl delete hpa frontend "${kube_flags[@]}"
+  # autoscale 2~3 pods, no CPU utilization specified, rc specified by name
   kubectl autoscale rc frontend "${kube_flags[@]}" --min=2 --max=3
-  kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 80'
+  kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 <no value>'
+  kubectl delete hpa frontend "${kube_flags[@]}"
+  # autoscale 2~3 pods, no CPU utilization specified, rc specified by name, using old generator
+  kubectl autoscale rc frontend "${kube_flags[@]}" --min=2 --max=3 --generator=horizontalpodautoscaler/v1beta1
+  kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 <no value>'
   kubectl delete hpa frontend "${kube_flags[@]}"
   # autoscale without specifying --max should fail
   ! kubectl autoscale rc frontend "${kube_flags[@]}"
   # Clean up
   kubectl delete rc frontend "${kube_flags[@]}"
+
+
+  ######################
+  # Deployments       #
+  ######################
 
   ### Auto scale deployment
   # Pre-condition: no deployment exists
@@ -1573,9 +1758,9 @@ __EOF__
   # Command
   kubectl create -f docs/user-guide/deployment.yaml "${kube_flags[@]}"
   kube::test::get_object_assert deployment "{{range.items}}{{$id_field}}:{{end}}" 'nginx-deployment:'
-  # autoscale 2~3 pods, default CPU utilization (80%)
+  # autoscale 2~3 pods, no CPU utilization specified
   kubectl-with-retry autoscale deployment nginx-deployment "${kube_flags[@]}" --min=2 --max=3
-  kube::test::get_object_assert 'hpa.extensions nginx-deployment' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 80'
+  kube::test::get_object_assert 'hpa nginx-deployment' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 <no value>'
   # Clean up
   # Note that we should delete hpa first, otherwise it may fight with the deployment reaper.
   kubectl delete hpa nginx-deployment "${kube_flags[@]}"
@@ -1614,6 +1799,39 @@ __EOF__
   kubectl-with-retry rollout resume deployment nginx-deployment "${kube_flags[@]}"
   # The resumed deployment can now be rolled back
   kubectl rollout undo deployment nginx-deployment "${kube_flags[@]}"
+  # Clean up
+  kubectl delete deployment nginx-deployment "${kube_flags[@]}"
+
+  ### Set image of a deployment 
+  # Pre-condition: no deployment exists
+  kube::test::get_object_assert deployment "{{range.items}}{{$id_field}}:{{end}}" ''
+  # Create a deployment
+  kubectl create -f hack/testdata/deployment-multicontainer.yaml "${kube_flags[@]}"
+  kube::test::get_object_assert deployment "{{range.items}}{{$id_field}}:{{end}}" 'nginx-deployment:'
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R1}:"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_second_image_field}}:{{end}}" "${IMAGE_PERL}:"
+  # Set the deployment's image 
+  kubectl set image deployment nginx-deployment nginx="${IMAGE_DEPLOYMENT_R2}" "${kube_flags[@]}"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R2}:"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_second_image_field}}:{{end}}" "${IMAGE_PERL}:"
+  # Set non-existing container should fail 
+  ! kubectl set image deployment nginx-deployment redis=redis "${kube_flags[@]}"
+  # Set image of deployments without specifying name 
+  kubectl set image deployments --all nginx="${IMAGE_DEPLOYMENT_R1}" "${kube_flags[@]}"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R1}:"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_second_image_field}}:{{end}}" "${IMAGE_PERL}:"
+  # Set image of a deployment specified by file
+  kubectl set image -f hack/testdata/deployment-multicontainer.yaml nginx="${IMAGE_DEPLOYMENT_R2}" "${kube_flags[@]}"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R2}:"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_second_image_field}}:{{end}}" "${IMAGE_PERL}:"
+  # Set image of a local file without talking to the server 
+  kubectl set image -f hack/testdata/deployment-multicontainer.yaml nginx="${IMAGE_DEPLOYMENT_R1}" "${kube_flags[@]}" --local -o yaml
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R2}:"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_second_image_field}}:{{end}}" "${IMAGE_PERL}:"
+  # Set image of all containers of the deployment 
+  kubectl set image deployment nginx-deployment "*"="${IMAGE_DEPLOYMENT_R1}" "${kube_flags[@]}"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R1}:"
+  kube::test::get_object_assert deployment "{{range.items}}{{$deployment_second_image_field}}:{{end}}" "${IMAGE_DEPLOYMENT_R1}:"
   # Clean up
   kubectl delete deployment nginx-deployment "${kube_flags[@]}"
 
@@ -1717,14 +1935,29 @@ __EOF__
   kubectl autoscale -f hack/testdata/frontend-replicaset.yaml "${kube_flags[@]}" --max=2 --cpu-percent=70
   kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '1 2 70'
   kubectl delete hpa frontend "${kube_flags[@]}"
-  # autoscale 2~3 pods, default CPU utilization (80%), replica set specified by name
+  # autoscale 2~3 pods, no CPU utilization specified, replica set specified by name
   kubectl autoscale rs frontend "${kube_flags[@]}" --min=2 --max=3
-  kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 80'
+  kube::test::get_object_assert 'hpa frontend' "{{$hpa_min_field}} {{$hpa_max_field}} {{$hpa_cpu_field}}" '2 3 <no value>'
   kubectl delete hpa frontend "${kube_flags[@]}"
   # autoscale without specifying --max should fail
   ! kubectl autoscale rs frontend "${kube_flags[@]}"
   # Clean up
   kubectl delete rs frontend "${kube_flags[@]}"
+
+
+  ######################
+  # Lists              #
+  ######################
+
+  kube::log::status "Testing kubectl(${version}:lists)"
+
+  ### Create a List with objects from multiple versions
+  # Command
+  kubectl create -f hack/testdata/list.yaml "${kube_flags[@]}"
+
+  ### Delete the List with objects from multiple versions
+  # Command
+  kubectl delete service/list-service-test deployment/list-deployment-test
 
 
   ######################
@@ -1814,7 +2047,7 @@ __EOF__
     fi
     # Command: kubectl edit multiple resources
     temp_editor="${KUBE_TEMP}/tmp-editor.sh"
-    echo -e '#!/bin/bash\nsed -i "s/status\:\ replaced/status\:\ edited/g" $@' > "${temp_editor}"
+    echo -e "#!/bin/bash\n$SED -i \"s/status\:\ replaced/status\:\ edited/g\" \$@" > "${temp_editor}"
     chmod +x "${temp_editor}"
     EDITOR="${temp_editor}" kubectl edit "${kube_flags[@]}" -f "${file}"
     # Post-condition: mock service (and mock2) and mock rc (and mock2) are edited
@@ -1994,7 +2227,7 @@ __EOF__
   object="all -l'app=cassandra'"
   request="{{range.items}}{{range .metadata.labels}}{{.}}:{{end}}{{end}}"
 
-  # all 4 cassandra's might not be in the request immediately... 
+  # all 4 cassandra's might not be in the request immediately...
   kube::test::get_object_assert "$object" "$request" 'cassandra:cassandra:cassandra:cassandra:' || \
   kube::test::get_object_assert "$object" "$request" 'cassandra:cassandra:cassandra:' || \
   kube::test::get_object_assert "$object" "$request" 'cassandra:cassandra:'
@@ -2034,6 +2267,7 @@ __EOF__
   kube::test::get_object_assert pods "{{range.items}}{{$id_field}}:{{end}}" ''
   # Command
   kubectl get pods --sort-by="{metadata.name}"
+  kubectl get pods --sort-by="{metadata.creationTimestamp}"
 
   ############################
   # Kubectl --all-namespaces #
