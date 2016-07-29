@@ -7519,6 +7519,13 @@ The resulting set of endpoints can be viewed as:<br>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">seccompProfiles</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SeccompProfiles lists the allowed profiles that may be set for the pod or container&#8217;s seccomp annotations.  An unset (nil) or empty value means that no profiles may be specifid by the pod or container.	The wildcard <em>*</em> may be used to allow all profiles.  When used to generate a value for a pod the first non-wildcard profile will be used as the default.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
 </tbody>
 </table>
 
@@ -8714,7 +8721,7 @@ The resulting set of endpoints can be viewed as:<br>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2016-07-05 01:14:41 UTC
+Last updated 2016-07-29 13:31:01 UTC
 </div>
 </div>
 </body>
