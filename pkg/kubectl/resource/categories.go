@@ -84,6 +84,11 @@ func (e discoveryFilteredExpander) Expand(category string) ([]schema.GroupResour
 // Should remain exported in order to expose a current list of resources to downstream
 // composition that wants to build on the concept of 'all' for their CLIs.
 var legacyUserResources = []schema.GroupResource{
+	{Group: "", Resource: "buildconfigs"},
+	{Group: "", Resource: "builds"},
+	{Group: "", Resource: "imagestreams"},
+	{Group: "", Resource: "deploymentconfigs"},
+
 	{Group: "", Resource: "pods"},
 	{Group: "", Resource: "replicationcontrollers"},
 	{Group: "", Resource: "services"},
