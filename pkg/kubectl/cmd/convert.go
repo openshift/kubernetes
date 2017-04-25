@@ -230,7 +230,13 @@ func asVersionedObject(infos []*resource.Info, forceList bool, version schema.Gr
 		object = objects[0]
 	} else {
 		object = &api.List{Items: objects}
-		converted, err := tryConvert(scheme.Scheme, object, version, scheme.Registry.GroupOrDie(api.GroupName).GroupVersion)
+		targetVersions := []schema.GroupVersion{}
+		if !version.Empty() {
+			targetVersions = append(targetVersions, version)
+		}
+		targetVersions = append(targetVersions, scheme.Registry.GroupOrDie(api.GroupName).GroupVersion)
+
+		converted, err := tryConvert(scheme.Scheme, object, targetVersions...)
 		if err != nil {
 			return nil, err
 		}
@@ -258,6 +264,7 @@ func asVersionedObjects(infos []*resource.Info, version schema.GroupVersion, enc
 			continue
 		}
 
+		targetVersions := []schema.GroupVersion{}
 		// objects that are not part of api.Scheme must be converted to JSON
 		// TODO: convert to map[string]interface{}, attach to runtime.Unknown?
 		if !version.Empty() {
@@ -271,9 +278,10 @@ func asVersionedObjects(infos []*resource.Info, version schema.GroupVersion, enc
 				objects = append(objects, &runtime.Unknown{Raw: data})
 				continue
 			}
+			targetVersions = append(targetVersions, version)
 		}
 
-		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.GroupVersionKind.GroupVersion())
+		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, targetVersions...)
 		if err != nil {
 			return nil, err
 		}
