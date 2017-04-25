@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 )
 
 // ErrMatchFunc can be used to filter errors that may not be true failures.
@@ -237,7 +238,13 @@ func AsVersionedObject(infos []*Info, forceList bool, version schema.GroupVersio
 		object = objects[0]
 	} else {
 		object = &api.List{Items: objects}
-		converted, err := TryConvert(api.Scheme, object, version, api.Registry.GroupOrDie(api.GroupName).GroupVersion)
+		targetVersions := []schema.GroupVersion{}
+		if !version.Empty() {
+			targetVersions = append(targetVersions, version)
+		}
+		targetVersions = append(targetVersions, api.Registry.GroupOrDie(api.GroupName).GroupVersion)
+
+		converted, err := TryConvert(api.Scheme, object, targetVersions...)
 		if err != nil {
 			return nil, err
 		}
@@ -265,6 +272,14 @@ func AsVersionedObjects(infos []*Info, version schema.GroupVersion, encoder runt
 			continue
 		}
 
+		// TODO: use info.VersionedObject as the value?
+		switch obj := info.Object.(type) {
+		case *extensions.ThirdPartyResourceData:
+			objects = append(objects, &runtime.Unknown{Raw: obj.Data})
+			continue
+		}
+
+		targetVersions := []schema.GroupVersion{}
 		// objects that are not part of api.Scheme must be converted to JSON
 		// TODO: convert to map[string]interface{}, attach to runtime.Unknown?
 		if !version.Empty() {
@@ -278,9 +293,11 @@ func AsVersionedObjects(infos []*Info, version schema.GroupVersion, encoder runt
 				objects = append(objects, &runtime.Unknown{Raw: data})
 				continue
 			}
+			targetVersions = append(targetVersions, version)
 		}
+		targetVersions = append(targetVersions, info.Mapping.GroupVersionKind.GroupVersion())
 
-		converted, err := TryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.GroupVersionKind.GroupVersion())
+		converted, err := TryConvert(info.Mapping.ObjectConvertor, info.Object, targetVersions...)
 		if err != nil {
 			return nil, err
 		}
