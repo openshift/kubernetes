@@ -49,6 +49,7 @@ go_library(
         "config.go",
         "config_selfclient.go",
         "doc.go",
+        "drop_patch.go",
         "genericapiserver.go",
         "handler.go",
         "healthz.go",

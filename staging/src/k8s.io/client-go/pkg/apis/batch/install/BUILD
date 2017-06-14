@@ -19,5 +19,6 @@ go_library(
         "//vendor/k8s.io/client-go/pkg/apis/batch:go_default_library",
         "//vendor/k8s.io/client-go/pkg/apis/batch/v1:go_default_library",
         "//vendor/k8s.io/client-go/pkg/apis/batch/v2alpha1:go_default_library",
+        "//vendor/k8s.io/client-go/pkg/apis/extensions/install:go_default_library",
     ],
 )

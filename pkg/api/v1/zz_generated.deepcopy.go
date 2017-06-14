@@ -65,6 +65,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ContainerStatus, InType: reflect.TypeOf(&ContainerStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DaemonEndpoint, InType: reflect.TypeOf(&DaemonEndpoint{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeleteOptions, InType: reflect.TypeOf(&DeleteOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeprecatedDownwardAPIVolumeFile, InType: reflect.TypeOf(&DeprecatedDownwardAPIVolumeFile{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DeprecatedDownwardAPIVolumeSource, InType: reflect.TypeOf(&DeprecatedDownwardAPIVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DownwardAPIProjection, InType: reflect.TypeOf(&DownwardAPIProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DownwardAPIVolumeFile, InType: reflect.TypeOf(&DownwardAPIVolumeFile{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_DownwardAPIVolumeSource, InType: reflect.TypeOf(&DownwardAPIVolumeSource{})},
@@ -82,6 +84,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_EventSource, InType: reflect.TypeOf(&EventSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ExecAction, InType: reflect.TypeOf(&ExecAction{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_FCVolumeSource, InType: reflect.TypeOf(&FCVolumeSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_FSGroupStrategyOptions, InType: reflect.TypeOf(&FSGroupStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_FlexVolumeSource, InType: reflect.TypeOf(&FlexVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_FlockerVolumeSource, InType: reflect.TypeOf(&FlockerVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_GCEPersistentDiskVolumeSource, InType: reflect.TypeOf(&GCEPersistentDiskVolumeSource{})},
@@ -92,6 +95,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Handler, InType: reflect.TypeOf(&Handler{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_HostAlias, InType: reflect.TypeOf(&HostAlias{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_HostPathVolumeSource, InType: reflect.TypeOf(&HostPathVolumeSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_IDRange, InType: reflect.TypeOf(&IDRange{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ISCSIVolumeSource, InType: reflect.TypeOf(&ISCSIVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_KeyToPath, InType: reflect.TypeOf(&KeyToPath{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Lifecycle, InType: reflect.TypeOf(&Lifecycle{})},
@@ -177,6 +181,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ResourceQuotaSpec, InType: reflect.TypeOf(&ResourceQuotaSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ResourceQuotaStatus, InType: reflect.TypeOf(&ResourceQuotaStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ResourceRequirements, InType: reflect.TypeOf(&ResourceRequirements{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_RunAsUserStrategyOptions, InType: reflect.TypeOf(&RunAsUserStrategyOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SELinuxContextStrategyOptions, InType: reflect.TypeOf(&SELinuxContextStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SELinuxOptions, InType: reflect.TypeOf(&SELinuxOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ScaleIOVolumeSource, InType: reflect.TypeOf(&ScaleIOVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Secret, InType: reflect.TypeOf(&Secret{})},
@@ -186,6 +192,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SecretProjection, InType: reflect.TypeOf(&SecretProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SecretVolumeSource, InType: reflect.TypeOf(&SecretVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SecurityContext, InType: reflect.TypeOf(&SecurityContext{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SecurityContextConstraints, InType: reflect.TypeOf(&SecurityContextConstraints{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SecurityContextConstraintsList, InType: reflect.TypeOf(&SecurityContextConstraintsList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SerializedReference, InType: reflect.TypeOf(&SerializedReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Service, InType: reflect.TypeOf(&Service{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ServiceAccount, InType: reflect.TypeOf(&ServiceAccount{})},
@@ -197,6 +205,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_ServiceStatus, InType: reflect.TypeOf(&ServiceStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_StorageOSPersistentVolumeSource, InType: reflect.TypeOf(&StorageOSPersistentVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_StorageOSVolumeSource, InType: reflect.TypeOf(&StorageOSVolumeSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_SupplementalGroupsStrategyOptions, InType: reflect.TypeOf(&SupplementalGroupsStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Sysctl, InType: reflect.TypeOf(&Sysctl{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TCPSocketAction, InType: reflect.TypeOf(&TCPSocketAction{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Taint, InType: reflect.TypeOf(&Taint{})},
@@ -782,6 +791,57 @@ func DeepCopy_v1_DeleteOptions(in interface{}, out interface{}, c *conversion.Cl
 	}
 }
 
+// DeepCopy_v1_DeprecatedDownwardAPIVolumeFile is an autogenerated deepcopy function.
+func DeepCopy_v1_DeprecatedDownwardAPIVolumeFile(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DeprecatedDownwardAPIVolumeFile)
+		out := out.(*DeprecatedDownwardAPIVolumeFile)
+		*out = *in
+		if in.FieldRef != nil {
+			in, out := &in.FieldRef, &out.FieldRef
+			*out = new(ObjectFieldSelector)
+			**out = **in
+		}
+		if in.ResourceFieldRef != nil {
+			in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
+			*out = new(ResourceFieldSelector)
+			if err := DeepCopy_v1_ResourceFieldSelector(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Mode != nil {
+			in, out := &in.Mode, &out.Mode
+			*out = new(int32)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_v1_DeprecatedDownwardAPIVolumeSource is an autogenerated deepcopy function.
+func DeepCopy_v1_DeprecatedDownwardAPIVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DeprecatedDownwardAPIVolumeSource)
+		out := out.(*DeprecatedDownwardAPIVolumeSource)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]DeprecatedDownwardAPIVolumeFile, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_DeprecatedDownwardAPIVolumeFile(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.DefaultMode != nil {
+			in, out := &in.DefaultMode, &out.DefaultMode
+			*out = new(int32)
+			**out = **in
+		}
+		return nil
+	}
+}
+
 // DeepCopy_v1_DownwardAPIProjection is an autogenerated deepcopy function.
 func DeepCopy_v1_DownwardAPIProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
@@ -1127,6 +1187,21 @@ func DeepCopy_v1_FCVolumeSource(in interface{}, out interface{}, c *conversion.C
 	}
 }
 
+// DeepCopy_v1_FSGroupStrategyOptions is an autogenerated deepcopy function.
+func DeepCopy_v1_FSGroupStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*FSGroupStrategyOptions)
+		out := out.(*FSGroupStrategyOptions)
+		*out = *in
+		if in.Ranges != nil {
+			in, out := &in.Ranges, &out.Ranges
+			*out = make([]IDRange, len(*in))
+			copy(*out, *in)
+		}
+		return nil
+	}
+}
+
 // DeepCopy_v1_FlexVolumeSource is an autogenerated deepcopy function.
 func DeepCopy_v1_FlexVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
@@ -1263,6 +1338,16 @@ func DeepCopy_v1_HostPathVolumeSource(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*HostPathVolumeSource)
 		out := out.(*HostPathVolumeSource)
+		*out = *in
+		return nil
+	}
+}
+
+// DeepCopy_v1_IDRange is an autogenerated deepcopy function.
+func DeepCopy_v1_IDRange(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*IDRange)
+		out := out.(*IDRange)
 		*out = *in
 		return nil
 	}
@@ -3079,6 +3164,46 @@ func DeepCopy_v1_ResourceRequirements(in interface{}, out interface{}, c *conver
 	}
 }
 
+// DeepCopy_v1_RunAsUserStrategyOptions is an autogenerated deepcopy function.
+func DeepCopy_v1_RunAsUserStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*RunAsUserStrategyOptions)
+		out := out.(*RunAsUserStrategyOptions)
+		*out = *in
+		if in.UID != nil {
+			in, out := &in.UID, &out.UID
+			*out = new(int64)
+			**out = **in
+		}
+		if in.UIDRangeMin != nil {
+			in, out := &in.UIDRangeMin, &out.UIDRangeMin
+			*out = new(int64)
+			**out = **in
+		}
+		if in.UIDRangeMax != nil {
+			in, out := &in.UIDRangeMax, &out.UIDRangeMax
+			*out = new(int64)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_v1_SELinuxContextStrategyOptions is an autogenerated deepcopy function.
+func DeepCopy_v1_SELinuxContextStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SELinuxContextStrategyOptions)
+		out := out.(*SELinuxContextStrategyOptions)
+		*out = *in
+		if in.SELinuxOptions != nil {
+			in, out := &in.SELinuxOptions, &out.SELinuxOptions
+			*out = new(SELinuxOptions)
+			**out = **in
+		}
+		return nil
+	}
+}
+
 // DeepCopy_v1_SELinuxOptions is an autogenerated deepcopy function.
 func DeepCopy_v1_SELinuxOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
@@ -3281,6 +3406,92 @@ func DeepCopy_v1_SecurityContext(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+// DeepCopy_v1_SecurityContextConstraints is an autogenerated deepcopy function.
+func DeepCopy_v1_SecurityContextConstraints(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SecurityContextConstraints)
+		out := out.(*SecurityContextConstraints)
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
+			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
+		}
+		if in.Priority != nil {
+			in, out := &in.Priority, &out.Priority
+			*out = new(int32)
+			**out = **in
+		}
+		if in.DefaultAddCapabilities != nil {
+			in, out := &in.DefaultAddCapabilities, &out.DefaultAddCapabilities
+			*out = make([]Capability, len(*in))
+			copy(*out, *in)
+		}
+		if in.RequiredDropCapabilities != nil {
+			in, out := &in.RequiredDropCapabilities, &out.RequiredDropCapabilities
+			*out = make([]Capability, len(*in))
+			copy(*out, *in)
+		}
+		if in.AllowedCapabilities != nil {
+			in, out := &in.AllowedCapabilities, &out.AllowedCapabilities
+			*out = make([]Capability, len(*in))
+			copy(*out, *in)
+		}
+		if in.Volumes != nil {
+			in, out := &in.Volumes, &out.Volumes
+			*out = make([]FSType, len(*in))
+			copy(*out, *in)
+		}
+		if err := DeepCopy_v1_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, c); err != nil {
+			return err
+		}
+		if in.Users != nil {
+			in, out := &in.Users, &out.Users
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.Groups != nil {
+			in, out := &in.Groups, &out.Groups
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.SeccompProfiles != nil {
+			in, out := &in.SeccompProfiles, &out.SeccompProfiles
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		return nil
+	}
+}
+
+// DeepCopy_v1_SecurityContextConstraintsList is an autogenerated deepcopy function.
+func DeepCopy_v1_SecurityContextConstraintsList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SecurityContextConstraintsList)
+		out := out.(*SecurityContextConstraintsList)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]SecurityContextConstraints, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_SecurityContextConstraints(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
 // DeepCopy_v1_SerializedReference is an autogenerated deepcopy function.
 func DeepCopy_v1_SerializedReference(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
@@ -3470,6 +3681,21 @@ func DeepCopy_v1_StorageOSVolumeSource(in interface{}, out interface{}, c *conve
 			in, out := &in.SecretRef, &out.SecretRef
 			*out = new(LocalObjectReference)
 			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_v1_SupplementalGroupsStrategyOptions is an autogenerated deepcopy function.
+func DeepCopy_v1_SupplementalGroupsStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SupplementalGroupsStrategyOptions)
+		out := out.(*SupplementalGroupsStrategyOptions)
+		*out = *in
+		if in.Ranges != nil {
+			in, out := &in.Ranges, &out.Ranges
+			*out = make([]IDRange, len(*in))
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -3739,6 +3965,13 @@ func DeepCopy_v1_VolumeSource(in interface{}, out interface{}, c *conversion.Clo
 			in, out := &in.StorageOS, &out.StorageOS
 			*out = new(StorageOSVolumeSource)
 			if err := DeepCopy_v1_StorageOSVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Metadata != nil {
+			in, out := &in.Metadata, &out.Metadata
+			*out = new(DeprecatedDownwardAPIVolumeSource)
+			if err := DeepCopy_v1_DeprecatedDownwardAPIVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
 		}
