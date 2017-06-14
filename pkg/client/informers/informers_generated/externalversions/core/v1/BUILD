@@ -25,6 +25,7 @@ go_library(
         "replicationcontroller.go",
         "resourcequota.go",
         "secret.go",
+        "securitycontextconstraints.go",
         "service.go",
         "serviceaccount.go",
     ],

@@ -24,7 +24,7 @@
      "tags": [
       "core"
      ],
-     "operationId": "getCoreAPIVersions",
+     "operationId": "getCoreLegacyAPIVersions",
      "responses": {
       "200": {
        "description": "OK",
@@ -91,6 +91,50 @@
       "core_v1"
      ],
      "operationId": "listCoreV1ConfigMapForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -109,54 +153,57 @@
       "kind": "ConfigMap"
      }
     },
+    "post": {
+     "description": "create a ConfigMap",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "core_v1"
+     ],
+     "operationId": "createCoreV1ConfigMapForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ConfigMap"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ConfigMap"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "ConfigMap"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -181,6 +228,50 @@
       "core_v1"
      ],
      "operationId": "listCoreV1EventForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -199,54 +290,57 @@
       "kind": "Event"
      }
     },
+    "post": {
+     "description": "create an Event",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "core_v1"
+     ],
+     "operationId": "createCoreV1EventForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.Event"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.Event"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "Event"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -2840,6 +2934,50 @@
       "core_v1"
      ],
      "operationId": "listCoreV1SecretForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -2858,54 +2996,57 @@
       "kind": "Secret"
      }
     },
+    "post": {
+     "description": "create a Secret",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "core_v1"
+     ],
+     "operationId": "createCoreV1SecretForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.Secret"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.Secret"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "Secret"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -2930,6 +3071,50 @@
       "core_v1"
      ],
      "operationId": "listCoreV1ServiceForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -2948,54 +3133,57 @@
       "kind": "Service"
      }
     },
+    "post": {
+     "description": "create a Service",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "core_v1"
+     ],
+     "operationId": "createCoreV1ServiceForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.Service"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.Service"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "Service"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -4483,6 +4671,50 @@
       "extensions_v1beta1"
      ],
      "operationId": "listExtensionsV1beta1DaemonSetForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -4501,54 +4733,57 @@
       "kind": "DaemonSet"
      }
     },
+    "post": {
+     "description": "create a DaemonSet",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "extensions_v1beta1"
+     ],
+     "operationId": "createExtensionsV1beta1DaemonSetForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.DaemonSet"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.DaemonSet"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "extensions",
+      "version": "v1beta1",
+      "kind": "DaemonSet"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -4573,6 +4808,50 @@
       "extensions_v1beta1"
      ],
      "operationId": "listExtensionsV1beta1DeploymentForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -4591,54 +4870,57 @@
       "kind": "Deployment"
      }
     },
+    "post": {
+     "description": "create a Deployment",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "extensions_v1beta1"
+     ],
+     "operationId": "createExtensionsV1beta1DeploymentForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Deployment"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Deployment"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "extensions",
+      "version": "v1beta1",
+      "kind": "Deployment"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -4663,6 +4945,50 @@
       "extensions_v1beta1"
      ],
      "operationId": "listExtensionsV1beta1IngressForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -4681,54 +5007,57 @@
       "kind": "Ingress"
      }
     },
+    "post": {
+     "description": "create an Ingress",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "extensions_v1beta1"
+     ],
+     "operationId": "createExtensionsV1beta1IngressForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Ingress"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.Ingress"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "extensions",
+      "version": "v1beta1",
+      "kind": "Ingress"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -7589,6 +7918,50 @@
       "extensions_v1beta1"
      ],
      "operationId": "listExtensionsV1beta1ReplicaSetForAllNamespaces",
+     "parameters": [
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+       "name": "fieldSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "If true, partially initialized resources are included in the response.",
+       "name": "includeUninitialized",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+       "name": "labelSelector",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "string",
+       "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+       "name": "resourceVersion",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "integer",
+       "description": "Timeout for the list/watch call.",
+       "name": "timeoutSeconds",
+       "in": "query"
+      },
+      {
+       "uniqueItems": true,
+       "type": "boolean",
+       "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+       "name": "watch",
+       "in": "query"
+      }
+     ],
      "responses": {
       "200": {
        "description": "OK",
@@ -7607,54 +7980,57 @@
       "kind": "ReplicaSet"
      }
     },
+    "post": {
+     "description": "create a ReplicaSet",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "extensions_v1beta1"
+     ],
+     "operationId": "createExtensionsV1beta1ReplicaSetForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.ReplicaSet"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/io.k8s.kubernetes.pkg.apis.extensions.v1beta1.ReplicaSet"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "extensions",
+      "version": "v1beta1",
+      "kind": "ReplicaSet"
+     }
+    },
     "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-      "name": "fieldSelector",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "If true, partially initialized resources are included in the response.",
-      "name": "includeUninitialized",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-      "name": "labelSelector",
-      "in": "query"
-     },
      {
       "uniqueItems": true,
       "type": "string",
       "description": "If 'true', then the output is pretty printed.",
       "name": "pretty",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
-      "name": "resourceVersion",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "integer",
-      "description": "Timeout for the list/watch call.",
-      "name": "timeoutSeconds",
-      "in": "query"
-     },
-     {
-      "uniqueItems": true,
-      "type": "boolean",
-      "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-      "name": "watch",
       "in": "query"
      }
     ]
@@ -10918,6 +11294,48 @@
      }
     }
    },
+   "io.k8s.kubernetes.pkg.api.v1.DeprecatedDownwardAPIVolumeFile": {
+    "description": "DeprecatedDownwardAPIVolumeFile represents information to create the file containing the pod field This type is deprecated and should be replaced by use of the downwardAPI volume source.",
+    "required": [
+     "name"
+    ],
+    "properties": {
+     "fieldRef": {
+      "description": "Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectFieldSelector"
+     },
+     "mode": {
+      "description": "Optional: mode bits to use on this file, must be a value between 0 and 0777. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "name": {
+      "description": "Required: Name is the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'",
+      "type": "string"
+     },
+     "resourceFieldRef": {
+      "description": "Selects a resource of the container: only resources limits and requests (limits.cpu, limits.memory, requests.cpu and requests.memory) are currently supported.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ResourceFieldSelector"
+     }
+    }
+   },
+   "io.k8s.kubernetes.pkg.api.v1.DeprecatedDownwardAPIVolumeSource": {
+    "description": "DeprecatedDownwardAPIVolumeSource represents a volume containing downward API info. This type is deprecated and should be replaced by use of the downwardAPI volume source.",
+    "properties": {
+     "defaultMode": {
+      "description": "Optional: mode bits to use on created files by default. Must be a value between 0 and 0777. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "items": {
+      "description": "Items is a list of downward API volume file",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.DeprecatedDownwardAPIVolumeFile"
+      }
+     }
+    }
+   },
    "io.k8s.kubernetes.pkg.api.v1.DownwardAPIProjection": {
     "description": "Represents downward API info for projecting into a projected volume. Note that this is identical to a downwardAPI volume source without the default mode.",
     "properties": {
@@ -12789,6 +13207,10 @@
      "iscsi": {
       "description": "ISCSI represents an ISCSI Disk resource that is attached to a kubelet's host machine and then exposed to the pod. More info: https://releases.k8s.io/HEAD/examples/volumes/iscsi/README.md",
       "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ISCSIVolumeSource"
+     },
+     "metadata": {
+      "description": "Metadata represents metadata about the pod that should populate this volume Deprecated: Use downwardAPI instead.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.DeprecatedDownwardAPIVolumeSource"
      },
      "name": {
       "description": "Volume's name. Must be a DNS_LABEL and unique within the pod. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",

@@ -62,6 +62,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
 	servicestore "k8s.io/kubernetes/pkg/registry/core/service/storage"
 	serviceaccountstore "k8s.io/kubernetes/pkg/registry/core/serviceaccount/storage"
+	sccetcd "k8s.io/kubernetes/pkg/registry/securitycontextconstraints/etcd"
 )
 
 // LegacyRESTStorageProvider provides information needed to build RESTStorage for core, but
@@ -134,6 +135,8 @@ func (c LegacyRESTStorageProvider) NewLegacyRESTStorage(restOptionsGetter generi
 	if err != nil {
 		return LegacyRESTStorage{}, genericapiserver.APIGroupInfo{}, err
 	}
+
+	securityContextConstraintsStorage := sccetcd.NewREST(restOptionsGetter)
 
 	podStorage := podstore.NewStorage(
 		restOptionsGetter,
@@ -215,6 +218,7 @@ func (c LegacyRESTStorageProvider) NewLegacyRESTStorage(restOptionsGetter generi
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
+		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,

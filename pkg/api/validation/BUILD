@@ -13,6 +13,7 @@ go_library(
     srcs = [
         "doc.go",
         "events.go",
+        "scc_validation.go",
         "schema.go",
         "validation.go",
     ],

@@ -95,6 +95,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&RangeAllocation{},
 		&ConfigMap{},
 		&ConfigMapList{},
+
+		&SecurityContextConstraints{},
+		&SecurityContextConstraintsList{},
 	)
 
 	// Add common types

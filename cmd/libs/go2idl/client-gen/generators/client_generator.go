@@ -38,11 +38,35 @@ import (
 // NameSystems returns the name system used by the generators in this package.
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
-		"Endpoints": "Endpoints",
+		"Endpoints":                  "Endpoints",
+		"SecurityContextConstraints": "SecurityContextConstraints",
 	}
 	lowercaseNamer := namer.NewAllLowercasePluralNamer(pluralExceptions)
+
+	publicNamer := &ExceptionNamer{
+		Exceptions: map[string]string{
+			// these exceptions are used to deconflict the generated code
+			"github.com/openshift/origin/pkg/build/api/v1.Build":       "BuildResource",
+			"github.com/openshift/origin/pkg/build/api.Build":          "BuildResource",
+			"github.com/openshift/origin/pkg/image/api/v1.Image":       "ImageResource",
+			"github.com/openshift/origin/pkg/image/api.Image":          "ImageResource",
+			"github.com/openshift/origin/pkg/project/api/v1.Project":   "ProjectResource",
+			"github.com/openshift/origin/pkg/project/api.Project":      "ProjectResource",
+			"github.com/openshift/origin/pkg/route/api/v1.Route":       "RouteResource",
+			"github.com/openshift/origin/pkg/route/api.Route":          "RouteResource",
+			"github.com/openshift/origin/pkg/template/api/v1.Template": "TemplateResource",
+			"github.com/openshift/origin/pkg/template/api.Template":    "TemplateResource",
+			"github.com/openshift/origin/pkg/user/api/v1.User":         "UserResource",
+			"github.com/openshift/origin/pkg/user/api.User":            "UserResource",
+		},
+		KeyFunc: func(t *types.Type) string {
+			return t.Name.Package + "." + t.Name.Name
+		},
+		Delegate: namer.NewPublicNamer(0),
+	}
+
 	return namer.NameSystems{
-		"public":             namer.NewPublicNamer(0),
+		"public":             publicNamer,
 		"private":            namer.NewPrivateNamer(0),
 		"raw":                namer.NewRawNamer("", nil),
 		"publicPlural":       namer.NewPublicPluralNamer(pluralExceptions),
@@ -50,6 +74,22 @@ func NameSystems() namer.NameSystems {
 		"allLowercasePlural": lowercaseNamer,
 		"resource":           NewTagOverrideNamer("resourceName", lowercaseNamer),
 	}
+}
+
+type ExceptionNamer struct {
+	Exceptions map[string]string
+	KeyFunc    func(*types.Type) string
+
+	Delegate namer.Namer
+}
+
+func (n *ExceptionNamer) Name(t *types.Type) string {
+	key := n.KeyFunc(t)
+	if exception, ok := n.Exceptions[key]; ok {
+		return exception
+	}
+
+	return n.Delegate.Name(t)
 }
 
 // DefaultNameSystem returns the default name system for ordering the types to be
