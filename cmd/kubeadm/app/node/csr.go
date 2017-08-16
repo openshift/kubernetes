@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/certificate/csr"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
-	"k8s.io/kubernetes/pkg/kubelet/util/csr"
 )
 
 // CSRContextAndUser defines the context to use for the client certs in the kubelet kubeconfig file
