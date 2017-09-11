@@ -66,6 +66,7 @@ function print_forbidden_imports () {
 
 RC=0
 print_forbidden_imports apimachinery || RC=1
+print_forbidden_imports code-generator k8s.io/apimachinery k8s.io/client-go k8s.io/gengo || RC=1
 print_forbidden_imports client-go k8s.io/apimachinery || RC=1
 print_forbidden_imports apiserver k8s.io/apimachinery k8s.io/client-go || RC=1
 print_forbidden_imports kube-aggregator k8s.io/apimachinery k8s.io/client-go k8s.io/apiserver || RC=1
