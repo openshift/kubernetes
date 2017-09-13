@@ -1933,3 +1933,8 @@ func removeClusterFromVDiskPath(vDiskPath string) string {
 	}
 	return vDiskPath
 }
+
+// HasClusterID returns true if the cluster has a clusterID
+func (vs *VSphere) HasClusterID() bool {
+	return true
+}
