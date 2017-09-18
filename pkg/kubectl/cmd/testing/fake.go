@@ -455,6 +455,10 @@ func (f *FakeFactory) AttachablePodForObject(ob runtime.Object, timeout time.Dur
 	return nil, nil
 }
 
+func (f *FakeFactory) ApproximatePodTemplateForObject(obj runtime.Object) (*api.PodTemplateSpec, error) {
+	return f.ApproximatePodTemplateForObject(obj)
+}
+
 func (f *FakeFactory) UpdatePodSpecForObject(obj runtime.Object, fn func(*api.PodSpec) error) (bool, error) {
 	return false, nil
 }
@@ -733,6 +737,10 @@ func (f *fakeAPIFactory) AttachablePodForObject(object runtime.Object, timeout t
 
 func (f *fakeAPIFactory) Validator(validate bool, openapi bool, cacheDir string) (validation.Schema, error) {
 	return f.tf.Validator, f.tf.Err
+}
+
+func (f *fakeAPIFactory) ApproximatePodTemplateForObject(obj runtime.Object) (*api.PodTemplateSpec, error) {
+	return f.Factory.ApproximatePodTemplateForObject(obj)
 }
 
 func (f *fakeAPIFactory) DefaultNamespace() (string, bool, error) {
