@@ -27,16 +27,13 @@ import (
 	"time"
 
 	certificates "k8s.io/api/certificates/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	watch "k8s.io/apimachinery/pkg/watch"
 	certificatesclient "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 )
-
-type certificateData struct {
-	keyPEM         []byte
-	certificatePEM []byte
-	certificate    *tls.Certificate
-}
 
 var storeCertData = newCertificateData(`-----BEGIN CERTIFICATE-----
 MIICRzCCAfGgAwIBAgIJALMb7ecMIk3MMA0GCSqGSIb3DQEBCwUAMH4xCzAJBgNV
@@ -113,6 +110,12 @@ bDQT1r8Q3Gx+h9LRqQeHgPBQ3F5ylqqBAiBaJ0hkYvrIdWxNlcLqD3065bJpHQ4S
 WQkuZUQN1M/Xvg==
 -----END RSA PRIVATE KEY-----`)
 
+type certificateData struct {
+	keyPEM         []byte
+	certificatePEM []byte
+	certificate    *tls.Certificate
+}
+
 func newCertificateData(certificatePEM string, keyPEM string) *certificateData {
 	certificate, err := tls.X509KeyPair([]byte(certificatePEM), []byte(keyPEM))
 	if err != nil {
@@ -183,7 +186,19 @@ func TestShouldRotate(t *testing.T) {
 	}
 }
 
+type gaugeMock struct {
+	calls     int
+	lastValue float64
+}
+
+func (g *gaugeMock) Set(v float64) {
+	g.calls++
+	g.lastValue = v
+}
+
 func TestSetRotationDeadline(t *testing.T) {
+	defer func(original func(float64) time.Duration) { jitteryDuration = original }(jitteryDuration)
+
 	now := time.Now()
 	testCases := []struct {
 		name         string
@@ -203,6 +218,7 @@ func TestSetRotationDeadline(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			g := gaugeMock{}
 			m := manager{
 				cert: &tls.Certificate{
 					Leaf: &x509.Certificate{
@@ -210,22 +226,27 @@ func TestSetRotationDeadline(t *testing.T) {
 						NotAfter:  tc.notAfter,
 					},
 				},
-				template: &x509.CertificateRequest{},
-				usages:   []certificates.KeyUsage{},
+				template:              &x509.CertificateRequest{},
+				usages:                []certificates.KeyUsage{},
+				certificateExpiration: &g,
 			}
+			jitteryDuration = func(float64) time.Duration { return time.Duration(float64(tc.notAfter.Sub(tc.notBefore)) * 0.7) }
 			lowerBound := tc.notBefore.Add(time.Duration(float64(tc.notAfter.Sub(tc.notBefore)) * 0.7))
-			upperBound := tc.notBefore.Add(time.Duration(float64(tc.notAfter.Sub(tc.notBefore)) * 0.9))
-			for i := 0; i < 1000; i++ {
-				// setRotationDeadline includes jitter, so this needs to run many times for validation.
-				m.setRotationDeadline()
-				if m.rotationDeadline.Before(lowerBound) || m.rotationDeadline.After(upperBound) {
-					t.Errorf("For notBefore %v, notAfter %v, the rotationDeadline %v should be between %v and %v.",
-						tc.notBefore,
-						tc.notAfter,
-						m.rotationDeadline,
-						lowerBound,
-						upperBound)
-				}
+
+			m.setRotationDeadline()
+
+			if !m.rotationDeadline.Equal(lowerBound) {
+				t.Errorf("For notBefore %v, notAfter %v, the rotationDeadline %v should be %v.",
+					tc.notBefore,
+					tc.notAfter,
+					m.rotationDeadline,
+					lowerBound)
+			}
+			if g.calls != 1 {
+				t.Errorf("%d metrics were recorded, wanted %d", g.calls, 1)
+			}
+			if g.lastValue != float64(tc.notAfter.Unix()) {
+				t.Errorf("%d value for metric was recorded, wanted %d", g.lastValue, tc.notAfter.Unix())
 			}
 		})
 	}
@@ -270,6 +291,7 @@ func TestRotateCertWaitingForResultError(t *testing.T) {
 		},
 	}
 
+	certificateWaitBackoff = wait.Backoff{Steps: 1}
 	if success, err := m.rotateCerts(); success {
 		t.Errorf("Got success from 'rotateCerts', wanted failure.")
 	} else if err != nil {
@@ -594,11 +616,170 @@ func TestInitializeOtherRESTClients(t *testing.T) {
 			} else {
 				m.setRotationDeadline()
 				if m.shouldRotate() {
-					if success, err := certificateManager.(*manager).rotateCerts(); !success {
-						t.Errorf("Got failure from 'rotateCerts', expected success")
-					} else if err != nil {
+					success, err := certificateManager.(*manager).rotateCerts()
+					if err != nil {
 						t.Errorf("Got error %v, expected none.", err)
+						return
 					}
+					if !success {
+						t.Errorf("Unexpected response 'rotateCerts': %t", success)
+						return
+					}
+				}
+			}
+
+			certificate = certificateManager.Current()
+			if !certificatesEqual(certificate, tc.expectedCertAfterStart.certificate) {
+				t.Errorf("Got %v, wanted %v", certificateString(certificate), certificateString(tc.expectedCertAfterStart.certificate))
+			}
+		})
+	}
+}
+
+func TestServerHealth(t *testing.T) {
+	type certs struct {
+		storeCert               *certificateData
+		bootstrapCert           *certificateData
+		apiCert                 *certificateData
+		expectedCertBeforeStart *certificateData
+		expectedCertAfterStart  *certificateData
+	}
+
+	updatedCerts := certs{
+		storeCert:               storeCertData,
+		bootstrapCert:           bootstrapCertData,
+		apiCert:                 apiServerCertData,
+		expectedCertBeforeStart: storeCertData,
+		expectedCertAfterStart:  apiServerCertData,
+	}
+
+	currentCerts := certs{
+		storeCert:               storeCertData,
+		bootstrapCert:           bootstrapCertData,
+		apiCert:                 apiServerCertData,
+		expectedCertBeforeStart: storeCertData,
+		expectedCertAfterStart:  storeCertData,
+	}
+
+	testCases := []struct {
+		description string
+		certs
+
+		failureType fakeClientFailureType
+		clientErr   error
+
+		expectRotateFail bool
+		expectHealthy    bool
+	}{
+		{
+			description:   "Current certificate, bootstrap certificate",
+			certs:         updatedCerts,
+			expectHealthy: true,
+		},
+		{
+			description: "Generic error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			expectRotateFail: true,
+		},
+		{
+			description: "Unauthorized error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewUnauthorized("unauthorized"),
+			expectRotateFail: true,
+			expectHealthy:    true,
+		},
+		{
+			description: "Generic unauthorized error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewGenericServerResponse(401, "POST", schema.GroupResource{}, "", "", 0, true),
+			expectRotateFail: true,
+			expectHealthy:    true,
+		},
+		{
+			description: "Generic not found error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewGenericServerResponse(404, "POST", schema.GroupResource{}, "", "", 0, true),
+			expectRotateFail: true,
+			expectHealthy:    false,
+		},
+		{
+			description: "Not found error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewGenericServerResponse(404, "POST", schema.GroupResource{}, "", "", 0, false),
+			expectRotateFail: true,
+			expectHealthy:    true,
+		},
+		{
+			description: "Conflict error on watch",
+			certs:       currentCerts,
+
+			failureType:      watchError,
+			clientErr:        errors.NewGenericServerResponse(409, "POST", schema.GroupResource{}, "", "", 0, false),
+			expectRotateFail: true,
+			expectHealthy:    false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			certificateStore := &fakeStore{
+				cert: tc.storeCert.certificate,
+			}
+
+			certificateManager, err := NewManager(&Config{
+				Template: &x509.CertificateRequest{
+					Subject: pkix.Name{
+						Organization: []string{"system:nodes"},
+						CommonName:   "system:node:fake-node-name",
+					},
+				},
+				Usages: []certificates.KeyUsage{
+					certificates.UsageDigitalSignature,
+					certificates.UsageKeyEncipherment,
+					certificates.UsageClientAuth,
+				},
+				CertificateStore:        certificateStore,
+				BootstrapCertificatePEM: tc.bootstrapCert.certificatePEM,
+				BootstrapKeyPEM:         tc.bootstrapCert.keyPEM,
+				CertificateSigningRequestClient: &fakeClient{
+					certificatePEM: tc.apiCert.certificatePEM,
+					failureType:    tc.failureType,
+					err:            tc.clientErr,
+				},
+			})
+			if err != nil {
+				t.Errorf("Got %v, wanted no error.", err)
+			}
+
+			certificate := certificateManager.Current()
+			if !certificatesEqual(certificate, tc.expectedCertBeforeStart.certificate) {
+				t.Errorf("Got %v, wanted %v", certificateString(certificate), certificateString(tc.expectedCertBeforeStart.certificate))
+			}
+
+			if _, ok := certificateManager.(*manager); !ok {
+				t.Errorf("Expected a '*manager' from 'NewManager'")
+			} else {
+				success, err := certificateManager.(*manager).rotateCerts()
+				if err != nil {
+					t.Errorf("Got error %v, expected none.", err)
+					return
+				}
+				if !success != tc.expectRotateFail {
+					t.Errorf("Unexpected response 'rotateCerts': %t", success)
+					return
+				}
+				if actual := certificateManager.(*manager).ServerHealthy(); actual != tc.expectHealthy {
+					t.Errorf("Unexpected manager server health: %t", actual)
 				}
 			}
 
@@ -623,10 +804,29 @@ type fakeClient struct {
 	certificatesclient.CertificateSigningRequestInterface
 	failureType    fakeClientFailureType
 	certificatePEM []byte
+	err            error
+}
+
+func (c fakeClient) List(opts v1.ListOptions) (*certificates.CertificateSigningRequestList, error) {
+	if c.failureType == watchError {
+		if c.err != nil {
+			return nil, c.err
+		}
+		return nil, fmt.Errorf("Watch error")
+	}
+	csrReply := certificates.CertificateSigningRequestList{
+		Items: []certificates.CertificateSigningRequest{
+			{ObjectMeta: v1.ObjectMeta{UID: "fake-uid"}},
+		},
+	}
+	return &csrReply, nil
 }
 
 func (c fakeClient) Create(*certificates.CertificateSigningRequest) (*certificates.CertificateSigningRequest, error) {
 	if c.failureType == createError {
+		if c.err != nil {
+			return nil, c.err
+		}
 		return nil, fmt.Errorf("Create error")
 	}
 	csrReply := certificates.CertificateSigningRequest{}
@@ -636,6 +836,9 @@ func (c fakeClient) Create(*certificates.CertificateSigningRequest) (*certificat
 
 func (c fakeClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	if c.failureType == watchError {
+		if c.err != nil {
+			return nil, c.err
+		}
 		return nil, fmt.Errorf("Watch error")
 	}
 	return &fakeWatch{
