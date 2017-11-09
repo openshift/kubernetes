@@ -26,7 +26,9 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	unstructuredconverter "k8s.io/apimachinery/pkg/conversion/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -364,6 +366,17 @@ func RunGet(f cmdutil.Factory, out, errOut io.Writer, cmd *cobra.Command, args [
 				},
 			}
 			for _, info := range infos {
+				// FIXME: This should be fixed in 1.9 and is needed to handle
+				// oc get projectrequest -o yaml
+				if _, ok := info.Object.(*metav1.Status); ok {
+					obj, err := unstructuredconverter.NewConverter(false).ToUnstructured(info.Object)
+					if err != nil {
+						errs = append(errs, err)
+					} else {
+						list.Items = append(list.Items, unstructured.Unstructured{Object: obj})
+					}
+					continue
+				}
 				list.Items = append(list.Items, *info.Object.(*unstructured.Unstructured))
 			}
 			obj = list
