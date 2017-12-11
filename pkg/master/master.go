@@ -38,6 +38,7 @@ import (
 	batchapiv1beta1 "k8s.io/api/batch/v1beta1"
 	certificatesapiv1beta1 "k8s.io/api/certificates/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
+	eventsapiv1beta1 "k8s.io/api/events/v1beta1"
 	eventsv1beta1 "k8s.io/api/events/v1beta1"
 	extensionsapiv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingapiv1 "k8s.io/api/networking/v1"
@@ -56,6 +57,7 @@ import (
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	"k8s.io/client-go/informers"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	admissionregistrationapiv1beta1 "k8s.io/kubernetes/pkg/apis/admissionregistration/v1beta1"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
@@ -464,6 +466,7 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	// NOTE: GroupVersions listed here will be enabled by default. Don't put alpha versions in the list.
 	ret.EnableVersions(
 		apiv1.SchemeGroupVersion,
+		admissionregistrationapiv1beta1.SchemeGroupVersion,
 		extensionsapiv1beta1.SchemeGroupVersion,
 		batchapiv1.SchemeGroupVersion,
 		batchapiv1beta1.SchemeGroupVersion,
@@ -474,6 +477,8 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 		appsv1beta1.SchemeGroupVersion,
 		appsv1beta2.SchemeGroupVersion,
 		appsv1.SchemeGroupVersion,
+		appsv1.SchemeGroupVersion,
+		eventsapiv1beta1.SchemeGroupVersion,
 		policyapiv1beta1.SchemeGroupVersion,
 		rbacv1.SchemeGroupVersion,
 		rbacv1beta1.SchemeGroupVersion,
