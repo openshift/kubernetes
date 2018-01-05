@@ -19,7 +19,6 @@ package testing
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"io/ioutil"
 	"math/rand"
 	"reflect"
@@ -27,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/ugorji/go/codec"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -41,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -559,10 +559,13 @@ func BenchmarkDecodeIntoJSONCodecGen(b *testing.B) {
 		encoded[i] = data
 	}
 
+	handler := &codec.JsonHandle{}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		obj := v1.Pod{}
-		if err := jsoniter.ConfigFastest.Unmarshal(encoded[i%width], &obj); err != nil {
+		// if err := jsoniter.ConfigFastest.Unmarshal(encoded[i%width], &obj); err != nil {
+		if err := codec.NewDecoderBytes(encoded[i%width], handler).Decode(&obj); err != nil {
 			b.Fatal(err)
 		}
 	}

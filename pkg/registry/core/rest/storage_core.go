@@ -224,7 +224,7 @@ func (c LegacyRESTStorageProvider) NewLegacyRESTStorage(restOptionsGetter generi
 	if legacyscheme.Registry.IsEnabledVersion(schema.GroupVersion{Group: "policy", Version: "v1beta1"}) {
 		restStorageMap["pods/eviction"] = podStorage.Eviction
 	}
-	apiGroupInfo.VersionedResourcesStorageMap["v1"] = restStorageMap
+	apiGroupInfo.VersionedResourcesStorageMap["v1"] = patchStorage(restStorageMap)
 
 	return restStorage, apiGroupInfo, nil
 }
