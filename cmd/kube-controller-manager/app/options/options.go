@@ -85,8 +85,9 @@ type KubeControllerManagerOptions struct {
 	Authentication  *apiserveroptions.DelegatingAuthenticationOptions
 	Authorization   *apiserveroptions.DelegatingAuthorizationOptions
 
-	Master     string
-	Kubeconfig string
+	Master          string
+	Kubeconfig      string
+	OpenShiftConfig string
 }
 
 // NewKubeControllerManagerOptions creates a new KubeControllerManagerOptions with a default config.
@@ -259,6 +260,8 @@ func (s *KubeControllerManagerOptions) AddFlags(fs *pflag.FlagSet, allController
 	var dummy string
 	fs.MarkDeprecated("insecure-experimental-approve-all-kubelet-csrs-for-group", "This flag does nothing.")
 	fs.StringVar(&dummy, "insecure-experimental-approve-all-kubelet-csrs-for-group", "", "This flag does nothing.")
+	fs.StringVar(&s.OpenShiftConfig, "openshift-config", s.OpenShiftConfig, "indicates that this process should be compatible with openshift start master")
+	fs.MarkHidden("openshift-config")
 	utilfeature.DefaultFeatureGate.AddFlag(fs)
 }
 
@@ -371,6 +374,8 @@ func (s *KubeControllerManagerOptions) ApplyTo(c *kubecontrollerconfig.Config, u
 
 	c.ComponentConfig.Controllers = s.Controllers
 	c.ComponentConfig.ExternalCloudVolumePlugin = s.ExternalCloudVolumePlugin
+
+	c.OpenShiftConfig = s.OpenShiftConfig
 
 	return err
 }
