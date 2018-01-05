@@ -377,7 +377,12 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 // the shared-informers client and token controller.
 func CreateControllerContext(s *config.CompletedConfig, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
 	versionedClient := rootClientBuilder.ClientOrDie("shared-informers")
-	sharedInformers := informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
+	var sharedInformers informers.SharedInformerFactory
+	if InformerFactoryOverride == nil {
+		sharedInformers = informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
+	} else {
+		sharedInformers = InformerFactoryOverride
+	}
 
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and controller manager at the same time.
