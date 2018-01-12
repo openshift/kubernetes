@@ -89,6 +89,13 @@ controller, and serviceaccounts controller.`,
 				os.Exit(1)
 			}
 
+			cleanupFn, err := ShimForOpenShift(s, c)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+			defer cleanupFn()
+
 			if err := Run(c.Complete()); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
@@ -159,6 +166,10 @@ func Run(c *config.CompletedConfig) error {
 			glog.Fatalf("error building controller context: %v", err)
 		}
 		saTokenControllerInitFunc := serviceAccountTokenControllerStarter{rootClientBuilder: rootClientBuilder}.startServiceAccountTokenController
+
+		if err := createPVRecyclerSA(c.Extra.OpenShiftConfig, rootClientBuilder); err != nil {
+			glog.Fatalf("error creating recycler serviceaccount: %v", err)
+		}
 
 		if err := StartControllers(ctx, saTokenControllerInitFunc, NewControllerInitializers(ctx.LoopMode)); err != nil {
 			glog.Fatalf("error starting controllers: %v", err)
@@ -491,10 +502,10 @@ func (c serviceAccountTokenControllerStarter) startServiceAccountTokenController
 		ctx.InformerFactory.Core().V1().ServiceAccounts(),
 		ctx.InformerFactory.Core().V1().Secrets(),
 		c.rootClientBuilder.ClientOrDie("tokens-controller"),
-		serviceaccountcontroller.TokensControllerOptions{
+		applyOpenShiftServiceServingCertCA(serviceaccountcontroller.TokensControllerOptions{
 			TokenGenerator: serviceaccount.JWTTokenGenerator(serviceaccount.LegacyIssuer, privateKey),
 			RootCA:         rootCA,
-		},
+		}),
 	)
 	if err != nil {
 		return true, fmt.Errorf("error creating Tokens controller: %v", err)

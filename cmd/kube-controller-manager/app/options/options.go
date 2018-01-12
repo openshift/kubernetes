@@ -41,6 +41,8 @@ import (
 // KubeControllerManagerOptions is the main context object for the controller manager.
 type KubeControllerManagerOptions struct {
 	Generic cmoptions.GenericControllerManagerOptions
+
+	OpenShiftConfig string
 }
 
 // NewKubeControllerManagerOptions creates a new KubeControllerManagerOptions with a default config.
@@ -68,6 +70,9 @@ func NewKubeControllerManagerOptions() *KubeControllerManagerOptions {
 // AddFlags adds flags for a specific KubeControllerManagerOptions to the specified FlagSet
 func (s *KubeControllerManagerOptions) AddFlags(fs *pflag.FlagSet, allControllers []string, disabledByDefaultControllers []string) {
 	s.Generic.AddFlags(fs)
+
+	fs.StringVar(&s.OpenShiftConfig, "openshift-config", s.OpenShiftConfig, "indicates that this process should be compatible with openshift start master")
+	fs.MarkHidden("openshift-config")
 
 	fs.StringSliceVar(&s.Generic.ComponentConfig.Controllers, "controllers", s.Generic.ComponentConfig.Controllers, fmt.Sprintf(""+
 		"A list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller "+
@@ -149,6 +154,8 @@ func (s *KubeControllerManagerOptions) AddFlags(fs *pflag.FlagSet, allController
 // ApplyTo fills up controller manager config with options.
 func (s *KubeControllerManagerOptions) ApplyTo(c *kubecontrollerconfig.Config) error {
 	err := s.Generic.ApplyTo(&c.Generic, "controller-manager")
+
+	c.Extra.OpenShiftConfig = s.OpenShiftConfig
 
 	return err
 }
