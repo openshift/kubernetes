@@ -85,9 +85,9 @@ type KubeControllerManagerOptions struct {
 	Authentication  *apiserveroptions.DelegatingAuthenticationOptions
 	Authorization   *apiserveroptions.DelegatingAuthorizationOptions
 
-	Master          string
-	Kubeconfig      string
-	OpenShiftConfig string
+	Master           string
+	Kubeconfig       string
+	OpenShiftContext kubecontrollerconfig.OpenShiftContext
 }
 
 // NewKubeControllerManagerOptions creates a new KubeControllerManagerOptions with a default config.
@@ -264,7 +264,7 @@ func (s *KubeControllerManagerOptions) Flags(allControllers []string, disabledBy
 	var dummy string
 	fs.MarkDeprecated("insecure-experimental-approve-all-kubelet-csrs-for-group", "This flag does nothing.")
 	fs.StringVar(&dummy, "insecure-experimental-approve-all-kubelet-csrs-for-group", "", "This flag does nothing.")
-	fs.StringVar(&s.OpenShiftConfig, "openshift-config", s.OpenShiftConfig, "indicates that this process should be compatible with openshift start master")
+	fs.StringVar(&s.OpenShiftContext.OpenShiftConfig, "openshift-config", s.OpenShiftContext.OpenShiftConfig, "indicates that this process should be compatible with openshift start master")
 	fs.MarkHidden("openshift-config")
 	utilfeature.DefaultFeatureGate.AddFlag(fss.FlagSet("generic"))
 
@@ -359,7 +359,7 @@ func (s *KubeControllerManagerOptions) ApplyTo(c *kubecontrollerconfig.Config) e
 	c.ComponentConfig.Generic.Port = int32(s.InsecureServing.BindPort)
 	c.ComponentConfig.Generic.Address = s.InsecureServing.BindAddress.String()
 
-	c.OpenShiftConfig = s.OpenShiftConfig
+	c.OpenShiftContext = s.OpenShiftContext
 
 	return nil
 }

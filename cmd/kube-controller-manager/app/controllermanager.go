@@ -200,7 +200,7 @@ func Run(c *config.CompletedConfig, stopCh <-chan struct{}) error {
 		}
 		saTokenControllerInitFunc := serviceAccountTokenControllerStarter{rootClientBuilder: rootClientBuilder}.startServiceAccountTokenController
 
-		if err := createPVRecyclerSA(c.OpenShiftConfig, rootClientBuilder); err != nil {
+		if err := createPVRecyclerSA(c.OpenShiftContext.OpenShiftConfig, rootClientBuilder); err != nil {
 			glog.Fatalf("error creating recycler serviceaccount: %v", err)
 		}
 
@@ -254,6 +254,8 @@ func Run(c *config.CompletedConfig, stopCh <-chan struct{}) error {
 }
 
 type ControllerContext struct {
+	OpenShiftContext config.OpenShiftContext
+
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder controller.ControllerClientBuilder
 
@@ -460,6 +462,7 @@ func CreateControllerContext(s *config.CompletedConfig, rootClientBuilder, clien
 	}
 
 	ctx := ControllerContext{
+		OpenShiftContext:   s.OpenShiftContext,
 		ClientBuilder:      clientBuilder,
 		InformerFactory:    sharedInformers,
 		ComponentConfig:    s.ComponentConfig,
