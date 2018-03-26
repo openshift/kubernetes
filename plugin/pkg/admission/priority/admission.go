@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
@@ -146,7 +147,11 @@ func priorityClassPermittedInNamespace(priorityClassName string, namespace strin
 	// components.
 	for _, spc := range scheduling.SystemPriorityClasses() {
 		if spc.Name == priorityClassName && namespace != metav1.NamespaceSystem {
-			return false
+			// <carry>: critical pods may exist in openshift- namespaces
+			// pending priority and preemption support.
+			if !strings.HasPrefix(namespace, "openshift-") {
+				return false
+			}
 		}
 	}
 	return true
