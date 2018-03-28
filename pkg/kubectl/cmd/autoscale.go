@@ -115,6 +115,12 @@ func RunAutoscale(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []s
 			return err
 		}
 
+		// hack to make scaling DCs work.
+		if mapping.GroupVersionKind.Kind == "DeploymentConfig" && len(mapping.GroupVersionKind.Group) == 0 {
+			mapping.GroupVersionKind.Group = "apps.openshift.io"
+			mapping.GroupVersionKind.Version = "v1"
+		}
+
 		// get the generator
 		var generator kubectl.StructuredGenerator
 		switch generatorName := cmdutil.GetFlagString(cmd, "generator"); generatorName {

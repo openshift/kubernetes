@@ -242,8 +242,10 @@ func ValidResourceTypeList(f ClientAccessFactory) string {
 	// TODO: Should attempt to use the cached discovery list or fallback to a static list
 	// that is calculated from code compiled into the factory.
 	return templates.LongDesc(`Valid resource types include:
-	
+
 			* all
+			* buildconfigs (aka 'bc')
+			* builds
 			* certificatesigningrequests (aka 'csr')
 			* clusterrolebindings
 			* clusterroles
@@ -254,10 +256,15 @@ func ValidResourceTypeList(f ClientAccessFactory) string {
 			* customresourcedefinition (aka 'crd')
 			* daemonsets (aka 'ds')
 			* deployments (aka 'deploy')
+			* deploymentconfigs (aka 'dc')
 			* endpoints (aka 'ep')
 			* events (aka 'ev')
 			* horizontalpodautoscalers (aka 'hpa')
+			* imagestreamimages (aka 'isimage')
+			* imagestreams (aka 'is')
+			* imagestreamtags (aka 'istag')
 			* ingresses (aka 'ing')
+			* groups
 			* jobs
 			* limitranges (aka 'limits')
 			* namespaces (aka 'ns')
@@ -270,17 +277,20 @@ func ValidResourceTypeList(f ClientAccessFactory) string {
 			* pods (aka 'po')
 			* podsecuritypolicies (aka 'psp')
 			* podtemplates
+			* projects
 			* replicasets (aka 'rs')
 			* replicationcontrollers (aka 'rc')
 			* resourcequotas (aka 'quota')
 			* rolebindings
 			* roles
+			* routes
 			* secrets
 			* serviceaccounts (aka 'sa')
 			* services (aka 'svc')
 			* statefulsets (aka 'sts')
 			* storageclasses (aka 'sc')
-	
+			* users
+
 	`)
 }
 

@@ -25,6 +25,8 @@ import (
 // ExtraConfig are part of Config, also can place your custom config here.
 type ExtraConfig struct {
 	NodeStatusUpdateFrequency time.Duration
+
+	OpenShiftConfig string
 }
 
 // Config is the main context object for the controller manager.
