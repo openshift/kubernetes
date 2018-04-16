@@ -60,6 +60,8 @@ type SetImageOptions struct {
 	ContainerImages        map[string]string
 
 	genericclioptions.IOStreams
+
+	Source string
 }
 
 var (
@@ -121,6 +123,8 @@ func NewCmdImage(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.
 	cmd.Flags().BoolVar(&o.All, "all", o.All, "Select all resources, including uninitialized ones, in the namespace of the specified resource types")
 	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on, not including uninitialized ones, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 	cmd.Flags().BoolVar(&o.Local, "local", o.Local, "If true, set image will NOT contact api-server but run locally.")
+	o.Source = "docker"
+	cmd.Flags().StringVar(&o.Source, "source", o.Source, "The image source type; valid types are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
 	cmdutil.AddDryRunFlag(cmd)
 	cmdutil.AddIncludeUninitializedFlag(cmd)
 	return cmd
@@ -138,7 +142,7 @@ func (o *SetImageOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args [
 	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 	o.DryRun = cmdutil.GetDryRunFlag(cmd)
 	o.Output = cmdutil.GetFlagString(cmd, "output")
-	o.ResolveImage = resolveImageFunc
+	o.ResolveImage = resolveImageFactory(f, cmd)
 
 	if o.DryRun {
 		o.PrintFlags.Complete("%s (dry run)")
