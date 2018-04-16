@@ -656,6 +656,7 @@ func (o *RunOptions) createGeneratedObject(f cmdutil.Factory, cmd *cobra.Command
 	if err != nil {
 		return nil, err
 	}
+	FixOAPIGroupifiedGVK(&mapping.GroupVersionKind)
 
 	if len(overrides) > 0 {
 		codec := runtime.NewCodec(scheme.DefaultJSONEncoder(), scheme.Codecs.UniversalDecoder(scheme.Scheme.PrioritizedVersionsAllGroups()...))
