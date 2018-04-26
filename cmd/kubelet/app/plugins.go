@@ -53,7 +53,7 @@ import (
 )
 
 // ProbeVolumePlugins collects all volume plugins into an easy to use list.
-func ProbeVolumePlugins() []volume.VolumePlugin {
+func probeVolumePlugins() []volume.VolumePlugin {
 	allPlugins := []volume.VolumePlugin{}
 
 	// The list of plugins to probe is decided by the kubelet binary, not
