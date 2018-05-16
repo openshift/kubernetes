@@ -322,6 +322,11 @@ func (s *ServiceController) syncLoadBalancerIfNeeded(service *v1.Service, key st
 	var err error
 
 	if !wantsLoadBalancer(service) || needsCleanup(service) {
+		if v1helper.LoadBalancerStatusEqual(previousStatus, &v1.LoadBalancerStatus{}) {
+			return op, nil
+		}
+		klog.V(3).Infof("Getting load balancer for service %s", key)
+
 		// Delete the load balancer if service no longer wants one, or if service needs cleanup.
 		op = deleteLoadBalancer
 		newStatus = &v1.LoadBalancerStatus{}
