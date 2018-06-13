@@ -122,6 +122,9 @@ type RunOptions struct {
 	TTY            bool
 
 	genericclioptions.IOStreams
+
+	DefaultRestartAlwaysGenerator string
+	DefaultGenerator              string
 }
 
 func NewRunOptions(streams genericclioptions.IOStreams) *RunOptions {
@@ -299,6 +302,16 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 	if len(o.Schedule) != 0 && len(generatorName) == 0 {
 		generatorName = cmdutil.CronJobV1Beta1GeneratorName
 	}
+
+	if len(generatorName) == 0 {
+		switch {
+		case restartPolicy == api.RestartPolicyAlways:
+			generatorName = o.DefaultRestartAlwaysGenerator
+		default:
+			generatorName = o.DefaultGenerator
+		}
+	}
+
 	if len(generatorName) == 0 {
 		switch restartPolicy {
 		case api.RestartPolicyAlways:
