@@ -217,6 +217,12 @@ func (o *AutoscaleOptions) Run() error {
 			return err
 		}
 
+		// hack to make scaling DCs work.
+		if mapping.GroupVersionKind.Kind == "DeploymentConfig" && len(mapping.GroupVersionKind.Group) == 0 {
+			mapping.GroupVersionKind.Group = "apps.openshift.io"
+			mapping.GroupVersionKind.Version = "v1"
+		}
+
 		generator, err := o.generatorFunc(info.Name, mapping)
 		if err != nil {
 			return err
