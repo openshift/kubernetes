@@ -33,6 +33,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -143,6 +144,9 @@ func NewRunOptions(streams genericclioptions.IOStreams) *RunOptions {
 
 func NewCmdRun(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRunOptions(streams)
+	if openshiftpatch.IsOC {
+		o.DefaultRestartAlwaysGenerator = "deploymentconfig/v1"
+	}
 
 	cmd := &cobra.Command{
 		Use: "run NAME --image=image [--env=\"key=value\"] [--port=port] [--replicas=replicas] [--dry-run=bool] [--overrides=inline-json] [--command] -- [COMMAND] [args...]",
@@ -307,7 +311,7 @@ func (o *RunOptions) Run(f cmdutil.Factory, cmd *cobra.Command, args []string) e
 
 	if len(generatorName) == 0 {
 		switch {
-		case restartPolicy == api.RestartPolicyAlways:
+		case restartPolicy == corev1.RestartPolicyAlways:
 			generatorName = o.DefaultRestartAlwaysGenerator
 		default:
 			generatorName = o.DefaultGenerator
@@ -665,6 +669,7 @@ func (o *RunOptions) createGeneratedObject(f cmdutil.Factory, cmd *cobra.Command
 	if err != nil {
 		return nil, err
 	}
+	openshiftpatch.FixOAPIGroupifiedGVK(&mapping.GroupVersionKind)
 
 	if len(overrides) > 0 {
 		codec := runtime.NewCodec(scheme.DefaultJSONEncoder(), scheme.Codecs.UniversalDecoder(scheme.Scheme.PrioritizedVersionsAllGroups()...))
