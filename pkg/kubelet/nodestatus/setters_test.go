@@ -490,16 +490,14 @@ func TestMachineInfo(t *testing.T) {
 			expectNode: &v1.Node{
 				Status: v1.NodeStatus{
 					Capacity: v1.ResourceList{
-						v1.ResourceCPU:              *resource.NewMilliQuantity(2000, resource.DecimalSI),
-						v1.ResourceMemory:           *resource.NewQuantity(1024, resource.BinarySI),
-						v1.ResourcePods:             *resource.NewQuantity(110, resource.DecimalSI),
-						v1.ResourceEphemeralStorage: *resource.NewQuantity(5000, resource.BinarySI),
+						v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
+						v1.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
+						v1.ResourcePods:   *resource.NewQuantity(110, resource.DecimalSI),
 					},
 					Allocatable: v1.ResourceList{
-						v1.ResourceCPU:              *resource.NewMilliQuantity(2000, resource.DecimalSI),
-						v1.ResourceMemory:           *resource.NewQuantity(1024, resource.BinarySI),
-						v1.ResourcePods:             *resource.NewQuantity(110, resource.DecimalSI),
-						v1.ResourceEphemeralStorage: *resource.NewQuantity(5000, resource.BinarySI),
+						v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
+						v1.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
+						v1.ResourcePods:   *resource.NewQuantity(110, resource.DecimalSI),
 					},
 				},
 			},
@@ -948,7 +946,7 @@ func TestReadyCondition(t *testing.T) {
 		{
 			desc:             "new, not ready: missing capacities",
 			node:             &v1.Node{},
-			expectConditions: []v1.NodeCondition{*makeReadyCondition(false, "Missing node capacity for resources: cpu, memory, pods, ephemeral-storage", now, now)},
+			expectConditions: []v1.NodeCondition{*makeReadyCondition(false, "Missing node capacity for resources: cpu, memory, pods", now, now)},
 		},
 		// the transition tests ensure timestamps are set correctly, no need to test the entire condition matrix in this section
 		{
