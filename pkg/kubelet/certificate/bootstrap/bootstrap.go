@@ -17,8 +17,6 @@ limitations under the License.
 package bootstrap
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,11 +24,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
 	certificates "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -42,6 +37,55 @@ import (
 )
 
 const tmpPrivateKeyFile = "kubelet-client.key.tmp"
+
+// LoadClientConfig tries to load the appropriate client config for retrieving certs and for use by users.
+// If bootstrapPath is empty, only kubeconfigPath is checked. If bootstrap path is set and the contents
+// of kubeconfigPath are valid, both certConfig and userConfig will point to that file. Otherwise the
+// kubeconfigPath on disk is populated based on bootstrapPath but pointing to the location of the client cert
+// in certDir. This preserves the historical behavior of bootstrapping where on subsequent restarts the
+// most recent client cert is used to request new client certs instead of the initial token.
+func LoadClientConfig(kubeconfigPath string, bootstrapPath string, certDir string) (certConfig, userConfig *restclient.Config, err error) {
+	if len(bootstrapPath) == 0 {
+		clientConfig, err := loadRESTClientConfig(kubeconfigPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to load kubeconfig: %v", err)
+		}
+		return clientConfig, clientConfig, nil
+	}
+
+	store, err := certificate.NewFileStore("kubelet-client", certDir, certDir, "", "")
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to build bootstrap cert store")
+	}
+
+	ok, err := verifyBootstrapClientConfig(kubeconfigPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// use the current client config
+	if ok {
+		clientConfig, err := loadRESTClientConfig(kubeconfigPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to load kubeconfig: %v", err)
+		}
+		return clientConfig, clientConfig, nil
+	}
+
+	bootstrapClientConfig, err := loadRESTClientConfig(bootstrapPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to load bootstrap kubeconfig: %v", err)
+	}
+
+	clientConfig := restclient.AnonymousClientConfig(bootstrapClientConfig)
+	pemPath := store.CurrentPath()
+	clientConfig.KeyFile = pemPath
+	clientConfig.CertFile = pemPath
+	if err := writeKubeconfigFromBootstrapping(clientConfig, kubeconfigPath, pemPath); err != nil {
+		return nil, nil, err
+	}
+	return bootstrapClientConfig, clientConfig, nil
+}
 
 // LoadClientCert requests a client cert for kubelet if the kubeconfigPath file does not exist.
 // The kubeconfig at bootstrapPath is used to request a client certificate from the API server.
@@ -98,10 +142,6 @@ func LoadClientCert(kubeconfigPath string, bootstrapPath string, certDir string,
 		}
 	}
 
-	if err := waitForServer(*bootstrapClientConfig, 1*time.Minute); err != nil {
-		glog.Warningf("Error waiting for apiserver to come up: %v", err)
-	}
-
 	certData, err := csr.RequestNodeCertificate(bootstrapClient.CertificateSigningRequests(), keyData, nodeName)
 	if err != nil {
 		return err
@@ -113,8 +153,10 @@ func LoadClientCert(kubeconfigPath string, bootstrapPath string, certDir string,
 		glog.V(2).Infof("failed cleaning up private key file %q: %v", privKeyPath, err)
 	}
 
-	pemPath := store.CurrentPath()
+	return writeKubeconfigFromBootstrapping(bootstrapClientConfig, kubeconfigPath, store.CurrentPath())
+}
 
+func writeKubeconfigFromBootstrapping(bootstrapClientConfig *restclient.Config, kubeconfigPath, pemPath string) error {
 	// Get the CA data from the bootstrap client config.
 	caFile, caData := bootstrapClientConfig.CAFile, []byte{}
 	if len(caFile) == 0 {
@@ -216,31 +258,4 @@ func verifyKeyData(data []byte) bool {
 	}
 	_, err := certutil.ParsePrivateKeyPEM(data)
 	return err == nil
-}
-
-func waitForServer(cfg restclient.Config, deadline time.Duration) error {
-	cfg.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
-	cfg.Timeout = 1 * time.Second
-	cli, err := restclient.UnversionedRESTClientFor(&cfg)
-	if err != nil {
-		return fmt.Errorf("couldn't create client: %v", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.TODO(), deadline)
-	defer cancel()
-
-	var connected bool
-	wait.JitterUntil(func() {
-		if _, err := cli.Get().AbsPath("/healthz").Do().Raw(); err != nil {
-			glog.Infof("Failed to connect to apiserver: %v", err)
-			return
-		}
-		cancel()
-		connected = true
-	}, 2*time.Second, 0.2, true, ctx.Done())
-
-	if !connected {
-		return errors.New("timed out waiting to connect to apiserver")
-	}
-	return nil
 }
