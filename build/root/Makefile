@@ -603,3 +603,11 @@ else
 bazel-release:
 	bazel build //build/release-tars
 endif
+
+.PHONY: fork-build
+fork-build: generated_files
+	GOFLAGS="-tags kubernetes" hack/make-rules/build.sh $(WHAT)
+
+.PHONY: fork-test
+fork-test: generated_files
+	GOFLAGS="-tags kubernetes" hack/make-rules/test.sh $(WHAT) $(TESTS)
