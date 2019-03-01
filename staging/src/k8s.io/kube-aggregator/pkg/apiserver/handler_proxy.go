@@ -47,6 +47,8 @@ const (
 	aggregatedDiscoveryTimeout = 5 * time.Second
 )
 
+type certFunc func() []byte
+
 // proxyHandler provides a http.Handler which will proxy traffic to locations
 // specified by items implementing Redirector.
 type proxyHandler struct {
@@ -55,8 +57,8 @@ type proxyHandler struct {
 
 	// proxyClientCert/Key are the client cert used to identify this proxy. Backing APIServices use
 	// this to confirm the proxy's identity
-	proxyClientCert []byte
-	proxyClientKey  []byte
+	proxyClientCert certFunc
+	proxyClientKey  certFunc
 	proxyTransport  *http.Transport
 
 	// Endpoints based routing to map from cluster IP to routable IP
@@ -251,8 +253,8 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationv1api.APIServ
 			TLSClientConfig: restclient.TLSClientConfig{
 				Insecure:   apiService.Spec.InsecureSkipTLSVerify,
 				ServerName: apiService.Spec.Service.Name + "." + apiService.Spec.Service.Namespace + ".svc",
-				CertData:   r.proxyClientCert,
-				KeyData:    r.proxyClientKey,
+				CertData:   r.proxyClientCert(),
+				KeyData:    r.proxyClientKey(),
 				CAData:     apiService.Spec.CABundle,
 			},
 		},
