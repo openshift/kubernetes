@@ -487,9 +487,7 @@ func TestMachineInfo(t *testing.T) {
 				NumCores:       2,
 				MemoryCapacity: 1024,
 			},
-			capacity: v1.ResourceList{
-				v1.ResourceEphemeralStorage: *resource.NewQuantity(5000, resource.BinarySI),
-			},
+			capacity: v1.ResourceList{},
 			expectNode: &v1.Node{
 				Status: v1.NodeStatus{
 					Capacity: v1.ResourceList{
@@ -944,7 +942,7 @@ func TestReadyCondition(t *testing.T) {
 		{
 			desc:             "new, not ready: missing capacities",
 			node:             &v1.Node{},
-			expectConditions: []v1.NodeCondition{*makeReadyCondition(false, "Missing node capacity for resources: cpu, memory, pods", now, now)},
+			expectConditions: []v1.NodeCondition{*makeReadyCondition(false, "Missing node capacity for resources: cpu, memory, pods, ephemeral-storage", now, now)},
 		},
 		// the transition tests ensure timestamps are set correctly, no need to test the entire condition matrix in this section
 		{
