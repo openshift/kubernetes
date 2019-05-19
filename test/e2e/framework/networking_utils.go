@@ -28,6 +28,7 @@ import (
 
 	"github.com/onsi/ginkgo"
 	v1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -848,7 +849,8 @@ func PokeHTTP(host string, port int, path string, params *HTTPPokeParams) HTTPPo
 	}
 
 	ret.Status = HTTPSuccess
-	Logf("Poke(%q): success", url)
+	// causes excessive logging that provides no value
+	// Logf("Poke(%q): success", url)
 	return ret
 }
 
