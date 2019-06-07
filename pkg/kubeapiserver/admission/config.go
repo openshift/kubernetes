@@ -65,7 +65,7 @@ func (c *Config) New(proxyTransport *http.Transport, serviceResolver webhook.Ser
 	discoveryRESTMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	kubePluginInitializer := NewPluginInitializer(
 		cloudConfig,
-		discoveryRESTMapper,
+		NewAdmissionRESTMapper(discoveryRESTMapper),
 		quotainstall.NewQuotaConfigurationForAdmission(),
 	)
 
