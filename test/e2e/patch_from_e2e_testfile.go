@@ -47,13 +47,14 @@ func ViperizeFlags(viperConfig string) {
 
 }
 
-var viperConfig = ""
+// FIXME: this doesn't actually patch anything since the viperConfig is local to e2e_test.go (not current package)
+var conflictingViperConfig = ""
 
 // we appear to set ours via env-var, not flag
 func GetViperConfig() string {
-	return viperConfig
+	return conflictingViperConfig
 }
 
 func SetViperConfig(val string) {
-	viperConfig = val
+	conflictingViperConfig = val
 }
