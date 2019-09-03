@@ -31283,21 +31283,21 @@ func schema_pkg_apis_apiextensions_v1_ConversionRequest(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`uid` is an identifier for the individual request/response. It allows us to distinguish instances of requests which are otherwise identical (parallel requests, requests when earlier requests did not modify etc) The UID is meant to track the round trip (request/response) between the KAS and the WebHook, not the user request. It is suitable for correlating log entries between the webhook and apiserver, for either auditing or debugging.",
+							Description: "uid is an identifier for the individual request/response. It allows distinguishing instances of requests which are otherwise identical (parallel requests, etc). The UID is meant to track the round trip (request/response) between the Kubernetes API server and the webhook, not the user request. It is suitable for correlating log entries between the webhook and apiserver, for either auditing or debugging.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"desiredAPIVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`desiredAPIVersion` is the version to convert given objects to. e.g. \"myapi.example.com/v1\"",
+							Description: "desiredAPIVersion is the version to convert given objects to. e.g. \"myapi.example.com/v1\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"objects": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`objects` is the list of CR objects to be converted.",
+							Description: "objects is the list of custom resource objects to be converted.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31326,14 +31326,14 @@ func schema_pkg_apis_apiextensions_v1_ConversionResponse(ref common.ReferenceCal
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`uid` is an identifier for the individual request/response. This should be copied over from the corresponding ConversionRequest.",
+							Description: "uid is an identifier for the individual request/response. This should be copied over from the corresponding `request.uid`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"convertedObjects": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`convertedObjects` is the list of converted version of `request.objects` if the `result` is successful otherwise empty. The webhook is expected to set apiVersion of these objects to the ConversionRequest.desiredAPIVersion. The list must also have the same size as the input list with the same objects in the same order (equal kind, UID, name and namespace). The webhook is allowed to mutate labels and annotations. Any other change to the metadata is silently ignored.",
+							Description: "convertedObjects is the list of converted version of `request.objects` if the `result` is successful, otherwise empty. The webhook is expected to set `apiVersion` of these objects to the `request.desiredAPIVersion`. The list must also have the same size as the input list with the same objects in the same order (equal kind, metadata.uid, metadata.name and metadata.namespace). The webhook is allowed to mutate labels and annotations. Any other change to the metadata is silently ignored.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31346,7 +31346,7 @@ func schema_pkg_apis_apiextensions_v1_ConversionResponse(ref common.ReferenceCal
 					},
 					"result": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`result` contains the result of conversion with extra details if the conversion failed. `result.status` determines if the conversion failed or succeeded. The `result.status` field is required and represent the success or failure of the conversion. A successful conversion must set `result.status` to `Success`. A failed conversion must set `result.status` to `Failure` and provide more details in `result.message` and return http status 200. The `result.message` will be used to construct an error message for the end user.",
+							Description: "result contains the result of conversion with extra details if the conversion failed. `result.status` determines if the conversion failed or succeeded. The `result.status` field is required and represents the success or failure of the conversion. A successful conversion must set `result.status` to `Success`. A failed conversion must set `result.status` to `Failure` and provide more details in `result.message` and return http status 200. The `result.message` will be used to construct an error message for the end user.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Status"),
 						},
 					},
@@ -31382,13 +31382,13 @@ func schema_pkg_apis_apiextensions_v1_ConversionReview(ref common.ReferenceCallb
 					},
 					"request": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`request` describes the attributes for the conversion request.",
+							Description: "request describes the attributes for the conversion request.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.ConversionRequest"),
 						},
 					},
 					"response": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`response` describes the attributes for the conversion response.",
+							Description: "response describes the attributes for the conversion response.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.ConversionResponse"),
 						},
 					},
@@ -31416,14 +31416,14 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceColumnDefinition(ref common.
 					},
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "type is an OpenAPI type definition for this column. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for more.",
+							Description: "type is an OpenAPI type definition for this column. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"format": {
 						SchemaProps: spec.SchemaProps{
-							Description: "format is an optional OpenAPI type definition for this column. The 'name' format is applied to the primary identifier column to assist in clients identifying column is the resource name. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for more.",
+							Description: "format is an optional OpenAPI type definition for this column. The 'name' format is applied to the primary identifier column to assist in clients identifying column is the resource name. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -31437,14 +31437,14 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceColumnDefinition(ref common.
 					},
 					"priority": {
 						SchemaProps: spec.SchemaProps{
-							Description: "priority is an integer defining the relative importance of this column compared to others. Lower numbers are considered higher priority. Columns that may be omitted in limited space scenarios should be given a higher priority.",
+							Description: "priority is an integer defining the relative importance of this column compared to others. Lower numbers are considered higher priority. Columns that may be omitted in limited space scenarios should be given a priority greater than 0.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"jsonPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "JSONPath is a simple JSON path, i.e. with array notation.",
+							Description: "jsonPath is a simple JSON path (i.e. with array notation) which is evaluated against each custom resource to produce the value for this column.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -31465,14 +31465,14 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceConversion(ref common.Refere
 				Properties: map[string]spec.Schema{
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`strategy` specifies the conversion strategy. Allowed values are: - `None`: The converter only change the apiVersion and would not touch any other field in the CR. - `Webhook`: API Server will call to an external webhook to do the conversion. Additional information\n  is needed for this option. This requires spec.preserveUnknownFields to be false.",
+							Description: "strategy specifies how custom resources are converted between versions. Allowed values are: - `None`: The converter only change the apiVersion and would not touch any other field in the custom resource. - `Webhook`: API Server will call to an external webhook to do the conversion. Additional information\n  is needed for this option. This requires spec.preserveUnknownFields to be false, and spec.conversion.webhook to be set.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"webhook": {
 						SchemaProps: spec.SchemaProps{
-							Description: "webhook describes how to call the conversion webhook. Required when strategy is \"Webhook\".",
+							Description: "webhook describes how to call the conversion webhook. Required when `strategy` is set to `Webhook`.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.WebhookConversion"),
 						},
 					},
@@ -31513,13 +31513,13 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinition(ref common.Refere
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Spec describes how the user wants the resources to appear",
+							Description: "spec describes how the user wants the resources to appear",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceDefinitionSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status indicates the actual state of the CustomResourceDefinition",
+							Description: "status indicates the actual state of the CustomResourceDefinition",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceDefinitionStatus"),
 						},
 					},
@@ -31541,34 +31541,34 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionCondition(ref comm
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Type is the type of the condition. Types include Established, NamesAccepted and Terminating.",
+							Description: "type is the type of the condition. Types include Established, NamesAccepted and Terminating.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status is the status of the condition. Can be True, False, Unknown.",
+							Description: "status is the status of the condition. Can be True, False, Unknown.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"lastTransitionTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Last time the condition transitioned from one status to another.",
+							Description: "lastTransitionTime last time the condition transitioned from one status to another.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
 					"reason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Unique, one-word, CamelCase reason for the condition's last transition.",
+							Description: "reason is a unique, one-word, CamelCase reason for the condition's last transition.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"message": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Human-readable message indicating details about last transition.",
+							Description: "message is a human-readable message indicating details about last transition.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -31610,7 +31610,7 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionList(ref common.Re
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Items individual CustomResourceDefinitions",
+							Description: "items list individual CustomResourceDefinition objects",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31639,21 +31639,21 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionNames(ref common.R
 				Properties: map[string]spec.Schema{
 					"plural": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Plural is the plural name of the resource to serve.  It must match the name of the CustomResourceDefinition-registration too: plural.group and it must be all lowercase.",
+							Description: "plural is the plural name of the resource to serve. The custom resources are served under `/apis/<group>/<version>/.../<plural>`. Must match the name of the CustomResourceDefinition (in the form `<names.plural>.<group>`). Must be all lowercase.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"singular": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Singular is the singular name of the resource.  It must be all lowercase  Defaults to lowercased <kind>",
+							Description: "singular is the singular name of the resource. It must be all lowercase. Defaults to lowercased `kind`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"shortNames": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ShortNames are short names for the resource.  It must be all lowercase.",
+							Description: "shortNames are short names for the resource, exposed in API discovery documents, and used by clients to support invocations like `kubectl get <shortname>`. It must be all lowercase.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31667,21 +31667,21 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionNames(ref common.R
 					},
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind is the serialized kind of the resource.  It is normally CamelCase and singular.",
+							Description: "kind is the serialized kind of the resource. It is normally CamelCase and singular. Custom resource instances will use this value as the `kind` attribute in API calls.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"listKind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ListKind is the serialized kind of the list for this resource.  Defaults to <kind>List.",
+							Description: "listKind is the serialized kind of the list for this resource. Defaults to \"`kind`List\".",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"categories": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Categories is a list of grouped resources custom resources belong to (e.g. 'all')",
+							Description: "categories is a list of grouped resources this custom resource belongs to (e.g. 'all'). This is published in API discovery documents, and used by clients to support invocations like `kubectl get all`.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31709,27 +31709,27 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionSpec(ref common.Re
 				Properties: map[string]spec.Schema{
 					"group": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Group is the group this resource belongs in",
+							Description: "group is the API group of the defined custom resource. The custom resources are served under `/apis/<group>/...`. Must match the name of the CustomResourceDefinition (in the form `<names.plural>.<group>`).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"names": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Names are the names used to describe this custom resource",
+							Description: "names specify the resource and kind names for the custom resource.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceDefinitionNames"),
 						},
 					},
 					"scope": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Scope indicates whether this resource is cluster or namespace scoped.",
+							Description: "scope indicates whether the defined custom resource is cluster- or namespace-scoped. Allowed values are `Cluster` and `Namespaced`. Default is `Namespaced`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"versions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Versions is the list of all supported versions for this resource. Order: The version name will be used to compute the order. If the version string is \"kube-like\", it will sort above non \"kube-like\" version strings, which are ordered lexicographically. \"Kube-like\" versions start with a \"v\", then are followed by a number (the major version), then optionally the string \"alpha\" or \"beta\" and another number (the minor version). These are sorted first by GA > beta > alpha (where GA is a version with no suffix such as beta or alpha), and then by comparing major version, then minor version. An example sorted list of versions: v10, v2, v1, v11beta2, v10beta3, v3beta1, v12alpha1, v11alpha2, foo1, foo10.",
+							Description: "versions is the list of all API versions of the defined custom resource. Version names are used to compute the order in which served versions are listed in API discovery. If the version string is \"kube-like\", it will sort above non \"kube-like\" version strings, which are ordered lexicographically. \"Kube-like\" versions start with a \"v\", then are followed by a number (the major version), then optionally the string \"alpha\" or \"beta\" and another number (the minor version). These are sorted first by GA > beta > alpha (where GA is a version with no suffix such as beta or alpha), and then by comparing major version, then minor version. An example sorted list of versions: v10, v2, v1, v11beta2, v10beta3, v3beta1, v12alpha1, v11alpha2, foo1, foo10.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31742,13 +31742,13 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionSpec(ref common.Re
 					},
 					"conversion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`conversion` defines conversion settings for the CRD.",
+							Description: "conversion defines conversion settings for the CRD.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceConversion"),
 						},
 					},
 					"preserveUnknownFields": {
 						SchemaProps: spec.SchemaProps{
-							Description: "preserveUnknownFields disables pruning of object fields which are not specified in the OpenAPI schema. apiVersion, kind, metadata and known fields inside metadata are always preserved. This field is deprecated in favor of setting `x-preserve-unknown-fields` to true in `spec.versions[*].schema.openAPIV3Schema`.",
+							Description: "preserveUnknownFields indicates that object fields which are not specified in the OpenAPI schema should be preserved when persisting to storage. apiVersion, kind, metadata and known fields inside metadata are always preserved. This field is deprecated in favor of setting `x-preserve-unknown-fields` to true in `spec.versions[*].schema.openAPIV3Schema`. See https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#pruning-versus-preserving-unknown-fields for details.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -31771,7 +31771,7 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionStatus(ref common.
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Conditions indicate state for particular aspects of a CustomResourceDefinition",
+							Description: "conditions indicate state for particular aspects of a CustomResourceDefinition",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31784,13 +31784,13 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionStatus(ref common.
 					},
 					"acceptedNames": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AcceptedNames are the names that are actually being used to serve discovery They may be different than the names in spec.",
+							Description: "acceptedNames are the names that are actually being used to serve discovery. They may be different than the names in spec.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceDefinitionNames"),
 						},
 					},
 					"storedVersions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StoredVersions are all versions of CustomResources that were ever persisted. Tracking these versions allows a migration path for stored versions in etcd. The field is mutable so the migration controller can first finish a migration to another version (i.e. that no old objects are left in the storage), and then remove the rest of the versions from this list. None of the versions in this list can be removed from the spec.Versions field.",
+							Description: "storedVersions lists all versions of CustomResources that were ever persisted. Tracking these versions allows a migration path for stored versions in etcd. The field is mutable so a migration controller can finish a migration to another version (ensuring no old objects are left in storage), and then remove the rest of the versions from this list. Versions may not be removed from `spec.versions` while they exist in this list.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31820,40 +31820,40 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceDefinitionVersion(ref common
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the version name, e.g. “v1”, “v2beta1”, etc.",
+							Description: "name is the version name, e.g. “v1”, “v2beta1”, etc. The custom resources are served under this version at `/apis/<group>/<version>/...` if `served` is true.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"served": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Served is a flag enabling/disabling this version from being served via REST APIs",
+							Description: "served is a flag enabling/disabling this version from being served via REST APIs",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Storage flags the version as storage version. There must be exactly one flagged as storage version.",
+							Description: "storage indicates this version should be used when persisting custom resources to storage. There must be exactly one version with storage=true.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"schema": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Schema describes the schema for CustomResource used in validation, pruning, and defaulting.",
+							Description: "schema describes the schema used for validation, pruning, and defaulting of this version of the custom resource.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceValidation"),
 						},
 					},
 					"subresources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Subresources describes the subresources for CustomResource",
+							Description: "subresources specify what subresources this version of the defined custom resource have.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceSubresources"),
 						},
 					},
 					"additionalPrinterColumns": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalPrinterColumns are additional columns shown e.g. in kubectl next to the name. Defaults to a created-at column.",
+							Description: "additionalPrinterColumns specifies additional columns returned in Table output. See https://kubernetes.io/docs/reference/using-api/api-concepts/#receiving-resources-as-tables for details. If no columns are specified, a single column displaying the age of the custom resource is used.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -31882,21 +31882,21 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceSubresourceScale(ref common.
 				Properties: map[string]spec.Schema{
 					"specReplicasPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SpecReplicasPath defines the JSON path inside of a CustomResource that corresponds to Scale.Spec.Replicas. Only JSON paths without the array notation are allowed. Must be a JSON Path under .spec. If there is no value under the given path in the CustomResource, the /scale subresource will return an error on GET.",
+							Description: "specReplicasPath defines the JSON path inside of a custom resource that corresponds to Scale `spec.replicas`. Only JSON paths without the array notation are allowed. Must be a JSON Path under `.spec`. If there is no value under the given path in the custom resource, the `/scale` subresource will return an error on GET.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"statusReplicasPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StatusReplicasPath defines the JSON path inside of a CustomResource that corresponds to Scale.Status.Replicas. Only JSON paths without the array notation are allowed. Must be a JSON Path under .status. If there is no value under the given path in the CustomResource, the status replica value in the /scale subresource will default to 0.",
+							Description: "statusReplicasPath defines the JSON path inside of a custom resource that corresponds to Scale `status.replicas`. Only JSON paths without the array notation are allowed. Must be a JSON Path under `.status`. If there is no value under the given path in the custom resource, the `status.replicas` value in the `/scale` subresource will default to 0.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"labelSelectorPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LabelSelectorPath defines the JSON path inside of a CustomResource that corresponds to Scale.Status.Selector. Only JSON paths without the array notation are allowed. Must be a JSON Path under .status or .spec. Must be set to work with HPA. The field pointed by this JSON path must be a string field (not a complex selector struct) which contains a serialized label selector in string form. More info: https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions#scale-subresource If there is no value under the given path in the CustomResource, the status label selector value in the /scale subresource will default to the empty string.",
+							Description: "labelSelectorPath defines the JSON path inside of a custom resource that corresponds to Scale `status.selector`. Only JSON paths without the array notation are allowed. Must be a JSON Path under `.status` or `.spec`. Must be set to work with HorizontalPodAutoscaler. The field pointed by this JSON path must be a string field (not a complex selector struct) which contains a serialized label selector in string form. More info: https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions#scale-subresource If there is no value under the given path in the custom resource, the `status.selector` value in the `/scale` subresource will default to the empty string.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -31928,13 +31928,13 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceSubresources(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status denotes the status subresource for CustomResources",
+							Description: "status indicates the custom resource should serve a `/status` subresource. When enabled: 1. requests to the custom resource primary endpoint ignore changes to the `status` stanza of the object. 2. requests to the custom resource `/status` subresource ignore changes to anything other than the `status` stanza of the object.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceSubresourceStatus"),
 						},
 					},
 					"scale": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Scale denotes the scale subresource for CustomResources",
+							Description: "scale indicates the custom resource should serve a `/scale` subresource that returns an `autoscaling/v1` Scale object.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.CustomResourceSubresourceScale"),
 						},
 					},
@@ -31955,7 +31955,7 @@ func schema_pkg_apis_apiextensions_v1_CustomResourceValidation(ref common.Refere
 				Properties: map[string]spec.Schema{
 					"openAPIV3Schema": {
 						SchemaProps: spec.SchemaProps{
-							Description: "OpenAPIV3Schema is the OpenAPI v3 schema to be validated against.",
+							Description: "openAPIV3Schema is the OpenAPI v3 schema to use for validation and pruning.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSONSchemaProps"),
 						},
 					},
@@ -32055,7 +32055,7 @@ func schema_pkg_apis_apiextensions_v1_JSONSchemaProps(ref common.ReferenceCallba
 					},
 					"default": {
 						SchemaProps: spec.SchemaProps{
-							Description: "default is a default value for undefined object fields. Defaulting is an alpha feature under the CustomResourceDefaulting feature gate. Defaulting requires spec.preserveUnknownFields to be false.",
+							Description: "default is a default value for undefined object fields. Defaulting is a beta feature under the CustomResourceDefaulting feature gate. Defaulting requires spec.preserveUnknownFields to be false.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
@@ -32307,6 +32307,27 @@ func schema_pkg_apis_apiextensions_v1_JSONSchemaProps(ref common.ReferenceCallba
 							Format:      "",
 						},
 					},
+					"x-kubernetes-list-map-keys": {
+						SchemaProps: spec.SchemaProps{
+							Description: "x-kubernetes-list-map-keys annotates an array with the x-kubernetes-list-type `map` by specifying the keys used as the index of the map.\n\nThis tag MUST only be used on lists that have the \"x-kubernetes-list-type\" extension set to \"map\". Also, the values specified for this attribute must be a scalar typed field of the child structure (no nesting is supported).",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"x-kubernetes-list-type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "x-kubernetes-list-type annotates an array to further describe its topology. This extension must only be used on lists and may have 3 possible values:\n\n1) `atomic`: the list is treated as a single entity, like a scalar.\n     Atomic lists will be entirely replaced when updated. This extension\n     may be used on any type of list (struct, scalar, ...).\n2) `set`:\n     Sets are lists that must not have multiple items with the same value. Each\n     value must be a scalar (or another atomic type).\n3) `map`:\n     These lists are like maps in that their elements have a non-index key\n     used to identify them. Order is preserved upon merge. The map tag\n     must only be used on a list with elements of type object.\nDefaults to atomic for arrays.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -32360,28 +32381,28 @@ func schema_pkg_apis_apiextensions_v1_ServiceReference(ref common.ReferenceCallb
 				Properties: map[string]spec.Schema{
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`namespace` is the namespace of the service. Required",
+							Description: "namespace is the namespace of the service. Required",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`name` is the name of the service. Required",
+							Description: "name is the name of the service. Required",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"path": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`path` is an optional URL path which will be sent in any request to this service.",
+							Description: "path is an optional URL path at which the webhook will be contacted.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"port": {
 						SchemaProps: spec.SchemaProps{
-							Description: "If specified, the port on the service that hosting webhook. Default to 443 for backward compatibility. `port` should be a valid port number (1-65535, inclusive).",
+							Description: "port is an optional service port at which the webhook will be contacted. `port` should be a valid port number (1-65535, inclusive). Defaults to 443 for backward compatibility.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -32397,25 +32418,25 @@ func schema_pkg_apis_apiextensions_v1_WebhookClientConfig(ref common.ReferenceCa
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "WebhookClientConfig contains the information to make a TLS connection with the webhook. It has the same field as admissionregistration.v1.WebhookClientConfig.",
+				Description: "WebhookClientConfig contains the information to make a TLS connection with the webhook.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"url": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`url` gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
+							Description: "url gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"service": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`service` is a reference to the service for this webhook. Either `service` or `url` must be specified.\n\nIf the webhook is running within the cluster, then you should use `service`.",
+							Description: "service is a reference to the service for this webhook. Either service or url must be specified.\n\nIf the webhook is running within the cluster, then you should use `service`.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.ServiceReference"),
 						},
 					},
 					"caBundle": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
+							Description: "caBundle is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},
@@ -32437,13 +32458,13 @@ func schema_pkg_apis_apiextensions_v1_WebhookConversion(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"clientConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`clientConfig` is the instructions for how to call the webhook if strategy is `Webhook`.",
+							Description: "clientConfig is the instructions for how to call the webhook if strategy is `Webhook`.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.WebhookClientConfig"),
 						},
 					},
 					"conversionReviewVersions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ConversionReviewVersions is an ordered list of preferred `ConversionReview` versions the Webhook expects. API server will try to use first version in the list which it supports. If none of the versions specified in this list supported by API server, conversion will fail for this object. If a persisted Webhook configuration specifies allowed versions and does not include any versions known to the API Server, calls to the webhook will fail.",
+							Description: "conversionReviewVersions is an ordered list of preferred `ConversionReview` versions the Webhook expects. The API server will use the first version in the list which it supports. If none of the versions specified in this list are supported by API server, conversion will fail for the custom resource. If a persisted Webhook configuration specifies allowed versions and does not include any versions known to the API Server, calls to the webhook will fail.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32473,21 +32494,21 @@ func schema_pkg_apis_apiextensions_v1beta1_ConversionRequest(ref common.Referenc
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`uid` is an identifier for the individual request/response. It allows us to distinguish instances of requests which are otherwise identical (parallel requests, requests when earlier requests did not modify etc) The UID is meant to track the round trip (request/response) between the KAS and the WebHook, not the user request. It is suitable for correlating log entries between the webhook and apiserver, for either auditing or debugging.",
+							Description: "uid is an identifier for the individual request/response. It allows distinguishing instances of requests which are otherwise identical (parallel requests, etc). The UID is meant to track the round trip (request/response) between the Kubernetes API server and the webhook, not the user request. It is suitable for correlating log entries between the webhook and apiserver, for either auditing or debugging.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"desiredAPIVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`desiredAPIVersion` is the version to convert given objects to. e.g. \"myapi.example.com/v1\"",
+							Description: "desiredAPIVersion is the version to convert given objects to. e.g. \"myapi.example.com/v1\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"objects": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`objects` is the list of CR objects to be converted.",
+							Description: "objects is the list of custom resource objects to be converted.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32516,14 +32537,14 @@ func schema_pkg_apis_apiextensions_v1beta1_ConversionResponse(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`uid` is an identifier for the individual request/response. This should be copied over from the corresponding ConversionRequest.",
+							Description: "uid is an identifier for the individual request/response. This should be copied over from the corresponding `request.uid`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"convertedObjects": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`convertedObjects` is the list of converted version of `request.objects` if the `result` is successful otherwise empty. The webhook is expected to set apiVersion of these objects to the ConversionRequest.desiredAPIVersion. The list must also have the same size as the input list with the same objects in the same order (equal kind, UID, name and namespace). The webhook is allowed to mutate labels and annotations. Any other change to the metadata is silently ignored.",
+							Description: "convertedObjects is the list of converted version of `request.objects` if the `result` is successful, otherwise empty. The webhook is expected to set `apiVersion` of these objects to the `request.desiredAPIVersion`. The list must also have the same size as the input list with the same objects in the same order (equal kind, metadata.uid, metadata.name and metadata.namespace). The webhook is allowed to mutate labels and annotations. Any other change to the metadata is silently ignored.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32536,7 +32557,7 @@ func schema_pkg_apis_apiextensions_v1beta1_ConversionResponse(ref common.Referen
 					},
 					"result": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`result` contains the result of conversion with extra details if the conversion failed. `result.status` determines if the conversion failed or succeeded. The `result.status` field is required and represent the success or failure of the conversion. A successful conversion must set `result.status` to `Success`. A failed conversion must set `result.status` to `Failure` and provide more details in `result.message` and return http status 200. The `result.message` will be used to construct an error message for the end user.",
+							Description: "result contains the result of conversion with extra details if the conversion failed. `result.status` determines if the conversion failed or succeeded. The `result.status` field is required and represents the success or failure of the conversion. A successful conversion must set `result.status` to `Success`. A failed conversion must set `result.status` to `Failure` and provide more details in `result.message` and return http status 200. The `result.message` will be used to construct an error message for the end user.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Status"),
 						},
 					},
@@ -32572,13 +32593,13 @@ func schema_pkg_apis_apiextensions_v1beta1_ConversionReview(ref common.Reference
 					},
 					"request": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`request` describes the attributes for the conversion request.",
+							Description: "request describes the attributes for the conversion request.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionRequest"),
 						},
 					},
 					"response": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`response` describes the attributes for the conversion response.",
+							Description: "response describes the attributes for the conversion response.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionResponse"),
 						},
 					},
@@ -32606,14 +32627,14 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceColumnDefinition(ref co
 					},
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "type is an OpenAPI type definition for this column. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for more.",
+							Description: "type is an OpenAPI type definition for this column. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"format": {
 						SchemaProps: spec.SchemaProps{
-							Description: "format is an optional OpenAPI type definition for this column. The 'name' format is applied to the primary identifier column to assist in clients identifying column is the resource name. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for more.",
+							Description: "format is an optional OpenAPI type definition for this column. The 'name' format is applied to the primary identifier column to assist in clients identifying column is the resource name. See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types for details.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -32627,14 +32648,14 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceColumnDefinition(ref co
 					},
 					"priority": {
 						SchemaProps: spec.SchemaProps{
-							Description: "priority is an integer defining the relative importance of this column compared to others. Lower numbers are considered higher priority. Columns that may be omitted in limited space scenarios should be given a higher priority.",
+							Description: "priority is an integer defining the relative importance of this column compared to others. Lower numbers are considered higher priority. Columns that may be omitted in limited space scenarios should be given a priority greater than 0.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"JSONPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "JSONPath is a simple JSON path, i.e. with array notation.",
+							Description: "JSONPath is a simple JSON path (i.e. with array notation) which is evaluated against each custom resource to produce the value for this column.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -32655,20 +32676,20 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceConversion(ref common.R
 				Properties: map[string]spec.Schema{
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`strategy` specifies the conversion strategy. Allowed values are: - `None`: The converter only change the apiVersion and would not touch any other field in the CR. - `Webhook`: API Server will call to an external webhook to do the conversion. Additional information\n  is needed for this option. This requires spec.preserveUnknownFields to be false.",
+							Description: "strategy specifies how custom resources are converted between versions. Allowed values are: - `None`: The converter only change the apiVersion and would not touch any other field in the custom resource. - `Webhook`: API Server will call to an external webhook to do the conversion. Additional information\n  is needed for this option. This requires spec.preserveUnknownFields to be false, and spec.conversion.webhookClientConfig to be set.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"webhookClientConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`webhookClientConfig` is the instructions for how to call the webhook if strategy is `Webhook`. This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature.",
+							Description: "webhookClientConfig is the instructions for how to call the webhook if strategy is `Webhook`. Required when `strategy` is set to `Webhook`.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.WebhookClientConfig"),
 						},
 					},
 					"conversionReviewVersions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ConversionReviewVersions is an ordered list of preferred `ConversionReview` versions the Webhook expects. API server will try to use first version in the list which it supports. If none of the versions specified in this list supported by API server, conversion will fail for this object. If a persisted Webhook configuration specifies allowed versions and does not include any versions known to the API Server, calls to the webhook will fail. Default to `['v1beta1']`.",
+							Description: "conversionReviewVersions is an ordered list of preferred `ConversionReview` versions the Webhook expects. The API server will use the first version in the list which it supports. If none of the versions specified in this list are supported by API server, conversion will fail for the custom resource. If a persisted Webhook configuration specifies allowed versions and does not include any versions known to the API Server, calls to the webhook will fail. Defaults to `[\"v1beta1\"]`.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32717,13 +32738,13 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinition(ref common.R
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Spec describes how the user wants the resources to appear",
+							Description: "spec describes how the user wants the resources to appear",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status indicates the actual state of the CustomResourceDefinition",
+							Description: "status indicates the actual state of the CustomResourceDefinition",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionStatus"),
 						},
 					},
@@ -32745,34 +32766,34 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionCondition(ref
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Type is the type of the condition. Types include Established, NamesAccepted and Terminating.",
+							Description: "type is the type of the condition. Types include Established, NamesAccepted and Terminating.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status is the status of the condition. Can be True, False, Unknown.",
+							Description: "status is the status of the condition. Can be True, False, Unknown.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"lastTransitionTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Last time the condition transitioned from one status to another.",
+							Description: "lastTransitionTime last time the condition transitioned from one status to another.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
 					"reason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Unique, one-word, CamelCase reason for the condition's last transition.",
+							Description: "reason is a unique, one-word, CamelCase reason for the condition's last transition.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"message": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Human-readable message indicating details about last transition.",
+							Description: "message is a human-readable message indicating details about last transition.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -32814,7 +32835,7 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionList(ref comm
 					},
 					"items": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Items individual CustomResourceDefinitions",
+							Description: "items list individual CustomResourceDefinition objects",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32843,21 +32864,21 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionNames(ref com
 				Properties: map[string]spec.Schema{
 					"plural": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Plural is the plural name of the resource to serve.  It must match the name of the CustomResourceDefinition-registration too: plural.group and it must be all lowercase.",
+							Description: "plural is the plural name of the resource to serve. The custom resources are served under `/apis/<group>/<version>/.../<plural>`. Must match the name of the CustomResourceDefinition (in the form `<names.plural>.<group>`). Must be all lowercase.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"singular": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Singular is the singular name of the resource.  It must be all lowercase  Defaults to lowercased <kind>",
+							Description: "singular is the singular name of the resource. It must be all lowercase. Defaults to lowercased `kind`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"shortNames": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ShortNames are short names for the resource.  It must be all lowercase.",
+							Description: "shortNames are short names for the resource, exposed in API discovery documents, and used by clients to support invocations like `kubectl get <shortname>`. It must be all lowercase.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32871,21 +32892,21 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionNames(ref com
 					},
 					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind is the serialized kind of the resource.  It is normally CamelCase and singular.",
+							Description: "kind is the serialized kind of the resource. It is normally CamelCase and singular. Custom resource instances will use this value as the `kind` attribute in API calls.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"listKind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ListKind is the serialized kind of the list for this resource.  Defaults to <kind>List.",
+							Description: "listKind is the serialized kind of the list for this resource. Defaults to \"`kind`List\".",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"categories": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Categories is a list of grouped resources custom resources belong to (e.g. 'all')",
+							Description: "categories is a list of grouped resources this custom resource belongs to (e.g. 'all'). This is published in API discovery documents, and used by clients to support invocations like `kubectl get all`.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32913,46 +32934,46 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionSpec(ref comm
 				Properties: map[string]spec.Schema{
 					"group": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Group is the group this resource belongs in",
+							Description: "group is the API group of the defined custom resource. The custom resources are served under `/apis/<group>/...`. Must match the name of the CustomResourceDefinition (in the form `<names.plural>.<group>`).",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Version is the version this resource belongs in Should be always first item in Versions field if provided. Optional, but at least one of Version or Versions must be set. Deprecated: Please use `Versions`.",
+							Description: "version is the API version of the defined custom resource. The custom resources are served under `/apis/<group>/<version>/...`. Must match the name of the first item in the `versions` list if `version` and `versions` are both specified. Optional if `versions` is specified. Deprecated: use `versions` instead.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"names": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Names are the names used to describe this custom resource",
+							Description: "names specify the resource and kind names for the custom resource.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionNames"),
 						},
 					},
 					"scope": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Scope indicates whether this resource is cluster or namespace scoped.  Default is namespaced",
+							Description: "scope indicates whether the defined custom resource is cluster- or namespace-scoped. Allowed values are `Cluster` and `Namespaced`. Default is `Namespaced`.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"validation": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Validation describes the validation methods for CustomResources Optional, the global validation schema for all versions. Top-level and per-version schemas are mutually exclusive.",
+							Description: "validation describes the schema used for validation and pruning of the custom resource. If present, this validation schema is used to validate all versions. Top-level and per-version schemas are mutually exclusive.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"),
 						},
 					},
 					"subresources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Subresources describes the subresources for CustomResource Optional, the global subresources for all versions. Top-level and per-version subresources are mutually exclusive.",
+							Description: "subresources specify what subresources the defined custom resource has. If present, this field configures subresources for all versions. Top-level and per-version subresources are mutually exclusive.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources"),
 						},
 					},
 					"versions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Versions is the list of all supported versions for this resource. If Version field is provided, this field is optional. Validation: All versions must use the same validation schema for now. i.e., top level Validation field is applied to all of these versions. Order: The version name will be used to compute the order. If the version string is \"kube-like\", it will sort above non \"kube-like\" version strings, which are ordered lexicographically. \"Kube-like\" versions start with a \"v\", then are followed by a number (the major version), then optionally the string \"alpha\" or \"beta\" and another number (the minor version). These are sorted first by GA > beta > alpha (where GA is a version with no suffix such as beta or alpha), and then by comparing major version, then minor version. An example sorted list of versions: v10, v2, v1, v11beta2, v10beta3, v3beta1, v12alpha1, v11alpha2, foo1, foo10.",
+							Description: "versions is the list of all API versions of the defined custom resource. Optional if `version` is specified. The name of the first item in the `versions` list must match the `version` field if `version` and `versions` are both specified. Version names are used to compute the order in which served versions are listed in API discovery. If the version string is \"kube-like\", it will sort above non \"kube-like\" version strings, which are ordered lexicographically. \"Kube-like\" versions start with a \"v\", then are followed by a number (the major version), then optionally the string \"alpha\" or \"beta\" and another number (the minor version). These are sorted first by GA > beta > alpha (where GA is a version with no suffix such as beta or alpha), and then by comparing major version, then minor version. An example sorted list of versions: v10, v2, v1, v11beta2, v10beta3, v3beta1, v12alpha1, v11alpha2, foo1, foo10.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32965,7 +32986,7 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionSpec(ref comm
 					},
 					"additionalPrinterColumns": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalPrinterColumns are additional columns shown e.g. in kubectl next to the name. Defaults to a created-at column. Optional, the global columns for all versions. Top-level and per-version columns are mutually exclusive.",
+							Description: "additionalPrinterColumns specifies additional columns returned in Table output. See https://kubernetes.io/docs/reference/using-api/api-concepts/#receiving-resources-as-tables for details. If present, this field configures columns for all versions. Top-level and per-version columns are mutually exclusive. If no top-level or per-version columns are specified, a single column displaying the age of the custom resource is used.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -32978,13 +32999,13 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionSpec(ref comm
 					},
 					"conversion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`conversion` defines conversion settings for the CRD.",
+							Description: "conversion defines conversion settings for the CRD.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceConversion"),
 						},
 					},
 					"preserveUnknownFields": {
 						SchemaProps: spec.SchemaProps{
-							Description: "preserveUnknownFields disables pruning of object fields which are not specified in the OpenAPI schema. apiVersion, kind, metadata and known fields inside metadata are always preserved. Defaults to true in v1beta and will default to false in v1.",
+							Description: "preserveUnknownFields indicates that object fields which are not specified in the OpenAPI schema should be preserved when persisting to storage. apiVersion, kind, metadata and known fields inside metadata are always preserved. If false, schemas must be defined for all versions. Defaults to true in v1beta for backwards compatibility. Deprecated: will be required to be false in v1. Preservation of unknown fields can be specified in the validation schema using the `x-kubernetes-preserve-unknown-fields: true` extension. See https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#pruning-versus-preserving-unknown-fields for details.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -33007,7 +33028,7 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionStatus(ref co
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Conditions indicate state for particular aspects of a CustomResourceDefinition",
+							Description: "conditions indicate state for particular aspects of a CustomResourceDefinition",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -33020,13 +33041,13 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionStatus(ref co
 					},
 					"acceptedNames": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AcceptedNames are the names that are actually being used to serve discovery They may be different than the names in spec.",
+							Description: "acceptedNames are the names that are actually being used to serve discovery. They may be different than the names in spec.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionNames"),
 						},
 					},
 					"storedVersions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StoredVersions are all versions of CustomResources that were ever persisted. Tracking these versions allows a migration path for stored versions in etcd. The field is mutable so the migration controller can first finish a migration to another version (i.e. that no old objects are left in the storage), and then remove the rest of the versions from this list. None of the versions in this list can be removed from the spec.Versions field.",
+							Description: "storedVersions lists all versions of CustomResources that were ever persisted. Tracking these versions allows a migration path for stored versions in etcd. The field is mutable so a migration controller can finish a migration to another version (ensuring no old objects are left in storage), and then remove the rest of the versions from this list. Versions may not be removed from `spec.versions` while they exist in this list.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -33056,40 +33077,40 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionVersion(ref c
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the version name, e.g. “v1”, “v2beta1”, etc.",
+							Description: "name is the version name, e.g. “v1”, “v2beta1”, etc. The custom resources are served under this version at `/apis/<group>/<version>/...` if `served` is true.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"served": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Served is a flag enabling/disabling this version from being served via REST APIs",
+							Description: "served is a flag enabling/disabling this version from being served via REST APIs",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Storage flags the version as storage version. There must be exactly one flagged as storage version.",
+							Description: "storage indicates this version should be used when persisting custom resources to storage. There must be exactly one version with storage=true.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 					"schema": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Schema describes the schema for CustomResource used in validation, pruning, and defaulting. Top-level and per-version schemas are mutually exclusive. Per-version schemas must not all be set to identical values (top-level validation schema should be used instead) This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature.",
+							Description: "schema describes the schema used for validation and pruning of this version of the custom resource. Top-level and per-version schemas are mutually exclusive. Per-version schemas must not all be set to identical values (top-level validation schema should be used instead).",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"),
 						},
 					},
 					"subresources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Subresources describes the subresources for CustomResource Top-level and per-version subresources are mutually exclusive. Per-version subresources must not all be set to identical values (top-level subresources should be used instead) This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature.",
+							Description: "subresources specify what subresources this version of the defined custom resource have. Top-level and per-version subresources are mutually exclusive. Per-version subresources must not all be set to identical values (top-level subresources should be used instead).",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources"),
 						},
 					},
 					"additionalPrinterColumns": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalPrinterColumns are additional columns shown e.g. in kubectl next to the name. Defaults to a created-at column. Top-level and per-version columns are mutually exclusive. Per-version columns must not all be set to identical values (top-level columns should be used instead) This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature. NOTE: CRDs created prior to 1.13 populated the top-level additionalPrinterColumns field by default. To apply an update that changes to per-version additionalPrinterColumns, the top-level additionalPrinterColumns field must be explicitly set to null",
+							Description: "additionalPrinterColumns specifies additional columns returned in Table output. See https://kubernetes.io/docs/reference/using-api/api-concepts/#receiving-resources-as-tables for details. Top-level and per-version columns are mutually exclusive. Per-version columns must not all be set to identical values (top-level columns should be used instead). If no top-level or per-version columns are specified, a single column displaying the age of the custom resource is used.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -33118,21 +33139,21 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceSubresourceScale(ref co
 				Properties: map[string]spec.Schema{
 					"specReplicasPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SpecReplicasPath defines the JSON path inside of a CustomResource that corresponds to Scale.Spec.Replicas. Only JSON paths without the array notation are allowed. Must be a JSON Path under .spec. If there is no value under the given path in the CustomResource, the /scale subresource will return an error on GET.",
+							Description: "specReplicasPath defines the JSON path inside of a custom resource that corresponds to Scale `spec.replicas`. Only JSON paths without the array notation are allowed. Must be a JSON Path under `.spec`. If there is no value under the given path in the custom resource, the `/scale` subresource will return an error on GET.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"statusReplicasPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StatusReplicasPath defines the JSON path inside of a CustomResource that corresponds to Scale.Status.Replicas. Only JSON paths without the array notation are allowed. Must be a JSON Path under .status. If there is no value under the given path in the CustomResource, the status replica value in the /scale subresource will default to 0.",
+							Description: "statusReplicasPath defines the JSON path inside of a custom resource that corresponds to Scale `status.replicas`. Only JSON paths without the array notation are allowed. Must be a JSON Path under `.status`. If there is no value under the given path in the custom resource, the `status.replicas` value in the `/scale` subresource will default to 0.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"labelSelectorPath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LabelSelectorPath defines the JSON path inside of a CustomResource that corresponds to Scale.Status.Selector. Only JSON paths without the array notation are allowed. Must be a JSON Path under .status or .spec. Must be set to work with HPA. The field pointed by this JSON path must be a string field (not a complex selector struct) which contains a serialized label selector in string form. More info: https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions#scale-subresource If there is no value under the given path in the CustomResource, the status label selector value in the /scale subresource will default to the empty string.",
+							Description: "labelSelectorPath defines the JSON path inside of a custom resource that corresponds to Scale `status.selector`. Only JSON paths without the array notation are allowed. Must be a JSON Path under `.status` or `.spec`. Must be set to work with HorizontalPodAutoscaler. The field pointed by this JSON path must be a string field (not a complex selector struct) which contains a serialized label selector in string form. More info: https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions#scale-subresource If there is no value under the given path in the custom resource, the `status.selector` value in the `/scale` subresource will default to the empty string.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -33164,13 +33185,13 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceSubresources(ref common
 				Properties: map[string]spec.Schema{
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status denotes the status subresource for CustomResources",
+							Description: "status indicates the custom resource should serve a `/status` subresource. When enabled: 1. requests to the custom resource primary endpoint ignore changes to the `status` stanza of the object. 2. requests to the custom resource `/status` subresource ignore changes to anything other than the `status` stanza of the object.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresourceStatus"),
 						},
 					},
 					"scale": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Scale denotes the scale subresource for CustomResources",
+							Description: "scale indicates the custom resource should serve a `/scale` subresource that returns an `autoscaling/v1` Scale object.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresourceScale"),
 						},
 					},
@@ -33191,7 +33212,7 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceValidation(ref common.R
 				Properties: map[string]spec.Schema{
 					"openAPIV3Schema": {
 						SchemaProps: spec.SchemaProps{
-							Description: "OpenAPIV3Schema is the OpenAPI v3 schema to be validated against.",
+							Description: "openAPIV3Schema is the OpenAPI v3 schema to use for validation and pruning.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaProps"),
 						},
 					},
@@ -33291,7 +33312,7 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaProps(ref common.ReferenceC
 					},
 					"default": {
 						SchemaProps: spec.SchemaProps{
-							Description: "default is a default value for undefined object fields. Defaulting is an alpha feature under the CustomResourceDefaulting feature gate. Defaulting requires spec.preserveUnknownFields to be false.",
+							Description: "default is a default value for undefined object fields. Defaulting is a beta feature under the CustomResourceDefaulting feature gate. CustomResourceDefinitions with defaults must be created using the v1 (or newer) CustomResourceDefinition API.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSON"),
 						},
 					},
@@ -33543,6 +33564,27 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaProps(ref common.ReferenceC
 							Format:      "",
 						},
 					},
+					"x-kubernetes-list-map-keys": {
+						SchemaProps: spec.SchemaProps{
+							Description: "x-kubernetes-list-map-keys annotates an array with the x-kubernetes-list-type `map` by specifying the keys used as the index of the map.\n\nThis tag MUST only be used on lists that have the \"x-kubernetes-list-type\" extension set to \"map\". Also, the values specified for this attribute must be a scalar typed field of the child structure (no nesting is supported).",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"x-kubernetes-list-type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "x-kubernetes-list-type annotates an array to further describe its topology. This extension must only be used on lists and may have 3 possible values:\n\n1) `atomic`: the list is treated as a single entity, like a scalar.\n     Atomic lists will be entirely replaced when updated. This extension\n     may be used on any type of list (struct, scalar, ...).\n2) `set`:\n     Sets are lists that must not have multiple items with the same value. Each\n     value must be a scalar (or another atomic type).\n3) `map`:\n     These lists are like maps in that their elements have a non-index key\n     used to identify them. Order is preserved upon merge. The map tag\n     must only be used on a list with elements of type object.\nDefaults to atomic for arrays.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -33596,28 +33638,28 @@ func schema_pkg_apis_apiextensions_v1beta1_ServiceReference(ref common.Reference
 				Properties: map[string]spec.Schema{
 					"namespace": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`namespace` is the namespace of the service. Required",
+							Description: "namespace is the namespace of the service. Required",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`name` is the name of the service. Required",
+							Description: "name is the name of the service. Required",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"path": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`path` is an optional URL path which will be sent in any request to this service.",
+							Description: "path is an optional URL path at which the webhook will be contacted.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"port": {
 						SchemaProps: spec.SchemaProps{
-							Description: "If specified, the port on the service that hosting webhook. Default to 443 for backward compatibility. `port` should be a valid port number (1-65535, inclusive).",
+							Description: "port is an optional service port at which the webhook will be contacted. `port` should be a valid port number (1-65535, inclusive). Defaults to 443 for backward compatibility.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -33633,25 +33675,25 @@ func schema_pkg_apis_apiextensions_v1beta1_WebhookClientConfig(ref common.Refere
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "WebhookClientConfig contains the information to make a TLS connection with the webhook. It has the same field as admissionregistration.v1beta1.WebhookClientConfig.",
+				Description: "WebhookClientConfig contains the information to make a TLS connection with the webhook.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"url": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`url` gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
+							Description: "url gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"service": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`service` is a reference to the service for this webhook. Either `service` or `url` must be specified.\n\nIf the webhook is running within the cluster, then you should use `service`.",
+							Description: "service is a reference to the service for this webhook. Either service or url must be specified.\n\nIf the webhook is running within the cluster, then you should use `service`.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ServiceReference"),
 						},
 					},
 					"caBundle": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
+							Description: "caBundle is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},
@@ -33668,7 +33710,7 @@ func schema_apimachinery_pkg_api_resource_Quantity(ref common.ReferenceCallback)
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Quantity is a fixed-point representation of a number. It provides convenient marshaling/unmarshaling in JSON and YAML, in addition to String() and Int64() accessors.\n\nThe serialization format is:\n\n<quantity>        ::= <signedNumber><suffix>\n  (Note that <suffix> may be empty, from the \"\" case in <decimalSI>.)\n<digit>           ::= 0 | 1 | ... | 9 <digits>          ::= <digit> | <digit><digits> <number>          ::= <digits> | <digits>.<digits> | <digits>. | .<digits> <sign>            ::= \"+\" | \"-\" <signedNumber>    ::= <number> | <sign><number> <suffix>          ::= <binarySI> | <decimalExponent> | <decimalSI> <binarySI>        ::= Ki | Mi | Gi | Ti | Pi | Ei\n  (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)\n<decimalSI>       ::= m | \"\" | k | M | G | T | P | E\n  (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)\n<decimalExponent> ::= \"e\" <signedNumber> | \"E\" <signedNumber>\n\nNo matter which of the three exponent forms is used, no quantity may represent a number greater than 2^63-1 in magnitude, nor may it have more than 3 decimal places. Numbers larger or more precise will be capped or rounded up. (E.g.: 0.1m will rounded up to 1m.) This may be extended in the future if we require larger or smaller quantities.\n\nWhen a Quantity is parsed from a string, it will remember the type of suffix it had, and will use the same type again when it is serialized.\n\nBefore serializing, Quantity will be put in \"canonical form\". This means that Exponent/suffix will be adjusted up or down (with a corresponding increase or decrease in Mantissa) such that:\n  a. No precision is lost\n  b. No fractional digits will be emitted\n  c. The exponent (or suffix) is as large as possible.\nThe sign will be omitted unless the number is negative.\n\nExamples:\n  1.5 will be serialized as \"1500m\"\n  1.5Gi will be serialized as \"1536Mi\"\n\nNote that the quantity will NEVER be internally represented by a floating point number. That is the whole point of this exercise.\n\nNon-canonical values will still parse as long as they are well formed, but will be re-emitted in their canonical form. (So always use canonical form, or don't diff.)\n\nThis format is intended to make it difficult to use these numbers without writing some sort of special handling code in the hopes that that will cause implementors to also use a fixed point implementation.",
+				Description: "Quantity is a fixed-point representation of a number. It provides convenient marshaling/unmarshaling in JSON and YAML, in addition to String() and AsInt64() accessors.\n\nThe serialization format is:\n\n<quantity>        ::= <signedNumber><suffix>\n  (Note that <suffix> may be empty, from the \"\" case in <decimalSI>.)\n<digit>           ::= 0 | 1 | ... | 9 <digits>          ::= <digit> | <digit><digits> <number>          ::= <digits> | <digits>.<digits> | <digits>. | .<digits> <sign>            ::= \"+\" | \"-\" <signedNumber>    ::= <number> | <sign><number> <suffix>          ::= <binarySI> | <decimalExponent> | <decimalSI> <binarySI>        ::= Ki | Mi | Gi | Ti | Pi | Ei\n  (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)\n<decimalSI>       ::= m | \"\" | k | M | G | T | P | E\n  (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)\n<decimalExponent> ::= \"e\" <signedNumber> | \"E\" <signedNumber>\n\nNo matter which of the three exponent forms is used, no quantity may represent a number greater than 2^63-1 in magnitude, nor may it have more than 3 decimal places. Numbers larger or more precise will be capped or rounded up. (E.g.: 0.1m will rounded up to 1m.) This may be extended in the future if we require larger or smaller quantities.\n\nWhen a Quantity is parsed from a string, it will remember the type of suffix it had, and will use the same type again when it is serialized.\n\nBefore serializing, Quantity will be put in \"canonical form\". This means that Exponent/suffix will be adjusted up or down (with a corresponding increase or decrease in Mantissa) such that:\n  a. No precision is lost\n  b. No fractional digits will be emitted\n  c. The exponent (or suffix) is as large as possible.\nThe sign will be omitted unless the number is negative.\n\nExamples:\n  1.5 will be serialized as \"1500m\"\n  1.5Gi will be serialized as \"1536Mi\"\n\nNote that the quantity will NEVER be internally represented by a floating point number. That is the whole point of this exercise.\n\nNon-canonical values will still parse as long as they are well formed, but will be re-emitted in their canonical form. (So always use canonical form, or don't diff.)\n\nThis format is intended to make it difficult to use these numbers without writing some sort of special handling code in the hopes that that will cause implementors to also use a fixed point implementation.",
 				Type:        resource.Quantity{}.OpenAPISchemaType(),
 				Format:      resource.Quantity{}.OpenAPISchemaFormat(),
 			},
@@ -34924,7 +34966,7 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 					},
 					"managedFields": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ManagedFields maps workflow-id and version to the set of fields that are managed by that workflow. This is mostly for internal housekeeping, and users typically shouldn't need to set or understand this field. A workflow can be the user's name, a controller's name, or the name of a specific apply path like \"ci-cd\". The set of fields is always in the version that the workflow used when modifying the object.\n\nThis field is alpha and can be changed or removed without notice.",
+							Description: "ManagedFields maps workflow-id and version to the set of fields that are managed by that workflow. This is mostly for internal housekeeping, and users typically shouldn't need to set or understand this field. A workflow can be the user's name, a controller's name, or the name of a specific apply path like \"ci-cd\". The set of fields is always in the version that the workflow used when modifying the object.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

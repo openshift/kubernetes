@@ -48,6 +48,7 @@ go_library(
         "examples.go",
         "gke_local_ssd.go",
         "gke_node_pools.go",
+        "patch_from_e2e_testfile.go",
     ],
     importpath = "k8s.io/kubernetes/test/e2e",
     deps = [
@@ -74,6 +75,9 @@ go_library(
         "//test/e2e/framework/providers/openstack:go_default_library",
         "//test/e2e/framework/providers/vsphere:go_default_library",
         "//test/e2e/framework/testfiles:go_default_library",
+        "//test/e2e/framework/viperconfig:go_default_library",
+        "//test/e2e/generated:go_default_library",
+        "//test/utils/image:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/ginkgo/config:go_default_library",
         "//vendor/github.com/onsi/ginkgo/reporters:go_default_library",
