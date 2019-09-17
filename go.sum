@@ -349,16 +349,12 @@ github.com/opencontainers/runtime-spec v1.0.0 h1:O6L965K88AilqnxeYPks/75HLpp4IG+
 github.com/opencontainers/runtime-spec v1.0.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/selinux v1.2.2 h1:Kx9J6eDG5/24A6DtUquGSpJQ+m2MUTahn4FtGEe8bFg=
 github.com/opencontainers/selinux v1.2.2/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
+github.com/openshift/api v3.9.1-0.20190905133006-15918a3c2c89+incompatible h1:7m8BVv6B83T1vBJ/UxiXg8N1wg2GGLdufFzGwKTJSLY=
 github.com/openshift/api v3.9.1-0.20190905133006-15918a3c2c89+incompatible/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
-github.com/openshift/api v3.9.1-0.20190907160150-763878ba9fae+incompatible h1:Hs8cVClA44f/zIawMy2L6YZlfq6YB2itFObCDjfrXvg=
-github.com/openshift/api v3.9.1-0.20190907160150-763878ba9fae+incompatible/go.mod h1:dh9o4Fs58gpFXGSYfnVxGR9PnV53I8TW84pQaJDdGiY=
-github.com/openshift/apiserver-library-go v0.0.0-20190731133825-4d81e8c49306/go.mod h1:A0BzV6de/6xHVTn1WxtulCsz3+6bUb9TxDRN8YbyhdE=
 github.com/openshift/apiserver-library-go v0.0.0-20190905121346-5e6eb64c9383 h1:HU1cSBymtNZkxhMLuR/+qZFM6W5NQNvx9IEEhZRWuCc=
 github.com/openshift/apiserver-library-go v0.0.0-20190905121346-5e6eb64c9383/go.mod h1:A0BzV6de/6xHVTn1WxtulCsz3+6bUb9TxDRN8YbyhdE=
-github.com/openshift/client-go v0.0.0-20190813201236-5a5508328169/go.mod h1:6rzn+JTr7+WYS2E1TExP4gByoABxMznR6y2SnUIkmxk=
 github.com/openshift/client-go v0.0.0-20190905095913-1ede333d7ba5 h1:B5nplUgN0aNlTzX2ZWpiyYcaXyWfYpRYXTajWu/Uu5U=
 github.com/openshift/client-go v0.0.0-20190905095913-1ede333d7ba5/go.mod h1:6rzn+JTr7+WYS2E1TExP4gByoABxMznR6y2SnUIkmxk=
-github.com/openshift/library-go v0.0.0-20190828092937-561033d0c332/go.mod h1:NBttNjZpWwup/nthuLbPAPSYC8Qyo+BBK5bCtFoyYjo=
 github.com/openshift/library-go v0.0.0-20190905102004-859f44d2f80d h1:RX1yM0EoopYgaByu+44jt0AgwXHVheW9M2dKciiZHF4=
 github.com/openshift/library-go v0.0.0-20190905102004-859f44d2f80d/go.mod h1:NBttNjZpWwup/nthuLbPAPSYC8Qyo+BBK5bCtFoyYjo=
 github.com/pborman/uuid v1.2.0 h1:J7Q5mO4ysT1dv8hyrUGHb9+ooztCXu1D8MY8DZYsu3g=

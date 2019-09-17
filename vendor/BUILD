@@ -390,6 +390,7 @@ filegroup(
         "//vendor/github.com/openshift/library-go/pkg/config/configdefaults:all-srcs",
         "//vendor/github.com/openshift/library-go/pkg/config/helpers:all-srcs",
         "//vendor/github.com/openshift/library-go/pkg/config/validation:all-srcs",
+        "//vendor/github.com/openshift/library-go/pkg/controller/fileobserver:all-srcs",
         "//vendor/github.com/openshift/library-go/pkg/crypto:all-srcs",
         "//vendor/github.com/openshift/library-go/pkg/image/imageutil:all-srcs",
         "//vendor/github.com/openshift/library-go/pkg/image/internal/digest:all-srcs",

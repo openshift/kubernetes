@@ -15,7 +15,10 @@ go_binary(
 
 go_library(
     name = "go_default_library",
-    srcs = ["main.go"],
+    srcs = [
+        "main.go",
+        "tools.go",
+    ],
     importpath = "k8s.io/kubernetes/cmd/hyperkube",
     deps = [
         "//cmd/cloud-controller-manager/app:go_default_library",
@@ -29,6 +32,7 @@ go_library(
         "//staging/src/k8s.io/component-base/cli/flag:go_default_library",
         "//staging/src/k8s.io/component-base/logs:go_default_library",
         "//staging/src/k8s.io/component-base/metrics/prometheus/restclient:go_default_library",
+        "//vendor/github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
     ],
