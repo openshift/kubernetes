@@ -701,6 +701,14 @@ github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/selinux v1.2.2 => github.com/opencontainers/selinux v1.2.2
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
+# github.com/openshift/api v3.9.1-0.20190925205819-e39b0dc4e188+incompatible => github.com/openshift/api v3.9.1-0.20190925205819-e39b0dc4e188+incompatible
+github.com/openshift/api/image/docker10
+github.com/openshift/api/image/dockerpre012
+github.com/openshift/api/image/v1
+# github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b => github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
+github.com/openshift/client-go/image/clientset/versioned
+github.com/openshift/client-go/image/clientset/versioned/scheme
+github.com/openshift/client-go/image/clientset/versioned/typed/image/v1
 # github.com/pborman/uuid v1.2.0 => github.com/pborman/uuid v1.2.0
 github.com/pborman/uuid
 # github.com/pelletier/go-toml v1.2.0 => github.com/pelletier/go-toml v1.2.0
@@ -1388,6 +1396,7 @@ k8s.io/apiserver/plugin/pkg/authenticator/token/webhook
 k8s.io/apiserver/plugin/pkg/authorizer/webhook
 # k8s.io/cli-runtime v0.0.0 => ./staging/src/k8s.io/cli-runtime
 k8s.io/cli-runtime/pkg/genericclioptions
+k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch
 k8s.io/cli-runtime/pkg/kustomize
 k8s.io/cli-runtime/pkg/kustomize/k8sdeps
 k8s.io/cli-runtime/pkg/kustomize/k8sdeps/configmapandsecret

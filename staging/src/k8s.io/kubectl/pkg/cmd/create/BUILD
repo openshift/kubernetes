@@ -19,6 +19,7 @@ go_library(
         "create_secret.go",
         "create_service.go",
         "create_serviceaccount.go",
+        "patch_scc.go",
     ],
     importmap = "k8s.io/kubernetes/vendor/k8s.io/kubectl/pkg/cmd/create",
     importpath = "k8s.io/kubectl/pkg/cmd/create",

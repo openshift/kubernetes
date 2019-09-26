@@ -27,6 +27,8 @@ require (
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
+	github.com/openshift/api v3.9.1-0.20190925205819-e39b0dc4e188+incompatible // indirect
+	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/russross/blackfriday v1.5.2
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.5
