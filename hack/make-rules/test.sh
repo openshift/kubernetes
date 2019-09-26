@@ -62,10 +62,24 @@ kube::test::find_dirs() {
           -o -path './third_party/*' \
           -o -path './staging/*' \
           -o -path './vendor/*' \
+          -o -path './cmd/kubeadm/*' \
+          -o -path './cluster/gce/*' \
+          -o -path './plugin/pkg/admission/imagepolicy/*' \
+          -o -path './pkg/kubelet/oom/*' \
+          -o -path './pkg/master/*' \
+          -o -path './pkg/volume/csi/*' \
         \) -prune \
       \) -name '*_test.go' -print0 | xargs -0n1 dirname | sed "s|^\./|${KUBE_GO_PACKAGE}/|" | LC_ALL=C sort -u
 
-    find ./staging -name '*_test.go' -not -path '*/test/integration/*' -prune -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
+    find ./staging -not \( \
+        \( \
+          -path '*/test/integration/*' \
+          -o -path './staging/src/k8s.io/apiserver/pkg/server/options/*' \
+          -o -path './staging/src/k8s.io/apiserver/pkg/util/webhook/*' \
+          -o -path './staging/src/k8s.io/apiserver/plugin/pkg/authorizer/webhook/*' \
+          -o -path './staging/src/k8s.io/legacy-cloud-providers/gce/*' \
+        \) -prune \
+      \) -name '*_test.go' -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
   )
 }
 

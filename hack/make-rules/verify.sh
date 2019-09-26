@@ -36,6 +36,7 @@ EXCLUDED_PATTERNS=(
   "verify-test-owners.sh"        # TODO(rmmh): figure out how to avoid endless conflicts
   "verify-*-dockerized.sh"       # Don't run any scripts that intended to be run dockerized
   "verify-import-aliases.sh"     # to be run periodically by folks working on conformance tests
+  "verify-boilerplate.sh"        # ignored due to ocp patches
   )
 
 # Exclude typecheck in certain cases, if they're running in a separate job.
@@ -67,7 +68,6 @@ fi
 QUICK_PATTERNS+=(
   "verify-api-groups.sh"
   "verify-bazel.sh"
-  "verify-boilerplate.sh"
   "verify-vendor-licenses.sh"
   "verify-gofmt.sh"
   "verify-imports.sh"
@@ -81,8 +81,8 @@ QUICK_PATTERNS+=(
   "verify-test-owners.sh"
 )
 
-while IFS='' read -r line; do EXCLUDED_CHECKS+=("$line"); done < <(ls "${EXCLUDED_PATTERNS[@]/#/${KUBE_ROOT}\/hack\/}" 2>/dev/null || true)
-while IFS='' read -r line; do QUICK_CHECKS+=("$line"); done < <(ls "${QUICK_PATTERNS[@]/#/${KUBE_ROOT}\/hack\/}" 2>/dev/null || true)
+while IFS='' read -r line; do EXCLUDED_CHECKS+=("$line"); done < <(ls "${EXCLUDED_PATTERNS[@]/#/${KUBE_ROOT}/hack/}" 2>/dev/null || true)
+while IFS='' read -r line; do QUICK_CHECKS+=("$line"); done < <(ls "${QUICK_PATTERNS[@]/#/${KUBE_ROOT}/hack/}" 2>/dev/null || true)
 TARGET_LIST=()
 IFS=" " read -r -a TARGET_LIST <<< "${WHAT:-}"
 
