@@ -34,6 +34,7 @@ EXCLUDED_PATTERNS=(
   "verify-all.sh"                # this script calls the make rule and would cause a loop
   "verify-linkcheck.sh"          # runs in separate Jenkins job once per day due to high network usage
   "verify-*-dockerized.sh"       # Don't run any scripts that intended to be run dockerized
+  "verify-boilerplate.sh"        # ignored due to ocp patches
   )
 
 # Exclude generated-files-remake in certain cases, if they're running in a separate job.
@@ -76,8 +77,6 @@ fi
 QUICK_PATTERNS+=(
   "verify-api-groups.sh"
   "verify-bazel.sh"
-  "verify-boilerplate.sh"
-  "verify-external-dependencies-version.sh"
   "verify-vendor-licenses.sh"
   "verify-gofmt.sh"
   "verify-imports.sh"
@@ -90,8 +89,8 @@ QUICK_PATTERNS+=(
   "verify-test-images.sh"
 )
 
-while IFS='' read -r line; do EXCLUDED_CHECKS+=("$line"); done < <(ls "${EXCLUDED_PATTERNS[@]/#/${KUBE_ROOT}\/hack\/}" 2>/dev/null || true)
-while IFS='' read -r line; do QUICK_CHECKS+=("$line"); done < <(ls "${QUICK_PATTERNS[@]/#/${KUBE_ROOT}\/hack\/}" 2>/dev/null || true)
+while IFS='' read -r line; do EXCLUDED_CHECKS+=("$line"); done < <(ls "${EXCLUDED_PATTERNS[@]/#/${KUBE_ROOT}/hack/}" 2>/dev/null || true)
+while IFS='' read -r line; do QUICK_CHECKS+=("$line"); done < <(ls "${QUICK_PATTERNS[@]/#/${KUBE_ROOT}/hack/}" 2>/dev/null || true)
 TARGET_LIST=()
 IFS=" " read -r -a TARGET_LIST <<< "${WHAT:-}"
 
