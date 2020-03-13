@@ -109,6 +109,7 @@ tags_values_pkgs = {"openapi-gen": {
         "staging/src/k8s.io/metrics/pkg/apis/metrics/v1beta1",
         "staging/src/k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1",
         "staging/src/k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1",
+        "vendor/github.com/openshift/api/image/v1",
     ],
 }}
 
@@ -196,4 +197,5 @@ tags_pkgs_values = {"openapi-gen": {
     "staging/src/k8s.io/metrics/pkg/apis/metrics/v1beta1": ["true"],
     "staging/src/k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1": ["true"],
     "staging/src/k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1": ["true"],
+    "vendor/github.com/openshift/api/image/v1": ["true"],
 }}

@@ -8,6 +8,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "helper.go",
+        "patch_setimage_openshift.go",
         "set.go",
         "set_env.go",
         "set_image.go",
@@ -41,6 +42,8 @@ go_library(
         "//staging/src/k8s.io/kubectl/pkg/scheme:go_default_library",
         "//staging/src/k8s.io/kubectl/pkg/util/i18n:go_default_library",
         "//staging/src/k8s.io/kubectl/pkg/util/templates:go_default_library",
+        "//vendor/github.com/openshift/client-go/image/clientset/versioned:go_default_library",
+        "//vendor/github.com/openshift/client-go/image/clientset/versioned/typed/image/v1:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
     ],

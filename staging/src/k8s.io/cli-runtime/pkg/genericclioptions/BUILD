@@ -14,6 +14,7 @@ go_library(
         "jsonpath_flags.go",
         "kube_template_flags.go",
         "name_flags.go",
+        "patch_config_flags.go",
         "print_flags.go",
         "record_flags.go",
         "template_flags.go",
@@ -25,6 +26,7 @@ go_library(
         "//staging/src/k8s.io/apimachinery/pkg/api/meta:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/json:go_default_library",
+        "//staging/src/k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch:go_default_library",
         "//staging/src/k8s.io/cli-runtime/pkg/printers:go_default_library",
         "//staging/src/k8s.io/cli-runtime/pkg/resource:go_default_library",
         "//staging/src/k8s.io/client-go/discovery:go_default_library",
@@ -49,7 +51,10 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [":package-srcs"],
+    srcs = [
+        ":package-srcs",
+        "//staging/src/k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch:all-srcs",
+    ],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],
 )

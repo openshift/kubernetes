@@ -99,10 +99,10 @@ function group_replace_directives() {
      /^replace [(]/      { inreplace=1; next                   }
      inreplace && /^[)]/ { inreplace=0; next                   }
      inreplace           { print > \"${go_mod_replace}\"; next }
-     
+
      # print ungrouped replace directives with the replace directive trimmed
      /^replace [^(]/ { sub(/^replace /,\"\"); print > \"${go_mod_replace}\"; next }
-     
+
      # otherwise print to the noreplace file
      { print > \"${go_mod_noreplace}\" }
   " < go.mod
@@ -136,7 +136,7 @@ function add_generated_comments() {
     echo ""
     cat "${go_mod_nocomments}"
    } > go.mod
-  
+
   # Format
   go mod edit -fmt
 }
@@ -169,6 +169,7 @@ kube::log::status "go.mod: update staging references"
 go mod edit -json | jq -r '.Require[]? | select(.Version == "v0.0.0")                 | "-droprequire \(.Path)"'     | xargs -L 100 go mod edit -fmt
 go mod edit -json | jq -r '.Replace[]? | select(.New.Path | startswith("./staging/")) | "-dropreplace \(.Old.Path)"' | xargs -L 100 go mod edit -fmt
 # Readd
+kube::util::list_staging_repos
 kube::util::list_staging_repos | xargs -n 1 -I {} echo "-require k8s.io/{}@v0.0.0"                  | xargs -L 100 go mod edit -fmt
 kube::util::list_staging_repos | xargs -n 1 -I {} echo "-replace k8s.io/{}=./staging/src/k8s.io/{}" | xargs -L 100 go mod edit -fmt
 
@@ -232,7 +233,7 @@ while IFS= read -r repo; do
       go list -tags=tools all
     } >> "${LOG_FILE}" 2>&1
 
-    # capture module dependencies 
+    # capture module dependencies
     go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all > "${tmp_go_deps}"
 
     # restore the original go.mod file
@@ -255,13 +256,13 @@ for repo in $(tsort "${TMP_DIR}/tidy_deps.txt"); do
 
     # prune replace directives that pin to the naturally selected version.
     # do this before tidying, since tidy removes unused modules that
-    # don't provide any relevant packages, which forgets which version of the 
+    # don't provide any relevant packages, which forgets which version of the
     # unused transitive dependency we had a require directive for,
     # and prevents pruning the matching replace directive after tidying.
     go list -m -json all |
-      jq -r 'select(.Replace != null) | 
-             select(.Path == .Replace.Path) | 
-             select(.Version == .Replace.Version) | 
+      jq -r 'select(.Replace != null) |
+             select(.Path == .Replace.Path) |
+             select(.Version == .Replace.Version) |
              "-dropreplace \(.Replace.Path)"' |
     xargs -L 100 go mod edit -fmt
 
@@ -285,9 +286,9 @@ $(go mod why "${loopback_deps[@]}")"
 
     # prune replace directives that pin to the naturally selected version
     go list -m -json all |
-      jq -r 'select(.Replace != null) | 
-             select(.Path == .Replace.Path) | 
-             select(.Version == .Replace.Version) | 
+      jq -r 'select(.Replace != null) |
+             select(.Path == .Replace.Path) |
+             select(.Version == .Replace.Version) |
              "-dropreplace \(.Replace.Path)"' |
     xargs -L 100 go mod edit -fmt
 
