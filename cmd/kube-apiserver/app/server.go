@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
@@ -116,31 +116,38 @@ cluster's shared state through which all other components interact.`,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
-			cliflag.PrintFlags(cmd.Flags())
 
 			if len(s.OpenShiftConfig) > 0 {
-				enablement.ForceOpenShift()
 				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
 				if err != nil {
 					klog.Fatal(err)
 				}
+				enablement.ForceOpenShift(openshiftConfig)
 
 				// this forces a patch to be called
 				// TODO we're going to try to remove bits of the patching.
-				configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(genericapiserver.NewEmptyDelegate(), openshiftConfig)
+				configPatchFn := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(openshiftConfig)
 				OpenShiftKubeAPIServerConfigPatch = configPatchFn
-				OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
 
 				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
 				if err != nil {
 					return err
 				}
+
 				// hopefully this resets the flags?
 				if err := cmd.ParseFlags(args); err != nil {
 					return err
 				}
 
-				enablement.ForceGlobalInitializationForOpenShift(s)
+				// print merged flags (merged from OpenshiftConfig)
+				cliflag.PrintFlags(cmd.Flags())
+
+				enablement.ForceGlobalInitializationForOpenShift()
+				admissionenablement.InstallOpenShiftAdmissionPlugins(s)
+
+			} else {
+				// print default flags
+				cliflag.PrintFlags(cmd.Flags())
 			}
 
 			// set default options
@@ -218,17 +225,13 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 	if err != nil {
 		return nil, err
 	}
-	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, StartingDelegate)
+	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
 	kubeAPIServer, err := CreateKubeAPIServer(kubeAPIServerConfig, apiExtensionsServer.GenericAPIServer)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := PatchKubeAPIServerServer(kubeAPIServer); err != nil {
 		return nil, err
 	}
 
@@ -533,6 +536,8 @@ func buildGenericConfig(
 	// on a fast local network
 	genericConfig.LoopbackClientConfig.DisableCompression = true
 
+	enablement.SetLoopbackClientConfig(genericConfig.LoopbackClientConfig)
+
 	kubeClientConfig := genericConfig.LoopbackClientConfig
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -584,14 +589,13 @@ func buildGenericConfig(
 		return
 	}
 
-	StartingDelegate, err = PatchKubeAPIServerConfig(genericConfig, versionedInformers, &pluginInitializers)
-	if err != nil {
+	if err := PatchKubeAPIServerConfig(genericConfig, versionedInformers, &pluginInitializers); err != nil {
 		lastErr = fmt.Errorf("failed to patch: %v", err)
 		return
 	}
 
 	if enablement.IsOpenShift() {
-		configdefault.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
+		admissionenablement.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
 	}
 	err = s.Admission.ApplyTo(
 		genericConfig,
