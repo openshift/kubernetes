@@ -56,7 +56,7 @@ kube::test::find_dirs() {
           -o -path './cmd/kubeadm/*' \
           -o -path './cluster/gce/*' \
           -o -path './plugin/pkg/admission/imagepolicy/*' \
-          -o -path './pkg/kubelet/oom/*' \
+          -o -path './pkg/kubelet/*' \
           -o -path './pkg/master/*' \
           -o -path './pkg/volume/csi/*' \
         \) -prune \
@@ -67,6 +67,7 @@ kube::test::find_dirs() {
           -path '*/test/integration/*' \
           -o -path './staging/src/k8s.io/apiserver/pkg/server/options/*' \
           -o -path './staging/src/k8s.io/apiserver/pkg/util/webhook/*' \
+          -o -path './staging/src/k8s.io/apiserver/pkg/storage/tests/*' \
           -o -path './staging/src/k8s.io/apiserver/plugin/pkg/authorizer/webhook/*' \
           -o -path './staging/src/k8s.io/legacy-cloud-providers/gce/*' \
         \) -prune \
