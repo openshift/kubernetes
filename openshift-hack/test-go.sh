@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# shellcheck source=openshift-hack/lib/deps.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/deps.sh"
+# shellcheck source=openshift-hack/lib/init.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/init.sh"
 
 # Upstream testing requires recent bash (>= 4.3). If the system bash
 # is not recent (e.g openshift ci and macos), download and compile a
