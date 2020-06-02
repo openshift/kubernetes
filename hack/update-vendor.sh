@@ -99,10 +99,10 @@ function group_replace_directives() {
      /^replace [(]/      { inreplace=1; next                   }
      inreplace && /^[)]/ { inreplace=0; next                   }
      inreplace           { print > \"${go_mod_replace}\"; next }
-     
+
      # print ungrouped replace directives with the replace directive trimmed
      /^replace [^(]/ { sub(/^replace /,\"\"); print > \"${go_mod_replace}\"; next }
-     
+
      # otherwise print to the noreplace file
      { print > \"${go_mod_noreplace}\" }
   " < go.mod
@@ -136,7 +136,7 @@ function add_generated_comments() {
     echo ""
     cat "${go_mod_nocomments}"
    } > go.mod
-  
+
   # Format
   go mod edit -fmt
 }
@@ -232,7 +232,7 @@ while IFS= read -r repo; do
       go list -tags=tools all
     } >> "${LOG_FILE}" 2>&1
 
-    # capture module dependencies 
+    # capture module dependencies
     go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all > "${tmp_go_deps}"
 
     # restore the original go.mod file
@@ -255,13 +255,13 @@ for repo in $(tsort "${TMP_DIR}/tidy_deps.txt"); do
 
     # prune replace directives that pin to the naturally selected version.
     # do this before tidying, since tidy removes unused modules that
-    # don't provide any relevant packages, which forgets which version of the 
+    # don't provide any relevant packages, which forgets which version of the
     # unused transitive dependency we had a require directive for,
     # and prevents pruning the matching replace directive after tidying.
     go list -m -json all |
-      jq -r 'select(.Replace != null) | 
-             select(.Path == .Replace.Path) | 
-             select(.Version == .Replace.Version) | 
+      jq -r 'select(.Replace != null) |
+             select(.Path == .Replace.Path) |
+             select(.Version == .Replace.Version) |
              "-dropreplace \(.Replace.Path)"' |
     xargs -L 100 go mod edit -fmt
 
@@ -285,9 +285,9 @@ $(go mod why "${loopback_deps[@]}")"
 
     # prune replace directives that pin to the naturally selected version
     go list -m -json all |
-      jq -r 'select(.Replace != null) | 
-             select(.Path == .Replace.Path) | 
-             select(.Version == .Replace.Version) | 
+      jq -r 'select(.Replace != null) |
+             select(.Path == .Replace.Path) |
+             select(.Version == .Replace.Version) |
              "-dropreplace \(.Replace.Path)"' |
     xargs -L 100 go mod edit -fmt
 
@@ -296,6 +296,15 @@ done
 echo "=== tidying root" >> "${LOG_FILE}"
 go mod tidy >>"${LOG_FILE}" 2>&1
 
+# disallow transitive dependencies on k8s.io/kubernetes
+loopback_deps=()
+kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' || true)
+# Allow apiserver-library-go to vendor k8s.io/kubernetes
+if [[ -n ${loopback_deps[*]:+"${loopback_deps[*]}"} && ! "${loopback_deps[*]}" =~ github.com/openshift/apiserver-library-go ]]; then
+  kube::log::error "Disallowed transitive k8s.io/kubernetes dependencies exist via the following imports:"
+  kube::log::error "${loopback_deps[@]}"
+  exit 1
+fi
 
 # Phase 6: add generated comments to go.mod files
 kube::log::status "go.mod: adding generated comments"
