@@ -38,7 +38,17 @@ cp -a "${DIFFROOT}"/* "${TMP_DIFFROOT}"
 echo "diffing ${DIFFROOT} against freshly generated codegen"
 ret=0
 diff -Naupr "${DIFFROOT}" "${TMP_DIFFROOT}" || ret=$?
-cp -a "${TMP_DIFFROOT}"/* "${DIFFROOT}"
+
+if [[ -n "${OPENSHIFT_CI:-}" ]]; then
+  # cp -a is not compatible with running in a non-privileged openshift
+  # container (https://github.com/openshift/release/issues/1584).
+  # It's safe to revert to index when running in CI since no user
+  # changes are at risk of being lost.
+  git checkout "${SCRIPT_ROOT}"
+else
+  cp -a "${TMP_DIFFROOT}"/* "${DIFFROOT}"
+fi
+
 if [[ $ret -eq 0 ]]
 then
   echo "${DIFFROOT} up to date."
