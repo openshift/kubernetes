@@ -14,7 +14,7 @@ function os::deps::path_with_recent_bash() {
   local bash_version
   bash_version="$( bash --version | head -n 1 | awk '{print $4}' )"
   if [[ ! "${bash_version}" =~ 5.* ]]; then
-    recent_bash_path="${BASETMPDIR}/recent-bash"
+    recent_bash_path="${TMPDIR}/recent-bash"
     mkdir -p "${recent_bash_path}"
     if [[ ! -f "${recent_bash_path}/bash" ]]; then
       pushd "${recent_bash_path}" > /dev/null || exit 1
@@ -44,7 +44,7 @@ readonly -f os::deps::path_with_recent_bash
 function os::deps::path_with_protoc() {
   local path="${PATH}"
   if ! which protoc &> /dev/null; then
-    local protoc_path="${BASETMPDIR}/protoc"
+    local protoc_path="${TMPDIR}/protoc"
     mkdir -p "${protoc_path}"
     if [[ ! -f "${protoc_path}/bin/protoc" ]]; then
       pushd "${protoc_path}" > /dev/null || exit 1
