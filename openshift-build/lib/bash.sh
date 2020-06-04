@@ -14,17 +14,17 @@ function os::recent_bash() {
   if [[ ! "${bash_version}" =~ 5.* ]]; then
     recent_bash_path="${BASETMPDIR}/recent-bash"
     mkdir -p "${recent_bash_path}"
-    pushd "${recent_bash_path}" > /dev/null
-      if [[ ! -f bash ]]; then
+    if [[ ! -f "${recent_bash_path}/bash" ]]; then
+      pushd "${recent_bash_path}" > /dev/null
         curl -LO https://ftp.gnu.org/gnu/bash/bash-5.0.tar.gz
         tar xf bash-5.0.tar.gz
         pushd bash-5.0 > /dev/null
           ./configure
           make
-          cp bash ..
+          cp bash ../
         popd > /dev/null
-      fi
-    popd > /dev/null
+      popd > /dev/null
+    fi
     bash_path="${recent_bash_path}/bash"
   fi
   echo "${bash_path}"
