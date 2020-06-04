@@ -19,8 +19,8 @@ function os::recent_bash() {
         curl -LO https://ftp.gnu.org/gnu/bash/bash-5.0.tar.gz
         tar xf bash-5.0.tar.gz
         pushd bash-5.0 > /dev/null
-          ./configure
-          make
+          ./configure > configure.log
+          make > make.log
           cp bash ../
         popd > /dev/null
       popd > /dev/null

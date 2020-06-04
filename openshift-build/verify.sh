@@ -12,4 +12,6 @@ if [[ "${RECENT_BASH}" != "${WHICH_BASH}" ]]; then
   export PATH="${BASH_PATH}:${PATH}"
 fi
 
+bash --version
+
 hack/make-rules/verify.sh
