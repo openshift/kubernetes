@@ -12,5 +12,7 @@ if [[ "${RECENT_BASH}" != "${WHICH_BASH}" ]]; then
   export PATH="${BASH_PATH}:${PATH}"
 fi
 
+bash --version
+
 mkdir -p "${BASETMPDIR}/test-artifacts"
 KUBE_JUNIT_REPORT_DIR="${BASETMPDIR}/test-artifacts" hack/make-rules/test.sh
