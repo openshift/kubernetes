@@ -18,22 +18,24 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.4.1
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7
-	github.com/imdario/mergo v0.3.5
+	github.com/imdario/mergo v0.3.7
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.19.0-beta.0
+	k8s.io/apimachinery v0.19.0-beta.0
 	k8s.io/klog/v2 v2.0.0
 	k8s.io/utils v0.0.0-20200414100711-2df71ebbae66
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
+	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
+	golang.org/x/net => golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // pinned to release-branch.go1.13
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20190821162956-65e3620a7ae7 // pinned to release-branch.go1.13
 	k8s.io/api => ../api
