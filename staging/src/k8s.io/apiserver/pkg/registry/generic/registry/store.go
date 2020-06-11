@@ -47,7 +47,7 @@ import (
 	"k8s.io/apiserver/pkg/util/dryrun"
 	"k8s.io/client-go/tools/cache"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // ObjectFunc is a function to act on a given object. An error may be returned
@@ -1217,6 +1217,10 @@ func (e *Store) CompleteWithOptions(options *generic.StoreOptions) error {
 		return fmt.Errorf("store for %s must set both KeyRootFunc and KeyFunc or neither", e.DefaultQualifiedResource.String())
 	}
 
+	if e.TableConvertor == nil {
+		return fmt.Errorf("store for %s must set TableConvertor; rest.NewDefaultTableConvertor(e.DefaultQualifiedResource) can be used to output just name/creation time", e.DefaultQualifiedResource.String())
+	}
+
 	var isNamespaced bool
 	switch {
 	case e.CreateStrategy != nil:
@@ -1377,7 +1381,7 @@ func (e *Store) ConvertToTable(ctx context.Context, object runtime.Object, table
 	if e.TableConvertor != nil {
 		return e.TableConvertor.ConvertToTable(ctx, object, tableOptions)
 	}
-	return rest.NewDefaultTableConvertor(e.qualifiedResourceFromContext(ctx)).ConvertToTable(ctx, object, tableOptions)
+	return rest.NewDefaultTableConvertor(e.DefaultQualifiedResource).ConvertToTable(ctx, object, tableOptions)
 }
 
 func (e *Store) StorageVersion() runtime.GroupVersioner {

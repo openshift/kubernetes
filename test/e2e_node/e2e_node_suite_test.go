@@ -43,7 +43,7 @@ import (
 	commontest "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2econfig "k8s.io/kubernetes/test/e2e/framework/config"
-	"k8s.io/kubernetes/test/e2e/framework/testfiles"
+	e2etestfiles "k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/generated"
 	"k8s.io/kubernetes/test/e2e_node/services"
 	system "k8s.io/system-validators/validators"
@@ -53,7 +53,7 @@ import (
 	morereporters "github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var e2es *services.E2EServices
@@ -85,7 +85,7 @@ func registerNodeFlags(flags *flag.FlagSet) {
 
 func init() {
 	// Enable bindata file lookup as fallback.
-	testfiles.AddFileSource(testfiles.BindataFileSource{
+	e2etestfiles.AddFileSource(e2etestfiles.BindataFileSource{
 		Asset:      generated.Asset,
 		AssetNames: generated.AssetNames,
 	})

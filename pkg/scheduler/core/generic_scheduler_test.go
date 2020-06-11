@@ -54,11 +54,9 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/volumerestrictions"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/volumezone"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
+	fakeframework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1/fake"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
-	fakelisters "k8s.io/kubernetes/pkg/scheduler/listers/fake"
-	"k8s.io/kubernetes/pkg/scheduler/nodeinfo"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/kubernetes/pkg/scheduler/profile"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
 	schedutil "k8s.io/kubernetes/pkg/scheduler/util"
@@ -78,12 +76,12 @@ func (pl *trueFilterPlugin) Name() string {
 }
 
 // Filter invoked at the filter extension point.
-func (pl *trueFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *nodeinfo.NodeInfo) *framework.Status {
+func (pl *trueFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	return nil
 }
 
 // NewTrueFilterPlugin initializes a trueFilterPlugin and returns it.
-func NewTrueFilterPlugin(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+func NewTrueFilterPlugin(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 	return &trueFilterPlugin{}, nil
 }
 
@@ -95,12 +93,12 @@ func (pl *falseFilterPlugin) Name() string {
 }
 
 // Filter invoked at the filter extension point.
-func (pl *falseFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *nodeinfo.NodeInfo) *framework.Status {
+func (pl *falseFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	return framework.NewStatus(framework.Unschedulable, ErrReasonFake)
 }
 
 // NewFalseFilterPlugin initializes a falseFilterPlugin and returns it.
-func NewFalseFilterPlugin(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+func NewFalseFilterPlugin(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 	return &falseFilterPlugin{}, nil
 }
 
@@ -112,7 +110,7 @@ func (pl *matchFilterPlugin) Name() string {
 }
 
 // Filter invoked at the filter extension point.
-func (pl *matchFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *nodeinfo.NodeInfo) *framework.Status {
+func (pl *matchFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	node := nodeInfo.Node()
 	if node == nil {
 		return framework.NewStatus(framework.Error, "node not found")
@@ -124,7 +122,7 @@ func (pl *matchFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, 
 }
 
 // NewMatchFilterPlugin initializes a matchFilterPlugin and returns it.
-func NewMatchFilterPlugin(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+func NewMatchFilterPlugin(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 	return &matchFilterPlugin{}, nil
 }
 
@@ -136,15 +134,15 @@ func (pl *noPodsFilterPlugin) Name() string {
 }
 
 // Filter invoked at the filter extension point.
-func (pl *noPodsFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *nodeinfo.NodeInfo) *framework.Status {
-	if len(nodeInfo.Pods()) == 0 {
+func (pl *noPodsFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
+	if len(nodeInfo.Pods) == 0 {
 		return nil
 	}
 	return framework.NewStatus(framework.Unschedulable, ErrReasonFake)
 }
 
 // NewNoPodsFilterPlugin initializes a noPodsFilterPlugin and returns it.
-func NewNoPodsFilterPlugin(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+func NewNoPodsFilterPlugin(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 	return &noPodsFilterPlugin{}, nil
 }
 
@@ -161,7 +159,7 @@ func (pl *fakeFilterPlugin) Name() string {
 }
 
 // Filter invoked at the filter extension point.
-func (pl *fakeFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *nodeinfo.NodeInfo) *framework.Status {
+func (pl *fakeFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	atomic.AddInt32(&pl.numFilterCalled, 1)
 
 	if returnCode, ok := pl.failedNodeReturnCodeMap[nodeInfo.Node().Name]; ok {
@@ -173,7 +171,7 @@ func (pl *fakeFilterPlugin) Filter(_ context.Context, _ *framework.CycleState, p
 
 // NewFakeFilterPlugin initializes a fakeFilterPlugin and returns it.
 func NewFakeFilterPlugin(failedNodeReturnCodeMap map[string]framework.Code) framework.PluginFactory {
-	return func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 		return &fakeFilterPlugin{
 			failedNodeReturnCodeMap: failedNodeReturnCodeMap,
 		}, nil
@@ -183,7 +181,7 @@ func NewFakeFilterPlugin(failedNodeReturnCodeMap map[string]framework.Code) fram
 type numericMapPlugin struct{}
 
 func newNumericMapPlugin() framework.PluginFactory {
-	return func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 		return &numericMapPlugin{}, nil
 	}
 }
@@ -207,7 +205,7 @@ func (pl *numericMapPlugin) ScoreExtensions() framework.ScoreExtensions {
 type reverseNumericMapPlugin struct{}
 
 func newReverseNumericMapPlugin() framework.PluginFactory {
-	return func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 		return &reverseNumericMapPlugin{}, nil
 	}
 }
@@ -248,7 +246,7 @@ func (pl *reverseNumericMapPlugin) NormalizeScore(_ context.Context, _ *framewor
 type trueMapPlugin struct{}
 
 func newTrueMapPlugin() framework.PluginFactory {
-	return func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 		return &trueMapPlugin{}, nil
 	}
 }
@@ -277,7 +275,7 @@ func (pl *trueMapPlugin) NormalizeScore(_ context.Context, _ *framework.CycleSta
 type falseMapPlugin struct{}
 
 func newFalseMapPlugin() framework.PluginFactory {
-	return func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 		return &falseMapPlugin{}, nil
 	}
 }
@@ -809,18 +807,17 @@ func TestGenericScheduler(t *testing.T) {
 
 			var pvcs []v1.PersistentVolumeClaim
 			pvcs = append(pvcs, test.pvcs...)
-			pvcLister := fakelisters.PersistentVolumeClaimLister(pvcs)
+			pvcLister := fakeframework.PersistentVolumeClaimLister(pvcs)
 
 			scheduler := NewGenericScheduler(
 				cache,
 				internalqueue.NewSchedulingQueue(nil),
 				snapshot,
-				[]SchedulerExtender{},
+				[]framework.Extender{},
 				pvcLister,
 				informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
 				false,
-				schedulerapi.DefaultPercentageOfNodesToScore,
-				false)
+				schedulerapi.DefaultPercentageOfNodesToScore)
 			result, err := scheduler.Schedule(context.Background(), prof, framework.NewCycleState(), test.pod)
 			if !reflect.DeepEqual(err, test.wErr) {
 				t.Errorf("Unexpected error: %v, expected: %v", err.Error(), test.wErr)
@@ -847,7 +844,7 @@ func makeScheduler(nodes []*v1.Node) *genericScheduler {
 		internalqueue.NewSchedulingQueue(nil),
 		emptySnapshot,
 		nil, nil, nil, false,
-		schedulerapi.DefaultPercentageOfNodesToScore, false)
+		schedulerapi.DefaultPercentageOfNodesToScore)
 	cache.UpdateSnapshot(s.(*genericScheduler).nodeInfoSnapshot)
 	return s.(*genericScheduler)
 }
@@ -964,7 +961,7 @@ func TestFindFitPredicateCallCounts(t *testing.T) {
 		plugin := fakeFilterPlugin{}
 		registerFakeFilterFunc := st.RegisterFilterPlugin(
 			"FakeFilter",
-			func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
+			func(_ runtime.Object, fh framework.FrameworkHandle) (framework.Plugin, error) {
 				return &plugin, nil
 			},
 		)
@@ -982,7 +979,7 @@ func TestFindFitPredicateCallCounts(t *testing.T) {
 		if err := scheduler.cache.UpdateSnapshot(scheduler.nodeInfoSnapshot); err != nil {
 			t.Fatal(err)
 		}
-		scheduler.schedulingQueue.UpdateNominatedPodForNode(&v1.Pod{ObjectMeta: metav1.ObjectMeta{UID: "nominated"}, Spec: v1.PodSpec{Priority: &midPriority}}, "1")
+		scheduler.schedulingQueue.AddNominatedPod(&v1.Pod{ObjectMeta: metav1.ObjectMeta{UID: "nominated"}, Spec: v1.PodSpec{Priority: &midPriority}}, "1")
 
 		_, _, err = scheduler.findNodesThatFitPod(context.Background(), prof, framework.NewCycleState(), test.pod)
 
@@ -1137,12 +1134,11 @@ func TestZeroRequest(t *testing.T) {
 				nil,
 				nil,
 				emptySnapshot,
-				[]SchedulerExtender{},
+				[]framework.Extender{},
 				nil,
 				nil,
 				false,
-				schedulerapi.DefaultPercentageOfNodesToScore,
-				false).(*genericScheduler)
+				schedulerapi.DefaultPercentageOfNodesToScore).(*genericScheduler)
 			scheduler.nodeInfoSnapshot = snapshot
 
 			ctx := context.Background()
@@ -1165,10 +1161,10 @@ func TestZeroRequest(t *testing.T) {
 	}
 }
 
-func printNodeToVictims(nodeToVictims map[*v1.Node]*extenderv1.Victims) string {
+func printNodeNameToVictims(nodeNameToVictims map[string]*extenderv1.Victims) string {
 	var output string
-	for node, victims := range nodeToVictims {
-		output += node.Name + ": ["
+	for nodeName, victims := range nodeNameToVictims {
+		output += nodeName + ": ["
 		for _, pod := range victims.Pods {
 			output += pod.Name + ", "
 		}
@@ -1182,12 +1178,12 @@ type victims struct {
 	numPDBViolations int64
 }
 
-func checkPreemptionVictims(expected map[string]victims, nodeToPods map[*v1.Node]*extenderv1.Victims) error {
+func checkPreemptionVictims(expected map[string]victims, nodeToPods map[string]*extenderv1.Victims) error {
 	if len(expected) == len(nodeToPods) {
 		for k, victims := range nodeToPods {
-			if expVictims, ok := expected[k.Name]; ok {
+			if expVictims, ok := expected[k]; ok {
 				if len(victims.Pods) != len(expVictims.pods) {
-					return fmt.Errorf("unexpected number of pods. expected: %v, got: %v", expected, printNodeToVictims(nodeToPods))
+					return fmt.Errorf("unexpected number of pods. expected: %v, got: %v", expected, printNodeNameToVictims(nodeToPods))
 				}
 				prevPriority := int32(math.MaxInt32)
 				for _, p := range victims.Pods {
@@ -1204,11 +1200,11 @@ func checkPreemptionVictims(expected map[string]victims, nodeToPods map[*v1.Node
 					return fmt.Errorf("unexpected numPDBViolations. expected: %d, got: %d", expVictims.numPDBViolations, victims.NumPDBViolations)
 				}
 			} else {
-				return fmt.Errorf("unexpected machines. expected: %v, got: %v", expected, printNodeToVictims(nodeToPods))
+				return fmt.Errorf("unexpected machines. expected: %v, got: %v", expected, printNodeNameToVictims(nodeToPods))
 			}
 		}
 	} else {
-		return fmt.Errorf("unexpected number of machines. expected: %v, got: %v", expected, printNodeToVictims(nodeToPods))
+		return fmt.Errorf("unexpected number of machines. expected: %v, got: %v", expected, printNodeNameToVictims(nodeToPods))
 	}
 	return nil
 }
@@ -1600,7 +1596,7 @@ func TestSelectNodesForPreemption(t *testing.T) {
 			fakePlugin.failedNodeReturnCodeMap = filterFailedNodeReturnCodeMap
 			registerFakeFilterFunc := st.RegisterFilterPlugin(
 				"FakeFilter",
-				func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
+				func(_ runtime.Object, fh framework.FrameworkHandle) (framework.Plugin, error) {
 					return &fakePlugin, nil
 				},
 			)
@@ -1617,12 +1613,11 @@ func TestSelectNodesForPreemption(t *testing.T) {
 				nil,
 				internalqueue.NewSchedulingQueue(nil),
 				snapshot,
-				[]SchedulerExtender{},
+				[]framework.Extender{},
 				nil,
 				informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
 				false,
-				schedulerapi.DefaultPercentageOfNodesToScore,
-				false)
+				schedulerapi.DefaultPercentageOfNodesToScore)
 			g := scheduler.(*genericScheduler)
 
 			assignDefaultStartTime(test.pods)
@@ -1921,7 +1916,7 @@ func TestPickOneNodeForPreemption(t *testing.T) {
 			node := pickOneNodeForPreemption(candidateNodes)
 			found := false
 			for _, nodeName := range test.expected {
-				if node.Name == nodeName {
+				if node == nodeName {
 					found = true
 					break
 				}
@@ -2029,9 +2024,9 @@ func TestNodesWherePreemptionMightHelp(t *testing.T) {
 			fitErr := FitError{
 				FilteredNodesStatuses: test.nodesStatuses,
 			}
-			var nodeInfos []*schedulernodeinfo.NodeInfo
+			var nodeInfos []*framework.NodeInfo
 			for _, n := range makeNodeList(nodeNames) {
-				ni := schedulernodeinfo.NewNodeInfo()
+				ni := framework.NewNodeInfo()
 				ni.SetNode(n)
 				nodeInfos = append(nodeInfos, ni)
 			}
@@ -2372,7 +2367,7 @@ func TestPreempt(t *testing.T) {
 			for _, pod := range test.pods {
 				cache.AddPod(pod)
 			}
-			cachedNodeInfoMap := map[string]*schedulernodeinfo.NodeInfo{}
+			cachedNodeInfoMap := map[string]*framework.NodeInfo{}
 			nodeNames := defaultNodeNames
 			if len(test.nodeNames) != 0 {
 				nodeNames = test.nodeNames
@@ -2392,11 +2387,11 @@ func TestPreempt(t *testing.T) {
 				nodeNames[i] = node.Name
 
 				// Set nodeInfo to extenders to mock extenders' cache for preemption.
-				cachedNodeInfo := schedulernodeinfo.NewNodeInfo()
+				cachedNodeInfo := framework.NewNodeInfo()
 				cachedNodeInfo.SetNode(node)
 				cachedNodeInfoMap[node.Name] = cachedNodeInfo
 			}
-			var extenders []SchedulerExtender
+			var extenders []framework.Extender
 			for _, extender := range test.extenders {
 				// Set nodeInfoMap as extenders cached node information.
 				extender.cachedNodeNameToInfo = cachedNodeInfoMap
@@ -2418,8 +2413,7 @@ func TestPreempt(t *testing.T) {
 				informerFactory.Core().V1().PersistentVolumeClaims().Lister(),
 				informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
 				false,
-				schedulerapi.DefaultPercentageOfNodesToScore,
-				true)
+				schedulerapi.DefaultPercentageOfNodesToScore)
 			state := framework.NewCycleState()
 			// Some tests rely on PreFilter plugin to compute its CycleState.
 			preFilterStatus := fwk.RunPreFilterPlugins(context.Background(), state, test.pod)
@@ -2435,10 +2429,10 @@ func TestPreempt(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error in preemption: %v", err)
 			}
-			if node != nil && node.Name != test.expectedNode {
-				t.Errorf("expected node: %v, got: %v", test.expectedNode, node.GetName())
+			if len(node) != 0 && node != test.expectedNode {
+				t.Errorf("expected node: %v, got: %v", test.expectedNode, node)
 			}
-			if node == nil && len(test.expectedNode) != 0 {
+			if len(node) == 0 && len(test.expectedNode) != 0 {
 				t.Errorf("expected node: %v, got: nothing", test.expectedNode)
 			}
 			if len(victims) != len(test.expectedPods) {
@@ -2458,14 +2452,14 @@ func TestPreempt(t *testing.T) {
 				// Mark the victims for deletion and record the preemptor's nominated node name.
 				now := metav1.Now()
 				victim.DeletionTimestamp = &now
-				test.pod.Status.NominatedNodeName = node.Name
+				test.pod.Status.NominatedNodeName = node
 			}
 			// Call preempt again and make sure it doesn't preempt any more pods.
 			node, victims, _, err = scheduler.Preempt(context.Background(), prof, state, test.pod, error(&FitError{Pod: test.pod, FilteredNodesStatuses: failedNodeToStatusMap}))
 			if err != nil {
 				t.Errorf("unexpected error in preemption: %v", err)
 			}
-			if node != nil && len(victims) > 0 {
+			if len(node) != 0 && len(victims) > 0 {
 				t.Errorf("didn't expect any more preemption. Node %v is selected for preemption.", node)
 			}
 			close(stop)
@@ -2571,8 +2565,8 @@ func TestFairEvaluationForNodes(t *testing.T) {
 	}
 }
 
-func nodesToNodeInfos(nodes []*v1.Node, snapshot *internalcache.Snapshot) ([]*schedulernodeinfo.NodeInfo, error) {
-	var nodeInfos []*schedulernodeinfo.NodeInfo
+func nodesToNodeInfos(nodes []*v1.Node, snapshot *internalcache.Snapshot) ([]*framework.NodeInfo, error) {
+	var nodeInfos []*framework.NodeInfo
 	for _, n := range nodes {
 		nodeInfo, err := snapshot.NodeInfos().Get(n.Name)
 		if err != nil {

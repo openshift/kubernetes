@@ -40,11 +40,11 @@ import (
 	"k8s.io/component-base/metrics/testutil"
 	csitrans "k8s.io/csi-translation-lib"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/metrics"
-	"k8s.io/kubernetes/test/e2e/framework/podlogs"
+	e2emetrics "k8s.io/kubernetes/test/e2e/framework/metrics"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-	"k8s.io/kubernetes/test/e2e/framework/volume"
+	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
+	"k8s.io/kubernetes/test/e2e/storage/podlogs"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 )
 
@@ -59,6 +59,27 @@ func init() {
 }
 
 type opCounts map[string]int64
+
+// BaseSuites is a list of storage test suites that work for in-tree and CSI drivers
+var BaseSuites = []func() TestSuite{
+	InitVolumesTestSuite,
+	InitVolumeIOTestSuite,
+	InitVolumeModeTestSuite,
+	InitSubPathTestSuite,
+	InitProvisioningTestSuite,
+	InitMultiVolumeTestSuite,
+	InitVolumeExpandTestSuite,
+	InitDisruptiveTestSuite,
+	InitVolumeLimitsTestSuite,
+	InitTopologyTestSuite,
+	InitStressTestSuite,
+}
+
+// CSISuites is a list of storage test suites that work only for CSI drivers
+var CSISuites = append(BaseSuites,
+	InitEphemeralTestSuite,
+	InitSnapshottableTestSuite,
+)
 
 // TestSuite represents an interface for a set of tests which works with TestDriver
 type TestSuite interface {
@@ -77,7 +98,7 @@ type TestSuiteInfo struct {
 	Name               string                     // name of the TestSuite
 	FeatureTag         string                     // featureTag for the TestSuite
 	TestPatterns       []testpatterns.TestPattern // Slice of TestPattern for the TestSuite
-	SupportedSizeRange volume.SizeRange           // Size range supported by the test suite
+	SupportedSizeRange e2evolume.SizeRange        // Size range supported by the test suite
 }
 
 func getTestNameStr(suite TestSuite, pattern testpatterns.TestPattern) string {
@@ -181,7 +202,7 @@ type VolumeResource struct {
 
 // CreateVolumeResource constructs a VolumeResource for the current test. It knows how to deal with
 // different test pattern volume types.
-func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern testpatterns.TestPattern, testVolumeSizeRange volume.SizeRange) *VolumeResource {
+func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern testpatterns.TestPattern, testVolumeSizeRange e2evolume.SizeRange) *VolumeResource {
 	r := VolumeResource{
 		Config:  config,
 		Pattern: pattern,
@@ -287,15 +308,37 @@ func (r *VolumeResource) CleanupResource() error {
 					r.Pv.Name, v1.PersistentVolumeReclaimDelete)
 			}
 			if r.Pvc != nil {
+				cs := f.ClientSet
+				pv := r.Pv
+				if pv == nil && r.Pvc.Name != "" {
+					// This happens for late binding. Check whether we have a volume now that we need to wait for.
+					pvc, err := cs.CoreV1().PersistentVolumeClaims(r.Pvc.Namespace).Get(context.TODO(), r.Pvc.Name, metav1.GetOptions{})
+					switch {
+					case err == nil:
+						if pvc.Spec.VolumeName != "" {
+							pv, err = cs.CoreV1().PersistentVolumes().Get(context.TODO(), pvc.Spec.VolumeName, metav1.GetOptions{})
+							if err != nil {
+								cleanUpErrs = append(cleanUpErrs, errors.Wrapf(err, "Failed to find PV %v", pvc.Spec.VolumeName))
+							}
+						}
+					case apierrors.IsNotFound(err):
+						// Without the PVC, we cannot locate the corresponding PV. Let's
+						// hope that it is gone.
+					default:
+						cleanUpErrs = append(cleanUpErrs, errors.Wrapf(err, "Failed to find PVC %v", r.Pvc.Name))
+					}
+				}
+
 				err := e2epv.DeletePersistentVolumeClaim(f.ClientSet, r.Pvc.Name, f.Namespace.Name)
 				if err != nil {
 					cleanUpErrs = append(cleanUpErrs, errors.Wrapf(err, "Failed to delete PVC %v", r.Pvc.Name))
 				}
-				if r.Pv != nil {
-					err = framework.WaitForPersistentVolumeDeleted(f.ClientSet, r.Pv.Name, 5*time.Second, 5*time.Minute)
+
+				if pv != nil {
+					err = e2epv.WaitForPersistentVolumeDeleted(f.ClientSet, pv.Name, 5*time.Second, 5*time.Minute)
 					if err != nil {
 						cleanUpErrs = append(cleanUpErrs, errors.Wrapf(err,
-							"Persistent Volume %v not deleted by dynamic provisioner", r.Pv.Name))
+							"Persistent Volume %v not deleted by dynamic provisioner", pv.Name))
 					}
 				}
 			}
@@ -423,12 +466,12 @@ func deleteStorageClass(cs clientset.Interface, className string) error {
 // the testsuites package whereas volume.TestConfig is merely
 // an implementation detail. It contains fields that have no effect,
 // which makes it unsuitable for use in the testsuits public API.
-func convertTestConfig(in *PerTestConfig) volume.TestConfig {
+func convertTestConfig(in *PerTestConfig) e2evolume.TestConfig {
 	if in.ServerConfig != nil {
 		return *in.ServerConfig
 	}
 
-	return volume.TestConfig{
+	return e2evolume.TestConfig{
 		Namespace:           in.Framework.Namespace.Name,
 		Prefix:              in.Prefix,
 		ClientNodeSelection: in.ClientNodeSelection,
@@ -439,7 +482,7 @@ func convertTestConfig(in *PerTestConfig) volume.TestConfig {
 // intersection of the intervals (if it exists) and return the minimum of the intersection
 // to be used as the claim size for the test.
 // if value not set, that means there's no minimum or maximum size limitation and we set default size for it.
-func getSizeRangesIntersection(first volume.SizeRange, second volume.SizeRange) (string, error) {
+func getSizeRangesIntersection(first e2evolume.SizeRange, second e2evolume.SizeRange) (string, error) {
 	var firstMin, firstMax, secondMin, secondMax resource.Quantity
 	var err error
 
@@ -511,10 +554,11 @@ func getSnapshot(claimName string, ns, snapshotClassName string) *unstructured.U
 //
 // The output goes to log files (when using --report-dir, as in the
 // CI) or the output stream (otherwise).
-func StartPodLogs(f *framework.Framework) func() {
+func StartPodLogs(f *framework.Framework, driverNamespace *v1.Namespace) func() {
 	ctx, cancel := context.WithCancel(context.Background())
 	cs := f.ClientSet
-	ns := f.Namespace
+
+	ns := driverNamespace.Name
 
 	to := podlogs.LogOutput{
 		StatusWriter: ginkgo.GinkgoWriter,
@@ -532,13 +576,13 @@ func StartPodLogs(f *framework.Framework) func() {
 		to.LogPathPrefix = framework.TestContext.ReportDir + "/" +
 			reg.ReplaceAllString(test.FullTestText, "_") + "/"
 	}
-	podlogs.CopyAllLogs(ctx, cs, ns.Name, to)
+	podlogs.CopyAllLogs(ctx, cs, ns, to)
 
 	// pod events are something that the framework already collects itself
 	// after a failed test. Logging them live is only useful for interactive
 	// debugging, not when we collect reports.
 	if framework.TestContext.ReportDir == "" {
-		podlogs.WatchPods(ctx, cs, ns.Name, ginkgo.GinkgoWriter)
+		podlogs.WatchPods(ctx, cs, ns, ginkgo.GinkgoWriter)
 	}
 
 	return cancel
@@ -575,7 +619,7 @@ func getVolumeOpCounts(c clientset.Interface, pluginName string) opCounts {
 
 	nodeLimit := 25
 
-	metricsGrabber, err := metrics.NewMetricsGrabber(c, nil, true, false, true, false, false)
+	metricsGrabber, err := e2emetrics.NewMetricsGrabber(c, nil, true, false, true, false, false)
 
 	if err != nil {
 		framework.ExpectNoError(err, "Error creating metrics grabber: %v", err)

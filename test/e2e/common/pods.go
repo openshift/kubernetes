@@ -42,7 +42,8 @@ import (
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2ewebsocket "k8s.io/kubernetes/test/e2e/framework/websocket"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/onsi/ginkgo"
@@ -290,7 +291,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		// We need to wait for the pod to be running, otherwise the deletion
 		// may be carried out immediately rather than gracefully.
-		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
+		framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name))
 		// save the running pod
 		pod, err = podClient.Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		framework.ExpectNoError(err, "failed to GET scheduled pod")
@@ -298,28 +299,6 @@ var _ = framework.KubeDescribe("Pods", func() {
 		ginkgo.By("deleting the pod gracefully")
 		err = podClient.Delete(context.TODO(), pod.Name, *metav1.NewDeleteOptions(30))
 		framework.ExpectNoError(err, "failed to delete pod")
-
-		ginkgo.By("verifying the kubelet observed the termination notice")
-		err = wait.Poll(time.Second*5, time.Second*30, func() (bool, error) {
-			podList, err := e2ekubelet.GetKubeletPods(f.ClientSet, pod.Spec.NodeName)
-			if err != nil {
-				framework.Logf("Unable to retrieve kubelet pods for node %v: %v", pod.Spec.NodeName, err)
-				return false, nil
-			}
-			for _, kubeletPod := range podList.Items {
-				if pod.Name != kubeletPod.Name {
-					continue
-				}
-				if kubeletPod.ObjectMeta.DeletionTimestamp == nil {
-					framework.Logf("deletion has not yet been observed")
-					return false, nil
-				}
-				return true, nil
-			}
-			framework.Logf("no pod exists with the name we were looking for, assuming the termination request was observed and completed")
-			return true, nil
-		})
-		framework.ExpectNoError(err, "kubelet never observed the termination notice")
 
 		ginkgo.By("verifying pod deletion was observed")
 		deleted := false
@@ -397,7 +376,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 			pod.Labels["time"] = value
 		})
 
-		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
+		framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name))
 
 		ginkgo.By("verifying the updated pod is in kubernetes")
 		selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
@@ -451,7 +430,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 			pod.Spec.ActiveDeadlineSeconds = &newDeadline
 		})
 
-		framework.ExpectNoError(f.WaitForPodTerminated(pod.Name, "DeadlineExceeded"))
+		framework.ExpectNoError(e2epod.WaitForPodTerminatedInNamespace(f.ClientSet, pod.Name, "DeadlineExceeded", f.Namespace.Name))
 	})
 
 	/*
@@ -587,7 +566,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 			Param("command", "remote execution test")
 
 		url := req.URL()
-		ws, err := framework.OpenWebSocketForURL(url, config, []string{"channel.k8s.io"})
+		ws, err := e2ewebsocket.OpenWebSocketForURL(url, config, []string{"channel.k8s.io"})
 		if err != nil {
 			framework.Failf("Failed to open websocket to %s: %v", url.String(), err)
 		}
@@ -666,7 +645,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		url := req.URL()
 
-		ws, err := framework.OpenWebSocketForURL(url, config, []string{"binary.k8s.io"})
+		ws, err := e2ewebsocket.OpenWebSocketForURL(url, config, []string{"binary.k8s.io"})
 		if err != nil {
 			framework.Failf("Failed to open websocket to %s: %v", url.String(), err)
 		}
@@ -718,7 +697,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 		})
 
 		time.Sleep(syncLoopFrequency)
-		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
+		framework.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(f.ClientSet, pod.Name, f.Namespace.Name))
 
 		ginkgo.By("get restart delay after image update")
 		delayAfterUpdate, err := getRestartDelay(podClient, podName, containerName)

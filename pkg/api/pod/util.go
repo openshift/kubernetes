@@ -19,18 +19,15 @@ package pod
 import (
 	"strings"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/features"
-	"k8s.io/kubernetes/pkg/security/apparmor"
 )
 
 // ContainerType signifies container type
 type ContainerType int
-
-// DefaultContainers defines default behavior: Iterate containers based on feature gates
-const DefaultContainers ContainerType = 0
 
 const (
 	// Containers is for normal containers
@@ -44,35 +41,40 @@ const (
 // AllContainers specifies that all containers be visited
 const AllContainers ContainerType = (InitContainers | Containers | EphemeralContainers)
 
+// AllFeatureEnabledContainers returns a ContainerType mask which includes all container
+// types except for the ones guarded by feature gate.
+func AllFeatureEnabledContainers() ContainerType {
+	containerType := AllContainers
+	if !utilfeature.DefaultFeatureGate.Enabled(features.EphemeralContainers) {
+		containerType &= ^EphemeralContainers
+	}
+	return containerType
+}
+
 // ContainerVisitor is called with each container spec, and returns true
 // if visiting should continue.
 type ContainerVisitor func(container *api.Container, containerType ContainerType) (shouldContinue bool)
 
-// VisitContainers invokes the visitor function with a pointer to the container
-// spec of every container in the given pod spec. If visitor returns false,
+// VisitContainers invokes the visitor function with a pointer to every container
+// spec in the given pod spec with type set in mask. If visitor returns false,
 // visiting is short-circuited. VisitContainers returns true if visiting completes,
 // false if visiting was short-circuited.
-//
-// With the default mask (zero value or DefaultContainers) VisitContainers will visit all containers
-// enabled by current feature gates. If mask is non-zero, VisitContainers will unconditionally visit
-// container types specified by mask, and no feature gate checks will be performed.
 func VisitContainers(podSpec *api.PodSpec, mask ContainerType, visitor ContainerVisitor) bool {
-	if mask == DefaultContainers || (mask&InitContainers) > 0 {
+	if mask&InitContainers != 0 {
 		for i := range podSpec.InitContainers {
 			if !visitor(&podSpec.InitContainers[i], InitContainers) {
 				return false
 			}
 		}
 	}
-	if mask == DefaultContainers || (mask&Containers) > 0 {
+	if mask&Containers != 0 {
 		for i := range podSpec.Containers {
 			if !visitor(&podSpec.Containers[i], Containers) {
 				return false
 			}
 		}
 	}
-	if (mask == DefaultContainers && utilfeature.DefaultFeatureGate.Enabled(features.EphemeralContainers)) ||
-		(mask&EphemeralContainers) > 0 {
+	if mask&EphemeralContainers != 0 {
 		for i := range podSpec.EphemeralContainers {
 			if !visitor((*api.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), EphemeralContainers) {
 				return false
@@ -89,13 +91,13 @@ type Visitor func(name string) (shouldContinue bool)
 // referenced by the pod spec. If visitor returns false, visiting is short-circuited.
 // Transitive references (e.g. pod -> pvc -> pv -> secret) are not visited.
 // Returns true if visiting completed, false if visiting was short-circuited.
-func VisitPodSecretNames(pod *api.Pod, visitor Visitor) bool {
+func VisitPodSecretNames(pod *api.Pod, visitor Visitor, containerType ContainerType) bool {
 	for _, reference := range pod.Spec.ImagePullSecrets {
 		if !visitor(reference.Name) {
 			return false
 		}
 	}
-	VisitContainers(&pod.Spec, AllContainers, func(c *api.Container, containerType ContainerType) bool {
+	VisitContainers(&pod.Spec, containerType, func(c *api.Container, containerType ContainerType) bool {
 		return visitContainerSecretNames(c, visitor)
 	})
 	var source *api.VolumeSource
@@ -177,8 +179,8 @@ func visitContainerSecretNames(container *api.Container, visitor Visitor) bool {
 // referenced by the pod spec. If visitor returns false, visiting is short-circuited.
 // Transitive references (e.g. pod -> pvc -> pv -> secret) are not visited.
 // Returns true if visiting completed, false if visiting was short-circuited.
-func VisitPodConfigmapNames(pod *api.Pod, visitor Visitor) bool {
-	VisitContainers(&pod.Spec, AllContainers, func(c *api.Container, containerType ContainerType) bool {
+func VisitPodConfigmapNames(pod *api.Pod, visitor Visitor, containerType ContainerType) bool {
+	VisitContainers(&pod.Spec, containerType, func(c *api.Container, containerType ContainerType) bool {
 		return visitContainerConfigmapNames(c, visitor)
 	})
 	var source *api.VolumeSource
@@ -361,7 +363,7 @@ func dropDisabledFields(
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.AppArmor) && !appArmorInUse(oldPodAnnotations) {
 		for k := range podAnnotations {
-			if strings.HasPrefix(k, apparmor.ContainerAnnotationKeyPrefix) {
+			if strings.HasPrefix(k, v1.AppArmorBetaContainerAnnotationKeyPrefix) {
 				delete(podAnnotations, k)
 			}
 		}
@@ -394,8 +396,8 @@ func dropDisabledFields(
 		podSpec.EphemeralContainers = nil
 	}
 
-	if (!utilfeature.DefaultFeatureGate.Enabled(features.VolumeSubpath) || !utilfeature.DefaultFeatureGate.Enabled(features.VolumeSubpathEnvExpansion)) && !subpathExprInUse(oldPodSpec) {
-		// drop subpath env expansion from the pod if either of the subpath features is disabled and the old spec did not specify subpath env expansion
+	if !utilfeature.DefaultFeatureGate.Enabled(features.VolumeSubpath) && !subpathExprInUse(oldPodSpec) {
+		// drop subpath env expansion from the pod if subpath feature is disabled and the old spec did not specify subpath env expansion
 		VisitContainers(podSpec, AllContainers, func(c *api.Container, containerType ContainerType) bool {
 			for i := range c.VolumeMounts {
 				c.VolumeMounts[i].SubPathExpr = ""
@@ -588,7 +590,7 @@ func procMountInUse(podSpec *api.PodSpec) bool {
 // appArmorInUse returns true if the pod has apparmor related information
 func appArmorInUse(podAnnotations map[string]string) bool {
 	for k := range podAnnotations {
-		if strings.HasPrefix(k, apparmor.ContainerAnnotationKeyPrefix) {
+		if strings.HasPrefix(k, v1.AppArmorBetaContainerAnnotationKeyPrefix) {
 			return true
 		}
 	}

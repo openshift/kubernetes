@@ -43,7 +43,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -89,7 +89,7 @@ func DefaultBehaviorOnFatal() {
 // fatal prints the message (if provided) and then exits. If V(2) or greater,
 // klog.Fatal is invoked for extended information.
 func fatal(msg string, code int) {
-	if klog.V(2) {
+	if klog.V(2).Enabled() {
 		klog.FatalDepth(2, msg)
 	}
 	if len(msg) > 0 {
@@ -430,10 +430,13 @@ func AddDryRunFlag(cmd *cobra.Command) {
 	cmd.Flags().Lookup("dry-run").NoOptDefVal = "unchanged"
 }
 
+func AddFieldManagerFlagVar(cmd *cobra.Command, p *string, defaultFieldManager string) {
+	cmd.Flags().StringVar(p, "field-manager", defaultFieldManager, "Name of the manager used to track field ownership.")
+}
+
 func AddServerSideApplyFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("server-side", false, "If true, apply runs in the server instead of the client.")
 	cmd.Flags().Bool("force-conflicts", false, "If true, server-side apply will force the changes against conflicts.")
-	cmd.Flags().String("field-manager", "kubectl", "Name of the manager used to track field ownership.")
 }
 
 func AddPodRunningTimeoutFlag(cmd *cobra.Command, defaultTimeout time.Duration) {

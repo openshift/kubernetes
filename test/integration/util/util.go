@@ -39,7 +39,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	pvutil "k8s.io/kubernetes/pkg/controller/volume/persistentvolume/util"
 	"k8s.io/kubernetes/pkg/scheduler"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/config"
@@ -179,6 +179,12 @@ func PodDeleted(c clientset.Interface, podNamespace, podName string) wait.Condit
 		}
 		return false, nil
 	}
+}
+
+// SyncInformerFactory starts informer and waits for caches to be synced
+func SyncInformerFactory(testCtx *TestContext) {
+	testCtx.InformerFactory.Start(testCtx.Ctx.Done())
+	testCtx.InformerFactory.WaitForCacheSync(testCtx.Ctx.Done())
 }
 
 // CleanupTest cleans related resources which were created during integration test
@@ -407,11 +413,6 @@ func InitTestSchedulerWithOptions(
 
 	stopCh := make(chan struct{})
 	eventBroadcaster.StartRecordingToSink(stopCh)
-
-	testCtx.InformerFactory.Start(testCtx.Scheduler.StopEverything)
-	testCtx.InformerFactory.WaitForCacheSync(testCtx.Scheduler.StopEverything)
-
-	go testCtx.Scheduler.Run(testCtx.Ctx)
 
 	return testCtx
 }

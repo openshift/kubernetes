@@ -25,6 +25,24 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+function convert-manifest-params {
+  # A helper function to convert the manifest args from a string to a list of
+  # flag arguments.
+  # Old format:
+  #   command=["/bin/sh", "-c", "exec KUBE_EXEC_BINARY --param1=val1 --param2-val2"].
+  # New format:
+  #   command=["KUBE_EXEC_BINARY"]  # No shell dependencies.
+  #   args=["--param1=val1", "--param2-val2"]
+  IFS=' ' read -ra FLAGS <<< "$1"
+  params=""
+  for flag in "${FLAGS[@]}"; do
+    params+="\n\"$flag\","
+  done
+  if [ ! -z $params ]; then
+    echo "${params::-1}"  #  drop trailing comma
+  fi
+}
+
 function setup-os-params {
   # Reset core_pattern. On GCI, the default core_pattern pipes the core dumps to
   # /sbin/crash_reporter which is more restrictive in saving crash dumps. So for
@@ -445,9 +463,6 @@ function mount-master-pd {
   mkdir -p "${mount_point}/srv/sshproxy"
   ln -s -f "${mount_point}/srv/sshproxy" /etc/srv/sshproxy
 
-  if ! id etcd &>/dev/null; then
-    useradd -s /sbin/nologin -d /var/etcd etcd
-  fi
   chown -R etcd "${mount_point}/var/etcd"
   chgrp -R etcd "${mount_point}/var/etcd"
 }
@@ -808,7 +823,7 @@ EOF
   if [[ "${ENABLE_EGRESS_VIA_KONNECTIVITY_SERVICE:-false}" == "true" ]]; then
     if [[ "${KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE:-grpc}" == 'grpc' ]]; then
       cat <<EOF >/etc/srv/kubernetes/egress_selector_configuration.yaml
-apiVersion: apiserver.k8s.io/v1alpha1
+apiVersion: apiserver.k8s.io/v1beta1
 kind: EgressSelectorConfiguration
 egressSelections:
 - name: cluster
@@ -826,7 +841,7 @@ egressSelections:
 EOF
     elif [[ "${KONNECTIVITY_SERVICE_PROXY_PROTOCOL_MODE:-grpc}" == 'http-connect' ]]; then
       cat <<EOF >/etc/srv/kubernetes/egress_selector_configuration.yaml
-apiVersion: apiserver.k8s.io/v1alpha1
+apiVersion: apiserver.k8s.io/v1beta1
 kind: EgressSelectorConfiguration
 egressSelections:
 - name: cluster
@@ -1914,7 +1929,7 @@ function start-kube-controller-manager {
 function start-kube-scheduler {
   echo "Start kubernetes scheduler"
   create-kubeconfig "kube-scheduler" ${KUBE_SCHEDULER_TOKEN}
-  prepare-log-file /var/log/kube-scheduler.log
+  prepare-log-file /var/log/kube-scheduler.log ${KUBE_SCHEDULER_RUNASUSER:-2001} ${KUBE_SCHEDULER_RUNASGROUP:-2001}
 
   # Calculate variables and set them in the manifest.
   params="${SCHEDULER_TEST_LOG_LEVEL:-"--v=2"} ${SCHEDULER_TEST_ARGS:-}"
@@ -1930,6 +1945,8 @@ function start-kube-scheduler {
     params+=" --use-legacy-policy-config"
     params+=" --policy-config-file=/etc/srv/kubernetes/kube-scheduler/policy-config"
   fi
+
+  params="$(convert-manifest-params "${params}")"
   local -r kube_scheduler_docker_tag=$(cat "${KUBE_HOME}/kube-docker-files/kube-scheduler.docker_tag")
 
   # Remove salt comments and replace variables with values.
@@ -1939,6 +1956,8 @@ function start-kube-scheduler {
   sed -i -e "s@{{pillar\['kube_docker_registry'\]}}@${DOCKER_REGISTRY}@g" "${src_file}"
   sed -i -e "s@{{pillar\['kube-scheduler_docker_tag'\]}}@${kube_scheduler_docker_tag}@g" "${src_file}"
   sed -i -e "s@{{cpurequest}}@${KUBE_SCHEDULER_CPU_REQUEST}@g" "${src_file}"
+  sed -i -e "s@{{runAsUser}}@${KUBE_SCHEDULER_RUNASUSER:-2001}@g" "${src_file}"
+  sed -i -e "s@{{runAsGroup}}@${KUBE_SCHEDULER_RUNASGROUP:-2001}@g" "${src_file}"
   cp "${src_file}" /etc/kubernetes/manifests
 }
 
@@ -2339,6 +2358,7 @@ function start-kube-addons {
   local -r dst_dir="/etc/kubernetes/addons"
 
   create-kubeconfig "addon-manager" ${ADDON_MANAGER_TOKEN}
+  prepare-log-file /var/log/kube-addon-manager.log ${KUBE_ADDON_MANAGER_RUNASUSER:-2002} ${KUBE_ADDON_MANAGER_RUNASGROUP:-2002}
 
   # prep addition kube-up specific rbac objects
   setup-addon-manifests "addons" "rbac/kubelet-api-auth"
@@ -2506,6 +2526,8 @@ EOF
   # Place addon manager pod manifest.
   src_file="${src_dir}/kube-addon-manager.yaml"
   sed -i -e "s@{{kubectl_extra_prune_whitelist}}@${ADDON_MANAGER_PRUNE_WHITELIST:-}@g" "${src_file}"
+  sed -i -e "s@{{runAsUser}}@${KUBE_ADDON_MANAGER_RUNASUSER:-2002}@g" "${src_file}"
+  sed -i -e "s@{{runAsGroup}}@${KUBE_ADDON_MANAGER_RUNASGROUP:-2002}@g" "${src_file}"
   cp "${src_file}" /etc/kubernetes/manifests
 }
 
@@ -2562,6 +2584,10 @@ function gke-master-start {
     echo "Running GKE internal configuration script"
     . "${KUBE_HOME}/bin/gke-internal-configure-helper.sh"
     gke-internal-master-start
+ elif [[ -n "${KUBE_BEARER_TOKEN:-}" ]]; then
+   echo "setting up local admin kubeconfig"
+   create-kubeconfig "local-admin" "${KUBE_BEARER_TOKEN}"
+   echo "export KUBECONFIG=/etc/srv/kubernetes/local-admin/kubeconfig" > /etc/profile.d/kubeconfig.sh
   fi
 }
 

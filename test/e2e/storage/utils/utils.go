@@ -307,7 +307,7 @@ func TestVolumeUnmountsFromDeletedPodWithForceOption(c clientset.Interface, f *f
 
 	ginkgo.By("Starting the kubelet and waiting for pod to delete.")
 	KubeletCommand(KStart, c, clientPod)
-	err = f.WaitForPodNotFound(clientPod.Name, framework.PodDeleteTimeout)
+	err = e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, clientPod.Name, f.Namespace.Name, framework.PodDeleteTimeout)
 	if err != nil {
 		framework.ExpectNoError(err, "Expected pod to be not found.")
 	}
@@ -393,7 +393,7 @@ func TestVolumeUnmapsFromDeletedPodWithForceOption(c clientset.Interface, f *fra
 
 	ginkgo.By("Starting the kubelet and waiting for pod to delete.")
 	KubeletCommand(KStart, c, clientPod)
-	err = f.WaitForPodNotFound(clientPod.Name, framework.PodDeleteTimeout)
+	err = e2epod.WaitForPodNotFoundInNamespace(f.ClientSet, clientPod.Name, f.Namespace.Name, framework.PodDeleteTimeout)
 	framework.ExpectNoError(err, "Expected pod to be not found.")
 
 	if forceDelete {
@@ -702,4 +702,23 @@ func findMountPoints(hostExec HostExec, node *v1.Node, dir string) []string {
 // FindVolumeGlobalMountPoints returns all volume global mount points on the node of given pod.
 func FindVolumeGlobalMountPoints(hostExec HostExec, node *v1.Node) sets.String {
 	return sets.NewString(findMountPoints(hostExec, node, "/var/lib/kubelet/plugins")...)
+}
+
+// CreateDriverNamespace creates a namespace for CSI driver installation.
+// The namespace is still tracked and ensured that gets deleted when test terminates.
+func CreateDriverNamespace(f *framework.Framework) *v1.Namespace {
+	ginkgo.By(fmt.Sprintf("Building a driver namespace object, basename %s", f.BaseName))
+	namespace, err := f.CreateNamespace(f.BaseName, map[string]string{
+		"e2e-framework": f.BaseName,
+	})
+	framework.ExpectNoError(err)
+
+	if framework.TestContext.VerifyServiceAccount {
+		ginkgo.By("Waiting for a default service account to be provisioned in namespace")
+		err = framework.WaitForDefaultServiceAccountInNamespace(f.ClientSet, namespace.Name)
+		framework.ExpectNoError(err)
+	} else {
+		framework.Logf("Skipping waiting for service account")
+	}
+	return namespace
 }

@@ -37,16 +37,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/scheduler"
 	schedulerconfig "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/kubernetes/plugin/pkg/admission/priority"
 	testutils "k8s.io/kubernetes/test/integration/util"
-	utils "k8s.io/kubernetes/test/utils"
+	"k8s.io/kubernetes/test/utils"
 )
 
 var lowPriority, mediumPriority, highPriority = int32(100), int32(200), int32(300)
@@ -84,7 +83,7 @@ func (fp *tokenFilter) Name() string {
 }
 
 func (fp *tokenFilter) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod,
-	nodeInfo *schedulernodeinfo.NodeInfo) *framework.Status {
+	nodeInfo *framework.NodeInfo) *framework.Status {
 	if fp.Tokens > 0 {
 		fp.Tokens--
 		return nil
@@ -101,13 +100,13 @@ func (fp *tokenFilter) PreFilter(ctx context.Context, state *framework.CycleStat
 }
 
 func (fp *tokenFilter) AddPod(ctx context.Context, state *framework.CycleState, podToSchedule *v1.Pod,
-	podToAdd *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *framework.Status {
+	podToAdd *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	fp.Tokens--
 	return nil
 }
 
 func (fp *tokenFilter) RemovePod(ctx context.Context, state *framework.CycleState, podToSchedule *v1.Pod,
-	podToRemove *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *framework.Status {
+	podToRemove *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	fp.Tokens++
 	return nil
 }
@@ -123,7 +122,7 @@ func TestPreemption(t *testing.T) {
 	// Initialize scheduler with a filter plugin.
 	var filter tokenFilter
 	registry := make(framework.Registry)
-	err := registry.Register(filterPluginName, func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
+	err := registry.Register(filterPluginName, func(_ runtime.Object, fh framework.FrameworkHandle) (framework.Plugin, error) {
 		return &filter, nil
 	})
 	if err != nil {
@@ -149,6 +148,8 @@ func TestPreemption(t *testing.T) {
 		false, nil, time.Second,
 		scheduler.WithProfiles(prof),
 		scheduler.WithFrameworkOutOfTreeRegistry(registry))
+	testutils.SyncInformerFactory(testCtx)
+	go testCtx.Scheduler.Run(testCtx.Ctx)
 
 	defer testutils.CleanupTest(t, testCtx)
 	cs := testCtx.ClientSet
@@ -528,8 +529,14 @@ func TestPodPriorityResolution(t *testing.T) {
 	externalInformers := informers.NewSharedInformerFactory(externalClientset, time.Second)
 	admission.SetExternalKubeClientSet(externalClientset)
 	admission.SetExternalKubeInformerFactory(externalInformers)
+
+	// Waiting for all controllers to sync
+	testutils.SyncInformerFactory(testCtx)
 	externalInformers.Start(testCtx.Ctx.Done())
 	externalInformers.WaitForCacheSync(testCtx.Ctx.Done())
+
+	// Run all controllers
+	go testCtx.Scheduler.Run(testCtx.Ctx)
 
 	tests := []struct {
 		Name             string
@@ -622,8 +629,6 @@ func mkPriorityPodWithGrace(tc *testutils.TestContext, name string, priority int
 		Labels:    map[string]string{"pod": name},
 		Resources: defaultPodRes,
 	})
-	// Setting grace period to zero. Otherwise, we may never see the actual deletion
-	// of the pods in integration tests.
 	pod.Spec.TerminationGracePeriodSeconds = &grace
 	return pod
 }
@@ -917,7 +922,7 @@ func TestNominatedNodeCleanUp(t *testing.T) {
 	}
 	// Step 5. Check that nominated node name of the high priority pod is set.
 	if err := waitForNominatedNodeName(cs, highPriPod); err != nil {
-		t.Errorf("NominatedNodeName annotation was not set for pod %v/%v: %v", medPriPod.Namespace, medPriPod.Name, err)
+		t.Errorf("NominatedNodeName annotation was not set for pod %v/%v: %v", highPriPod.Namespace, highPriPod.Name, err)
 	}
 	// And the nominated node name of the medium priority pod is cleared.
 	if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {

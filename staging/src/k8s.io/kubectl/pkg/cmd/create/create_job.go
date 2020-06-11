@@ -22,7 +22,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -68,7 +67,7 @@ type CreateJobOptions struct {
 	DryRunStrategy cmdutil.DryRunStrategy
 	DryRunVerifier *resource.DryRunVerifier
 	Builder        *resource.Builder
-	Cmd            *cobra.Command
+	FieldManager   string
 
 	genericclioptions.IOStreams
 }
@@ -103,7 +102,7 @@ func NewCmdCreateJob(f cmdutil.Factory, ioStreams genericclioptions.IOStreams) *
 	cmdutil.AddDryRunFlag(cmd)
 	cmd.Flags().StringVar(&o.Image, "image", o.Image, "Image name to run.")
 	cmd.Flags().StringVar(&o.From, "from", o.From, "The name of the resource to create a Job from (only cronjob is supported).")
-
+	cmdutil.AddFieldManagerFlagVar(cmd, &o.FieldManager, "kubectl-create")
 	return cmd
 }
 
@@ -132,7 +131,6 @@ func (o *CreateJobOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args 
 		return err
 	}
 	o.Builder = f.NewBuilder()
-	o.Cmd = cmd
 
 	o.DryRunStrategy, err = cmdutil.GetDryRunStrategy(cmd)
 	if err != nil {
@@ -204,6 +202,9 @@ func (o *CreateJobOptions) Run() error {
 	}
 	if o.DryRunStrategy != cmdutil.DryRunClient {
 		createOptions := metav1.CreateOptions{}
+		if o.FieldManager != "" {
+			createOptions.FieldManager = o.FieldManager
+		}
 		if o.DryRunStrategy == cmdutil.DryRunServer {
 			if err := o.DryRunVerifier.HasSupport(job.GroupVersionKind()); err != nil {
 				return err
@@ -259,7 +260,12 @@ func (o *CreateJobOptions) createJobFromCronJob(cronJob *batchv1beta1.CronJob) *
 			Annotations: annotations,
 			Labels:      cronJob.Spec.JobTemplate.Labels,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(cronJob, appsv1.SchemeGroupVersion.WithKind("CronJob")),
+				{
+					APIVersion: batchv1beta1.SchemeGroupVersion.String(),
+					Kind:       cronJob.Kind,
+					Name:       cronJob.GetName(),
+					UID:        cronJob.GetUID(),
+				},
 			},
 		},
 		Spec: cronJob.Spec.JobTemplate.Spec,

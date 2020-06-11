@@ -20,6 +20,7 @@ filegroup(
     name = "all-srcs",
     srcs = [
         ":package-srcs",
+        "//build/go-runner:all-srcs",
         "//build/release-tars:all-srcs",
         "//build/visible_to:all-srcs",
     ],
@@ -30,7 +31,7 @@ filegroup(
 # in build/common.sh.
 DOCKERIZED_BINARIES = {
     "kube-apiserver": {
-        "base": "@debian-base-{ARCH}//image",
+        "base": "@go-runner-linux-{ARCH}//image",
         "target": "//cmd/kube-apiserver:kube-apiserver",
     },
     "kube-controller-manager": {
@@ -38,7 +39,7 @@ DOCKERIZED_BINARIES = {
         "target": "//cmd/kube-controller-manager:kube-controller-manager",
     },
     "kube-scheduler": {
-        "base": "@debian-base-{ARCH}//image",
+        "base": "@go-runner-linux-{ARCH}//image",
         "target": "//cmd/kube-scheduler:kube-scheduler",
     },
     "kube-proxy": {

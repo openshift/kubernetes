@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/scheduler/algorithmprovider"
 	kubeschedulerconfig "k8s.io/kubernetes/pkg/scheduler/apis/config"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/interpodaffinity"
 )
 
@@ -92,6 +91,8 @@ func (o *DeprecatedOptions) Validate() []error {
 // 1. --use-legacy-policy-config to use a policy file.
 // 2. --policy-configmap to use a policy config map value.
 // 3. --algorithm-provider to use a named algorithm provider.
+//
+// This function is only called when no config file is provided.
 func (o *DeprecatedOptions) ApplyTo(cfg *kubeschedulerconfig.KubeSchedulerConfiguration) error {
 	if o == nil {
 		return nil
@@ -121,18 +122,19 @@ func (o *DeprecatedOptions) ApplyTo(cfg *kubeschedulerconfig.KubeSchedulerConfig
 		}
 	}
 
-	// The following deprecated options affect the only existing profile that is
-	// added by default.
+	// Deprecated flags have an effect iff no config file was provided, in which
+	// case this function expects a default KubeSchedulerConfiguration instance,
+	// which has a single profile.
 	profile := &cfg.Profiles[0]
 	if len(o.SchedulerName) > 0 {
 		profile.SchedulerName = o.SchedulerName
 	}
-	if o.HardPodAffinitySymmetricWeight != interpodaffinity.DefaultHardPodAffinityWeight {
-		args := interpodaffinity.Args{
-			HardPodAffinityWeight: &o.HardPodAffinitySymmetricWeight,
-		}
-		profile.PluginConfig = append(profile.PluginConfig, plugins.NewPluginConfig(interpodaffinity.Name, args))
+	plCfg := kubeschedulerconfig.PluginConfig{
+		Name: interpodaffinity.Name,
+		Args: &kubeschedulerconfig.InterPodAffinityArgs{
+			HardPodAffinityWeight: o.HardPodAffinitySymmetricWeight,
+		},
 	}
-
+	profile.PluginConfig = append(profile.PluginConfig, plCfg)
 	return nil
 }

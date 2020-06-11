@@ -34,6 +34,9 @@ run_kubectl_apply_tests() {
   kube::test::get_object_assert 'pods test-pod' "{{${labels_field:?}.name}}" 'test-pod-label'
   # Post-Condition: pod "test-pod" has configuration annotation
   grep -q kubectl.kubernetes.io/last-applied-configuration <<< "$(kubectl get pods test-pod -o yaml "${kube_flags[@]:?}")"
+  # pod has field manager for kubectl client-side apply
+  output_message=$(kubectl get -f hack/testdata/pod.yaml -o=jsonpath='{.metadata.managedFields[*].manager}' "${kube_flags[@]:?}" 2>&1)
+  kube::test::if_has_string "${output_message}" 'kubectl-client-side-apply'
   # Clean up
   kubectl delete pods test-pod "${kube_flags[@]:?}"
 
@@ -80,10 +83,9 @@ run_kubectl_apply_tests() {
   # Clean up
   kubectl delete deployments test-deployment-retainkeys "${kube_flags[@]:?}"
 
-
   ## kubectl apply -f with label selector should only apply matching objects
   # Pre-Condition: no POD exists
-  kube::test::get_object_assert pods "{{range.items}}{{${id_field:?}}}:{{end}}" ''
+  kube::test::wait_object_assert pods "{{range.items}}{{${id_field:?}}}:{{end}}" ''
   # apply
   kubectl apply -l unique-label=bingbang -f hack/testdata/filter "${kube_flags[@]:?}"
   # check right pod exists
@@ -147,40 +149,22 @@ __EOF__
   kubectl "${kube_flags[@]:?}" delete customresourcedefinition resources.mygroup.example.com
 
   ## kubectl apply --prune
-  # Pre-Condition: no POD exists
+  # Pre-Condition: namespace nsb exists; no POD exists
+  kubectl create ns nsb
   kube::test::get_object_assert pods "{{range.items}}{{${id_field:?}}}:{{end}}" ''
-
-  # apply a
-  kubectl apply --prune -l prune-group=true -f hack/testdata/prune/a.yaml "${kube_flags[@]:?}"
-  # check right pod exists
-  kube::test::get_object_assert 'pods a' "{{${id_field:?}}}" 'a'
-  # check wrong pod doesn't exist
-  output_message=$(! kubectl get pods b 2>&1 "${kube_flags[@]:?}")
-  kube::test::if_has_string "${output_message}" 'pods "b" not found'
-
-  # apply b
-  kubectl apply --prune -l prune-group=true -f hack/testdata/prune/b.yaml "${kube_flags[@]:?}"
-  # check right pod exists
-  kube::test::get_object_assert 'pods b' "{{${id_field:?}}}" 'b'
-  # check wrong pod doesn't exist
-  output_message=$(! kubectl get pods a 2>&1 "${kube_flags[@]:?}")
-  kube::test::if_has_string "${output_message}" 'pods "a" not found'
-
-  kubectl delete pods a
-  kubectl delete pods b
-
-  # apply a
+  # apply a into namespace nsb
   kubectl apply --namespace nsb -l prune-group=true -f hack/testdata/prune/a.yaml "${kube_flags[@]:?}"
+  kube::test::get_object_assert 'pods a -n nsb' "{{${id_field:?}}}" 'a'
   # apply b with namespace
   kubectl apply --namespace nsb --prune -l prune-group=true -f hack/testdata/prune/b.yaml "${kube_flags[@]:?}"
   # check right pod exists
-  kube::test::get_object_assert 'pods b' "{{${id_field:?}}}" 'b'
+  kube::test::get_object_assert 'pods b -n nsb' "{{${id_field:?}}}" 'b'
   # check wrong pod doesn't exist
-  output_message=$(! kubectl get pods a 2>&1 "${kube_flags[@]:?}")
+  output_message=$(! kubectl get pods a -n nsb 2>&1 "${kube_flags[@]:?}")
   kube::test::if_has_string "${output_message}" 'pods "a" not found'
 
   # cleanup
-  kubectl delete pods b
+  kubectl delete pods b -n nsb
 
   # same thing without prune for a sanity check
   # Pre-Condition: no POD exists
@@ -191,18 +175,18 @@ __EOF__
   # check right pod exists
   kube::test::get_object_assert 'pods a' "{{${id_field:?}}}" 'a'
   # check wrong pod doesn't exist
-  output_message=$(! kubectl get pods b 2>&1 "${kube_flags[@]:?}")
+  output_message=$(! kubectl get pods b -n nsb 2>&1 "${kube_flags[@]:?}")
   kube::test::if_has_string "${output_message}" 'pods "b" not found'
 
   # apply b
   kubectl apply -l prune-group=true -f hack/testdata/prune/b.yaml "${kube_flags[@]:?}"
   # check both pods exist
   kube::test::get_object_assert 'pods a' "{{${id_field:?}}}" 'a'
-  kube::test::get_object_assert 'pods b' "{{${id_field:?}}}" 'b'
-  # check wrong pod doesn't exist
+  kube::test::get_object_assert 'pods b -n nsb' "{{${id_field:?}}}" 'b'
 
   # cleanup
-  kubectl delete pod/a pod/b
+  kubectl delete pod/a
+  kubectl delete pod/b -n nsb
 
   ## kubectl apply --prune requires a --all flag to select everything
   output_message=$(! kubectl apply --prune -f hack/testdata/prune 2>&1 "${kube_flags[@]:?}")
@@ -211,8 +195,10 @@ __EOF__
   # should apply everything
   kubectl apply --all --prune -f hack/testdata/prune
   kube::test::get_object_assert 'pods a' "{{${id_field:?}}}" 'a'
-  kube::test::get_object_assert 'pods b' "{{${id_field:?}}}" 'b'
-  kubectl delete pod/a pod/b
+  kube::test::get_object_assert 'pods b -n nsb' "{{${id_field:?}}}" 'b'
+  kubectl delete pod/a
+  kubectl delete pod/b -n nsb
+  kubectl delete ns nsb
 
   ## kubectl apply --prune should fallback to delete for non reapable types
   kubectl apply --all --prune -f hack/testdata/prune-reap/a.yml 2>&1 "${kube_flags[@]:?}"
@@ -302,7 +288,7 @@ __EOF__
   # Pre-Condition: namepace does not exist and no POD exists
   output_message=$(! kubectl get namespace multi-resource-ns 2>&1 "${kube_flags[@]:?}")
   kube::test::if_has_string "${output_message}" 'namespaces "multi-resource-ns" not found'
-  kube::test::get_object_assert pods "{{range.items}}{{${id_field:?}}}:{{end}}" ''
+  kube::test::wait_object_assert pods "{{range.items}}{{${id_field:?}}}:{{end}}" ''
   # First pass, namespace is created, but pod is not (since namespace does not exist yet).
   output_message=$(! kubectl apply -f hack/testdata/multi-resource-1.yaml 2>&1 "${kube_flags[@]:?}")
   kube::test::if_has_string "${output_message}" 'namespaces "multi-resource-ns" not found'
@@ -358,7 +344,7 @@ __EOF__
 }
 
 # Runs tests related to kubectl apply (server-side)
-run_kubectl_apply_tests() {
+run_kubectl_server_side_apply_tests() {
   set -o nounset
   set -o errexit
 
@@ -371,6 +357,13 @@ run_kubectl_apply_tests() {
   kubectl apply --server-side -f hack/testdata/pod.yaml "${kube_flags[@]:?}"
   # Post-Condition: pod "test-pod" is created
   kube::test::get_object_assert 'pods test-pod' "{{${labels_field:?}.name}}" 'test-pod-label'
+  # pod has field manager for kubectl server-side apply
+  output_message=$(kubectl get -f hack/testdata/pod.yaml -o=jsonpath='{.metadata.managedFields[*].manager}' "${kube_flags[@]:?}" 2>&1)
+  kube::test::if_has_string "${output_message}" 'kubectl'
+  # pod has custom field manager
+  kubectl apply --server-side --field-manager=my-field-manager --force-conflicts -f hack/testdata/pod.yaml "${kube_flags[@]:?}"
+  output_message=$(kubectl get -f hack/testdata/pod.yaml -o=jsonpath='{.metadata.managedFields[*].manager}' "${kube_flags[@]:?}" 2>&1)
+  kube::test::if_has_string "${output_message}" 'my-field-manager'
   # Clean up
   kubectl delete pods test-pod "${kube_flags[@]:?}"
 

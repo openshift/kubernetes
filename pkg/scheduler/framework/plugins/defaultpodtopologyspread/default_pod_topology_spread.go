@@ -20,14 +20,11 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/klog"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/helper"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	utilnode "k8s.io/kubernetes/pkg/util/node"
 )
 
@@ -100,7 +97,7 @@ func (pl *DefaultPodTopologySpread) Score(ctx context.Context, state *framework.
 }
 
 // NormalizeScore invoked after scoring all nodes.
-// For this plugin, it calculates the source of each node
+// For this plugin, it calculates the score of each node
 // based on the number of existing matching pods on the node
 // where zone information is included on the nodes, it favors nodes
 // in zones with fewer existing matching pods.
@@ -119,7 +116,7 @@ func (pl *DefaultPodTopologySpread) NormalizeScore(ctx context.Context, state *f
 		}
 		nodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(scores[i].Name)
 		if err != nil {
-			return framework.NewStatus(framework.Error, err.Error())
+			return framework.NewStatus(framework.Error, fmt.Sprintf("getting node %q from Snapshot: %v", scores[i].Name, err))
 		}
 		zoneID := utilnode.GetZoneKey(nodeInfo.Node())
 		if zoneID == "" {
@@ -150,7 +147,7 @@ func (pl *DefaultPodTopologySpread) NormalizeScore(ctx context.Context, state *f
 		if haveZones {
 			nodeInfo, err := pl.handle.SnapshotSharedLister().NodeInfos().Get(scores[i].Name)
 			if err != nil {
-				return framework.NewStatus(framework.Error, err.Error())
+				return framework.NewStatus(framework.Error, fmt.Sprintf("getting node %q from Snapshot: %v", scores[i].Name, err))
 			}
 
 			zoneID := utilnode.GetZoneKey(nodeInfo.Node())
@@ -163,11 +160,6 @@ func (pl *DefaultPodTopologySpread) NormalizeScore(ctx context.Context, state *f
 			}
 		}
 		scores[i].Score = int64(fScore)
-		if klog.V(10) {
-			klog.Infof(
-				"%v -> %v: SelectorSpreadPriority, Score: (%d)", pod.Name, scores[i].Name, int64(fScore),
-			)
-		}
 	}
 	return nil
 }
@@ -196,23 +188,23 @@ func (pl *DefaultPodTopologySpread) PreScore(ctx context.Context, cycleState *fr
 }
 
 // New initializes a new plugin and returns it.
-func New(_ *runtime.Unknown, handle framework.FrameworkHandle) (framework.Plugin, error) {
+func New(_ runtime.Object, handle framework.FrameworkHandle) (framework.Plugin, error) {
 	return &DefaultPodTopologySpread{
 		handle: handle,
 	}, nil
 }
 
 // countMatchingPods counts pods based on namespace and matching all selectors
-func countMatchingPods(namespace string, selector labels.Selector, nodeInfo *schedulernodeinfo.NodeInfo) int {
-	if len(nodeInfo.Pods()) == 0 || selector.Empty() {
+func countMatchingPods(namespace string, selector labels.Selector, nodeInfo *framework.NodeInfo) int {
+	if len(nodeInfo.Pods) == 0 || selector.Empty() {
 		return 0
 	}
 	count := 0
-	for _, pod := range nodeInfo.Pods() {
+	for _, p := range nodeInfo.Pods {
 		// Ignore pods being deleted for spreading purposes
 		// Similar to how it is done for SelectorSpreadPriority
-		if namespace == pod.Namespace && pod.DeletionTimestamp == nil {
-			if selector.Matches(labels.Set(pod.Labels)) {
+		if namespace == p.Pod.Namespace && p.Pod.DeletionTimestamp == nil {
+			if selector.Matches(labels.Set(p.Pod.Labels)) {
 				count++
 			}
 		}

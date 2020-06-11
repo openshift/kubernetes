@@ -34,7 +34,7 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/armon/circbuf"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -212,7 +212,7 @@ func (m *kubeGenericRuntimeManager) startContainer(podSandboxID string, podSandb
 		sandboxMeta.Namespace)
 	containerLog := filepath.Join(podSandboxConfig.LogDirectory, containerConfig.LogPath)
 	// only create legacy symlink if containerLog path exists (or the error is not IsNotExist).
-	// Because if containerLog path does not exist, only dandling legacySymlink is created.
+	// Because if containerLog path does not exist, only dangling legacySymlink is created.
 	// This dangling legacySymlink is later removed by container gc, so it does not make sense
 	// to create it in the first place. it happens when journald logging driver is used with docker.
 	if _, err := m.osInterface.Stat(containerLog); !os.IsNotExist(err) {

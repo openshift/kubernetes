@@ -51,15 +51,14 @@
 #  - Document functions using proper syntax:
 #    https://technet.microsoft.com/en-us/library/hh847834(v=wps.620).aspx
 
-$INFRA_CONTAINER = 'gcr.io/gke-release/pause-win:1.1.0'
 $GCE_METADATA_SERVER = "169.254.169.254"
 # The "management" interface is used by the kubelet and by Windows pods to talk
 # to the rest of the Kubernetes cluster *without NAT*. This interface does not
 # exist until an initial HNS network has been created on the Windows node - see
 # Add_InitialHnsNetwork().
 $MGMT_ADAPTER_NAME = "vEthernet (Ethernet*"
-$CRICTL_VERSION = 'v1.17.0'
-$CRICTL_SHA256 = '781fd3bd15146a924c6fc2428b11d8a0f20fa04a0c8e00a9a5808f2cc37e0569'
+$CRICTL_VERSION = 'v1.18.0'
+$CRICTL_SHA256 = '5045bcc6d8b0e6004be123ab99ea06e5b1b2ae1e586c968fcdf85fccd4d67ae1'
 
 Import-Module -Force C:\common.psm1
 
@@ -136,11 +135,24 @@ function Add_GceMetadataServerRoute {
   }
 }
 
+# Returns a PowerShell object representing the Windows version.
+function Get_WindowsVersion {
+  # Unlike checking `[System.Environment]::OSVersion.Version`, this long-winded
+  # approach gets the OS revision/patch number correctly
+  # (https://superuser.com/a/1160428/652018).
+  $win_ver = New-Object -TypeName PSObject
+  $win_ver | Add-Member -MemberType NoteProperty -Name Major -Value $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' CurrentMajorVersionNumber).CurrentMajorVersionNumber
+  $win_ver | Add-Member -MemberType NoteProperty -Name Minor -Value $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' CurrentMinorVersionNumber).CurrentMinorVersionNumber
+  $win_ver | Add-Member -MemberType NoteProperty -Name Build -Value $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' CurrentBuild).CurrentBuild
+  $win_ver | Add-Member -MemberType NoteProperty -Name Revision -Value $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' UBR).UBR
+  return $win_ver
+}
+
 # Writes debugging information, such as Windows version and patch info, to the
 # console.
 function Dump-DebugInfoToConsole {
   Try {
-    $version = "$([System.Environment]::OSVersion.Version | Out-String)"
+    $version = Get_WindowsVersion | Out-String
     $hotfixes = "$(Get-Hotfix | Out-String)"
     $image = "$(Get-InstanceMetadata 'image' | Out-String)"
     Log-Output "Windows version:`n$version"
@@ -249,6 +261,7 @@ function Set-EnvironmentVars {
     "KUBEPROXY_KUBECONFIG" = ${kube_env}['KUBEPROXY_KUBECONFIG_FILE']
     "LOGS_DIR" = ${kube_env}['LOGS_DIR']
     "MANIFESTS_DIR" = ${kube_env}['MANIFESTS_DIR']
+    "INFRA_CONTAINER" = ${kube_env}['WINDOWS_INFRA_CONTAINER']
 
     "Path" = ${env:Path} + ";" + ${kube_env}['NODE_DIR']
     "KUBE_NETWORK" = "l2bridge".ToLower()
@@ -425,39 +438,6 @@ function ConvertTo_MaskLength
     [Convert]::ToString($_, 2)
   } )" -replace "[\s0]"
   return $bits.Length
-}
-
-# Returns the "management" subnet on which the Windows pods+kubelet will
-# communicate with the rest of the Kubernetes cluster without NAT. In GCE this
-# is the subnet that VM internal IPs are allocated from.
-#
-# This function will fail if Add_InitialHnsNetwork() has not been called first.
-function Get_MgmtSubnet {
-  $net_adapter = Get_MgmtNetAdapter
-
-  # TODO(pjh): applying the primary interface's subnet mask to its IP address
-  # *should* give us the GCE network subnet that VM IP addresses are being
-  # allocated from... however it might be more accurate or straightforward to
-  # just fetch the IP address range for the VPC subnet that the kube-up script
-  # creates (kubernetes-subnet-default).
-  $addr = (Get-NetIPAddress `
-      -InterfaceAlias ${net_adapter}.ifAlias `
-      -AddressFamily IPv4).IPAddress
-  # Get the adapter's mask from the registry rather than WMI or some other
-  # approach: this is compatible with Windows' forthcoming LWVNICs (lightweight
-  # VNICs).
-  # https://github.com/kubernetes-sigs/sig-windows-tools/pull/16/commits/c5b5c67d5da6c23ad870cb16146eaa58131caf29
-  $adapter_registry = Get-Item `
-      -Path ("HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\" +
-             "Parameters\Interfaces\$($net_adapter.InterfaceGuid)")
-  # In this command the value name is 'DhcpSubnetMask' for current network
-  # interfaces but could be different for "LWVNIC" interfaces.
-  $mask = ($adapter_registry.GetValueNames() -like "*SubnetMask" |
-           % { $adapter_registry.GetValue($_) })
-  $mgmt_subnet = `
-    (ConvertTo_DecimalIP ${addr}) -band (ConvertTo_DecimalIP ${mask})
-  $mgmt_subnet = ConvertTo_DottedDecimalIP ${mgmt_subnet}
-  return "${mgmt_subnet}/$(ConvertTo_MaskLength $mask)"
 }
 
 # Returns a network adapter object for the "management" interface via which the
@@ -971,7 +951,6 @@ function Install_Cni_Binaries {
 # Required ${kube_env} keys:
 #   DNS_SERVER_IP
 #   DNS_DOMAIN
-#   CLUSTER_IP_RANGE
 #   SERVICE_CLUSTER_IP_RANGE
 function Configure_Dockerd_CniNetworking {
   $l2bridge_conf = "${env:CNI_CONFIG_DIR}\l2bridge.conf"
@@ -981,24 +960,20 @@ function Configure_Dockerd_CniNetworking {
 
   $mgmt_ip = (Get_MgmtNetAdapter |
               Get-NetIPAddress -AddressFamily IPv4).IPAddress
-  $mgmt_subnet = Get_MgmtSubnet
-  Log-Output ("using mgmt IP ${mgmt_ip} and mgmt subnet ${mgmt_subnet} for " +
-              "CNI config")
 
   $cidr_range_start = Get_PodIP_Range_Start(${env:POD_CIDR})
 
   # Explanation of the CNI config values:
-  #   CLUSTER_CIDR: the cluster CIDR from which pod CIDRs are allocated.
   #   POD_CIDR: the pod CIDR assigned to this node.
   #   CIDR_RANGE_START: start of the pod CIDR range.
-  #   MGMT_SUBNET: the subnet on which the Windows pods + kubelet will
-  #     communicate with the rest of the cluster without NAT (i.e. the subnet
-  #     that VM internal IPs are allocated from).
   #   MGMT_IP: the IP address assigned to the node's primary network interface
   #     (i.e. the internal IP of the GCE VM).
   #   SERVICE_CIDR: the CIDR used for kubernetes services.
   #   DNS_SERVER_IP: the cluster's DNS server IP address.
   #   DNS_DOMAIN: the cluster's DNS domain, e.g. "cluster.local".
+  #
+  # OutBoundNAT ExceptionList: No SNAT for CIDRs in the list, the same as default GKE non-masquerade destination ranges listed at https://cloud.google.com/kubernetes-engine/docs/how-to/ip-masquerade-agent#default-non-masq-dests
+
   New-Item -Force -ItemType file ${l2bridge_conf} | Out-Null
   Set-Content ${l2bridge_conf} `
 '{
@@ -1028,9 +1003,18 @@ function Configure_Dockerd_CniNetworking {
       "Value":  {
         "Type":  "OutBoundNAT",
         "ExceptionList":  [
-          "CLUSTER_CIDR",
-          "SERVICE_CIDR",
-          "MGMT_SUBNET"
+          "169.254.0.0/16",
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "100.64.0.0/10",
+          "192.0.0.0/24",
+          "192.0.2.0/24",
+          "192.88.99.0/24",
+          "198.18.0.0/15",
+          "198.51.100.0/24",
+          "203.0.113.0/24",
+          "240.0.0.0/4"
         ]
       }
     },
@@ -1056,9 +1040,7 @@ function Configure_Dockerd_CniNetworking {
   replace('DNS_SERVER_IP', ${kube_env}['DNS_SERVER_IP']).`
   replace('DNS_DOMAIN', ${kube_env}['DNS_DOMAIN']).`
   replace('MGMT_IP', ${mgmt_ip}).`
-  replace('CLUSTER_CIDR', ${kube_env}['CLUSTER_IP_RANGE']).`
-  replace('SERVICE_CIDR', ${kube_env}['SERVICE_CLUSTER_IP_RANGE']).`
-  replace('MGMT_SUBNET', ${mgmt_subnet})
+  replace('SERVICE_CIDR', ${kube_env}['SERVICE_CLUSTER_IP_RANGE'])
 
   Log-Output "CNI config:`n$(Get-Content -Raw ${l2bridge_conf})"
 }
@@ -1115,7 +1097,7 @@ function Start-WorkerServices {
   $kubelet_args = $kubelet_args_str.Split(" ")
   Log-Output "kubelet_args from metadata: ${kubelet_args}"
   $default_kubelet_args = @(`
-      "--pod-infra-container-image=${INFRA_CONTAINER}"
+      "--pod-infra-container-image=${env:INFRA_CONTAINER}"
   )
   $kubelet_args = ${default_kubelet_args} + ${kubelet_args}
   if (-not (Test-NodeUsesAuthPlugin ${kube_env})) {
@@ -1229,13 +1211,14 @@ function DownloadAndInstall-Crictl {
   if (-not (ShouldWrite-File ${env:NODE_DIR}\crictl.exe)) {
     return
   }
-  $url = ('https://storage.googleapis.com/kubernetes-release/crictl/' +
-      'crictl-' + $CRICTL_VERSION + '-windows-amd64.exe')
+  $url = ('https://github.com/kubernetes-sigs/cri-tools/releases/download/' +
+          $CRICTL_VERSION + '/crictl-' + $CRICTL_VERSION + '-windows-amd64.tar.gz')
   MustDownload-File `
       -URLs $url `
-      -OutFile ${env:NODE_DIR}\crictl.exe `
+      -OutFile ${env:NODE_DIR}\crictl.tar.gz `
       -Hash $CRICTL_SHA256 `
       -Algorithm SHA256
+  tar xzvf ${env:NODE_DIR}\crictl.tar.gz -C ${env:NODE_DIR}
 }
 
 # Sets crictl configuration values.
@@ -1253,14 +1236,14 @@ function Configure-Crictl {
 # node startup steps!
 # Pull-InfraContainer must be called AFTER Verify-WorkerServices.
 function Pull-InfraContainer {
-  $name, $label = $INFRA_CONTAINER -split ':',2
+  $name, $label = ${env:INFRA_CONTAINER} -split ':',2
   if (-not ("$(& crictl images)" -match "$name.*$label")) {
-    & crictl pull $INFRA_CONTAINER
+    & crictl pull ${env:INFRA_CONTAINER}
     if (!$?) {
-      throw "Error running 'crictl pull $INFRA_CONTAINER'"
+      throw "Error running 'crictl pull ${env:INFRA_CONTAINER}'"
     }
   }
-  $inspect = "$(& crictl inspecti $INFRA_CONTAINER | Out-String)"
+  $inspect = "$(& crictl inspecti ${env:INFRA_CONTAINER} | Out-String)"
   Log-Output "Infra/pause container:`n$inspect"
 }
 
@@ -1325,7 +1308,6 @@ function Configure_Dockerd {
 # Required ${kube_env} keys:
 #   DNS_SERVER_IP
 #   DNS_DOMAIN
-#   CLUSTER_IP_RANGE
 #   SERVICE_CLUSTER_IP_RANGE
 function Configure_Containerd_CniNetworking {
   $l2bridge_conf = "${env:CNI_CONFIG_DIR}\l2bridge.conf"
@@ -1335,24 +1317,20 @@ function Configure_Containerd_CniNetworking {
 
   $mgmt_ip = (Get_MgmtNetAdapter |
               Get-NetIPAddress -AddressFamily IPv4).IPAddress
-  $mgmt_subnet = Get_MgmtSubnet
-  Log-Output ("using mgmt IP ${mgmt_ip} and mgmt subnet ${mgmt_subnet} for " +
-              "CNI config")
 
   $pod_gateway = Get_Endpoint_Gateway_From_CIDR(${env:POD_CIDR})
 
   # Explanation of the CNI config values:
-  #   CLUSTER_CIDR: the cluster CIDR from which pod CIDRs are allocated.
   #   POD_CIDR: the pod CIDR assigned to this node.
   #   POD_GATEWAY: the gateway IP.
-  #   MGMT_SUBNET: the subnet on which the Windows pods + kubelet will
-  #     communicate with the rest of the cluster without NAT (i.e. the subnet
-  #     that VM internal IPs are allocated from).
   #   MGMT_IP: the IP address assigned to the node's primary network interface
   #     (i.e. the internal IP of the GCE VM).
   #   SERVICE_CIDR: the CIDR used for kubernetes services.
   #   DNS_SERVER_IP: the cluster's DNS server IP address.
   #   DNS_DOMAIN: the cluster's DNS domain, e.g. "cluster.local".
+  #
+  # OutBoundNAT ExceptionList: No SNAT for CIDRs in the list, the same as default GKE non-masquerade destination ranges listed at https://cloud.google.com/kubernetes-engine/docs/how-to/ip-masquerade-agent#default-non-masq-dests
+
   New-Item -Force -ItemType file ${l2bridge_conf} | Out-Null
   Set-Content ${l2bridge_conf} `
 '{
@@ -1387,9 +1365,18 @@ function Configure_Containerd_CniNetworking {
         "Type":  "OutBoundNAT",
         "Settings": {
           "Exceptions":  [
-            "CLUSTER_CIDR",
-            "SERVICE_CIDR",
-            "MGMT_SUBNET"
+            "169.254.0.0/16",
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "100.64.0.0/10",
+            "192.0.0.0/24",
+            "192.0.2.0/24",
+            "192.88.99.0/24",
+            "198.18.0.0/15",
+            "198.51.100.0/24",
+            "203.0.113.0/24",
+            "240.0.0.0/4"
           ]
         }
       }
@@ -1420,9 +1407,7 @@ function Configure_Containerd_CniNetworking {
   replace('DNS_SERVER_IP', ${kube_env}['DNS_SERVER_IP']).`
   replace('DNS_DOMAIN', ${kube_env}['DNS_DOMAIN']).`
   replace('MGMT_IP', ${mgmt_ip}).`
-  replace('CLUSTER_CIDR', ${kube_env}['CLUSTER_IP_RANGE']).`
-  replace('SERVICE_CIDR', ${kube_env}['SERVICE_CLUSTER_IP_RANGE']).`
-  replace('MGMT_SUBNET', ${mgmt_subnet})
+  replace('SERVICE_CIDR', ${kube_env}['SERVICE_CLUSTER_IP_RANGE'])
 
   Log-Output "containerd CNI config:`n$(Get-Content -Raw ${l2bridge_conf})"
 }
@@ -1473,7 +1458,7 @@ function Configure_Containerd {
 [plugins.cri.cni]
   bin_dir = 'CNI_BIN_DIR'
   conf_dir = 'CNI_CONF_DIR'
-"@.replace('INFRA_CONTAINER_IMAGE', $INFRA_CONTAINER).`
+"@.replace('INFRA_CONTAINER_IMAGE', ${env:INFRA_CONTAINER}).`
     replace('CNI_BIN_DIR', ${env:CNI_DIR}).`
     replace('CNI_CONF_DIR', ${env:CNI_CONFIG_DIR})
 }

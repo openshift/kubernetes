@@ -9,6 +9,7 @@ load(
 go_library(
     name = "go_default_library",
     srcs = [
+        "convert.go",
         "doc.go",
         "fake_kuberuntime_manager.go",
         "helpers.go",
@@ -69,7 +70,7 @@ go_library(
         "//vendor/github.com/armon/circbuf:go_default_library",
         "//vendor/github.com/google/cadvisor/info/v1:go_default_library",
         "//vendor/google.golang.org/grpc/status:go_default_library",
-        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/v2:go_default_library",
     ] + select({
         "@io_bazel_rules_go//go/platform:android": [
             "//pkg/apis/core/v1/helper:go_default_library",
@@ -83,7 +84,6 @@ go_library(
         ],
         "@io_bazel_rules_go//go/platform:windows": [
             "//pkg/kubelet/apis:go_default_library",
-            "//vendor/github.com/docker/docker/pkg/sysinfo:go_default_library",
         ],
         "//conditions:default": [],
     }),
@@ -92,6 +92,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
+        "convert_test.go",
         "helpers_linux_test.go",
         "helpers_test.go",
         "instrumented_services_test.go",

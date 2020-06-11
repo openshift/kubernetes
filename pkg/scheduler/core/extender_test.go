@@ -40,8 +40,6 @@ import (
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
-	"k8s.io/kubernetes/pkg/scheduler/listers"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/kubernetes/pkg/scheduler/profile"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
 	"k8s.io/kubernetes/pkg/scheduler/util"
@@ -112,7 +110,7 @@ func machine2PrioritizerExtender(pod *v1.Pod, nodes []*v1.Node) (*framework.Node
 type machine2PrioritizerPlugin struct{}
 
 func newMachine2PrioritizerPlugin() framework.PluginFactory {
-	return func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 		return &machine2PrioritizerPlugin{}, nil
 	}
 }
@@ -143,7 +141,7 @@ type FakeExtender struct {
 	ignorable        bool
 
 	// Cached node information for fake extender
-	cachedNodeNameToInfo map[string]*schedulernodeinfo.NodeInfo
+	cachedNodeNameToInfo map[string]*framework.NodeInfo
 }
 
 func (f *FakeExtender) Name() string {
@@ -161,36 +159,37 @@ func (f *FakeExtender) SupportsPreemption() bool {
 
 func (f *FakeExtender) ProcessPreemption(
 	pod *v1.Pod,
-	nodeToVictims map[*v1.Node]*extenderv1.Victims,
-	nodeInfos listers.NodeInfoLister,
-) (map[*v1.Node]*extenderv1.Victims, error) {
-	nodeToVictimsCopy := map[*v1.Node]*extenderv1.Victims{}
-	// We don't want to change the original nodeToVictims
-	for k, v := range nodeToVictims {
+	nodeNameToVictims map[string]*extenderv1.Victims,
+	nodeInfos framework.NodeInfoLister,
+) (map[string]*extenderv1.Victims, error) {
+	nodeNameToVictimsCopy := map[string]*extenderv1.Victims{}
+	// We don't want to change the original nodeNameToVictims
+	for k, v := range nodeNameToVictims {
 		// In real world implementation, extender's user should have their own way to get node object
 		// by name if needed (e.g. query kube-apiserver etc).
 		//
 		// For test purpose, we just use node from parameters directly.
-		nodeToVictimsCopy[k] = v
+		nodeNameToVictimsCopy[k] = v
 	}
 
-	for node, victims := range nodeToVictimsCopy {
+	for nodeName, victims := range nodeNameToVictimsCopy {
 		// Try to do preemption on extender side.
-		extenderVictimPods, extendernPDBViolations, fits, err := f.selectVictimsOnNodeByExtender(pod, node)
+		nodeInfo, _ := nodeInfos.Get(nodeName)
+		extenderVictimPods, extenderPDBViolations, fits, err := f.selectVictimsOnNodeByExtender(pod, nodeInfo.Node())
 		if err != nil {
 			return nil, err
 		}
 		// If it's unfit after extender's preemption, this node is unresolvable by preemption overall,
 		// let's remove it from potential preemption nodes.
 		if !fits {
-			delete(nodeToVictimsCopy, node)
+			delete(nodeNameToVictimsCopy, nodeName)
 		} else {
 			// Append new victims to original victims
-			nodeToVictimsCopy[node].Pods = append(victims.Pods, extenderVictimPods...)
-			nodeToVictimsCopy[node].NumPDBViolations = victims.NumPDBViolations + int64(extendernPDBViolations)
+			nodeNameToVictimsCopy[nodeName].Pods = append(victims.Pods, extenderVictimPods...)
+			nodeNameToVictimsCopy[nodeName].NumPDBViolations = victims.NumPDBViolations + int64(extenderPDBViolations)
 		}
 	}
-	return nodeToVictimsCopy, nil
+	return nodeNameToVictimsCopy, nil
 }
 
 // selectVictimsOnNodeByExtender checks the given nodes->pods map with predicates on extender's side.
@@ -227,10 +226,10 @@ func (f *FakeExtender) selectVictimsOnNodeByExtender(pod *v1.Pod, node *v1.Node)
 	// As the first step, remove all the lower priority pods from the node and
 	// check if the given pod can be scheduled.
 	podPriority := podutil.GetPodPriority(pod)
-	for _, p := range nodeInfoCopy.Pods() {
-		if podutil.GetPodPriority(p) < podPriority {
-			potentialVictims = append(potentialVictims, p)
-			removePod(p)
+	for _, p := range nodeInfoCopy.Pods {
+		if podutil.GetPodPriority(p.Pod) < podPriority {
+			potentialVictims = append(potentialVictims, p.Pod)
+			removePod(p.Pod)
 		}
 	}
 	sort.Slice(potentialVictims, func(i, j int) bool { return util.MoreImportantPod(potentialVictims[i], potentialVictims[j]) })
@@ -354,7 +353,7 @@ func (f *FakeExtender) IsInterested(pod *v1.Pod) bool {
 	return !f.unInterested
 }
 
-var _ SchedulerExtender = &FakeExtender{}
+var _ framework.Extender = &FakeExtender{}
 
 func TestGenericSchedulerWithExtenders(t *testing.T) {
 	tests := []struct {
@@ -576,7 +575,7 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 			client := clientsetfake.NewSimpleClientset()
 			informerFactory := informers.NewSharedInformerFactory(client, 0)
 
-			extenders := []SchedulerExtender{}
+			extenders := []framework.Extender{}
 			for ii := range test.extenders {
 				extenders = append(extenders, &test.extenders[ii])
 			}
@@ -602,8 +601,7 @@ func TestGenericSchedulerWithExtenders(t *testing.T) {
 				informerFactory.Core().V1().PersistentVolumeClaims().Lister(),
 				informerFactory.Policy().V1beta1().PodDisruptionBudgets().Lister(),
 				false,
-				schedulerapi.DefaultPercentageOfNodesToScore,
-				false)
+				schedulerapi.DefaultPercentageOfNodesToScore)
 			podIgnored := &v1.Pod{}
 			result, err := scheduler.Schedule(context.Background(), prof, framework.NewCycleState(), podIgnored)
 			if test.expectsErr {

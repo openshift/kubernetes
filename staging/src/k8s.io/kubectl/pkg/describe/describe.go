@@ -67,7 +67,7 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/reference"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/scheme"
 	"k8s.io/kubectl/pkg/util/certificate"
 	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
@@ -2116,7 +2116,9 @@ func describeJob(job *batchv1.Job, events *corev1.EventList) (string, error) {
 		if controlledBy := printController(job); len(controlledBy) > 0 {
 			w.Write(LEVEL_0, "Controlled By:\t%s\n", controlledBy)
 		}
-		w.Write(LEVEL_0, "Parallelism:\t%d\n", *job.Spec.Parallelism)
+		if job.Spec.Parallelism != nil {
+			w.Write(LEVEL_0, "Parallelism:\t%d\n", *job.Spec.Parallelism)
+		}
 		if job.Spec.Completions != nil {
 			w.Write(LEVEL_0, "Completions:\t%d\n", *job.Spec.Completions)
 		} else {
@@ -3640,6 +3642,9 @@ func DescribeEvents(el *corev1.EventList, w PrefixWriter) {
 			interval = fmt.Sprintf("%s (x%d over %s)", translateTimestampSince(e.LastTimestamp), e.Count, translateTimestampSince(e.FirstTimestamp))
 		} else {
 			interval = translateTimestampSince(e.FirstTimestamp)
+			if e.FirstTimestamp.IsZero() {
+				interval = translateMicroTimestampSince(e.EventTime)
+			}
 		}
 		w.Write(LEVEL_1, "%v\t%v\t%s\t%v\t%v\n",
 			e.Type,
@@ -4031,10 +4036,14 @@ func describeCSINode(csi *storagev1.CSINode, events *corev1.EventList) (output s
 			w.Write(LEVEL_1, "Drivers:\n")
 			for _, driver := range csi.Spec.Drivers {
 				w.Write(LEVEL_2, "%s:\n", driver.Name)
-				w.Write(LEVEL_3, "Allocatables:\n")
-				w.Write(LEVEL_4, "Count:\t%d\n", *driver.Allocatable.Count)
 				w.Write(LEVEL_3, "Node ID:\t%s\n", driver.NodeID)
-				w.Write(LEVEL_3, "Topology Keys:\t%s\n", driver.TopologyKeys)
+				if driver.Allocatable != nil && driver.Allocatable.Count != nil {
+					w.Write(LEVEL_3, "Allocatables:\n")
+					w.Write(LEVEL_4, "Count:\t%d\n", *driver.Allocatable.Count)
+				}
+				if driver.TopologyKeys != nil {
+					w.Write(LEVEL_3, "Topology Keys:\t%s\n", driver.TopologyKeys)
+				}
 			}
 		}
 		if events != nil {
@@ -4597,6 +4606,17 @@ func printTolerationsMultilineWithIndent(w PrefixWriter, initialIndent, title, i
 		if len(toleration.Effect) != 0 {
 			w.Write(LEVEL_0, ":%s", toleration.Effect)
 		}
+		// tolerations:
+		// - operator: "Exists"
+		// is a special case which tolerates everything
+		if toleration.Operator == corev1.TolerationOpExists && len(toleration.Value) == 0 {
+			if len(toleration.Key) != 0 {
+				w.Write(LEVEL_0, " op=Exists")
+			} else {
+				w.Write(LEVEL_0, "op=Exists")
+			}
+		}
+
 		if toleration.TolerationSeconds != nil {
 			w.Write(LEVEL_0, " for %ds", *toleration.TolerationSeconds)
 		}
@@ -4737,6 +4757,16 @@ func shorten(s string, maxLength int) string {
 		return s[:maxLength] + "..."
 	}
 	return s
+}
+
+// translateMicroTimestampSince returns the elapsed time since timestamp in
+// human-readable approximation.
+func translateMicroTimestampSince(timestamp metav1.MicroTime) string {
+	if timestamp.IsZero() {
+		return "<unknown>"
+	}
+
+	return duration.HumanDuration(time.Since(timestamp.Time))
 }
 
 // translateTimestampSince returns the elapsed time since timestamp in
