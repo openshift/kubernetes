@@ -36,9 +36,9 @@ import (
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	extensionsinternal "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/controller/daemon"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	e2eresource "k8s.io/kubernetes/test/e2e/framework/resource"
 	testutils "k8s.io/kubernetes/test/utils"
 
 	"github.com/onsi/ginkgo"
@@ -104,7 +104,7 @@ var _ = SIGDescribe("Daemon set [Serial]", func() {
 		if daemonsets != nil && len(daemonsets.Items) > 0 {
 			for _, ds := range daemonsets.Items {
 				ginkgo.By(fmt.Sprintf("Deleting DaemonSet %q", ds.Name))
-				framework.ExpectNoError(framework.DeleteResourceAndWaitForGC(f.ClientSet, extensionsinternal.Kind("DaemonSet"), f.Namespace.Name, ds.Name))
+				framework.ExpectNoError(e2eresource.DeleteResourceAndWaitForGC(f.ClientSet, extensionsinternal.Kind("DaemonSet"), f.Namespace.Name, ds.Name))
 				err = wait.PollImmediate(dsRetryPeriod, dsRetryTimeout, checkRunningOnNoNodes(f, &ds))
 				framework.ExpectNoError(err, "error waiting for daemon pod to be reaped")
 			}
@@ -687,14 +687,7 @@ func checkAtLeastOneNewPod(c clientset.Interface, ns string, label map[string]st
 // canScheduleOnNode checks if a given DaemonSet can schedule pods on the given node
 func canScheduleOnNode(node v1.Node, ds *appsv1.DaemonSet) bool {
 	newPod := daemon.NewPod(ds, node.Name)
-	nodeInfo := schedulernodeinfo.NewNodeInfo()
-	nodeInfo.SetNode(&node)
-	taints, err := nodeInfo.Taints()
-	if err != nil {
-		framework.Failf("Can't test DaemonSet predicates for node %s: %v", node.Name, err)
-		return false
-	}
-	fitsNodeName, fitsNodeAffinity, fitsTaints := daemon.Predicates(newPod, &node, taints)
+	fitsNodeName, fitsNodeAffinity, fitsTaints := daemon.Predicates(newPod, &node, node.Spec.Taints)
 	return fitsNodeName && fitsNodeAffinity && fitsTaints
 }
 

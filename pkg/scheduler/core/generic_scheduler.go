@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	v1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
@@ -35,15 +35,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	policylisters "k8s.io/client-go/listers/policy/v1beta1"
-	"k8s.io/client-go/util/workqueue"
 	extenderv1 "k8s.io/kube-scheduler/extender/v1"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/internal/cache"
+	"k8s.io/kubernetes/pkg/scheduler/internal/parallelize"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/internal/queue"
-	"k8s.io/kubernetes/pkg/scheduler/listers"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/kubernetes/pkg/scheduler/profile"
 	"k8s.io/kubernetes/pkg/scheduler/util"
 	utiltrace "k8s.io/utils/trace"
@@ -107,10 +105,10 @@ type ScheduleAlgorithm interface {
 	// the pod by preempting lower priority pods if possible.
 	// It returns the node where preemption happened, a list of preempted pods, a
 	// list of pods whose nominated node name should be removed, and error if any.
-	Preempt(context.Context, *profile.Profile, *framework.CycleState, *v1.Pod, error) (selectedNode *v1.Node, preemptedPods []*v1.Pod, cleanupNominatedPods []*v1.Pod, err error)
-	// Prioritizers returns a slice of priority config. This is exposed for
+	Preempt(context.Context, *profile.Profile, *framework.CycleState, *v1.Pod, error) (selectedNode string, preemptedPods []*v1.Pod, cleanupNominatedPods []*v1.Pod, err error)
+	// Extenders returns a slice of extender config. This is exposed for
 	// testing.
-	Extenders() []SchedulerExtender
+	Extenders() []framework.Extender
 }
 
 // ScheduleResult represents the result of one pod scheduled. It will contain
@@ -127,13 +125,12 @@ type ScheduleResult struct {
 type genericScheduler struct {
 	cache                    internalcache.Cache
 	schedulingQueue          internalqueue.SchedulingQueue
-	extenders                []SchedulerExtender
+	extenders                []framework.Extender
 	nodeInfoSnapshot         *internalcache.Snapshot
 	pvcLister                corelisters.PersistentVolumeClaimLister
 	pdbLister                policylisters.PodDisruptionBudgetLister
 	disablePreemption        bool
 	percentageOfNodesToScore int32
-	enableNonPreempting      bool
 	nextStartNodeIndex       int
 }
 
@@ -166,12 +163,6 @@ func (g *genericScheduler) Schedule(ctx context.Context, prof *profile.Profile, 
 	}
 
 	// Run "prefilter" plugins.
-	preFilterStatus := prof.RunPreFilterPlugins(ctx, state, pod)
-	if !preFilterStatus.IsSuccess() {
-		return result, preFilterStatus.AsError()
-	}
-	trace.Step("Running prefilter plugins done")
-
 	startPredicateEvalTime := time.Now()
 	filteredNodes, filteredNodesStatuses, err := g.findNodesThatFitPod(ctx, prof, state, pod)
 	if err != nil {
@@ -186,13 +177,6 @@ func (g *genericScheduler) Schedule(ctx context.Context, prof *profile.Profile, 
 			FilteredNodesStatuses: filteredNodesStatuses,
 		}
 	}
-
-	// Run "prescore" plugins.
-	prescoreStatus := prof.RunPreScorePlugins(ctx, state, pod, filteredNodes)
-	if !prescoreStatus.IsSuccess() {
-		return result, prescoreStatus.AsError()
-	}
-	trace.Step("Running prescore plugins done")
 
 	metrics.DeprecatedSchedulingAlgorithmPredicateEvaluationSecondsDuration.Observe(metrics.SinceInSeconds(startPredicateEvalTime))
 	metrics.DeprecatedSchedulingDuration.WithLabelValues(metrics.PredicateEvaluation).Observe(metrics.SinceInSeconds(startPredicateEvalTime))
@@ -226,7 +210,7 @@ func (g *genericScheduler) Schedule(ctx context.Context, prof *profile.Profile, 
 	}, err
 }
 
-func (g *genericScheduler) Extenders() []SchedulerExtender {
+func (g *genericScheduler) Extenders() []framework.Extender {
 	return g.extenders
 }
 
@@ -267,74 +251,74 @@ func (g *genericScheduler) selectHost(nodeScoreList framework.NodeScoreList) (st
 // other pods with the same priority. The nominated pod prevents other pods from
 // using the nominated resources and the nominated pod could take a long time
 // before it is retried after many other pending pods.
-func (g *genericScheduler) Preempt(ctx context.Context, prof *profile.Profile, state *framework.CycleState, pod *v1.Pod, scheduleErr error) (*v1.Node, []*v1.Pod, []*v1.Pod, error) {
+func (g *genericScheduler) Preempt(ctx context.Context, prof *profile.Profile, state *framework.CycleState, pod *v1.Pod, scheduleErr error) (string, []*v1.Pod, []*v1.Pod, error) {
 	// Scheduler may return various types of errors. Consider preemption only if
 	// the error is of type FitError.
 	fitError, ok := scheduleErr.(*FitError)
 	if !ok || fitError == nil {
-		return nil, nil, nil, nil
+		return "", nil, nil, nil
 	}
-	if !podEligibleToPreemptOthers(pod, g.nodeInfoSnapshot.NodeInfos(), g.enableNonPreempting) {
+	if !podEligibleToPreemptOthers(pod, g.nodeInfoSnapshot.NodeInfos()) {
 		klog.V(5).Infof("Pod %v/%v is not eligible for more preemption.", pod.Namespace, pod.Name)
-		return nil, nil, nil, nil
+		return "", nil, nil, nil
 	}
 	allNodes, err := g.nodeInfoSnapshot.NodeInfos().List()
 	if err != nil {
-		return nil, nil, nil, err
+		return "", nil, nil, err
 	}
 	if len(allNodes) == 0 {
-		return nil, nil, nil, ErrNoNodesAvailable
+		return "", nil, nil, ErrNoNodesAvailable
 	}
 	potentialNodes := nodesWherePreemptionMightHelp(allNodes, fitError)
 	if len(potentialNodes) == 0 {
 		klog.V(3).Infof("Preemption will not help schedule pod %v/%v on any node.", pod.Namespace, pod.Name)
 		// In this case, we should clean-up any existing nominated node name of the pod.
-		return nil, nil, []*v1.Pod{pod}, nil
+		return "", nil, []*v1.Pod{pod}, nil
 	}
 	var pdbs []*policy.PodDisruptionBudget
 	if g.pdbLister != nil {
 		pdbs, err = g.pdbLister.List(labels.Everything())
 		if err != nil {
-			return nil, nil, nil, err
+			return "", nil, nil, err
 		}
 	}
-	nodeToVictims, err := g.selectNodesForPreemption(ctx, prof, state, pod, potentialNodes, pdbs)
+	nodeNameToVictims, err := g.selectNodesForPreemption(ctx, prof, state, pod, potentialNodes, pdbs)
 	if err != nil {
-		return nil, nil, nil, err
+		return "", nil, nil, err
 	}
 
-	// We will only check nodeToVictims with extenders that support preemption.
+	// We will only check nodeNameToVictims with extenders that support preemption.
 	// Extenders which do not support preemption may later prevent preemptor from being scheduled on the nominated
 	// node. In that case, scheduler will find a different host for the preemptor in subsequent scheduling cycles.
-	nodeToVictims, err = g.processPreemptionWithExtenders(pod, nodeToVictims)
+	nodeNameToVictims, err = g.processPreemptionWithExtenders(pod, nodeNameToVictims)
 	if err != nil {
-		return nil, nil, nil, err
+		return "", nil, nil, err
 	}
 
-	candidateNode := pickOneNodeForPreemption(nodeToVictims)
-	if candidateNode == nil {
-		return nil, nil, nil, nil
+	candidateNode := pickOneNodeForPreemption(nodeNameToVictims)
+	if len(candidateNode) == 0 {
+		return "", nil, nil, nil
 	}
 
 	// Lower priority pods nominated to run on this node, may no longer fit on
 	// this node. So, we should remove their nomination. Removing their
 	// nomination updates these pods and moves them to the active queue. It
 	// lets scheduler find another place for them.
-	nominatedPods := g.getLowerPriorityNominatedPods(pod, candidateNode.Name)
-	return candidateNode, nodeToVictims[candidateNode].Pods, nominatedPods, nil
+	nominatedPods := g.getLowerPriorityNominatedPods(pod, candidateNode)
+	return candidateNode, nodeNameToVictims[candidateNode].Pods, nominatedPods, nil
 }
 
 // processPreemptionWithExtenders processes preemption with extenders
 func (g *genericScheduler) processPreemptionWithExtenders(
 	pod *v1.Pod,
-	nodeToVictims map[*v1.Node]*extenderv1.Victims,
-) (map[*v1.Node]*extenderv1.Victims, error) {
-	if len(nodeToVictims) > 0 {
+	nodeNameToVictims map[string]*extenderv1.Victims,
+) (map[string]*extenderv1.Victims, error) {
+	if len(nodeNameToVictims) > 0 {
 		for _, extender := range g.extenders {
 			if extender.SupportsPreemption() && extender.IsInterested(pod) {
-				newNodeToVictims, err := extender.ProcessPreemption(
+				newNodeNameToVictims, err := extender.ProcessPreemption(
 					pod,
-					nodeToVictims,
+					nodeNameToVictims,
 					g.nodeInfoSnapshot.NodeInfos(),
 				)
 				if err != nil {
@@ -346,19 +330,19 @@ func (g *genericScheduler) processPreemptionWithExtenders(
 					return nil, err
 				}
 
-				// Replace nodeToVictims with new result after preemption. So the
+				// Replace nodeNameToVictims with new result after preemption. So the
 				// rest of extenders can continue use it as parameter.
-				nodeToVictims = newNodeToVictims
+				nodeNameToVictims = newNodeNameToVictims
 
 				// If node list becomes empty, no preemption can happen regardless of other extenders.
-				if len(nodeToVictims) == 0 {
+				if len(nodeNameToVictims) == 0 {
 					break
 				}
 			}
 		}
 	}
 
-	return nodeToVictims, nil
+	return nodeNameToVictims, nil
 }
 
 // getLowerPriorityNominatedPods returns pods whose priority is smaller than the
@@ -412,6 +396,11 @@ func (g *genericScheduler) numFeasibleNodesToFind(numAllNodes int32) (numNodes i
 // Filters the nodes to find the ones that fit the pod based on the framework
 // filter plugins and filter extenders.
 func (g *genericScheduler) findNodesThatFitPod(ctx context.Context, prof *profile.Profile, state *framework.CycleState, pod *v1.Pod) ([]*v1.Node, framework.NodeToStatusMap, error) {
+	s := prof.RunPreFilterPlugins(ctx, state, pod)
+	if !s.IsSuccess() {
+		return nil, nil, s.AsError()
+	}
+
 	filteredNodesStatuses := make(framework.NodeToStatusMap)
 	filtered, err := g.findNodesThatPassFilters(ctx, prof, state, pod, filteredNodesStatuses)
 	if err != nil {
@@ -446,7 +435,7 @@ func (g *genericScheduler) findNodesThatPassFilters(ctx context.Context, prof *p
 		return filtered, nil
 	}
 
-	errCh := util.NewErrorChannel()
+	errCh := parallelize.NewErrorChannel()
 	var statusesLock sync.Mutex
 	var filteredLen int32
 	ctx, cancel := context.WithCancel(ctx)
@@ -487,7 +476,7 @@ func (g *genericScheduler) findNodesThatPassFilters(ctx context.Context, prof *p
 
 	// Stops searching for more nodes once the configured number of feasible nodes
 	// are found.
-	workqueue.ParallelizeUntil(ctx, 16, len(allNodes), checkNode)
+	parallelize.Until(ctx, len(allNodes), checkNode)
 	processedNodes := int(filteredLen) + len(statuses)
 	g.nextStartNodeIndex = (g.nextStartNodeIndex + processedNodes) % len(allNodes)
 
@@ -532,7 +521,7 @@ func (g *genericScheduler) findNodesThatPassExtenders(pod *v1.Pod, filtered []*v
 // addNominatedPods adds pods with equal or greater priority which are nominated
 // to run on the node. It returns 1) whether any pod was added, 2) augmented cycleState,
 // 3) augmented nodeInfo.
-func (g *genericScheduler) addNominatedPods(ctx context.Context, prof *profile.Profile, pod *v1.Pod, state *framework.CycleState, nodeInfo *schedulernodeinfo.NodeInfo) (bool, *framework.CycleState, *schedulernodeinfo.NodeInfo, error) {
+func (g *genericScheduler) addNominatedPods(ctx context.Context, prof *profile.Profile, pod *v1.Pod, state *framework.CycleState, nodeInfo *framework.NodeInfo) (bool, *framework.CycleState, *framework.NodeInfo, error) {
 	if g.schedulingQueue == nil || nodeInfo == nil || nodeInfo.Node() == nil {
 		// This may happen only in tests.
 		return false, state, nodeInfo, nil
@@ -572,7 +561,7 @@ func (g *genericScheduler) podPassesFiltersOnNode(
 	prof *profile.Profile,
 	state *framework.CycleState,
 	pod *v1.Pod,
-	info *schedulernodeinfo.NodeInfo,
+	info *framework.NodeInfo,
 ) (bool, *framework.Status, error) {
 	var status *framework.Status
 
@@ -643,10 +632,22 @@ func (g *genericScheduler) prioritizeNodes(
 		return result, nil
 	}
 
+	// Run PreScore plugins.
+	preScoreStatus := prof.RunPreScorePlugins(ctx, state, pod, nodes)
+	if !preScoreStatus.IsSuccess() {
+		return nil, preScoreStatus.AsError()
+	}
+
 	// Run the Score plugins.
 	scoresMap, scoreStatus := prof.RunScorePlugins(ctx, state, pod, nodes)
 	if !scoreStatus.IsSuccess() {
-		return framework.NodeScoreList{}, scoreStatus.AsError()
+		return nil, scoreStatus.AsError()
+	}
+
+	if klog.V(10).Enabled() {
+		for plugin, nodeScoreList := range scoresMap {
+			klog.Infof("Plugin %s scores on %v/%v => %v", plugin, pod.Namespace, pod.Name, nodeScoreList)
+		}
 	}
 
 	// Summarize all scores.
@@ -682,7 +683,7 @@ func (g *genericScheduler) prioritizeNodes(
 				mu.Lock()
 				for i := range *prioritizedList {
 					host, score := (*prioritizedList)[i].Host, (*prioritizedList)[i].Score
-					if klog.V(10) {
+					if klog.V(10).Enabled() {
 						klog.Infof("%v -> %v: %v, Score: (%d)", util.GetPodFullName(pod), host, g.extenders[extIndex].Name(), score)
 					}
 					combinedScores[host] += score * weight
@@ -699,7 +700,7 @@ func (g *genericScheduler) prioritizeNodes(
 		}
 	}
 
-	if klog.V(10) {
+	if klog.V(10).Enabled() {
 		for i := range result {
 			klog.Infof("Host %s => Score %d", result[i].Name, result[i].Score)
 		}
@@ -718,12 +719,12 @@ func (g *genericScheduler) prioritizeNodes(
 // 6. If there are still ties, the first such node is picked (sort of randomly).
 // The 'minNodes1' and 'minNodes2' are being reused here to save the memory
 // allocation and garbage collection time.
-func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*extenderv1.Victims) *v1.Node {
+func pickOneNodeForPreemption(nodesToVictims map[string]*extenderv1.Victims) string {
 	if len(nodesToVictims) == 0 {
-		return nil
+		return ""
 	}
 	minNumPDBViolatingPods := int64(math.MaxInt32)
-	var minNodes1 []*v1.Node
+	var minNodes1 []string
 	lenNodes1 := 0
 	for node, victims := range nodesToVictims {
 		if len(victims.Pods) == 0 {
@@ -751,7 +752,7 @@ func pickOneNodeForPreemption(nodesToVictims map[*v1.Node]*extenderv1.Victims) *
 	// There are more than one node with minimum number PDB violating pods. Find
 	// the one with minimum highest priority victim.
 	minHighestPriority := int32(math.MaxInt32)
-	var minNodes2 = make([]*v1.Node, lenNodes1)
+	var minNodes2 = make([]string, lenNodes1)
 	lenNodes2 := 0
 	for i := 0; i < lenNodes1; i++ {
 		node := minNodes1[i]
@@ -852,10 +853,10 @@ func (g *genericScheduler) selectNodesForPreemption(
 	prof *profile.Profile,
 	state *framework.CycleState,
 	pod *v1.Pod,
-	potentialNodes []*schedulernodeinfo.NodeInfo,
+	potentialNodes []*framework.NodeInfo,
 	pdbs []*policy.PodDisruptionBudget,
-) (map[*v1.Node]*extenderv1.Victims, error) {
-	nodeToVictims := map[*v1.Node]*extenderv1.Victims{}
+) (map[string]*extenderv1.Victims, error) {
+	nodeNameToVictims := map[string]*extenderv1.Victims{}
 	var resultLock sync.Mutex
 
 	checkNode := func(i int) {
@@ -868,12 +869,12 @@ func (g *genericScheduler) selectNodesForPreemption(
 				Pods:             pods,
 				NumPDBViolations: int64(numPDBViolations),
 			}
-			nodeToVictims[potentialNodes[i].Node()] = &victims
+			nodeNameToVictims[potentialNodes[i].Node().Name] = &victims
 			resultLock.Unlock()
 		}
 	}
-	workqueue.ParallelizeUntil(context.TODO(), 16, len(potentialNodes), checkNode)
-	return nodeToVictims, nil
+	parallelize.Until(ctx, len(potentialNodes), checkNode)
+	return nodeNameToVictims, nil
 }
 
 // filterPodsWithPDBViolation groups the given "pods" into two groups of "violatingPods"
@@ -942,7 +943,7 @@ func (g *genericScheduler) selectVictimsOnNode(
 	prof *profile.Profile,
 	state *framework.CycleState,
 	pod *v1.Pod,
-	nodeInfo *schedulernodeinfo.NodeInfo,
+	nodeInfo *framework.NodeInfo,
 	pdbs []*policy.PodDisruptionBudget,
 ) ([]*v1.Pod, int, bool) {
 	var potentialVictims []*v1.Pod
@@ -968,10 +969,10 @@ func (g *genericScheduler) selectVictimsOnNode(
 	// As the first step, remove all the lower priority pods from the node and
 	// check if the given pod can be scheduled.
 	podPriority := podutil.GetPodPriority(pod)
-	for _, p := range nodeInfo.Pods() {
-		if podutil.GetPodPriority(p) < podPriority {
-			potentialVictims = append(potentialVictims, p)
-			if err := removePod(p); err != nil {
+	for _, p := range nodeInfo.Pods {
+		if podutil.GetPodPriority(p.Pod) < podPriority {
+			potentialVictims = append(potentialVictims, p.Pod)
+			if err := removePod(p.Pod); err != nil {
 				return nil, 0, false
 			}
 		}
@@ -1030,8 +1031,8 @@ func (g *genericScheduler) selectVictimsOnNode(
 
 // nodesWherePreemptionMightHelp returns a list of nodes with failed predicates
 // that may be satisfied by removing pods from the node.
-func nodesWherePreemptionMightHelp(nodes []*schedulernodeinfo.NodeInfo, fitErr *FitError) []*schedulernodeinfo.NodeInfo {
-	var potentialNodes []*schedulernodeinfo.NodeInfo
+func nodesWherePreemptionMightHelp(nodes []*framework.NodeInfo, fitErr *FitError) []*framework.NodeInfo {
+	var potentialNodes []*framework.NodeInfo
 	for _, node := range nodes {
 		name := node.Node().Name
 		// We reply on the status by each plugin - 'Unschedulable' or 'UnschedulableAndUnresolvable'
@@ -1051,8 +1052,8 @@ func nodesWherePreemptionMightHelp(nodes []*schedulernodeinfo.NodeInfo, fitErr *
 // considered for preemption.
 // We look at the node that is nominated for this pod and as long as there are
 // terminating pods on the node, we don't consider this for preempting more pods.
-func podEligibleToPreemptOthers(pod *v1.Pod, nodeInfos listers.NodeInfoLister, enableNonPreempting bool) bool {
-	if enableNonPreempting && pod.Spec.PreemptionPolicy != nil && *pod.Spec.PreemptionPolicy == v1.PreemptNever {
+func podEligibleToPreemptOthers(pod *v1.Pod, nodeInfos framework.NodeInfoLister) bool {
+	if pod.Spec.PreemptionPolicy != nil && *pod.Spec.PreemptionPolicy == v1.PreemptNever {
 		klog.V(5).Infof("Pod %v/%v is not eligible for preemption because it has a preemptionPolicy of %v", pod.Namespace, pod.Name, v1.PreemptNever)
 		return false
 	}
@@ -1060,8 +1061,8 @@ func podEligibleToPreemptOthers(pod *v1.Pod, nodeInfos listers.NodeInfoLister, e
 	if len(nomNodeName) > 0 {
 		if nodeInfo, _ := nodeInfos.Get(nomNodeName); nodeInfo != nil {
 			podPriority := podutil.GetPodPriority(pod)
-			for _, p := range nodeInfo.Pods() {
-				if p.DeletionTimestamp != nil && podutil.GetPodPriority(p) < podPriority {
+			for _, p := range nodeInfo.Pods {
+				if p.Pod.DeletionTimestamp != nil && podutil.GetPodPriority(p.Pod) < podPriority {
 					// There is a terminating pod on the nominated node.
 					return false
 				}
@@ -1102,12 +1103,11 @@ func NewGenericScheduler(
 	cache internalcache.Cache,
 	podQueue internalqueue.SchedulingQueue,
 	nodeInfoSnapshot *internalcache.Snapshot,
-	extenders []SchedulerExtender,
+	extenders []framework.Extender,
 	pvcLister corelisters.PersistentVolumeClaimLister,
 	pdbLister policylisters.PodDisruptionBudgetLister,
 	disablePreemption bool,
-	percentageOfNodesToScore int32,
-	enableNonPreempting bool) ScheduleAlgorithm {
+	percentageOfNodesToScore int32) ScheduleAlgorithm {
 	return &genericScheduler{
 		cache:                    cache,
 		schedulingQueue:          podQueue,
@@ -1117,6 +1117,5 @@ func NewGenericScheduler(
 		pdbLister:                pdbLister,
 		disablePreemption:        disablePreemption,
 		percentageOfNodesToScore: percentageOfNodesToScore,
-		enableNonPreempting:      enableNonPreempting,
 	}
 }

@@ -39,7 +39,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	"k8s.io/kubernetes/test/e2e/framework/replicaset"
+	e2ereplicaset "k8s.io/kubernetes/test/e2e/framework/replicaset"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/onsi/ginkgo"
@@ -110,7 +110,7 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 		var podRes v1.ResourceList
 
 		// Create one pod per node that uses a lot of the node's resources.
-		ginkgo.By("Create pods that use 60% of node resources.")
+		ginkgo.By("Create pods that use 2/3 of node resources.")
 		pods := make([]*v1.Pod, 0, len(nodeList.Items))
 		// Now create victim pods on each of the node with lower priority
 		for i, node := range nodeList.Items {
@@ -191,7 +191,6 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 	ginkgo.It("validates lower priority pod preemption by critical pod", func() {
 		var podRes v1.ResourceList
 
-		// Create one pod per node that uses a lot of the node's resources.
 		ginkgo.By("Create pods that use 2/3 of node resources.")
 		pods := make([]*v1.Pod, 0, len(nodeList.Items))
 		for i, node := range nodeList.Items {
@@ -516,7 +515,12 @@ var _ = SIGDescribe("SchedulerPreemption [Serial]", func() {
 			}
 		})
 
-		ginkgo.It("runs ReplicaSets to verify preemption running path", func() {
+		/*
+			Release: v1.19
+			Testname: Pod preemption verification
+			Description: Four levels of Pods in ReplicaSets with different levels of Priority, restricted by given CPU limits MUST launch. Priority 1 - 3 Pods MUST spawn first followed by Priority 4 Pod. The ReplicaSets with Replicas MUST contain the expected number of Replicas.
+		*/
+		framework.ConformanceIt("runs ReplicaSets to verify preemption running path", func() {
 			podNamesSeen := []int32{0, 0, 0}
 			stopCh := make(chan struct{})
 
@@ -695,7 +699,7 @@ func createPauseRS(f *framework.Framework, conf pauseRSConfig) *appsv1.ReplicaSe
 
 func runPauseRS(f *framework.Framework, conf pauseRSConfig) *appsv1.ReplicaSet {
 	rs := createPauseRS(f, conf)
-	framework.ExpectNoError(replicaset.WaitForReplicaSetTargetAvailableReplicasWithTimeout(f.ClientSet, rs, conf.Replicas, framework.PodGetTimeout))
+	framework.ExpectNoError(e2ereplicaset.WaitForReplicaSetTargetAvailableReplicasWithTimeout(f.ClientSet, rs, conf.Replicas, framework.PodGetTimeout))
 	return rs
 }
 

@@ -23,7 +23,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/apis/config"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
 )
@@ -37,11 +37,6 @@ const (
 	maxScore                     = framework.MaxNodeScore
 )
 
-// RequestedToCapacityRatioArgs holds the args that are used to configure the plugin.
-type RequestedToCapacityRatioArgs struct {
-	config.RequestedToCapacityRatioArguments
-}
-
 type functionShape []functionShapePoint
 
 type functionShapePoint struct {
@@ -52,9 +47,9 @@ type functionShapePoint struct {
 }
 
 // NewRequestedToCapacityRatio initializes a new plugin and returns it.
-func NewRequestedToCapacityRatio(plArgs *runtime.Unknown, handle framework.FrameworkHandle) (framework.Plugin, error) {
-	args := &config.RequestedToCapacityRatioArguments{}
-	if err := framework.DecodeInto(plArgs, args); err != nil {
+func NewRequestedToCapacityRatio(plArgs runtime.Object, handle framework.FrameworkHandle) (framework.Plugin, error) {
+	args, err := getRequestedToCapacityRatioArgs(plArgs)
+	if err != nil {
 		return nil, err
 	}
 
@@ -94,6 +89,14 @@ func NewRequestedToCapacityRatio(plArgs *runtime.Unknown, handle framework.Frame
 			resourceToWeightMap,
 		},
 	}, nil
+}
+
+func getRequestedToCapacityRatioArgs(obj runtime.Object) (config.RequestedToCapacityRatioArgs, error) {
+	ptr, ok := obj.(*config.RequestedToCapacityRatioArgs)
+	if !ok {
+		return config.RequestedToCapacityRatioArgs{}, fmt.Errorf("want args to be of type RequestedToCapacityRatioArgs, got %T", obj)
+	}
+	return *ptr, nil
 }
 
 // RequestedToCapacityRatio is a score plugin that allow users to apply bin packing

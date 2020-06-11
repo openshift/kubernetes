@@ -41,7 +41,6 @@ source "${KUBE_ROOT}/test/cmd/discovery.sh"
 source "${KUBE_ROOT}/test/cmd/exec.sh"
 source "${KUBE_ROOT}/test/cmd/generic-resources.sh"
 source "${KUBE_ROOT}/test/cmd/get.sh"
-source "${KUBE_ROOT}/test/cmd/kubeadm.sh"
 source "${KUBE_ROOT}/test/cmd/kubeconfig.sh"
 source "${KUBE_ROOT}/test/cmd/node-management.sh"
 source "${KUBE_ROOT}/test/cmd/plugins.sh"
@@ -416,7 +415,7 @@ runTests() {
     fi
   }
 
-   if [[ -n "${WHAT-}" ]]; then
+  if [[ -n "${WHAT-}" ]]; then
     for pkg in ${WHAT}
     do
       # running of kubeadm is captured in hack/make-targets/test-cmd.sh
@@ -505,6 +504,7 @@ runTests() {
 
   if kube::test::if_supports_resource "${pods}" ; then
     record_command run_kubectl_apply_tests
+    record_command run_kubectl_server_side_apply_tests
     record_command run_kubectl_run_tests
     record_command run_kubectl_create_filter_tests
   fi

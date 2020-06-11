@@ -29,12 +29,31 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&v1alpha2.InterPodAffinityArgs{}, func(obj interface{}) { SetObjectDefaults_InterPodAffinityArgs(obj.(*v1alpha2.InterPodAffinityArgs)) })
 	scheme.AddTypeDefaultingFunc(&v1alpha2.KubeSchedulerConfiguration{}, func(obj interface{}) {
 		SetObjectDefaults_KubeSchedulerConfiguration(obj.(*v1alpha2.KubeSchedulerConfiguration))
+	})
+	scheme.AddTypeDefaultingFunc(&v1alpha2.NodeResourcesLeastAllocatedArgs{}, func(obj interface{}) {
+		SetObjectDefaults_NodeResourcesLeastAllocatedArgs(obj.(*v1alpha2.NodeResourcesLeastAllocatedArgs))
+	})
+	scheme.AddTypeDefaultingFunc(&v1alpha2.NodeResourcesMostAllocatedArgs{}, func(obj interface{}) {
+		SetObjectDefaults_NodeResourcesMostAllocatedArgs(obj.(*v1alpha2.NodeResourcesMostAllocatedArgs))
 	})
 	return nil
 }
 
+func SetObjectDefaults_InterPodAffinityArgs(in *v1alpha2.InterPodAffinityArgs) {
+	SetDefaults_InterPodAffinityArgs(in)
+}
+
 func SetObjectDefaults_KubeSchedulerConfiguration(in *v1alpha2.KubeSchedulerConfiguration) {
 	SetDefaults_KubeSchedulerConfiguration(in)
+}
+
+func SetObjectDefaults_NodeResourcesLeastAllocatedArgs(in *v1alpha2.NodeResourcesLeastAllocatedArgs) {
+	SetDefaults_NodeResourcesLeastAllocatedArgs(in)
+}
+
+func SetObjectDefaults_NodeResourcesMostAllocatedArgs(in *v1alpha2.NodeResourcesMostAllocatedArgs) {
+	SetDefaults_NodeResourcesMostAllocatedArgs(in)
 }

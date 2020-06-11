@@ -32,7 +32,6 @@ import (
 	schedulerconfig "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/defaultbinder"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	testutils "k8s.io/kubernetes/test/integration/util"
 )
 
@@ -137,7 +136,7 @@ var _ framework.PermitPlugin = &PermitPlugin{}
 
 // newPlugin returns a plugin factory with specified Plugin.
 func newPlugin(plugin framework.Plugin) framework.PluginFactory {
-	return func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, fh framework.FrameworkHandle) (framework.Plugin, error) {
 		return plugin, nil
 	}
 }
@@ -214,7 +213,7 @@ func (fp *FilterPlugin) reset() {
 
 // Filter is a test function that returns an error or nil, depending on the
 // value of "failFilter".
-func (fp *FilterPlugin) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *framework.Status {
+func (fp *FilterPlugin) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	fp.numFilterCalled++
 
 	if fp.failFilter {
@@ -455,7 +454,7 @@ func (pp *PermitPlugin) reset() {
 
 // newPermitPlugin returns a factory for permit plugin with specified PermitPlugin.
 func newPermitPlugin(permitPlugin *PermitPlugin) framework.PluginFactory {
-	return func(_ *runtime.Unknown, fh framework.FrameworkHandle) (framework.Plugin, error) {
+	return func(_ runtime.Object, fh framework.FrameworkHandle) (framework.Plugin, error) {
 		permitPlugin.fh = fh
 		return permitPlugin, nil
 	}
@@ -861,16 +860,16 @@ func TestBindPlugin(t *testing.T) {
 	postBindPlugin := &PostBindPlugin{name: "mock-post-bind-plugin"}
 	// Create a plugin registry for testing. Register an unreserve, a bind plugin and a postBind plugin.
 	registry := framework.Registry{
-		unreservePlugin.Name(): func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+		unreservePlugin.Name(): func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 			return unreservePlugin, nil
 		},
-		bindPlugin1.Name(): func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+		bindPlugin1.Name(): func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 			return bindPlugin1, nil
 		},
-		bindPlugin2.Name(): func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+		bindPlugin2.Name(): func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 			return bindPlugin2, nil
 		},
-		postBindPlugin.Name(): func(_ *runtime.Unknown, _ framework.FrameworkHandle) (framework.Plugin, error) {
+		postBindPlugin.Name(): func(_ runtime.Object, _ framework.FrameworkHandle) (framework.Plugin, error) {
 			return postBindPlugin, nil
 		},
 	}
@@ -893,10 +892,12 @@ func TestBindPlugin(t *testing.T) {
 		},
 	}
 
-	// Create the master and the scheduler with the test plugin set.
+	// Create the scheduler with the test plugin set.
 	testCtx := testutils.InitTestSchedulerWithOptions(t, testContext, false, nil, time.Second,
 		scheduler.WithProfiles(prof),
 		scheduler.WithFrameworkOutOfTreeRegistry(registry))
+	testutils.SyncInformerFactory(testCtx)
+	go testCtx.Scheduler.Run(testCtx.Ctx)
 	defer testutils.CleanupTest(t, testCtx)
 
 	// Add a few nodes.
@@ -1393,7 +1394,7 @@ func TestFilterPlugin(t *testing.T) {
 	}
 
 	// Create the master and the scheduler with the test plugin set.
-	testCtx := initTestSchedulerForFrameworkTest(t, testutils.InitTestMaster(t, "filter-plugin", nil), 2,
+	testCtx := initTestSchedulerForFrameworkTest(t, testutils.InitTestMaster(t, "filter-plugin", nil), 1,
 		scheduler.WithProfiles(prof),
 		scheduler.WithFrameworkOutOfTreeRegistry(registry))
 	defer testutils.CleanupTest(t, testCtx)
@@ -1417,8 +1418,8 @@ func TestFilterPlugin(t *testing.T) {
 			}
 		}
 
-		if filterPlugin.numFilterCalled == 0 {
-			t.Errorf("Expected the filter plugin to be called.")
+		if filterPlugin.numFilterCalled != 1 {
+			t.Errorf("Expected the filter plugin to be called 1 time, but got %v.", filterPlugin.numFilterCalled)
 		}
 
 		filterPlugin.reset()
@@ -1553,14 +1554,17 @@ func TestPreemptWithPermitPlugin(t *testing.T) {
 }
 
 func initTestSchedulerForFrameworkTest(t *testing.T, testCtx *testutils.TestContext, nodeCount int, opts ...scheduler.Option) *testutils.TestContext {
-	c := testutils.InitTestSchedulerWithOptions(t, testCtx, false, nil, time.Second, opts...)
+	testCtx = testutils.InitTestSchedulerWithOptions(t, testCtx, false, nil, time.Second, opts...)
+	testutils.SyncInformerFactory(testCtx)
+	go testCtx.Scheduler.Run(testCtx.Ctx)
+
 	if nodeCount > 0 {
-		_, err := createNodes(c.ClientSet, "test-node", nil, nodeCount)
+		_, err := createNodes(testCtx.ClientSet, "test-node", nil, nodeCount)
 		if err != nil {
 			t.Fatalf("Cannot create nodes: %v", err)
 		}
 	}
-	return c
+	return testCtx
 }
 
 // initRegistryAndConfig returns registry and plugins config based on give plugins.

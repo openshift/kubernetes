@@ -40,7 +40,7 @@ For example, let's consider the following `pod.yaml` file:
       containers:
       - args:
         - dns-suffix
-        image: us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11
+        image: us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14
         name: agnhost
       dnsConfig:
         nameservers:
@@ -207,7 +207,7 @@ Usage:
 
 ```console
 guestbook="test/e2e/testing-manifests/guestbook"
-sed_expr="s|{{.AgnhostImage}}|us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11|"
+sed_expr="s|{{.AgnhostImage}}|us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14|"
 
 # create the services.
 kubectl create -f ${guestbook}/frontend-service.yaml
@@ -290,14 +290,14 @@ Examples:
 
 ```console
 docker run -i \
-  us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11 \
+  us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14 \
   logs-generator --log-lines-total 10 --run-duration 1s
 ```
 
 ```console
 kubectl run logs-generator \
   --generator=run-pod/v1 \
-  --image=us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11 \
+  --image=us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14 \
   --restart=Never \
   -- logs-generator -t 10 -d 1s
 ```
@@ -375,7 +375,7 @@ HTTP server:
 
 ### netexec
 
-Starts a HTTP server on given TCP / UDP ports with the following endpoints:
+Starts a HTTP(S) server on given port with the following endpoints:
 
 - `/`: Returns the request's timestamp.
 - `/clientip`: Returns the request's IP address.
@@ -389,11 +389,17 @@ Starts a HTTP server on given TCP / UDP ports with the following endpoints:
   - `request`: The HTTP endpoint or data to be sent through UDP. If not specified, it will result
     in a `400 Bad Request` status code being returned.
   - `protocol`: The protocol which will be used when making the request. Default value: `http`.
-    Acceptable values: `http`, `udp`.
+    Acceptable values: `http`, `udp`, `sctp`.
   - `tries`: The number of times the request will be performed. Default value: `1`.
 - `/echo`: Returns the given `msg` (`/echo?msg=echoed_msg`)
-- `/exit`: Closes the server with the given code (`/exit?code=some-code`). The `code`
-  is expected to be an integer [0-127] or empty; if it is not, it will return an error message.
+- `/exit`: Closes the server with the given code and graceful shutdown. The endpoint's parameters
+	are:
+	- `code`: The exit code for the process. Default value: 0. Allows an integer [0-127].
+	- `timeout`: The amount of time to wait for connections to close before shutting down.
+		Acceptable values are golang durations. If 0 the process will exit immediately without
+		shutdown.
+	- `wait`: The amount of time to wait before starting shutdown. Acceptable values are
+	  golang durations. If 0 the process will start shutdown immediately.
 - `/healthz`: Returns `200 OK` if the server is ready, `412 Status Precondition Failed`
   otherwise. The server is considered not ready if the UDP server did not start yet or
   it exited.
@@ -407,10 +413,23 @@ Starts a HTTP server on given TCP / UDP ports with the following endpoints:
   Returns a JSON with the fields `output` (containing the file's name on the server) and
   `error` containing any potential server side errors.
 
+If `--tls-cert-file` is added (ideally in conjunction with `--tls-private-key-file`, the HTTP server
+will be upgraded to HTTPS. The image has default, `localhost`-based cert/privkey files at
+`/localhost.crt` and `/localhost.key` (see: [`porter` subcommand](#porter))
+
+It will also start a UDP server on the indicated UDP port that responds to the following commands:
+
+- `hostname`: Returns the server's hostname
+- `echo <msg>`: Returns the given `<msg>`
+- `clientip`: Returns the request's IP address
+
+Additionally, if (and only if) `--sctp-port` is passed, it will start an SCTP server on that port,
+responding to the same commands as the UDP server.
+
 Usage:
 
 ```console
-    kubectl exec test-agnhost -- /agnhost netexec [--http-port <http-port>] [--udp-port <udp-port>]
+    kubectl exec test-agnhost -- /agnhost netexec [--http-port <http-port>] [--udp-port <udp-port>] [--sctp-port <sctp-port>] [--tls-cert-file <cert-file>] [--tls-private-key-file <privkey-file>]
 ```
 
 ### nettest
@@ -455,7 +474,7 @@ Usage:
 ```console
     kubectl run test-agnhost \
       --generator=run-pod/v1 \
-      --image=us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11 \
+      --image=us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14 \
       --restart=Never \
       --env "POD_IP=<POD_IP>" \
       --env "NODE_IP=<NODE_IP>" \
@@ -510,7 +529,7 @@ Usage:
 ```console
     kubectl run test-agnhost \
       --generator=run-pod/v1 \
-      --image=us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11 \
+      --image=us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14 \
       --restart=Never \
       --env "BIND_ADDRESS=localhost" \
       --env "BIND_PORT=8080" \
@@ -638,6 +657,6 @@ The Windows `agnhost` image includes a `nc` binary that is 100% compliant with i
 
 ## Image
 
-The image can be found at `us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.11` for both Linux and
+The image can be found at `us.gcr.io/k8s-artifacts-prod/e2e-test-images/agnhost:2.14` for both Linux and
 Windows containers (based on `mcr.microsoft.com/windows/servercore:ltsc2019`,
 `mcr.microsoft.com/windows/servercore:1903`, and `mcr.microsoft.com/windows/servercore:1909`).

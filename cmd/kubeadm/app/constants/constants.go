@@ -182,11 +182,11 @@ const (
 	// PatchNodeTimeout specifies how long kubeadm should wait for applying the label and taint on the control-plane before timing out
 	PatchNodeTimeout = 2 * time.Minute
 	// TLSBootstrapTimeout specifies how long kubeadm should wait for the kubelet to perform the TLS Bootstrap
-	TLSBootstrapTimeout = 2 * time.Minute
+	TLSBootstrapTimeout = 5 * time.Minute
+	// TLSBootstrapRetryInterval specifies how long kubeadm should wait before retrying the TLS Bootstrap check
+	TLSBootstrapRetryInterval = 5 * time.Second
 	// PullImageRetry specifies how many times ContainerRuntime retries when pulling image failed
 	PullImageRetry = 5
-	// PrepullImagesInParallelTimeout specifies how long kubeadm should wait for prepulling images in parallel before timing out
-	PrepullImagesInParallelTimeout = 10 * time.Second
 
 	// DefaultControlPlaneTimeout specifies the default control plane (actually API Server) timeout for use by kubeadm
 	DefaultControlPlaneTimeout = 4 * time.Minute
@@ -265,7 +265,7 @@ const (
 	MinExternalEtcdVersion = "3.2.18"
 
 	// DefaultEtcdVersion indicates the default etcd version that kubeadm uses
-	DefaultEtcdVersion = "3.4.3-0"
+	DefaultEtcdVersion = "3.4.7-0"
 
 	// Etcd defines variable used internally when referring to etcd component
 	Etcd = "etcd"
@@ -279,6 +279,12 @@ const (
 	KubeProxy = "kube-proxy"
 	// HyperKube defines variable used internally when referring to the hyperkube image
 	HyperKube = "hyperkube"
+	// CoreDNS defines variable used internally when referring to the CoreDNS component
+	CoreDNS = "CoreDNS"
+	// KubeDNS defines variable used internally when referring to the KubeDNS component
+	KubeDNS = "kube-dns"
+	// Kubelet defines variable used internally when referring to the Kubelet
+	Kubelet = "kubelet"
 
 	// SelfHostingPrefix describes the prefix workloads that are self-hosted by kubeadm has
 	SelfHostingPrefix = "self-hosted-"
@@ -420,13 +426,13 @@ var (
 	ControlPlaneComponents = []string{KubeAPIServer, KubeControllerManager, KubeScheduler}
 
 	// MinimumControlPlaneVersion specifies the minimum control plane version kubeadm can deploy
-	MinimumControlPlaneVersion = version.MustParseSemantic("v1.17.0")
+	MinimumControlPlaneVersion = version.MustParseSemantic("v1.18.0")
 
 	// MinimumKubeletVersion specifies the minimum version of kubelet which kubeadm supports
-	MinimumKubeletVersion = version.MustParseSemantic("v1.17.0")
+	MinimumKubeletVersion = version.MustParseSemantic("v1.18.0")
 
 	// CurrentKubernetesVersion specifies current Kubernetes version supported by kubeadm
-	CurrentKubernetesVersion = version.MustParseSemantic("v1.18.0")
+	CurrentKubernetesVersion = version.MustParseSemantic("v1.19.0")
 
 	// SupportedEtcdVersion lists officially supported etcd versions with corresponding Kubernetes releases
 	SupportedEtcdVersion = map[uint8]string{
@@ -436,7 +442,8 @@ var (
 		16: "3.3.17-0",
 		17: "3.4.3-0",
 		18: "3.4.3-0",
-		19: "3.4.3-0",
+		19: "3.4.7-0",
+		20: "3.4.7-0",
 	}
 
 	// KubeadmCertsClusterRoleName sets the name for the ClusterRole that allows

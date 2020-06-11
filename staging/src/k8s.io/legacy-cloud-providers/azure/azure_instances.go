@@ -27,7 +27,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	azcache "k8s.io/legacy-cloud-providers/azure/cache"
 )
 
@@ -74,7 +74,7 @@ func (az *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.N
 	}
 
 	if az.UseInstanceMetadata {
-		metadata, err := az.metadata.GetMetadata(azcache.CacheReadTypeUnsafe)
+		metadata, err := az.metadata.GetMetadata(azcache.CacheReadTypeDefault)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +264,7 @@ func (az *Cloud) InstanceID(ctx context.Context, name types.NodeName) (string, e
 	}
 
 	if az.UseInstanceMetadata {
-		metadata, err := az.metadata.GetMetadata(azcache.CacheReadTypeUnsafe)
+		metadata, err := az.metadata.GetMetadata(azcache.CacheReadTypeDefault)
 		if err != nil {
 			return "", err
 		}
@@ -351,7 +351,7 @@ func (az *Cloud) InstanceType(ctx context.Context, name types.NodeName) (string,
 	}
 
 	if az.UseInstanceMetadata {
-		metadata, err := az.metadata.GetMetadata(azcache.CacheReadTypeUnsafe)
+		metadata, err := az.metadata.GetMetadata(azcache.CacheReadTypeDefault)
 		if err != nil {
 			return "", err
 		}

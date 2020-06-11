@@ -101,9 +101,6 @@ function start-kube-apiserver {
     params+=" --service-account-key-file=${SERVICEACCOUNT_CERT_PATH}"
   fi
   params+=" --token-auth-file=/etc/srv/kubernetes/known_tokens.csv"
-  if [[ -n "${KUBE_PASSWORD:-}" && -n "${KUBE_USER:-}" ]]; then
-    params+=" --basic-auth-file=/etc/srv/kubernetes/basic_auth.csv"
-  fi
 
   if [[ -n "${KUBE_APISERVER_REQUEST_TIMEOUT_SEC:-}" ]]; then
     params+=" --request-timeout=${KUBE_APISERVER_REQUEST_TIMEOUT_SEC}s"
@@ -277,8 +274,8 @@ function start-kube-apiserver {
   local webhook_authn_config_volume=""
   if [[ -n "${GCP_AUTHN_URL:-}" ]]; then
     params+=" --authentication-token-webhook-config-file=/etc/gcp_authn.config"
-    webhook_authn_config_mount="{\"name\": \"webhookauthnconfigmount\",\"mountPath\": \"/etc/gcp_authn.config\", \"readOnly\": false},"
-    webhook_authn_config_volume="{\"name\": \"webhookauthnconfigmount\",\"hostPath\": {\"path\": \"/etc/gcp_authn.config\", \"type\": \"FileOrCreate\"}},"
+    webhook_authn_config_mount="{\"name\": \"webhookauthnconfigmount\",\"mountPath\": \"/etc/gcp_authn.config\", \"readOnly\": true},"
+    webhook_authn_config_volume="{\"name\": \"webhookauthnconfigmount\",\"hostPath\": {\"path\": \"/etc/gcp_authn.config\", \"type\": \"File\"}},"
     if [[ -n "${GCP_AUTHN_CACHE_TTL:-}" ]]; then
       params+=" --authentication-token-webhook-cache-ttl=${GCP_AUTHN_CACHE_TTL}"
     fi
@@ -310,8 +307,8 @@ function start-kube-apiserver {
   if [[ -n "${GCP_AUTHZ_URL:-}" ]]; then
     authorization_mode="${authorization_mode},Webhook"
     params+=" --authorization-webhook-config-file=/etc/gcp_authz.config"
-    webhook_config_mount="{\"name\": \"webhookconfigmount\",\"mountPath\": \"/etc/gcp_authz.config\", \"readOnly\": false},"
-    webhook_config_volume="{\"name\": \"webhookconfigmount\",\"hostPath\": {\"path\": \"/etc/gcp_authz.config\", \"type\": \"FileOrCreate\"}},"
+    webhook_config_mount="{\"name\": \"webhookconfigmount\",\"mountPath\": \"/etc/gcp_authz.config\", \"readOnly\": true},"
+    webhook_config_volume="{\"name\": \"webhookconfigmount\",\"hostPath\": {\"path\": \"/etc/gcp_authz.config\", \"type\": \"File\"}},"
     if [[ -n "${GCP_AUTHZ_CACHE_AUTHORIZED_TTL:-}" ]]; then
       params+=" --authorization-webhook-cache-authorized-ttl=${GCP_AUTHZ_CACHE_AUTHORIZED_TTL}"
     fi
@@ -357,6 +354,7 @@ function start-kube-apiserver {
   # params is passed by reference, so no "$"
   setup-etcd-encryption "${src_file}" params
 
+  params="$(convert-manifest-params "${params}")"
   # Evaluate variables.
   local -r kube_apiserver_docker_tag="${KUBE_API_SERVER_DOCKER_TAG:-$(cat /home/kubernetes/kube-docker-files/kube-apiserver.docker_tag)}"
   sed -i -e "s@{{params}}@${params}@g" "${src_file}"

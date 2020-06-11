@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
@@ -139,17 +139,17 @@ func ensureInitializedComponentConfigs(clusterCfg *kubeadmapi.ClusterConfigurati
 }
 
 // Default sets up defaulted component configs in the supplied ClusterConfiguration
-func Default(clusterCfg *kubeadmapi.ClusterConfiguration, localAPIEndpoint *kubeadmapi.APIEndpoint) {
+func Default(clusterCfg *kubeadmapi.ClusterConfiguration, localAPIEndpoint *kubeadmapi.APIEndpoint, nodeRegOpts *kubeadmapi.NodeRegistrationOptions) {
 	ensureInitializedComponentConfigs(clusterCfg)
 
 	for _, handler := range known {
 		// If the component config exists, simply default it. Otherwise, create it before defaulting.
 		group := handler.GroupVersion.Group
 		if componentCfg, ok := clusterCfg.ComponentConfigs[group]; ok {
-			componentCfg.Default(clusterCfg, localAPIEndpoint)
+			componentCfg.Default(clusterCfg, localAPIEndpoint, nodeRegOpts)
 		} else {
 			componentCfg := handler.CreateEmpty()
-			componentCfg.Default(clusterCfg, localAPIEndpoint)
+			componentCfg.Default(clusterCfg, localAPIEndpoint, nodeRegOpts)
 			clusterCfg.ComponentConfigs[group] = componentCfg
 		}
 	}

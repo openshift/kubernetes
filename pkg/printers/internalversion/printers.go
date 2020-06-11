@@ -655,6 +655,16 @@ func listWithMoreString(list []string, more bool, count, max int) string {
 	return ret
 }
 
+// translateMicroTimestampSince returns the elapsed time since timestamp in
+// human-readable approximation.
+func translateMicroTimestampSince(timestamp metav1.MicroTime) string {
+	if timestamp.IsZero() {
+		return "<unknown>"
+	}
+
+	return duration.HumanDuration(time.Since(timestamp.Time))
+}
+
 // translateTimestampSince returns the elapsed time since timestamp in
 // human-readable approximation.
 func translateTimestampSince(timestamp metav1.Time) string {
@@ -1660,6 +1670,9 @@ func printEvent(obj *api.Event, options printers.GenerateOptions) ([]metav1.Tabl
 	}
 
 	firstTimestamp := translateTimestampSince(obj.FirstTimestamp)
+	if obj.FirstTimestamp.IsZero() {
+		firstTimestamp = translateMicroTimestampSince(obj.EventTime)
+	}
 	lastTimestamp := translateTimestampSince(obj.LastTimestamp)
 	if obj.LastTimestamp.IsZero() {
 		lastTimestamp = firstTimestamp
@@ -1920,11 +1933,19 @@ func formatHPAMetrics(specs []autoscaling.MetricSpec, statuses []autoscaling.Met
 			}
 			list = append(list, fmt.Sprintf("%s/%s", current, spec.Pods.Target.AverageValue.String()))
 		case autoscaling.ObjectMetricSourceType:
-			current := "<unknown>"
-			if len(statuses) > i && statuses[i].Object != nil {
-				current = statuses[i].Object.Current.Value.String()
+			if spec.Object.Target.AverageValue != nil {
+				current := "<unknown>"
+				if len(statuses) > i && statuses[i].Object != nil && statuses[i].Object.Current.AverageValue != nil {
+					current = statuses[i].Object.Current.AverageValue.String()
+				}
+				list = append(list, fmt.Sprintf("%s/%s (avg)", current, spec.Object.Target.AverageValue.String()))
+			} else {
+				current := "<unknown>"
+				if len(statuses) > i && statuses[i].Object != nil {
+					current = statuses[i].Object.Current.Value.String()
+				}
+				list = append(list, fmt.Sprintf("%s/%s", current, spec.Object.Target.Value.String()))
 			}
-			list = append(list, fmt.Sprintf("%s/%s", current, spec.Object.Target.Value.String()))
 		case autoscaling.ResourceMetricSourceType:
 			if spec.Resource.Target.AverageValue != nil {
 				current := "<unknown>"

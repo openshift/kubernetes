@@ -38,6 +38,15 @@ const (
 
 	// SchedulerDefaultProviderName defines the default provider names
 	SchedulerDefaultProviderName = "DefaultProvider"
+
+	// DefaultInsecureSchedulerPort is the default port for the scheduler status server.
+	// May be overridden by a flag at startup.
+	// Deprecated: use the secure KubeSchedulerPort instead.
+	DefaultInsecureSchedulerPort = 10251
+
+	// DefaultKubeSchedulerPort is the default port for the scheduler status server.
+	// May be overridden by a flag at startup.
+	DefaultKubeSchedulerPort = 10259
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -52,7 +61,7 @@ type KubeSchedulerConfiguration struct {
 	AlgorithmSource SchedulerAlgorithmSource
 
 	// LeaderElection defines the configuration of leader election client.
-	LeaderElection KubeSchedulerLeaderElectionConfiguration
+	LeaderElection componentbaseconfig.LeaderElectionConfiguration
 
 	// ClientConnection specifies the kubeconfig file and client connection
 	// settings for the proxy server to use when communicating with the apiserver.
@@ -84,6 +93,8 @@ type KubeSchedulerConfiguration struct {
 	// Duration to wait for a binding operation to complete before timing out
 	// Value must be non-negative integer. The value zero indicates no waiting.
 	// If this value is nil, the default value will be used.
+	// DEPRECATED: BindTimeoutSeconds in deprecated.
+	// TODO(#90958) Remove this and the versioned counterparts in future API versions.
 	BindTimeoutSeconds int64
 
 	// PodInitialBackoffSeconds is the initial backoff for unschedulable pods.
@@ -164,12 +175,6 @@ type SchedulerPolicyConfigMapSource struct {
 	Name string
 }
 
-// KubeSchedulerLeaderElectionConfiguration expands LeaderElectionConfiguration
-// to include scheduler specific configuration.
-type KubeSchedulerLeaderElectionConfiguration struct {
-	componentbaseconfig.LeaderElectionConfiguration
-}
-
 // Plugins include multiple extension points. When specified, the list of plugins for
 // a particular extension point are the only ones enabled. If an extension point is
 // omitted from the config, then the default set of plugins is used for that extension point.
@@ -237,7 +242,7 @@ type PluginConfig struct {
 	// Name defines the name of plugin being configured
 	Name string
 	// Args defines the arguments passed to the plugins at the time of initialization. Args can have arbitrary structure.
-	Args runtime.Unknown
+	Args runtime.Object
 }
 
 /*

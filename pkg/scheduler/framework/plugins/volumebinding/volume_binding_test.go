@@ -25,7 +25,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/controller/volume/scheduling"
 	framework "k8s.io/kubernetes/pkg/scheduler/framework/v1alpha1"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
 func TestVolumeBinding(t *testing.T) {
@@ -99,11 +98,11 @@ func TestVolumeBinding(t *testing.T) {
 
 	for _, item := range table {
 		t.Run(item.name, func(t *testing.T) {
-			nodeInfo := schedulernodeinfo.NewNodeInfo()
+			nodeInfo := framework.NewNodeInfo()
 			nodeInfo.SetNode(item.node)
 			fakeVolumeBinder := scheduling.NewFakeVolumeBinder(item.volumeBinderConfig)
 			p := &VolumeBinding{
-				binder: fakeVolumeBinder,
+				Binder: fakeVolumeBinder,
 			}
 			gotStatus := p.Filter(context.Background(), nil, item.pod, nodeInfo)
 			if !reflect.DeepEqual(gotStatus, item.wantStatus) {

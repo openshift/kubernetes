@@ -18,6 +18,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -41,7 +42,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
@@ -53,6 +53,9 @@ import (
 
 // NodePortRange should match whatever the default/configured range is
 var NodePortRange = utilnet.PortRange{Base: 30000, Size: 2768}
+
+// It is copied from "k8s.io/kubernetes/pkg/registry/core/service/portallocator"
+var errAllocated = errors.New("provided port is already allocated")
 
 // TestJig is a test jig to help service testing.
 type TestJig struct {
@@ -297,7 +300,7 @@ func (j *TestJig) GetEndpointNodeNames() (sets.String, error) {
 
 // WaitForEndpointOnNode waits for a service endpoint on the given node.
 func (j *TestJig) WaitForEndpointOnNode(nodeName string) error {
-	return wait.PollImmediate(framework.Poll, LoadBalancerPropagationTimeoutDefault, func() (bool, error) {
+	return wait.PollImmediate(framework.Poll, KubeProxyLagTimeout, func() (bool, error) {
 		endpoints, err := j.Client.CoreV1().Endpoints(j.Namespace).Get(context.TODO(), j.Name, metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Get endpoints for service %s/%s failed (%s)", j.Namespace, j.Name, err)
@@ -322,8 +325,8 @@ func (j *TestJig) WaitForEndpointOnNode(nodeName string) error {
 	})
 }
 
-// WaitForAvailableEndpoint waits for at least 1 endpoint to be available till timeout
-func (j *TestJig) WaitForAvailableEndpoint(timeout time.Duration) error {
+// waitForAvailableEndpoint waits for at least 1 endpoint to be available till timeout
+func (j *TestJig) waitForAvailableEndpoint(timeout time.Duration) error {
 	//Wait for endpoints to be created, this may take longer time if service backing pods are taking longer time to run
 	endpointSelector := fields.OneTermEqualSelector("metadata.name", j.Name)
 	stopCh := make(chan struct{})
@@ -476,7 +479,7 @@ func (j *TestJig) ChangeServiceNodePort(initial int) (*v1.Service, error) {
 		service, err = j.UpdateService(func(s *v1.Service) {
 			s.Spec.Ports[0].NodePort = int32(newPort)
 		})
-		if err != nil && strings.Contains(err.Error(), portallocator.ErrAllocated.Error()) {
+		if err != nil && strings.Contains(err.Error(), errAllocated.Error()) {
 			framework.Logf("tried nodePort %d, but it is in use, will try another", newPort)
 			continue
 		}
@@ -839,7 +842,7 @@ func (j *TestJig) checkClusterIPServiceReachability(svc *v1.Service, pod *v1.Pod
 	clusterIP := svc.Spec.ClusterIP
 	servicePorts := svc.Spec.Ports
 
-	err := j.WaitForAvailableEndpoint(ServiceEndpointsTimeout)
+	err := j.waitForAvailableEndpoint(ServiceEndpointsTimeout)
 	if err != nil {
 		return err
 	}
@@ -872,7 +875,7 @@ func (j *TestJig) checkNodePortServiceReachability(svc *v1.Service, pod *v1.Pod)
 		return err
 	}
 
-	err = j.WaitForAvailableEndpoint(ServiceEndpointsTimeout)
+	err = j.waitForAvailableEndpoint(ServiceEndpointsTimeout)
 	if err != nil {
 		return err
 	}

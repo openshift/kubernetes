@@ -296,6 +296,15 @@ done
 echo "=== tidying root" >> "${LOG_FILE}"
 go mod tidy >>"${LOG_FILE}" 2>&1
 
+# disallow transitive dependencies on k8s.io/kubernetes
+loopback_deps=()
+kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' || true)
+# Allow apiserver-library-go to vendor k8s.io/kubernetes
+if [[ -n ${loopback_deps[*]:+"${loopback_deps[*]}"} && ! "${loopback_deps[*]}" =~ github.com/openshift/apiserver-library-go ]]; then
+  kube::log::error "Disallowed transitive k8s.io/kubernetes dependencies exist via the following imports:"
+  kube::log::error "${loopback_deps[@]}"
+  exit 1
+fi
 
 # Phase 6: add generated comments to go.mod files
 kube::log::status "go.mod: adding generated comments"
@@ -311,8 +320,7 @@ for repo in $(kube::util::list_staging_repos); do
 done
 
 
-# Phase 6: rebuild vendor directory
-
+# Phase 7: rebuild vendor directory
 kube::log::status "vendor: running 'go mod vendor'"
 go mod vendor >>"${LOG_FILE}" 2>&1
 
@@ -333,18 +341,19 @@ kube::log::status "vendor: updating BUILD files"
 # Assume that anything imported through vendor doesn't need Bazel to build.
 # Prune out any Bazel build files, since these can break the build due to
 # missing dependencies that aren't included by go mod vendor.
-find vendor/ -type f \( -name BUILD -o -name BUILD.bazel -o -name WORKSPACE \) -exec rm -f {} \;
+find vendor/ -type f \
+    \( -name BUILD -o -name BUILD.bazel -o -name WORKSPACE \) \
+    -exec rm -f {} \;
 hack/update-bazel.sh >>"${LOG_FILE}" 2>&1
 
-kube::log::status "vendor: updating LICENSES file"
+kube::log::status "vendor: updating vendor/LICENSES"
 hack/update-vendor-licenses.sh >>"${LOG_FILE}" 2>&1
 
 kube::log::status "vendor: creating OWNERS file"
-rm -f "Godeps/OWNERS" "vendor/OWNERS"
-cat <<__EOF__ > "Godeps/OWNERS"
+rm -f "vendor/OWNERS"
+cat <<__EOF__ > "vendor/OWNERS"
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
 - dep-approvers
 __EOF__
-cp "Godeps/OWNERS" "vendor/OWNERS"

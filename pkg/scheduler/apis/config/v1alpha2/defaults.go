@@ -20,6 +20,7 @@ import (
 	"net"
 	"strconv"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/kube-scheduler/config/v1alpha2"
@@ -28,8 +29,12 @@ import (
 
 	// this package shouldn't really depend on other k8s.io/kubernetes code
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/master/ports"
 )
+
+var defaultResourceSpec = []v1alpha2.ResourceSpec{
+	{Name: string(v1.ResourceCPU), Weight: 1},
+	{Name: string(v1.ResourceMemory), Weight: 1},
+}
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
@@ -51,7 +56,7 @@ func SetDefaults_KubeSchedulerConfiguration(obj *v1alpha2.KubeSchedulerConfigura
 	// 2. If there is a value set, attempt to split it. If it's just a port (ie, ":1234"), default to 0.0.0.0 with that port
 	// 3. If splitting the value fails, check if the value is even a valid IP. If so, use that with the default port.
 	// Otherwise use the default bind address
-	defaultBindAddress := net.JoinHostPort("0.0.0.0", strconv.Itoa(ports.InsecureSchedulerPort))
+	defaultBindAddress := net.JoinHostPort("0.0.0.0", strconv.Itoa(config.DefaultInsecureSchedulerPort))
 	if obj.HealthzBindAddress == nil {
 		obj.HealthzBindAddress = &defaultBindAddress
 	} else {
@@ -65,7 +70,7 @@ func SetDefaults_KubeSchedulerConfiguration(obj *v1alpha2.KubeSchedulerConfigura
 			// Something went wrong splitting the host/port, could just be a missing port so check if the
 			// existing value is a valid IP address. If so, use that with the default scheduler port
 			if host := net.ParseIP(*obj.HealthzBindAddress); host != nil {
-				hostPort := net.JoinHostPort(*obj.HealthzBindAddress, strconv.Itoa(ports.InsecureSchedulerPort))
+				hostPort := net.JoinHostPort(*obj.HealthzBindAddress, strconv.Itoa(config.DefaultInsecureSchedulerPort))
 				obj.HealthzBindAddress = &hostPort
 			} else {
 				// TODO: in v1beta1 we should let this error instead of stomping with a default value
@@ -87,7 +92,7 @@ func SetDefaults_KubeSchedulerConfiguration(obj *v1alpha2.KubeSchedulerConfigura
 			// Something went wrong splitting the host/port, could just be a missing port so check if the
 			// existing value is a valid IP address. If so, use that with the default scheduler port
 			if host := net.ParseIP(*obj.MetricsBindAddress); host != nil {
-				hostPort := net.JoinHostPort(*obj.MetricsBindAddress, strconv.Itoa(ports.InsecureSchedulerPort))
+				hostPort := net.JoinHostPort(*obj.MetricsBindAddress, strconv.Itoa(config.DefaultInsecureSchedulerPort))
 				obj.MetricsBindAddress = &hostPort
 			} else {
 				// TODO: in v1beta1 we should let this error instead of stomping with a default value
@@ -128,7 +133,7 @@ func SetDefaults_KubeSchedulerConfiguration(obj *v1alpha2.KubeSchedulerConfigura
 	}
 
 	// Use the default LeaderElectionConfiguration options
-	componentbaseconfigv1alpha1.RecommendedDefaultLeaderElectionConfiguration(&obj.LeaderElection.LeaderElectionConfiguration)
+	componentbaseconfigv1alpha1.RecommendedDefaultLeaderElectionConfiguration(&obj.LeaderElection)
 
 	if obj.BindTimeoutSeconds == nil {
 		val := int64(600)
@@ -155,5 +160,28 @@ func SetDefaults_KubeSchedulerConfiguration(obj *v1alpha2.KubeSchedulerConfigura
 	if *obj.EnableProfiling && obj.EnableContentionProfiling == nil {
 		enableContentionProfiling := true
 		obj.EnableContentionProfiling = &enableContentionProfiling
+	}
+}
+
+func SetDefaults_InterPodAffinityArgs(obj *v1alpha2.InterPodAffinityArgs) {
+	// Note that an object is created manually in cmd/kube-scheduler/app/options/deprecated.go
+	// DeprecatedOptions#ApplyTo.
+	// Update that object if a new default field is added here.
+	if obj.HardPodAffinityWeight == nil {
+		obj.HardPodAffinityWeight = pointer.Int32Ptr(1)
+	}
+}
+
+func SetDefaults_NodeResourcesLeastAllocatedArgs(obj *v1alpha2.NodeResourcesLeastAllocatedArgs) {
+	if len(obj.Resources) == 0 {
+		// If no resources specified, used the default set.
+		obj.Resources = append(obj.Resources, defaultResourceSpec...)
+	}
+}
+
+func SetDefaults_NodeResourcesMostAllocatedArgs(obj *v1alpha2.NodeResourcesMostAllocatedArgs) {
+	if len(obj.Resources) == 0 {
+		// If no resources specified, used the default set.
+		obj.Resources = append(obj.Resources, defaultResourceSpec...)
 	}
 }

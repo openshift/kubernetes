@@ -22,6 +22,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	componentbaseconfig "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/kube-scheduler/config/v1alpha2"
 	"k8s.io/utils/pointer"
@@ -44,16 +46,14 @@ func TestSchedulerDefaults(t *testing.T) {
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
 				},
-				LeaderElection: v1alpha2.KubeSchedulerLeaderElectionConfiguration{
-					LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
-						LeaderElect:       pointer.BoolPtr(true),
-						LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
-						RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
-						RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
-						ResourceLock:      "endpointsleases",
-						ResourceNamespace: "kube-system",
-						ResourceName:      "kube-scheduler",
-					},
+				LeaderElection: componentbaseconfig.LeaderElectionConfiguration{
+					LeaderElect:       pointer.BoolPtr(true),
+					LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
+					ResourceLock:      "endpointsleases",
+					ResourceNamespace: "kube-system",
+					ResourceName:      "kube-scheduler",
 				},
 				ClientConnection: componentbaseconfig.ClientConnectionConfiguration{
 					QPS:         50,
@@ -88,16 +88,14 @@ func TestSchedulerDefaults(t *testing.T) {
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
 				},
-				LeaderElection: v1alpha2.KubeSchedulerLeaderElectionConfiguration{
-					LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
-						LeaderElect:       pointer.BoolPtr(true),
-						LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
-						RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
-						RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
-						ResourceLock:      "endpointsleases",
-						ResourceNamespace: "kube-system",
-						ResourceName:      "kube-scheduler",
-					},
+				LeaderElection: componentbaseconfig.LeaderElectionConfiguration{
+					LeaderElect:       pointer.BoolPtr(true),
+					LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
+					ResourceLock:      "endpointsleases",
+					ResourceNamespace: "kube-system",
+					ResourceName:      "kube-scheduler",
 				},
 				ClientConnection: componentbaseconfig.ClientConnectionConfiguration{
 					QPS:         50,
@@ -147,16 +145,14 @@ func TestSchedulerDefaults(t *testing.T) {
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
 				},
-				LeaderElection: v1alpha2.KubeSchedulerLeaderElectionConfiguration{
-					LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
-						LeaderElect:       pointer.BoolPtr(true),
-						LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
-						RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
-						RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
-						ResourceLock:      "endpointsleases",
-						ResourceNamespace: "kube-system",
-						ResourceName:      "kube-scheduler",
-					},
+				LeaderElection: componentbaseconfig.LeaderElectionConfiguration{
+					LeaderElect:       pointer.BoolPtr(true),
+					LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
+					ResourceLock:      "endpointsleases",
+					ResourceNamespace: "kube-system",
+					ResourceName:      "kube-scheduler",
 				},
 				ClientConnection: componentbaseconfig.ClientConnectionConfiguration{
 					QPS:         50,
@@ -200,16 +196,14 @@ func TestSchedulerDefaults(t *testing.T) {
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
 				},
-				LeaderElection: v1alpha2.KubeSchedulerLeaderElectionConfiguration{
-					LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
-						LeaderElect:       pointer.BoolPtr(true),
-						LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
-						RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
-						RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
-						ResourceLock:      "endpointsleases",
-						ResourceNamespace: "kube-system",
-						ResourceName:      "kube-scheduler",
-					},
+				LeaderElection: componentbaseconfig.LeaderElectionConfiguration{
+					LeaderElect:       pointer.BoolPtr(true),
+					LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
+					ResourceLock:      "endpointsleases",
+					ResourceNamespace: "kube-system",
+					ResourceName:      "kube-scheduler",
 				},
 				ClientConnection: componentbaseconfig.ClientConnectionConfiguration{
 					QPS:         50,
@@ -239,16 +233,14 @@ func TestSchedulerDefaults(t *testing.T) {
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
 				},
-				LeaderElection: v1alpha2.KubeSchedulerLeaderElectionConfiguration{
-					LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
-						LeaderElect:       pointer.BoolPtr(true),
-						LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
-						RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
-						RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
-						ResourceLock:      "endpointsleases",
-						ResourceNamespace: "kube-system",
-						ResourceName:      "kube-scheduler",
-					},
+				LeaderElection: componentbaseconfig.LeaderElectionConfiguration{
+					LeaderElect:       pointer.BoolPtr(true),
+					LeaseDuration:     metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline:     metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:       metav1.Duration{Duration: 2 * time.Second},
+					ResourceLock:      "endpointsleases",
+					ResourceNamespace: "kube-system",
+					ResourceName:      "kube-scheduler",
 				},
 				ClientConnection: componentbaseconfig.ClientConnectionConfiguration{
 					QPS:         50,
@@ -270,6 +262,96 @@ func TestSchedulerDefaults(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			SetDefaults_KubeSchedulerConfiguration(tc.config)
 			if diff := cmp.Diff(tc.expected, tc.config); diff != "" {
+				t.Errorf("Got unexpected defaults (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestPluginArgsDefaults(t *testing.T) {
+	tests := []struct {
+		name string
+		in   runtime.Object
+		want runtime.Object
+	}{
+		{
+			name: "InterPodAffinityArgs empty",
+			in:   &v1alpha2.InterPodAffinityArgs{},
+			want: &v1alpha2.InterPodAffinityArgs{
+				HardPodAffinityWeight: pointer.Int32Ptr(1),
+			},
+		},
+		{
+			name: "InterPodAffinityArgs explicit 0",
+			in: &v1alpha2.InterPodAffinityArgs{
+				HardPodAffinityWeight: pointer.Int32Ptr(0),
+			},
+			want: &v1alpha2.InterPodAffinityArgs{
+				HardPodAffinityWeight: pointer.Int32Ptr(0),
+			},
+		},
+		{
+			name: "InterPodAffinityArgs with value",
+			in: &v1alpha2.InterPodAffinityArgs{
+				HardPodAffinityWeight: pointer.Int32Ptr(5),
+			},
+			want: &v1alpha2.InterPodAffinityArgs{
+				HardPodAffinityWeight: pointer.Int32Ptr(5),
+			},
+		},
+		{
+			name: "NodeResourcesLeastAllocatedArgs resources empty",
+			in:   &v1alpha2.NodeResourcesLeastAllocatedArgs{},
+			want: &v1alpha2.NodeResourcesLeastAllocatedArgs{
+				Resources: []v1alpha2.ResourceSpec{
+					{Name: "cpu", Weight: 1},
+					{Name: "memory", Weight: 1},
+				},
+			},
+		},
+		{
+			name: "NodeResourcesLeastAllocatedArgs resources with value",
+			in: &v1alpha2.NodeResourcesLeastAllocatedArgs{
+				Resources: []v1alpha2.ResourceSpec{
+					{Name: "resource", Weight: 2},
+				},
+			},
+			want: &v1alpha2.NodeResourcesLeastAllocatedArgs{
+				Resources: []v1alpha2.ResourceSpec{
+					{Name: "resource", Weight: 2},
+				},
+			},
+		},
+		{
+			name: "NodeResourcesMostAllocatedArgs resources empty",
+			in:   &v1alpha2.NodeResourcesMostAllocatedArgs{},
+			want: &v1alpha2.NodeResourcesMostAllocatedArgs{
+				Resources: []v1alpha2.ResourceSpec{
+					{Name: "cpu", Weight: 1},
+					{Name: "memory", Weight: 1},
+				},
+			},
+		},
+		{
+			name: "NodeResourcesMostAllocatedArgs resources with value",
+			in: &v1alpha2.NodeResourcesMostAllocatedArgs{
+				Resources: []v1alpha2.ResourceSpec{
+					{Name: "resource", Weight: 2},
+				},
+			},
+			want: &v1alpha2.NodeResourcesMostAllocatedArgs{
+				Resources: []v1alpha2.ResourceSpec{
+					{Name: "resource", Weight: 2},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		scheme := runtime.NewScheme()
+		utilruntime.Must(AddToScheme(scheme))
+		t.Run(tc.name, func(t *testing.T) {
+			scheme.Default(tc.in)
+			if diff := cmp.Diff(tc.in, tc.want); diff != "" {
 				t.Errorf("Got unexpected defaults (-want, +got):\n%s", diff)
 			}
 		})

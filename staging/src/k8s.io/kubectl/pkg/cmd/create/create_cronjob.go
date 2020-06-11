@@ -41,13 +41,10 @@ var (
 
 	cronjobExample = templates.Examples(`
 		# Create a cronjob
-		kubectl create cronjob my-job --image=busybox
+		kubectl create cronjob my-job --image=busybox --schedule="*/1 * * * *"
 
 		# Create a cronjob with command
-		kubectl create cronjob my-job --image=busybox -- date
-
-		# Create a cronjob with schedule
-		kubectl create cronjob test-job --image=busybox --schedule="*/1 * * * *"`)
+		kubectl create cronjob my-job --image=busybox --schedule="*/1 * * * *" -- date`)
 )
 
 type CreateCronJobOptions struct {
@@ -66,7 +63,7 @@ type CreateCronJobOptions struct {
 	DryRunStrategy cmdutil.DryRunStrategy
 	DryRunVerifier *resource.DryRunVerifier
 	Builder        *resource.Builder
-	Cmd            *cobra.Command
+	FieldManager   string
 
 	genericclioptions.IOStreams
 }
@@ -102,6 +99,7 @@ func NewCmdCreateCronJob(f cmdutil.Factory, ioStreams genericclioptions.IOStream
 	cmd.Flags().StringVar(&o.Image, "image", o.Image, "Image name to run.")
 	cmd.Flags().StringVar(&o.Schedule, "schedule", o.Schedule, "A schedule in the Cron format the job should be run with.")
 	cmd.Flags().StringVar(&o.Restart, "restart", o.Restart, "job's restart policy. supported values: OnFailure, Never")
+	cmdutil.AddFieldManagerFlagVar(cmd, &o.FieldManager, "kubectl-create")
 
 	return cmd
 }
@@ -133,7 +131,6 @@ func (o *CreateCronJobOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, a
 		return err
 	}
 	o.Builder = f.NewBuilder()
-	o.Cmd = cmd
 
 	o.DryRunStrategy, err = cmdutil.GetDryRunStrategy(cmd)
 	if err != nil {
@@ -176,6 +173,9 @@ func (o *CreateCronJobOptions) Run() error {
 
 	if o.DryRunStrategy != cmdutil.DryRunClient {
 		createOptions := metav1.CreateOptions{}
+		if o.FieldManager != "" {
+			createOptions.FieldManager = o.FieldManager
+		}
 		if o.DryRunStrategy == cmdutil.DryRunServer {
 			if err := o.DryRunVerifier.HasSupport(cronjob.GroupVersionKind()); err != nil {
 				return err

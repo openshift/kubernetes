@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	cloudprovider "k8s.io/cloud-provider"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	cloudcontrollerconfig "k8s.io/kubernetes/cmd/cloud-controller-manager/app/config"
 	cloudcontrollers "k8s.io/kubernetes/pkg/controller/cloud"
 	routecontroller "k8s.io/kubernetes/pkg/controller/route"
@@ -35,7 +35,12 @@ import (
 	netutils "k8s.io/utils/net"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	kubefeatures "k8s.io/kubernetes/pkg/features"
+)
+
+const (
+	// IPv6DualStack enables ipv6 dual stack feature
+	// Original copy from pkg/features/kube_features.go
+	IPv6DualStack = "IPv6DualStack"
 )
 
 func startCloudNodeController(ctx *cloudcontrollerconfig.CompletedConfig, cloud cloudprovider.Interface, stopCh <-chan struct{}) (http.Handler, bool, error) {
@@ -84,6 +89,7 @@ func startServiceController(ctx *cloudcontrollerconfig.CompletedConfig, cloud cl
 		ctx.SharedInformers.Core().V1().Services(),
 		ctx.SharedInformers.Core().V1().Nodes(),
 		ctx.ComponentConfig.KubeCloudShared.ClusterName,
+		utilfeature.DefaultFeatureGate,
 	)
 	if err != nil {
 		// This error shouldn't fail. It lives like this as a legacy.
@@ -116,7 +122,7 @@ func startRouteController(ctx *cloudcontrollerconfig.CompletedConfig, cloud clou
 	}
 
 	// failure: more than one cidr and dual stack is not enabled
-	if len(clusterCIDRs) > 1 && !utilfeature.DefaultFeatureGate.Enabled(kubefeatures.IPv6DualStack) {
+	if len(clusterCIDRs) > 1 && !utilfeature.DefaultFeatureGate.Enabled(IPv6DualStack) {
 		return nil, false, fmt.Errorf("len of ClusterCIDRs==%v and dualstack feature is not enabled", len(clusterCIDRs))
 	}
 

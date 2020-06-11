@@ -38,9 +38,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	cloudproviderapi "k8s.io/cloud-provider/api"
 	cloudnodeutil "k8s.io/cloud-provider/node/helpers"
-	"k8s.io/klog"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
-	nodeutil "k8s.io/kubernetes/pkg/util/node"
+	"k8s.io/klog/v2"
 )
 
 // labelReconcileInfo lists Node labels to reconcile, and how to reconcile them.
@@ -281,7 +279,7 @@ func (cnc *CloudNodeController) updateNodeAddress(ctx context.Context, node *v1.
 	}
 	newNode := node.DeepCopy()
 	newNode.Status.Addresses = nodeAddresses
-	_, _, err = nodeutil.PatchNodeStatus(cnc.kubeClient.CoreV1(), types.NodeName(node.Name), node, newNode)
+	_, _, err = cloudnodeutil.PatchNodeStatus(cnc.kubeClient.CoreV1(), types.NodeName(node.Name), node, newNode)
 	if err != nil {
 		klog.Errorf("Error patching node with cloud ip addresses = [%v]", err)
 	}
@@ -571,7 +569,7 @@ func nodeAddressesChangeDetected(addressSet1, addressSet2 []v1.NodeAddress) bool
 func ensureNodeProvidedIPExists(node *v1.Node, nodeAddresses []v1.NodeAddress) (*v1.NodeAddress, bool) {
 	var nodeIP *v1.NodeAddress
 	nodeIPExists := false
-	if providedIP, ok := node.ObjectMeta.Annotations[kubeletapis.AnnotationProvidedIPAddr]; ok {
+	if providedIP, ok := node.ObjectMeta.Annotations[cloudproviderapi.AnnotationAlphaProvidedIPAddr]; ok {
 		nodeIPExists = true
 		for i := range nodeAddresses {
 			if nodeAddresses[i].Address == providedIP {

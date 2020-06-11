@@ -1,3 +1,5 @@
+// +build !dockerless
+
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -27,7 +29,7 @@ import (
 
 	"github.com/blang/semver"
 	dockertypes "github.com/docker/docker/api/types"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"k8s.io/api/core/v1"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -40,6 +42,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/cni"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/hostport"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/network/kubenet"
+	"k8s.io/kubernetes/pkg/kubelet/legacy"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 	"k8s.io/kubernetes/pkg/kubelet/util/cache"
 
@@ -97,7 +100,7 @@ type DockerService interface {
 	http.Handler
 
 	// For supporting legacy features.
-	DockerLegacyService
+	legacy.DockerLegacyService
 }
 
 // NetworkPluginSettings is the subset of kubelet runtime args we pass

@@ -31,7 +31,6 @@ go_library(
         "//pkg/kubelet/server/streaming:go_default_library",
         "//pkg/kubelet/types:go_default_library",
         "//pkg/kubelet/util:go_default_library",
-        "//pkg/util/configz:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/runtime:go_default_library",
@@ -39,6 +38,7 @@ go_library(
         "//staging/src/k8s.io/apimachinery/pkg/types:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/proxy:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
+        "//staging/src/k8s.io/apimachinery/pkg/util/sets:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/authentication/authenticator:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/authentication/user:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/authorization/authorizer:go_default_library",
@@ -46,6 +46,7 @@ go_library(
         "//staging/src/k8s.io/apiserver/pkg/server/httplog:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/server/routes:go_default_library",
         "//staging/src/k8s.io/apiserver/pkg/util/flushwriter:go_default_library",
+        "//staging/src/k8s.io/component-base/configz:go_default_library",
         "//staging/src/k8s.io/component-base/logs:go_default_library",
         "//staging/src/k8s.io/component-base/metrics:go_default_library",
         "//staging/src/k8s.io/component-base/metrics/legacyregistry:go_default_library",
@@ -54,7 +55,8 @@ go_library(
         "//vendor/github.com/google/cadvisor/info/v1:go_default_library",
         "//vendor/github.com/google/cadvisor/metrics:go_default_library",
         "//vendor/google.golang.org/grpc:go_default_library",
-        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/v2:go_default_library",
+        "//vendor/k8s.io/utils/clock:go_default_library",
     ],
 )
 

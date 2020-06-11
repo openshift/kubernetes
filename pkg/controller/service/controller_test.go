@@ -33,15 +33,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	fakecloud "k8s.io/cloud-provider/fake"
 	servicehelper "k8s.io/cloud-provider/service/helpers"
-	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/klog/v2"
 )
 
 const region = "us-central"
@@ -71,21 +72,43 @@ func newController() (*Controller, *fakecloud.Cloud, *fake.Clientset) {
 	cloud := &fakecloud.Cloud{}
 	cloud.Region = region
 
-	client := fake.NewSimpleClientset()
+	kubeClient := fake.NewSimpleClientset()
 
-	informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, 0)
 	serviceInformer := informerFactory.Core().V1().Services()
 	nodeInformer := informerFactory.Core().V1().Nodes()
 
-	controller, _ := New(cloud, client, serviceInformer, nodeInformer, "test-cluster")
+	broadcaster := record.NewBroadcaster()
+	broadcaster.StartLogging(klog.Infof)
+	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "service-controller"})
+
+	controller := &Controller{
+		cloud:            cloud,
+		knownHosts:       []*v1.Node{},
+		kubeClient:       kubeClient,
+		clusterName:      "test-cluster",
+		cache:            &serviceCache{serviceMap: make(map[string]*cachedService)},
+		eventBroadcaster: broadcaster,
+		eventRecorder:    recorder,
+		nodeLister:       nodeInformer.Lister(),
+		nodeListerSynced: nodeInformer.Informer().HasSynced,
+		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(minRetryDelay, maxRetryDelay), "service"),
+	}
+
+	balancer, _ := cloud.LoadBalancer()
+	controller.balancer = balancer
+
+	controller.serviceLister = serviceInformer.Lister()
+
 	controller.nodeListerSynced = alwaysReady
 	controller.serviceListerSynced = alwaysReady
 	controller.eventRecorder = record.NewFakeRecorder(100)
 
-	cloud.Calls = nil     // ignore any cloud calls made in init()
-	client.ClearActions() // ignore any client calls made in init()
+	cloud.Calls = nil         // ignore any cloud calls made in init()
+	kubeClient.ClearActions() // ignore any client calls made in init()
 
-	return controller, cloud, client
+	return controller, cloud, kubeClient
 }
 
 // TODO(@MrHohn): Verify the end state when below issue is resolved:
@@ -345,25 +368,20 @@ func TestSyncLoadBalancerIfNeeded(t *testing.T) {
 				if !createCallFound {
 					t.Errorf("Got no create call for load balancer, expected one")
 				}
-				// TODO(@MrHohn): Clean up the awkward pattern here.
-				var balancer *fakecloud.Balancer
-				for k := range cloud.Balancers {
-					if balancer == nil {
-						b := cloud.Balancers[k]
-						balancer = &b
-					} else {
-						t.Errorf("Got load balancer %v, expected one to be created", cloud.Balancers)
-						break
+
+				if len(cloud.Balancers) == 0 {
+					t.Errorf("Got no load balancer: %v, expected one to be created", cloud.Balancers)
+				}
+
+				for _, balancer := range cloud.Balancers {
+					if balancer.Name != controller.balancer.GetLoadBalancerName(context.Background(), "", tc.service) ||
+						balancer.Region != region ||
+						balancer.Ports[0].Port != tc.service.Spec.Ports[0].Port {
+						t.Errorf("Created load balancer has incorrect parameters: %v", balancer)
 					}
 				}
-				if balancer == nil {
-					t.Errorf("Got no load balancer, expected one to be created")
-				} else if balancer.Name != controller.balancer.GetLoadBalancerName(context.Background(), "", tc.service) ||
-					balancer.Region != region ||
-					balancer.Ports[0].Port != tc.service.Spec.Ports[0].Port {
-					t.Errorf("Created load balancer has incorrect parameters: %v", balancer)
-				}
 			}
+
 			if tc.expectDeleteAttempt {
 				deleteCallFound := false
 				for _, call := range cloud.Calls {
@@ -472,8 +490,8 @@ func TestUpdateNodesInExternalLoadBalancer(t *testing.T) {
 		var services []*v1.Service
 		services = append(services, item.services...)
 
-		if err := controller.updateLoadBalancerHosts(services, nodes); err != nil {
-			t.Errorf("unexpected error: %v", err)
+		if servicesToRetry := controller.updateLoadBalancerHosts(services, nodes); servicesToRetry != nil {
+			t.Errorf("unexpected servicesToRetry: %v", servicesToRetry)
 		}
 		if !reflect.DeepEqual(item.expectedUpdateCalls, cloud.UpdateCalls) {
 			t.Errorf("expected update calls mismatch, expected %+v, got %+v", item.expectedUpdateCalls, cloud.UpdateCalls)
@@ -516,7 +534,8 @@ func TestGetNodeConditionPredicate(t *testing.T) {
 			name:         "unschedulable but healthy nodes are included",
 		},
 	}
-	pred := getNodeConditionPredicate()
+	c := Controller{}
+	pred := c.getNodeConditionPredicate()
 	for _, test := range tests {
 		accept := pred(&test.node)
 		if accept != test.expectAccept {
@@ -1408,21 +1427,21 @@ func Test_getNodeConditionPredicate(t *testing.T) {
 		{want: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{}}}},
 		{want: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelNodeRoleMaster: ""}}}},
 		{want: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelNodeRoleExcludeBalancer: ""}}}},
-		{want: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelAlphaNodeRoleExcludeBalancer: ""}}}},
 
 		{want: true, enableExclusion: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelNodeRoleMaster: ""}}}},
 		{want: true, enableLegacy: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelNodeRoleExcludeBalancer: ""}}}},
 
 		{want: false, enableLegacy: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelNodeRoleMaster: ""}}}},
-		{want: false, enableExclusion: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelAlphaNodeRoleExcludeBalancer: ""}}}},
 		{want: false, enableExclusion: true, input: &v1.Node{Status: validNodeStatus, ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{labelNodeRoleExcludeBalancer: ""}}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, serviceNodeExclusionFeature, tt.enableExclusion)()
-			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, legacyNodeRoleBehaviorFeature, tt.enableLegacy)()
+			c := &Controller{
+				legacyNodeRoleFeatureEnabled:       tt.enableLegacy,
+				serviceNodeExclusionFeatureEnabled: tt.enableExclusion,
+			}
 
-			if result := getNodeConditionPredicate()(tt.input); result != tt.want {
+			if result := c.getNodeConditionPredicate()(tt.input); result != tt.want {
 				t.Errorf("getNodeConditionPredicate() = %v, want %v", result, tt.want)
 			}
 		})
@@ -1488,6 +1507,125 @@ func TestListWithPredicate(t *testing.T) {
 				t.Errorf("Error from ListWithPredicate: %v", err)
 			} else if !reflect.DeepEqual(get, test.expect) {
 				t.Errorf("Expect nodes %v, but got %v", test.expect, get)
+			}
+		})
+	}
+}
+
+func Test_shouldSyncNode(t *testing.T) {
+	testcases := []struct {
+		name       string
+		oldNode    *v1.Node
+		newNode    *v1.Node
+		shouldSync bool
+	}{
+		{
+			name: "spec.unschedable field changed",
+			oldNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+				},
+				Spec: v1.NodeSpec{
+					Unschedulable: false,
+				},
+			},
+			newNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+				},
+				Spec: v1.NodeSpec{
+					Unschedulable: true,
+				},
+			},
+			shouldSync: true,
+		},
+		{
+			name: "labels changed",
+			oldNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "node",
+					Labels: map[string]string{},
+				},
+			},
+			newNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+					Labels: map[string]string{
+						labelNodeRoleExcludeBalancer: "",
+					},
+				},
+			},
+			shouldSync: true,
+		},
+		{
+			name: "ready condition changed",
+			oldNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+				},
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						{
+							Type:   v1.NodeReady,
+							Status: v1.ConditionTrue,
+						},
+					},
+				},
+			},
+			newNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+				},
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						{
+							Type:   v1.NodeReady,
+							Status: v1.ConditionFalse,
+						},
+					},
+				},
+			},
+			shouldSync: true,
+		},
+		{
+			name: "not relevant condition changed and no ready condition",
+			oldNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+				},
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						{
+							Type:   v1.NodeNetworkUnavailable,
+							Status: v1.ConditionTrue,
+						},
+					},
+				},
+			},
+			newNode: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node",
+				},
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						{
+							Type:   v1.NodeNetworkUnavailable,
+							Status: v1.ConditionFalse,
+						},
+					},
+				},
+			},
+			shouldSync: false,
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			shouldSync := shouldSyncNode(testcase.oldNode, testcase.newNode)
+			if shouldSync != testcase.shouldSync {
+				t.Logf("actual shouldSyncNode: %v", shouldSync)
+				t.Logf("expected shouldSyncNode: %v", testcase.shouldSync)
+				t.Errorf("unexpected result from shouldSyncNode")
 			}
 		})
 	}

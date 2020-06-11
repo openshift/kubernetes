@@ -23,15 +23,16 @@ import (
 	"os/user"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	internalapi "k8s.io/cri-api/pkg/apis"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	commontest "k8s.io/kubernetes/test/e2e/common"
 	"k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/kubernetes/test/e2e/framework/gpu"
-	"k8s.io/kubernetes/test/e2e/framework/testfiles"
+	e2egpu "k8s.io/kubernetes/test/e2e/framework/gpu"
+	e2emanifest "k8s.io/kubernetes/test/e2e/framework/manifest"
+	e2etestfiles "k8s.io/kubernetes/test/e2e/framework/testfiles"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -97,7 +98,11 @@ func (dp *dockerPuller) Name() string {
 }
 
 func (dp *dockerPuller) Pull(image string) ([]byte, error) {
-	return exec.Command("docker", "pull", image).CombinedOutput()
+	// TODO(random-liu): Use docker client to get rid of docker binary dependency.
+	if exec.Command("docker", "inspect", "--type=image", image).Run() != nil {
+		return exec.Command("docker", "pull", image).CombinedOutput()
+	}
+	return nil, nil
 }
 
 type remotePuller struct {
@@ -171,7 +176,7 @@ func PrePullAllImages() error {
 
 // getGPUDevicePluginImage returns the image of GPU device plugin.
 func getGPUDevicePluginImage() string {
-	ds, err := framework.DsFromManifest(gpu.GPUDevicePluginDSYAML)
+	ds, err := e2emanifest.DaemonSetFromURL(e2egpu.GPUDevicePluginDSYAML)
 	if err != nil {
 		klog.Errorf("Failed to parse the device plugin image: %v", err)
 		return ""
@@ -189,12 +194,12 @@ func getGPUDevicePluginImage() string {
 
 // getSRIOVDevicePluginImage returns the image of SRIOV device plugin.
 func getSRIOVDevicePluginImage() string {
-	data, err := testfiles.Read(SRIOVDevicePluginDSYAML)
+	data, err := e2etestfiles.Read(SRIOVDevicePluginDSYAML)
 	if err != nil {
 		klog.Errorf("Failed to read the device plugin manifest: %v", err)
 		return ""
 	}
-	ds, err := framework.DsFromData(data)
+	ds, err := e2emanifest.DaemonSetFromData(data)
 	if err != nil {
 		klog.Errorf("Failed to parse the device plugin image: %v", err)
 		return ""

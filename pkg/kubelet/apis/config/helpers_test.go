@@ -214,6 +214,7 @@ var (
 		"RegistryPullQPS",
 		"ReservedSystemCPUs",
 		"RuntimeRequestTimeout.Duration",
+		"RunOnce",
 		"SerializeImagePulls",
 		"ShowHiddenMetricsForVersion",
 		"StreamingConnectionIdleTimeout.Duration",
@@ -224,5 +225,6 @@ var (
 		"TypeMeta.APIVersion",
 		"TypeMeta.Kind",
 		"VolumeStatsAggPeriod.Duration",
+		"VolumePluginDir",
 	)
 )

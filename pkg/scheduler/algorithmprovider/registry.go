@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/features"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/defaultbinder"
@@ -125,9 +125,29 @@ func getDefaultConfig() *schedulerapi.Plugins {
 				{Name: tainttoleration.Name, Weight: 1},
 			},
 		},
+		Reserve: &schedulerapi.PluginSet{
+			Enabled: []schedulerapi.Plugin{
+				{Name: volumebinding.Name},
+			},
+		},
+		Unreserve: &schedulerapi.PluginSet{
+			Enabled: []schedulerapi.Plugin{
+				{Name: volumebinding.Name},
+			},
+		},
+		PreBind: &schedulerapi.PluginSet{
+			Enabled: []schedulerapi.Plugin{
+				{Name: volumebinding.Name},
+			},
+		},
 		Bind: &schedulerapi.PluginSet{
 			Enabled: []schedulerapi.Plugin{
 				{Name: defaultbinder.Name},
+			},
+		},
+		PostBind: &schedulerapi.PluginSet{
+			Enabled: []schedulerapi.Plugin{
+				{Name: volumebinding.Name},
 			},
 		},
 	}

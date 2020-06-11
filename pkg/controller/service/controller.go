@@ -19,10 +19,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
-
-	"reflect"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -41,8 +39,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	cloudprovider "k8s.io/cloud-provider"
 	servicehelper "k8s.io/cloud-provider/service/helpers"
+	"k8s.io/component-base/featuregate"
 	"k8s.io/component-base/metrics/prometheus/ratelimiter"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -70,11 +69,6 @@ const (
 	// in 1.16 when the ServiceNodeExclusion gate is on.
 	labelNodeRoleExcludeBalancer = "node.kubernetes.io/exclude-from-external-load-balancers"
 
-	// labelAlphaNodeRoleExcludeBalancer specifies that the node should be
-	// exclude from load balancers created by a cloud provider. This label is deprecated and will
-	// be removed in 1.18.
-	labelAlphaNodeRoleExcludeBalancer = "alpha.service-controller.kubernetes.io/exclude-balancer"
-
 	// serviceNodeExclusionFeature is the feature gate name that
 	// enables nodes to exclude themselves from service load balancers
 	// originated from: https://github.com/kubernetes/kubernetes/blob/28e800245e/pkg/features/kube_features.go#L178
@@ -101,6 +95,7 @@ type serviceCache struct {
 type Controller struct {
 	cloud            cloudprovider.Interface
 	knownHosts       []*v1.Node
+	knownHostsLock   sync.Mutex
 	servicesToUpdate []*v1.Service
 	kubeClient       clientset.Interface
 	clusterName      string
@@ -115,6 +110,9 @@ type Controller struct {
 	nodeListerSynced    cache.InformerSynced
 	// services that need to be synced
 	queue workqueue.RateLimitingInterface
+	// feature gates stored in local field for better testability
+	legacyNodeRoleFeatureEnabled       bool
+	serviceNodeExclusionFeatureEnabled bool
 }
 
 // New returns a new service controller to keep cloud provider service resources
@@ -125,6 +123,7 @@ func New(
 	serviceInformer coreinformers.ServiceInformer,
 	nodeInformer coreinformers.NodeInformer,
 	clusterName string,
+	featureGate featuregate.FeatureGate,
 ) (*Controller, error) {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(klog.Infof)
@@ -138,16 +137,18 @@ func New(
 	}
 
 	s := &Controller{
-		cloud:            cloud,
-		knownHosts:       []*v1.Node{},
-		kubeClient:       kubeClient,
-		clusterName:      clusterName,
-		cache:            &serviceCache{serviceMap: make(map[string]*cachedService)},
-		eventBroadcaster: broadcaster,
-		eventRecorder:    recorder,
-		nodeLister:       nodeInformer.Lister(),
-		nodeListerSynced: nodeInformer.Informer().HasSynced,
-		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(minRetryDelay, maxRetryDelay), "service"),
+		cloud:                              cloud,
+		knownHosts:                         []*v1.Node{},
+		kubeClient:                         kubeClient,
+		clusterName:                        clusterName,
+		cache:                              &serviceCache{serviceMap: make(map[string]*cachedService)},
+		eventBroadcaster:                   broadcaster,
+		eventRecorder:                      recorder,
+		nodeLister:                         nodeInformer.Lister(),
+		nodeListerSynced:                   nodeInformer.Informer().HasSynced,
+		queue:                              workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(minRetryDelay, maxRetryDelay), "service"),
+		legacyNodeRoleFeatureEnabled:       featureGate.Enabled(legacyNodeRoleBehaviorFeature),
+		serviceNodeExclusionFeatureEnabled: featureGate.Enabled(serviceNodeExclusionFeature),
 	}
 
 	serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
@@ -175,9 +176,39 @@ func New(
 	s.serviceLister = serviceInformer.Lister()
 	s.serviceListerSynced = serviceInformer.Informer().HasSynced
 
+	nodeInformer.Informer().AddEventHandlerWithResyncPeriod(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(cur interface{}) {
+				s.nodeSyncLoop()
+			},
+			UpdateFunc: func(old, cur interface{}) {
+				oldNode, ok := old.(*v1.Node)
+				if !ok {
+					return
+				}
+
+				curNode, ok := cur.(*v1.Node)
+				if !ok {
+					return
+				}
+
+				if !shouldSyncNode(oldNode, curNode) {
+					return
+				}
+
+				s.nodeSyncLoop()
+			},
+			DeleteFunc: func(old interface{}) {
+				s.nodeSyncLoop()
+			},
+		},
+		time.Duration(0),
+	)
+
 	if err := s.init(); err != nil {
 		return nil, err
 	}
+
 	return s, nil
 }
 
@@ -373,7 +404,7 @@ func (s *Controller) syncLoadBalancerIfNeeded(service *v1.Service, key string) (
 }
 
 func (s *Controller) ensureLoadBalancer(service *v1.Service) (*v1.LoadBalancerStatus, error) {
-	nodes, err := listWithPredicate(s.nodeLister, getNodeConditionPredicate())
+	nodes, err := listWithPredicate(s.nodeLister, s.getNodeConditionPredicate())
 	if err != nil {
 		return nil, err
 	}
@@ -602,20 +633,16 @@ func nodeSlicesEqualForLB(x, y []*v1.Node) bool {
 	return nodeNames(x).Equal(nodeNames(y))
 }
 
-func getNodeConditionPredicate() NodeConditionPredicate {
+func (s *Controller) getNodeConditionPredicate() NodeConditionPredicate {
 	return func(node *v1.Node) bool {
-		if utilfeature.DefaultFeatureGate.Enabled(legacyNodeRoleBehaviorFeature) {
+		if s.legacyNodeRoleFeatureEnabled {
 			// As of 1.6, we will taint the master, but not necessarily mark it unschedulable.
 			// Recognize nodes labeled as master, and filter them also, as we were doing previously.
 			if _, hasMasterRoleLabel := node.Labels[labelNodeRoleMaster]; hasMasterRoleLabel {
 				return false
 			}
 		}
-		if utilfeature.DefaultFeatureGate.Enabled(serviceNodeExclusionFeature) {
-			// Will be removed in 1.18
-			if _, hasExcludeBalancerLabel := node.Labels[labelAlphaNodeRoleExcludeBalancer]; hasExcludeBalancerLabel {
-				return false
-			}
+		if s.serviceNodeExclusionFeatureEnabled {
 			if _, hasExcludeBalancerLabel := node.Labels[labelNodeRoleExcludeBalancer]; hasExcludeBalancerLabel {
 				return false
 			}
@@ -637,10 +664,36 @@ func getNodeConditionPredicate() NodeConditionPredicate {
 	}
 }
 
+func shouldSyncNode(oldNode, newNode *v1.Node) bool {
+	if oldNode.Spec.Unschedulable != newNode.Spec.Unschedulable {
+		return true
+	}
+
+	if !reflect.DeepEqual(oldNode.Labels, newNode.Labels) {
+		return true
+	}
+
+	return nodeReadyConditionStatus(oldNode) != nodeReadyConditionStatus(newNode)
+}
+
+func nodeReadyConditionStatus(node *v1.Node) v1.ConditionStatus {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type != v1.NodeReady {
+			continue
+		}
+
+		return condition.Status
+	}
+
+	return ""
+}
+
 // nodeSyncLoop handles updating the hosts pointed to by all load
 // balancers whenever the set of nodes in the cluster changes.
 func (s *Controller) nodeSyncLoop() {
-	newHosts, err := listWithPredicate(s.nodeLister, getNodeConditionPredicate())
+	s.knownHostsLock.Lock()
+	defer s.knownHostsLock.Unlock()
+	newHosts, err := listWithPredicate(s.nodeLister, s.getNodeConditionPredicate())
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Failed to retrieve current set of nodes from node lister: %v", err))
 		return

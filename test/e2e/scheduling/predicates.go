@@ -31,7 +31,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2ekubelet "k8s.io/kubernetes/test/e2e/framework/kubelet"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2erc "k8s.io/kubernetes/test/e2e/framework/rc"
@@ -112,8 +111,8 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 		framework.ExpectNoError(err)
 
 		for _, node := range nodeList.Items {
-			framework.Logf("\nLogging pods the kubelet thinks is on node %v before test", node.Name)
-			printAllKubeletPods(cs, node.Name)
+			framework.Logf("\nLogging pods the apiserver thinks is on node %v before test", node.Name)
+			printAllPodsOnNode(cs, node.Name)
 		}
 
 	})
@@ -586,9 +585,9 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 			Value:  "testing-taint-value",
 			Effect: v1.TaintEffectNoSchedule,
 		}
-		framework.AddOrUpdateTaintOnNode(cs, nodeName, testTaint)
+		e2enode.AddOrUpdateTaintOnNode(cs, nodeName, testTaint)
 		framework.ExpectNodeHasTaint(cs, nodeName, &testTaint)
-		defer framework.RemoveTaintOffNode(cs, nodeName, testTaint)
+		defer e2enode.RemoveTaintOffNode(cs, nodeName, testTaint)
 
 		ginkgo.By("Trying to apply a random label on the found node.")
 		labelKey := fmt.Sprintf("kubernetes.io/e2e-label-key-%s", string(uuid.NewUUID()))
@@ -629,9 +628,9 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 			Value:  "testing-taint-value",
 			Effect: v1.TaintEffectNoSchedule,
 		}
-		framework.AddOrUpdateTaintOnNode(cs, nodeName, testTaint)
+		e2enode.AddOrUpdateTaintOnNode(cs, nodeName, testTaint)
 		framework.ExpectNodeHasTaint(cs, nodeName, &testTaint)
-		defer framework.RemoveTaintOffNode(cs, nodeName, testTaint)
+		defer e2enode.RemoveTaintOffNode(cs, nodeName, testTaint)
 
 		ginkgo.By("Trying to apply a random label on the found node.")
 		labelKey := fmt.Sprintf("kubernetes.io/e2e-label-key-%s", string(uuid.NewUUID()))
@@ -796,11 +795,11 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 	})
 })
 
-// printAllKubeletPods outputs status of all kubelet pods into log.
-func printAllKubeletPods(c clientset.Interface, nodeName string) {
-	podList, err := e2ekubelet.GetKubeletPods(c, nodeName)
+// printAllPodsOnNode outputs status of all kubelet pods into log.
+func printAllPodsOnNode(c clientset.Interface, nodeName string) {
+	podList, err := c.CoreV1().Pods(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{FieldSelector: "spec.nodeName=" + nodeName})
 	if err != nil {
-		framework.Logf("Unable to retrieve kubelet pods for node %v: %v", nodeName, err)
+		framework.Logf("Unable to retrieve pods for node %v: %v", nodeName, err)
 		return
 	}
 	for _, p := range podList.Items {
@@ -905,7 +904,7 @@ func getRequestedStorageEphemeralStorage(pod v1.Pod) int64 {
 // from the given node upon invocation.
 func removeTaintFromNodeAction(cs clientset.Interface, nodeName string, testTaint v1.Taint) Action {
 	return func() error {
-		framework.RemoveTaintOffNode(cs, nodeName, testTaint)
+		e2enode.RemoveTaintOffNode(cs, nodeName, testTaint)
 		return nil
 	}
 }
@@ -1040,7 +1039,7 @@ func createHostPortPodOnNode(f *framework.Framework, podName, ns, hostIP string,
 // adding the well known prefix "0::ffff:" https://tools.ietf.org/html/rfc2765
 // if the ip is IPv4 and the cluster IPFamily is IPv6, otherwise returns the same ip
 func translateIPv4ToIPv6(ip string) string {
-	if framework.TestContext.IPFamily == "ipv6" && !k8utilnet.IsIPv6String(ip) && ip != "" {
+	if framework.TestContext.IPFamily == "ipv6" && ip != "" && !k8utilnet.IsIPv6String(ip) {
 		ip = "0::ffff:" + ip
 	}
 	return ip
@@ -1053,15 +1052,19 @@ func GetPodsScheduled(masterNodes sets.String, pods *v1.PodList) (scheduledPods,
 			if pod.Spec.NodeName != "" {
 				_, scheduledCondition := podutil.GetPodCondition(&pod.Status, v1.PodScheduled)
 				framework.ExpectEqual(scheduledCondition != nil, true)
-				framework.ExpectEqual(scheduledCondition.Status, v1.ConditionTrue)
-				scheduledPods = append(scheduledPods, pod)
+				if scheduledCondition != nil {
+					framework.ExpectEqual(scheduledCondition.Status, v1.ConditionTrue)
+					scheduledPods = append(scheduledPods, pod)
+				}
 			} else {
 				_, scheduledCondition := podutil.GetPodCondition(&pod.Status, v1.PodScheduled)
 				framework.ExpectEqual(scheduledCondition != nil, true)
-				framework.ExpectEqual(scheduledCondition.Status, v1.ConditionFalse)
-				if scheduledCondition.Reason == "Unschedulable" {
+				if scheduledCondition != nil {
+					framework.ExpectEqual(scheduledCondition.Status, v1.ConditionFalse)
+					if scheduledCondition.Reason == "Unschedulable" {
 
-					notScheduledPods = append(notScheduledPods, pod)
+						notScheduledPods = append(notScheduledPods, pod)
+					}
 				}
 			}
 		}

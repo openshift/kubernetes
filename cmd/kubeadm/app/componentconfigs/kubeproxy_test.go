@@ -50,6 +50,7 @@ var kubeProxyMarshalCases = []struct {
 		yaml: dedent.Dedent(`
 			apiVersion: kubeproxy.config.k8s.io/v1alpha1
 			bindAddress: ""
+			bindAddressHardFail: false
 			clientConnection:
 			  acceptContentTypes: ""
 			  burst: 0
@@ -106,6 +107,7 @@ var kubeProxyMarshalCases = []struct {
 		yaml: dedent.Dedent(`
 			apiVersion: kubeproxy.config.k8s.io/v1alpha1
 			bindAddress: 1.2.3.4
+			bindAddressHardFail: false
 			clientConnection:
 			  acceptContentTypes: ""
 			  burst: 0
@@ -295,7 +297,7 @@ func TestKubeProxyDefault(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got := &kubeProxyConfig{}
-			got.Default(&test.clusterCfg, &test.endpoint)
+			got.Default(&test.clusterCfg, &test.endpoint, &kubeadmapi.NodeRegistrationOptions{})
 			if !reflect.DeepEqual(got, &test.expected) {
 				t.Fatalf("Missmatch between expected and got:\nExpected:\n%v\n---\nGot:\n%v", test.expected, got)
 			}

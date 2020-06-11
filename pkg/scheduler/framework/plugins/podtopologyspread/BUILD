@@ -11,10 +11,10 @@ go_library(
     importpath = "k8s.io/kubernetes/pkg/scheduler/framework/plugins/podtopologyspread",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/scheduler/apis/config:go_default_library",
         "//pkg/scheduler/framework/plugins/helper:go_default_library",
         "//pkg/scheduler/framework/v1alpha1:go_default_library",
-        "//pkg/scheduler/listers:go_default_library",
-        "//pkg/scheduler/nodeinfo:go_default_library",
+        "//pkg/scheduler/internal/parallelize:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/validation:go_default_library",
@@ -25,8 +25,7 @@ go_library(
         "//staging/src/k8s.io/client-go/informers:go_default_library",
         "//staging/src/k8s.io/client-go/listers/apps/v1:go_default_library",
         "//staging/src/k8s.io/client-go/listers/core/v1:go_default_library",
-        "//staging/src/k8s.io/client-go/util/workqueue:go_default_library",
-        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/v2:go_default_library",
     ],
 )
 
@@ -39,9 +38,10 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//pkg/scheduler/apis/config:go_default_library",
         "//pkg/scheduler/framework/v1alpha1:go_default_library",
         "//pkg/scheduler/internal/cache:go_default_library",
-        "//pkg/scheduler/nodeinfo:go_default_library",
+        "//pkg/scheduler/internal/parallelize:go_default_library",
         "//pkg/scheduler/testing:go_default_library",
         "//staging/src/k8s.io/api/apps/v1:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",

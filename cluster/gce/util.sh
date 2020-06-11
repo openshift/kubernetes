@@ -20,7 +20,7 @@
 # config-default.sh.
 readonly GCE_MAX_LOCAL_SSD=8
 
-KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/../..
 source "${KUBE_ROOT}/cluster/gce/${KUBE_CONFIG_FILE-"config-default.sh"}"
 source "${KUBE_ROOT}/cluster/common.sh"
 source "${KUBE_ROOT}/hack/lib/util.sh"
@@ -88,11 +88,11 @@ function set-linux-node-image() {
 function set-windows-node-image() {
   WINDOWS_NODE_IMAGE_PROJECT="windows-cloud"
   if [[ "${WINDOWS_NODE_OS_DISTRIBUTION}" == "win2019" ]]; then
-    WINDOWS_NODE_IMAGE="windows-server-2019-dc-core-for-containers-v20200114"
+    WINDOWS_NODE_IMAGE="windows-server-2019-dc-core-for-containers-v20200310"
   elif [[ "${WINDOWS_NODE_OS_DISTRIBUTION}" == "win1909" ]]; then
-    WINDOWS_NODE_IMAGE="windows-server-1909-dc-core-for-containers-v20200114"
+    WINDOWS_NODE_IMAGE="windows-server-1909-dc-core-for-containers-v20200310"
   elif [[ "${WINDOWS_NODE_OS_DISTRIBUTION}" == "win1809" ]]; then
-    WINDOWS_NODE_IMAGE="windows-server-1809-dc-core-for-containers-v20200114"
+    WINDOWS_NODE_IMAGE="windows-server-1809-dc-core-for-containers-v20200310"
   else
     echo "Unknown WINDOWS_NODE_OS_DISTRIBUTION ${WINDOWS_NODE_OS_DISTRIBUTION}" >&2
     exit 1
@@ -1242,6 +1242,7 @@ CUSTOM_CALICO_NODE_DAEMONSET_YAML: |
 $(echo "${CUSTOM_CALICO_NODE_DAEMONSET_YAML:-}" | sed -e "s/'/''/g")
 CUSTOM_TYPHA_DEPLOYMENT_YAML: |
 $(echo "${CUSTOM_TYPHA_DEPLOYMENT_YAML:-}" | sed -e "s/'/''/g")
+CONCURRENT_SERVICE_SYNCS: $(yaml-quote ${CONCURRENT_SERVICE_SYNCS:-})
 EOF
   if [[ "${master}" == "true" && "${MASTER_OS_DISTRIBUTION}" == "gci" ]] || \
      [[ "${master}" == "false" && "${NODE_OS_DISTRIBUTION}" == "gci" ]]  || \
@@ -1556,6 +1557,7 @@ KUBEPROXY_ARGS: $(yaml-quote ${KUBEPROXY_ARGS})
 KUBECONFIG_FILE: $(yaml-quote ${WINDOWS_KUBECONFIG_FILE})
 BOOTSTRAP_KUBECONFIG_FILE: $(yaml-quote ${WINDOWS_BOOTSTRAP_KUBECONFIG_FILE})
 KUBEPROXY_KUBECONFIG_FILE: $(yaml-quote ${WINDOWS_KUBEPROXY_KUBECONFIG_FILE})
+WINDOWS_INFRA_CONTAINER: $(yaml-quote ${WINDOWS_INFRA_CONTAINER})
 EOF
 }
 
@@ -2945,7 +2947,8 @@ function attach-internal-master-ip() {
   echo "Setting ${name}'s aliases to '${aliases}' (added ${ip})"
   # Attach ${ip} to ${name}
   gcloud compute instances network-interfaces update "${name}" --project "${PROJECT}" --zone "${zone}" --aliases="${aliases}"
-  run-gcloud-command "${name}" "${zone}" 'sudo ip route add to local '${ip}'/32 dev $(ip route | grep default | awk '\''{print $5}'\'')' || true
+  gcloud compute instances add-metadata "${name}" --zone "${zone}" --metadata=kube-master-internal-ip="${ip}"
+  run-gcloud-command "${name}" "${zone}" 'sudo /bin/bash /home/kubernetes/bin/kube-master-internal-route.sh' || true
   return $?
 }
 
@@ -2963,6 +2966,7 @@ function detach-internal-master-ip() {
   echo "Setting ${name}'s aliases to '${aliases}' (removed ${ip})"
   # Detach ${MASTER_NAME}-internal-ip from ${name}
   gcloud compute instances network-interfaces update "${name}" --project "${PROJECT}" --zone "${zone}" --aliases="${aliases}"
+  gcloud compute instances remove-metadata "${name}" --zone "${zone}" --keys=kube-master-internal-ip
   run-gcloud-command "${name}" "${zone}" 'sudo ip route del to local '${ip}'/32 dev $(ip route | grep default | awk '\''{print $5}'\'')' || true
   return $?
 }
@@ -3378,7 +3382,7 @@ function check-cluster() {
   local start_time=$(date +%s)
   local curl_out=$(mktemp)
   kube::util::trap_add "rm -f ${curl_out}" EXIT
-  until curl --cacert "${CERT_DIR}/pki/ca.crt" \
+  until curl -vsS --cacert "${CERT_DIR}/pki/ca.crt" \
           -H "Authorization: Bearer ${KUBE_BEARER_TOKEN}" \
           ${secure} \
           --max-time 5 --fail \
@@ -3578,11 +3582,11 @@ function kube-down() {
 
   # In the replicated scenario, if there's only a single master left, we should also delete load balancer in front of it.
   if [[ "${REMAINING_MASTER_COUNT}" -eq 1 ]]; then
+    detect-master
+    local REMAINING_REPLICA_NAME="$(get-all-replica-names)"
+    local REMAINING_REPLICA_ZONE=$(gcloud compute instances list "${REMAINING_REPLICA_NAME}" \
+      --project "${PROJECT}" --format="value(zone)")
     if gcloud compute forwarding-rules describe "${MASTER_NAME}" --region "${REGION}" --project "${PROJECT}" &>/dev/null; then
-      detect-master
-      local REMAINING_REPLICA_NAME="$(get-all-replica-names)"
-      local REMAINING_REPLICA_ZONE=$(gcloud compute instances list "${REMAINING_REPLICA_NAME}" \
-        --project "${PROJECT}" --format="value(zone)")
       gcloud compute forwarding-rules delete \
         --project "${PROJECT}" \
         --region "${REGION}" \

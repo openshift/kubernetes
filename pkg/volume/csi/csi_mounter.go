@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	api "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -73,7 +73,6 @@ type csiMountMgr struct {
 	spec                *volume.Spec
 	pod                 *api.Pod
 	podUID              types.UID
-	options             volume.VolumeOptions
 	publishContext      map[string]string
 	kubeVolHost         volume.KubeletVolumeHost
 	volume.MetricsProvider

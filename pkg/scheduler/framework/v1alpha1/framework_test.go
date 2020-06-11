@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 )
 
 const (
@@ -54,7 +54,7 @@ const (
 var _ ScorePlugin = &TestScoreWithNormalizePlugin{}
 var _ ScorePlugin = &TestScorePlugin{}
 
-func newScoreWithNormalizePlugin1(injArgs *runtime.Unknown, f FrameworkHandle) (Plugin, error) {
+func newScoreWithNormalizePlugin1(injArgs runtime.Object, f FrameworkHandle) (Plugin, error) {
 	var inj injectedResult
 	if err := DecodeInto(injArgs, &inj); err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func newScoreWithNormalizePlugin1(injArgs *runtime.Unknown, f FrameworkHandle) (
 	return &TestScoreWithNormalizePlugin{scoreWithNormalizePlugin1, inj}, nil
 }
 
-func newScoreWithNormalizePlugin2(injArgs *runtime.Unknown, f FrameworkHandle) (Plugin, error) {
+func newScoreWithNormalizePlugin2(injArgs runtime.Object, f FrameworkHandle) (Plugin, error) {
 	var inj injectedResult
 	if err := DecodeInto(injArgs, &inj); err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func newScoreWithNormalizePlugin2(injArgs *runtime.Unknown, f FrameworkHandle) (
 	return &TestScoreWithNormalizePlugin{scoreWithNormalizePlugin2, inj}, nil
 }
 
-func newScorePlugin1(injArgs *runtime.Unknown, f FrameworkHandle) (Plugin, error) {
+func newScorePlugin1(injArgs runtime.Object, f FrameworkHandle) (Plugin, error) {
 	var inj injectedResult
 	if err := DecodeInto(injArgs, &inj); err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func newScorePlugin1(injArgs *runtime.Unknown, f FrameworkHandle) (Plugin, error
 	return &TestScorePlugin{scorePlugin1, inj}, nil
 }
 
-func newPluginNotImplementingScore(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+func newPluginNotImplementingScore(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 	return &PluginNotImplementingScore{}, nil
 }
 
@@ -134,19 +134,19 @@ type TestPlugin struct {
 	inj  injectedResult
 }
 
-type TestPluginPreFilterExtension struct {
-	inj injectedResult
+func (pl *TestPlugin) AddPod(ctx context.Context, state *CycleState, podToSchedule *v1.Pod, podToAdd *v1.Pod, nodeInfo *NodeInfo) *Status {
+	return NewStatus(Code(pl.inj.PreFilterAddPodStatus), "injected status")
 }
-
-func (e *TestPluginPreFilterExtension) AddPod(ctx context.Context, state *CycleState, podToSchedule *v1.Pod, podToAdd *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *Status {
-	return NewStatus(Code(e.inj.PreFilterAddPodStatus), "injected status")
-}
-func (e *TestPluginPreFilterExtension) RemovePod(ctx context.Context, state *CycleState, podToSchedule *v1.Pod, podToRemove *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *Status {
-	return NewStatus(Code(e.inj.PreFilterRemovePodStatus), "injected status")
+func (pl *TestPlugin) RemovePod(ctx context.Context, state *CycleState, podToSchedule *v1.Pod, podToRemove *v1.Pod, nodeInfo *NodeInfo) *Status {
+	return NewStatus(Code(pl.inj.PreFilterRemovePodStatus), "injected status")
 }
 
 func (pl *TestPlugin) Name() string {
 	return pl.name
+}
+
+func (pl *TestPlugin) Less(*QueuedPodInfo, *QueuedPodInfo) bool {
+	return false
 }
 
 func (pl *TestPlugin) Score(ctx context.Context, state *CycleState, p *v1.Pod, nodeName string) (int64, *Status) {
@@ -162,10 +162,10 @@ func (pl *TestPlugin) PreFilter(ctx context.Context, state *CycleState, p *v1.Po
 }
 
 func (pl *TestPlugin) PreFilterExtensions() PreFilterExtensions {
-	return &TestPluginPreFilterExtension{inj: pl.inj}
+	return pl
 }
 
-func (pl *TestPlugin) Filter(ctx context.Context, state *CycleState, pod *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *Status {
+func (pl *TestPlugin) Filter(ctx context.Context, state *CycleState, pod *v1.Pod, nodeInfo *NodeInfo) *Status {
 	return NewStatus(Code(pl.inj.FilterStatus), "injected filter status")
 }
 
@@ -228,13 +228,13 @@ func (pl *TestPreFilterWithExtensionsPlugin) PreFilter(ctx context.Context, stat
 }
 
 func (pl *TestPreFilterWithExtensionsPlugin) AddPod(ctx context.Context, state *CycleState, podToSchedule *v1.Pod,
-	podToAdd *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *Status {
+	podToAdd *v1.Pod, nodeInfo *NodeInfo) *Status {
 	pl.AddCalled++
 	return nil
 }
 
 func (pl *TestPreFilterWithExtensionsPlugin) RemovePod(ctx context.Context, state *CycleState, podToSchedule *v1.Pod,
-	podToRemove *v1.Pod, nodeInfo *schedulernodeinfo.NodeInfo) *Status {
+	podToRemove *v1.Pod, nodeInfo *NodeInfo) *Status {
 	pl.RemoveCalled++
 	return nil
 }
@@ -260,7 +260,7 @@ func (dp *TestDuplicatePlugin) PreFilterExtensions() PreFilterExtensions {
 
 var _ PreFilterPlugin = &TestDuplicatePlugin{}
 
-func newDuplicatePlugin(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+func newDuplicatePlugin(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 	return &TestDuplicatePlugin{}, nil
 }
 
@@ -278,7 +278,7 @@ func (pp *TestPermitPlugin) Permit(ctx context.Context, state *CycleState, p *v1
 
 var _ QueueSortPlugin = &TestQueueSortPlugin{}
 
-func newQueueSortPlugin(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+func newQueueSortPlugin(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 	return &TestQueueSortPlugin{}, nil
 }
 
@@ -289,13 +289,13 @@ func (pl *TestQueueSortPlugin) Name() string {
 	return queueSortPlugin
 }
 
-func (pl *TestQueueSortPlugin) Less(_, _ *PodInfo) bool {
+func (pl *TestQueueSortPlugin) Less(_, _ *QueuedPodInfo) bool {
 	return false
 }
 
 var _ BindPlugin = &TestBindPlugin{}
 
-func newBindPlugin(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+func newBindPlugin(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 	return &TestBindPlugin{}, nil
 }
 
@@ -459,6 +459,97 @@ func TestNewFrameworkErrors(t *testing.T) {
 	}
 }
 
+func recordingPluginFactory(name string, result map[string]runtime.Object) PluginFactory {
+	return func(args runtime.Object, f FrameworkHandle) (Plugin, error) {
+		result[name] = args
+		return &TestPlugin{
+			name: name,
+		}, nil
+	}
+}
+
+func TestNewFrameworkPluginDefaults(t *testing.T) {
+	// In-tree plugins that use args.
+	pluginsWithArgs := []string{"InterPodAffinity", "NodeLabel", "NodeResourcesFit", "RequestedToCapacityRatio", "PodTopologySpread"}
+	plugins := config.Plugins{
+		Filter: &config.PluginSet{},
+	}
+	// Use all plugins in Filter.
+	for _, name := range pluginsWithArgs {
+		plugins.Filter.Enabled = append(plugins.Filter.Enabled, config.Plugin{Name: name})
+	}
+	// Set required extension points.
+	onePlugin := &config.PluginSet{
+		Enabled: []config.Plugin{{Name: pluginsWithArgs[0]}},
+	}
+	plugins.QueueSort = onePlugin
+	plugins.Bind = onePlugin
+
+	tests := []struct {
+		name      string
+		pluginCfg []config.PluginConfig
+		wantCfg   map[string]runtime.Object
+	}{
+		{
+			name: "empty plugin config",
+			wantCfg: map[string]runtime.Object{
+				"InterPodAffinity": &config.InterPodAffinityArgs{
+					HardPodAffinityWeight: 1,
+				},
+				"NodeLabel":                &config.NodeLabelArgs{},
+				"NodeResourcesFit":         &config.NodeResourcesFitArgs{},
+				"RequestedToCapacityRatio": &config.RequestedToCapacityRatioArgs{},
+				"PodTopologySpread":        &config.PodTopologySpreadArgs{},
+			},
+		},
+		{
+			name: "some overridden plugin config",
+			pluginCfg: []config.PluginConfig{
+				{
+					Name: "InterPodAffinity",
+					Args: &config.InterPodAffinityArgs{
+						HardPodAffinityWeight: 3,
+					},
+				},
+				{
+					Name: "NodeResourcesFit",
+					Args: &config.NodeResourcesFitArgs{
+						IgnoredResources: []string{"example.com/foo"},
+					},
+				},
+			},
+			wantCfg: map[string]runtime.Object{
+				"InterPodAffinity": &config.InterPodAffinityArgs{
+					HardPodAffinityWeight: 3,
+				},
+				"NodeLabel": &config.NodeLabelArgs{},
+				"NodeResourcesFit": &config.NodeResourcesFitArgs{
+					IgnoredResources: []string{"example.com/foo"},
+				},
+				"RequestedToCapacityRatio": &config.RequestedToCapacityRatioArgs{},
+				"PodTopologySpread":        &config.PodTopologySpreadArgs{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// result will hold plugin args passed to factories.
+			result := make(map[string]runtime.Object)
+			registry := make(Registry, len(pluginsWithArgs))
+			for _, name := range pluginsWithArgs {
+				registry[name] = recordingPluginFactory(name, result)
+			}
+			_, err := NewFramework(registry, &plugins, tt.pluginCfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.wantCfg, result); diff != "" {
+				t.Errorf("unexpected plugin args (-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestRunScorePlugins(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -480,7 +571,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scorePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "scoreRes": 1 }`),
 					},
 				},
@@ -497,7 +588,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scoreWithNormalizePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "scoreRes": 10, "normalizeRes": 5 }`),
 					},
 				},
@@ -513,19 +604,19 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scorePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "scoreRes": 1 }`),
 					},
 				},
 				{
 					Name: scoreWithNormalizePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "scoreRes": 3, "normalizeRes": 4}`),
 					},
 				},
 				{
 					Name: scoreWithNormalizePlugin2,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "scoreRes": 4, "normalizeRes": 5}`),
 					},
 				},
@@ -544,7 +635,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scoreWithNormalizePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "scoreStatus": 1 }`),
 					},
 				},
@@ -557,7 +648,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scoreWithNormalizePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(`{ "normalizeStatus": 1 }`),
 					},
 				},
@@ -571,7 +662,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scorePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(fmt.Sprintf(`{ "scoreRes": %d }`, MaxNodeScore+1)),
 					},
 				},
@@ -584,7 +675,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scorePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(fmt.Sprintf(`{ "scoreRes": %d }`, MinNodeScore-1)),
 					},
 				},
@@ -597,7 +688,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scoreWithNormalizePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(fmt.Sprintf(`{ "normalizeRes": %d }`, MaxNodeScore+1)),
 					},
 				},
@@ -610,7 +701,7 @@ func TestRunScorePlugins(t *testing.T) {
 			pluginConfigs: []config.PluginConfig{
 				{
 					Name: scoreWithNormalizePlugin1,
-					Args: runtime.Unknown{
+					Args: &runtime.Unknown{
 						Raw: []byte(fmt.Sprintf(`{ "normalizeRes": %d }`, MinNodeScore-1)),
 					},
 				},
@@ -651,11 +742,11 @@ func TestPreFilterPlugins(t *testing.T) {
 	preFilter2 := &TestPreFilterWithExtensionsPlugin{}
 	r := make(Registry)
 	r.Register(preFilterPluginName,
-		func(_ *runtime.Unknown, fh FrameworkHandle) (Plugin, error) {
+		func(_ runtime.Object, fh FrameworkHandle) (Plugin, error) {
 			return preFilter1, nil
 		})
 	r.Register(preFilterWithExtensionsPluginName,
-		func(_ *runtime.Unknown, fh FrameworkHandle) (Plugin, error) {
+		func(_ runtime.Object, fh FrameworkHandle) (Plugin, error) {
 			return preFilter2, nil
 		})
 	plugins := &config.Plugins{PreFilter: &config.PluginSet{Enabled: []config.Plugin{{Name: preFilterWithExtensionsPluginName}, {Name: preFilterPluginName}}}}
@@ -875,7 +966,7 @@ func TestFilterPlugins(t *testing.T) {
 				// register all plugins
 				tmpPl := pl
 				if err := registry.Register(pl.name,
-					func(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+					func(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 						return tmpPl, nil
 					}); err != nil {
 					t.Fatalf("fail to register filter plugin (%s)", pl.name)
@@ -1033,7 +1124,7 @@ func TestPreBindPlugins(t *testing.T) {
 
 			for _, pl := range tt.plugins {
 				tmpPl := pl
-				if err := registry.Register(pl.name, func(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+				if err := registry.Register(pl.name, func(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 					return tmpPl, nil
 				}); err != nil {
 					t.Fatalf("Unable to register pre bind plugins: %s", pl.name)
@@ -1189,7 +1280,7 @@ func TestReservePlugins(t *testing.T) {
 
 			for _, pl := range tt.plugins {
 				tmpPl := pl
-				if err := registry.Register(pl.name, func(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+				if err := registry.Register(pl.name, func(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 					return tmpPl, nil
 				}); err != nil {
 					t.Fatalf("Unable to register pre bind plugins: %s", pl.name)
@@ -1312,7 +1403,7 @@ func TestPermitPlugins(t *testing.T) {
 
 		for _, pl := range tt.plugins {
 			tmpPl := pl
-			if err := registry.Register(pl.name, func(_ *runtime.Unknown, _ FrameworkHandle) (Plugin, error) {
+			if err := registry.Register(pl.name, func(_ runtime.Object, _ FrameworkHandle) (Plugin, error) {
 				return tmpPl, nil
 			}); err != nil {
 				t.Fatalf("Unable to register Permit plugin: %s", pl.name)
@@ -1470,7 +1561,7 @@ func TestRecordingMetrics(t *testing.T) {
 			plugin := &TestPlugin{name: testPlugin, inj: tt.inject}
 			r := make(Registry)
 			r.Register(testPlugin,
-				func(_ *runtime.Unknown, fh FrameworkHandle) (Plugin, error) {
+				func(_ runtime.Object, fh FrameworkHandle) (Plugin, error) {
 					return plugin, nil
 				})
 			pluginSet := &config.PluginSet{Enabled: []config.Plugin{{Name: testPlugin, Weight: 1}}}
@@ -1585,7 +1676,7 @@ func TestRunBindPlugins(t *testing.T) {
 				name := fmt.Sprintf("bind-%d", i)
 				plugin := &TestPlugin{name: name, inj: injectedResult{BindStatus: int(inj)}}
 				r.Register(name,
-					func(_ *runtime.Unknown, fh FrameworkHandle) (Plugin, error) {
+					func(_ runtime.Object, fh FrameworkHandle) (Plugin, error) {
 						return plugin, nil
 					})
 				pluginSet.Enabled = append(pluginSet.Enabled, config.Plugin{Name: name})
@@ -1636,7 +1727,7 @@ func TestPermitWaitDurationMetric(t *testing.T) {
 			plugin := &TestPlugin{name: testPlugin, inj: tt.inject}
 			r := make(Registry)
 			err := r.Register(testPlugin,
-				func(_ *runtime.Unknown, fh FrameworkHandle) (Plugin, error) {
+				func(_ runtime.Object, fh FrameworkHandle) (Plugin, error) {
 					return plugin, nil
 				})
 			if err != nil {
@@ -1695,7 +1786,7 @@ func TestWaitOnPermit(t *testing.T) {
 			testPermitPlugin := &TestPermitPlugin{}
 			r := make(Registry)
 			r.Register(permitPlugin,
-				func(_ *runtime.Unknown, fh FrameworkHandle) (Plugin, error) {
+				func(_ runtime.Object, fh FrameworkHandle) (Plugin, error) {
 					return testPermitPlugin, nil
 				})
 			plugins := &config.Plugins{
@@ -1723,6 +1814,41 @@ func TestWaitOnPermit(t *testing.T) {
 			if waitOnPermitStatus.Message() != tt.wantMessage {
 				t.Fatalf("Expected WaitOnPermit to return status with message %q, but got %q",
 					tt.wantMessage, waitOnPermitStatus.Message())
+			}
+		})
+	}
+}
+
+func TestListPlugins(t *testing.T) {
+	tests := []struct {
+		name    string
+		plugins *config.Plugins
+		// pluginSetCount include queue sort plugin and bind plugin.
+		pluginSetCount int
+	}{
+		{
+			name:           "Add empty plugin",
+			plugins:        &config.Plugins{},
+			pluginSetCount: 2,
+		},
+		{
+			name: "Add multiple plugins",
+			plugins: &config.Plugins{
+				Score: &config.PluginSet{Enabled: []config.Plugin{{Name: scorePlugin1}, {Name: scoreWithNormalizePlugin1}}},
+			},
+			pluginSetCount: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, err := newFrameworkWithQueueSortAndBind(registry, tt.plugins, emptyArgs)
+			if err != nil {
+				t.Fatalf("Failed to create framework for testing: %v", err)
+			}
+			plugins := f.ListPlugins()
+			if len(plugins) != tt.pluginSetCount {
+				t.Fatalf("Unexpected pluginSet count: %v", len(plugins))
 			}
 		})
 	}

@@ -37,7 +37,7 @@ import (
 
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	volerr "k8s.io/cloud-provider/volume/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -344,7 +344,7 @@ func (c *BlobDiskController) ensureDefaultContainer(storageAccountName string) e
 	}
 
 	// account exists but not ready yet
-	if provisionState != storage.ProvisioningStateSucceeded {
+	if provisionState != storage.Succeeded {
 		// we don't want many attempts to validate the account readiness
 		// here hence we are locking
 		counter := 1
@@ -375,7 +375,7 @@ func (c *BlobDiskController) ensureDefaultContainer(storageAccountName string) e
 				return false, nil // error performing the query - retryable
 			}
 
-			if provisionState == storage.ProvisioningStateSucceeded {
+			if provisionState == storage.Succeeded {
 				return true, nil
 			}
 

@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	apps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -54,7 +54,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/daemon/util"
 	pluginhelper "k8s.io/kubernetes/pkg/scheduler/framework/plugins/helper"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
 	"k8s.io/utils/integer"
 )
 
@@ -1214,14 +1213,7 @@ func (dsc *DaemonSetsController) nodeShouldRunDaemonPod(node *v1.Node, ds *apps.
 		return false, false, nil
 	}
 
-	nodeInfo := schedulernodeinfo.NewNodeInfo()
-	nodeInfo.SetNode(node)
-	taints, err := nodeInfo.Taints()
-	if err != nil {
-		klog.Warningf("failed to get node %q taints: %v", node.Name, err)
-		return false, false, err
-	}
-
+	taints := node.Spec.Taints
 	fitsNodeName, fitsNodeAffinity, fitsTaints := Predicates(pod, node, taints)
 	if !fitsNodeName || !fitsNodeAffinity {
 		return false, false, nil

@@ -24,7 +24,7 @@ import (
 	"time"
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -718,7 +718,7 @@ func (m *kubeGenericRuntimeManager) SyncPod(pod *v1.Pod, podStatus *kubecontaine
 		var msg string
 		var err error
 
-		klog.V(4).Infof("Creating sandbox for pod %q", format.Pod(pod))
+		klog.V(4).Infof("Creating PodSandbox for pod %q", format.Pod(pod))
 		createSandboxResult := kubecontainer.NewSyncResult(kubecontainer.CreatePodSandbox, format.Pod(pod))
 		result.AddSyncResult(createSandboxResult)
 		podSandboxID, msg, err = m.createPodSandbox(pod, podContainerChanges.Attempt)

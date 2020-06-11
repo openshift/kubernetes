@@ -19,6 +19,9 @@ package v1beta1
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:prerelease-lifecycle-gen:introduced=1.7
+// +k8s:prerelease-lifecycle-gen:deprecated=1.19
+// +k8s:prerelease-lifecycle-gen:replacement=apiregistration.k8s.io,v1,APIServiceList
 
 // APIServiceList is a list of APIService objects.
 type APIServiceList struct {
@@ -45,7 +48,7 @@ type ServiceReference struct {
 // Only https is supported, though you are able to disable certificate verification.
 type APIServiceSpec struct {
 	// Service is a reference to the service for this API server.  It must communicate
-	// on port 443
+	// on port 443.
 	// If the Service is nil, that means the handling for the API groupversion is handled locally on this server.
 	// The call will simply delegate to the normal handler chain to be fulfilled.
 	// +optional
@@ -138,6 +141,9 @@ type APIServiceStatus struct {
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:prerelease-lifecycle-gen:introduced=1.7
+// +k8s:prerelease-lifecycle-gen:deprecated=1.19
+// +k8s:prerelease-lifecycle-gen:replacement=apiregistration.k8s.io,v1,APIService
 
 // APIService represents a server for a particular GroupVersion.
 // Name must be "version.group".

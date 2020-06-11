@@ -31,7 +31,6 @@ go_test(
         "//pkg/scheduler/apis/config:go_default_library",
         "//pkg/scheduler/framework/plugins/defaultbinder:go_default_library",
         "//pkg/scheduler/framework/v1alpha1:go_default_library",
-        "//pkg/scheduler/nodeinfo:go_default_library",
         "//pkg/scheduler/profile:go_default_library",
         "//pkg/scheduler/testing:go_default_library",
         "//plugin/pkg/admission/podtolerationrestriction:go_default_library",
@@ -62,7 +61,7 @@ go_test(
         "//test/utils:go_default_library",
         "//test/utils/image:go_default_library",
         "//vendor/github.com/google/go-cmp/cmp:go_default_library",
-        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/v2:go_default_library",
     ],
 )
 
