@@ -13,7 +13,7 @@ export PATH
 
 if [[ -n "${KUBE_JUNIT_REPORT_DIR}" ]]; then
   # junit output will only be created if this tool is available
-  GO111MODULE=off go install k8s.io/kubernetes/vendor/gotest.tools/gotestsum
+  make WHAT=vendor/gotest.tools/gotestsum
 fi
 
 make test

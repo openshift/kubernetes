@@ -26,5 +26,4 @@ if ! which docker &> /dev/null; then
 fi
 export OS_RUN_WITHOUT_DOCKER
 
-make WHAT=vendor/gotest.tools/gotestsum
 make verify
