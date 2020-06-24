@@ -1,9 +1,9 @@
 FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.13 AS builder
-WORKDIR /go/src/github.com/openshift/kubernetes
+WORKDIR /go/src/k8s.io/kubernetes
 COPY . .
 RUN make WHAT=test/e2e/e2e.test; \
     mkdir -p /tmp/build; \
-    cp /go/src/github.com/openshift/kubernetes/_output/local/bin/linux/$(go env GOARCH)/e2e.test /tmp/build/k8s-e2e-tests
+    cp /go/src/k8s.io/kubernetes/_output/local/bin/linux/$(go env GOARCH)/e2e.test /tmp/build/k8s-e2e-tests
 
 FROM registry.svc.ci.openshift.org/ocp/4.2:cli
 COPY --from=builder /tmp/build/k8s-e2e-tests /usr/bin/
