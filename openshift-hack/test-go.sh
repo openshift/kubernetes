@@ -16,4 +16,4 @@ if [[ -n "${KUBE_JUNIT_REPORT_DIR}" ]]; then
   make WHAT=vendor/gotest.tools/gotestsum
 fi
 
-make test KUBE_JUNIT_REPORT_DIR="${KUBE_JUNIT_REPORT_DIR}"
+make test

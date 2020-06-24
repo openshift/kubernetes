@@ -16,6 +16,10 @@ PATH="$( os::deps::path_with_protoc )"
 
 /usr/bin/env protoc --version
 
+# Required for openapi verification
+hack/install-etcd.sh
+PATH="$(pwd)/third_party/etcd:${PATH}"
+
 export PATH
 
 # Attempt to verify without docker if it is not available.
