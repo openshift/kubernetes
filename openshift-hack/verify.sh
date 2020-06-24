@@ -20,14 +20,17 @@ PATH="$( os::deps::path_with_protoc )"
 hack/install-etcd.sh
 PATH="$(pwd)/third_party/etcd:${PATH}"
 
-export PATH
-
 # Attempt to verify without docker if it is not available.
 OS_RUN_WITHOUT_DOCKER=
 if ! which docker &> /dev/null; then
   os::log::warning "docker not available, attempting to run verify without it"
   OS_RUN_WITHOUT_DOCKER=y
+
+  # Without docker, shellcheck may need to be installed.
+  PATH="$( os::deps::path_with_shellcheck )"
 fi
 export OS_RUN_WITHOUT_DOCKER
+
+export PATH
 
 make verify

@@ -11,9 +11,4 @@ export PATH
 
 /usr/bin/env bash --version
 
-if [[ -n "${KUBE_JUNIT_REPORT_DIR}" ]]; then
-  # junit output will only be created if this tool is available
-  make WHAT=vendor/gotest.tools/gotestsum
-fi
-
 make test
