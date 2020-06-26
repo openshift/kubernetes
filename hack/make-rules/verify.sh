@@ -39,11 +39,13 @@ EXCLUDED_PATTERNS=(
 # Excluded checks for openshift/kubernetes fork
 EXCLUDED_PATTERNS+=(
   "verify-boilerplate.sh"            # Carries do not require boilerplate
+  "verify-codegen.sh"                # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-generated-files-remake.sh" # TODO(marun) Is it worth fixing this check?
   "verify-golint.sh"                 # TODO(marun) Cleanup carried code
-  "verify-generated-files-remake.sh" # TODO(marun) Should this be passing?
   "verify-no-vendor-cycles.sh"       # Incompatible with the way many carries are specified
-  "verify-vendor.sh"                 # Wants to update pins to newer versions than used upstream
   "verify-publishing-bot.py"         # Verifies the upstream rules, which are not maintained in o/k
+  "verify-staticcheck.sh"            # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-vendor-licenses.sh"        # TODO(marun) Fix inconsistent behavior between local and ci execution
   )
 
 # Excluded checks for openshift/kubernetes fork
