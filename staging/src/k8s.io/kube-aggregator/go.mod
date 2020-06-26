@@ -17,7 +17,6 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
-	go.uber.org/atomic v1.3.3-0.20181018215023-8dc6146f7569 // indirect
 	go.uber.org/multierr v1.1.1-0.20180122172545-ddea229ff1df // indirect
 	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
 	k8s.io/api v0.18.3
