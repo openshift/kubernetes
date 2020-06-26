@@ -44,7 +44,7 @@ if [[ -n "${OPENSHIFT_CI:-}" ]]; then
   # container (https://github.com/openshift/release/issues/1584).
   # It's safe to revert to index when running in CI since no user
   # changes are at risk of being lost.
-  git checkout "${DIFFROOT}"
+  git checkout "${SCRIPT_ROOT}"
 else
   cp -a "${TMP_DIFFROOT}"/* "${DIFFROOT}"
 fi
