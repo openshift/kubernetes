@@ -12,7 +12,6 @@ require (
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/spf13/cobra v0.0.5
-	go.uber.org/atomic v1.3.3-0.20181018215023-8dc6146f7569 // indirect
 	go.uber.org/multierr v1.1.1-0.20180122172545-ddea229ff1df // indirect
 	k8s.io/apimachinery v0.18.3
 	k8s.io/apiserver v0.18.3
