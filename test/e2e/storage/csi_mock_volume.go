@@ -274,6 +274,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 					return
 				}
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+				framework.LogPodStartErrorIfAny(pod, err)
 				framework.ExpectNoError(err, "Failed to start pod: %v", err)
 
 				ginkgo.By("Checking if VolumeAttachment was created for the pod")
@@ -360,6 +361,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 					return
 				}
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+				framework.LogPodStartErrorIfAny(pod, err)
 				framework.ExpectNoError(err, "Failed to start pod: %v", err)
 
 				// If we expect an ephemeral volume, the feature has to be enabled.
@@ -401,12 +403,14 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 			gomega.Expect(pod1).NotTo(gomega.BeNil(), "while creating first pod")
 
 			err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod1.Name, pod1.Namespace)
+			framework.LogPodStartErrorIfAny(pod1, err)
 			framework.ExpectNoError(err, "Failed to start pod1: %v", err)
 
 			_, _, pod2 := createPod(false)
 			gomega.Expect(pod2).NotTo(gomega.BeNil(), "while creating second pod")
 
 			err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod2.Name, pod2.Namespace)
+			framework.LogPodStartErrorIfAny(pod2, err)
 			framework.ExpectNoError(err, "Failed to start pod2: %v", err)
 
 			_, _, pod3 := createPod(false)
@@ -467,6 +471,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				framework.ExpectEqual(*sc.AllowVolumeExpansion, true, "failed creating sc with allowed expansion")
 
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+				framework.LogPodStartErrorIfAny(pod, err)
 				framework.ExpectNoError(err, "Failed to start pod1: %v", err)
 
 				ginkgo.By("Expanding current pvc")
@@ -560,6 +565,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				framework.ExpectEqual(*sc.AllowVolumeExpansion, true, "failed creating sc with allowed expansion")
 
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+				framework.LogPodStartErrorIfAny(pod, err)
 				framework.ExpectNoError(err, "Failed to start pod1: %v", err)
 
 				ginkgo.By("Expanding current pvc")
@@ -714,6 +720,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				if test.expectPodRunning {
 					ginkgo.By("Waiting for pod to be running")
 					err := e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+					framework.LogPodStartErrorIfAny(pod, err)
 					framework.ExpectNoError(err, "Failed to start pod: %v", err)
 				}
 
@@ -834,6 +841,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				framework.ExpectEqual(*sc.VolumeBindingMode, bindingMode, "volume binding mode")
 
 				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+				framework.LogPodStartErrorIfAny(pod, err)
 				framework.ExpectNoError(err, "failed to start pod")
 				err = e2epod.DeletePodWithWait(m.cs, pod)
 				framework.ExpectNoError(err, "failed to delete pod")
@@ -1054,6 +1062,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 						framework.Failf("unexpected error while waiting for pod: %v", err)
 					}
 				} else {
+					framework.LogPodStartErrorIfAny(pod, err)
 					framework.ExpectNoError(err, "failed to start pod")
 				}
 
