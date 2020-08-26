@@ -30,6 +30,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apiserver/pkg/storage/etcd3/etcd3retry"
+
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
@@ -75,7 +77,7 @@ import (
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/core/v1"
+	v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/features"
 	generatedopenapi "k8s.io/kubernetes/pkg/generated/openapi"
@@ -122,6 +124,9 @@ cluster's shared state through which all other components interact.`,
 			if len(s.OpenShiftConfig) > 0 {
 				// if we are running openshift, we modify the admission chain defaults accordingly
 				admissionenablement.InstallOpenShiftAdmissionPlugins(s)
+
+				// when running openshift, force the etcd retry layer.  This breaks integration tests because the timeout is too long
+				etcd3retry.EnableEtcdRetry = true
 
 				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
 				if err != nil {
