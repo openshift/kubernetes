@@ -126,6 +126,11 @@ func TestSyncHandler(t *testing.T) {
 			return nil, nil
 		})
 
+		if test.pv != nil {
+			fakeKubeClient.AddReactor("get", "persistentvolumes", func(action coretesting.Action) (bool, runtime.Object, error) {
+				return true, test.pv, nil
+			})
+		}
 		fakeKubeClient.AddReactor("patch", "persistentvolumeclaims", func(action coretesting.Action) (bool, runtime.Object, error) {
 			if action.GetSubresource() == "status" {
 				patchActionaction, _ := action.(coretesting.PatchAction)
