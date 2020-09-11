@@ -22,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"reflect"
 	goruntime "runtime"
 	"runtime/debug"
 	"sort"
@@ -35,11 +36,13 @@ import (
 	"github.com/google/uuid"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	utilwaitgroup "k8s.io/apimachinery/pkg/util/waitgroup"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/admission"
@@ -693,8 +696,26 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 				return nil, err
 			}
 		}
-		// TODO: Once we get rid of /healthz consider changing this to post-start-hook.
-		err := s.addReadyzChecks(healthz.NewInformerSyncHealthz(c.SharedInformerFactory))
+		err = s.AddPostStartHook("generic-apiserver-informers-synced", func(context PostStartHookContext) error {
+			return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
+				stopCh := make(chan struct{})
+				close(stopCh) // close stopCh to force checking if informers are synced now.
+				informersByStarted := map[bool][]string{}
+
+				for informerType, started := range c.SharedInformerFactory.WaitForCacheSync(stopCh) {
+					switch informerType {
+					// we are interested in knowing if the RBAC related informers sync and avoid the risk that comes with waiting on syncing everything.
+					case reflect.TypeOf(&rbacv1.ClusterRole{}), reflect.TypeOf(&rbacv1.ClusterRoleBinding{}), reflect.TypeOf(&rbacv1.Role{}), reflect.TypeOf(&rbacv1.RoleBinding{}):
+						informersByStarted[started] = append(informersByStarted[started], informerType.String())
+					}
+				}
+				if notStarted := informersByStarted[false]; len(notStarted) > 0 {
+					klog.V(2).Info(fmt.Errorf("%d informers not started yet: %v", len(notStarted), notStarted))
+					return false, nil
+				}
+				return true, nil
+			}, context.StopCh)
+		})
 		if err != nil {
 			return nil, err
 		}
