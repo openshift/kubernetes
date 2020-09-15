@@ -174,6 +174,8 @@ type GenericAPIServer struct {
 	// the readiness stop channel is used to signal that the apiserver has initiated a shutdown sequence, this
 	// will cause readyz to return unhealthy.
 	readinessStopCh chan struct{}
+	// hasBeenReadyCh is closed when /readyz succeeds for the first time.
+	hasBeenReadyCh chan struct{}
 
 	// auditing. The backend is started after the server starts listening.
 	AuditBackend audit.Backend
@@ -360,7 +362,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 		Listener:   s.SecureServingInfo.Listener,
 		lateStopCh: lateStopCh,
 	}
-	lateConnectionEventf = s.Eventf
+	unexpectedRequestsEventf.Store(s.Eventf)
 
 	// close socket after delayed stopCh
 	stoppedCh, err := s.NonBlockingRun(delayedStopCh)
