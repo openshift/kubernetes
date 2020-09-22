@@ -356,7 +356,7 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 		framework.ExpectNoError(err)
 		for _, pod := range pods.Items {
 			_, found := nodeToAllocatableMap[pod.Spec.NodeName]
-			if found && pod.Status.Phase != v1.PodSucceeded && pod.Status.Phase != v1.PodFailed {
+			if found && pod.Status.Phase != v1.PodSucceeded && pod.Status.Phase != v1.PodFailed && pod.DeletionTimestamp == nil {
 				framework.Logf("Pod %v requesting resource cpu=%vm on Node %v", pod.Name, getRequestedCPU(pod), pod.Spec.NodeName)
 				nodeToAllocatableMap[pod.Spec.NodeName] -= getRequestedCPU(pod)
 			}
