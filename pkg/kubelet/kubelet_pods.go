@@ -1685,6 +1685,19 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		statuses[container.Name] = status
 	}
 
+	for _, container := range containers {
+		found := false
+		for _, cStatus := range podStatus.ContainerStatuses {
+			if container.Name == cStatus.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Printf("WEIRD! MISSING CONTAINER STATUS so we stay in waiting by default! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+		}
+	}
+
 	// Make the latest container status comes first.
 	sort.Sort(sort.Reverse(kubecontainer.SortContainerStatusesByCreationTime(podStatus.ContainerStatuses)))
 	// Set container statuses according to the statuses seen in pod status
@@ -1735,6 +1748,11 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		if status.State.Terminated != nil {
 			status.LastTerminationState = status.State
 		}
+		fmt.Printf("WEIRD! CONTAINER PROBABLY NEEDED RESTARTING! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+		if status.LastTerminationState.Terminated == nil {
+			fmt.Printf("WEIRD! SUPER STRANGE: restarting but no termination state will confuse it! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+		}
+
 		status.State = v1.ContainerState{
 			Waiting: &v1.ContainerStateWaiting{
 				Reason:  reason.Err.Error(),
