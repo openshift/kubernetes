@@ -440,12 +440,14 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 	}
 	m.podStatuses[pod.UID] = newStatus
 
+	somethingugly.Intent(pod.Namespace, pod.Name, "", newStatus.status.Phase)
 	select {
 	case m.podStatusChannel <- podStatusSyncRequest{pod.UID, newStatus}:
 		klog.V(5).Infof("Status Manager: adding pod: %q, with status: (%d, %v) to podStatusChannel",
 			pod.UID, newStatus.version, newStatus.status)
 		return true
 	default:
+		somethingugly.Skip(pod.Namespace, pod.Name, "", newStatus.status.Phase)
 		// Let the periodic syncBatch handle the update if the channel is full.
 		// We can't block, since we hold the mutex lock.
 		klog.V(4).Infof("Skipping the status update for pod %q for now because the channel is full; status: %+v",
