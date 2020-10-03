@@ -32,6 +32,8 @@ import (
 	"strings"
 	"sync"
 
+	"k8s.io/kubernetes/pkg/kubelet/somethingugly"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1379,7 +1381,7 @@ func (kl *Kubelet) GetKubeletContainerLogs(ctx context.Context, podFullName, con
 }
 
 // getPhase returns the phase of a pod given its container info.
-func getPhase(spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
+func getPhase(ns, name string, spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
 	pendingInitialization := 0
 	failedInitialization := 0
 	for _, container := range spec.InitContainers {
@@ -1446,8 +1448,10 @@ func getPhase(spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
 
 	switch {
 	case pendingInitialization > 0:
+		somethingugly.InitCausedPending(ns, name, "", v1.PodPending)
 		fallthrough
 	case waiting > 0:
+		somethingugly.WaitCausedPending(ns, name, "", v1.PodPending)
 		klog.V(5).Infof("pod waiting > 0, pending")
 		// One or more containers has not been started
 		return v1.PodPending
@@ -1475,6 +1479,7 @@ func getPhase(spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
 		// and in the process of restarting
 		return v1.PodRunning
 	default:
+		somethingugly.DefaultCausedPending(ns, name, "", v1.PodPending)
 		klog.V(5).Infof("pod default case, pending")
 		return v1.PodPending
 	}
@@ -1500,7 +1505,7 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 	// Assume info is ready to process
 	spec := &pod.Spec
 	allStatus := append(append([]v1.ContainerStatus{}, s.ContainerStatuses...), s.InitContainerStatuses...)
-	s.Phase = getPhase(spec, allStatus)
+	s.Phase = getPhase(pod.Namespace, pod.Name, spec, allStatus)
 	// Check for illegal phase transition
 	if pod.Status.Phase == v1.PodFailed || pod.Status.Phase == v1.PodSucceeded {
 		// API server shows terminal phase; transitions are not allowed

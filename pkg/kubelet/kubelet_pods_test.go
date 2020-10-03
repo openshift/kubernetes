@@ -1863,7 +1863,7 @@ func TestPodPhaseWithRestartAlways(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		status := getPhase(&test.pod.Spec, test.pod.Status.ContainerStatuses)
+		status := getPhase("test-ns", "test-name", &test.pod.Spec, test.pod.Status.ContainerStatuses)
 		assert.Equal(t, test.status, status, "[test %s]", test.test)
 	}
 }
@@ -1963,7 +1963,7 @@ func TestPodPhaseWithRestartNever(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		status := getPhase(&test.pod.Spec, test.pod.Status.ContainerStatuses)
+		status := getPhase("test-ns", "test-name", &test.pod.Spec, test.pod.Status.ContainerStatuses)
 		assert.Equal(t, test.status, status, "[test %s]", test.test)
 	}
 }
@@ -2076,7 +2076,7 @@ func TestPodPhaseWithRestartOnFailure(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		status := getPhase(&test.pod.Spec, test.pod.Status.ContainerStatuses)
+		status := getPhase("test-ns", "test-name", &test.pod.Spec, test.pod.Status.ContainerStatuses)
 		assert.Equal(t, test.status, status, "[test %s]", test.test)
 	}
 }

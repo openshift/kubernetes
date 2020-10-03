@@ -556,7 +556,7 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 	}
 
 	oldStatus := pod.Status.DeepCopy()
-	somethingugly.ChangePhase(pod.Namespace, pod.Name, oldStatus.Phase, status.status.Phase)
+	somethingugly.APIPatch(pod.Namespace, pod.Name, oldStatus.Phase, status.status.Phase)
 	if oldStatus.Phase == v1.PodRunning && status.status.Phase == v1.PodPending {
 		klog.Errorf("#### OMG! we're setting pod/%v -n %v from running to pending!", pod.Name, pod.Namespace)
 		somethingugly.Dump(pod.Namespace, pod.Name)
