@@ -32,6 +32,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"k8s.io/kubernetes/pkg/kubelet/somethingugly"
 
 	v1 "k8s.io/api/core/v1"
@@ -1694,7 +1696,58 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			}
 		}
 		if !found {
-			fmt.Printf("WEIRD! MISSING CONTAINER STATUS so we stay in waiting by default! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+			fmt.Printf("WEIRD! MISSING CONTAINER STATUS so we stay in waiting by default! -- %v/%v %q\n%v\n\n%v\n\n\n", pod.Namespace, pod.Name, container.Name, spew.Sdump(oldStatuses), spew.Sdump(podStatus.ContainerStatuses))
+
+			// if no container is found, then assuming it should be waiting seems plausible, but the status code requires
+			// that a previous termination be present.  If we're offline long enough (or something removed the container?), then
+			// the previous termination may not be present.
+			oldStatus, ok := oldStatuses[container.Name]
+			if ok {
+				fmt.Printf("WEIRD! found old status! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+
+				// if the container was previously running and was not previously terminated
+				if oldStatus.State.Running != nil && oldStatus.State.Terminated == nil {
+					fmt.Printf("WEIRD! container was running and not terminated! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+
+					// and if the pod itself is being deleted, then the CRI may have removed the container already and for whatever reason the kubelet missed the exit code
+					// (this seems not awesome).  We know at this point that we will not be restarting the container.
+					if pod.DeletionTimestamp != nil {
+						fmt.Printf("WEIRD! pod is deleted! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+						status := statuses[container.Name]
+						// if the status we're about to write indicates the default, the Waiting status will force this pod back into Pending.
+						// That isn't true, we know the pod is going away.
+						isDefaultWithoutInitContainers := status.State.Waiting != nil && status.State.Waiting.Reason == "ContainerCreating"
+						isDefaultWithInitContainers := status.State.Waiting != nil && status.State.Waiting.Reason == "PodInitializing"
+						isDefaultWaitingStatus := isDefaultWithoutInitContainers || isDefaultWithInitContainers
+						if isDefaultWaitingStatus && status.LastTerminationState.Terminated == nil {
+							fmt.Printf("WEIRD! default and missing terminated! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+							// setting this value ensures that we show as stopped here, not as waiting:
+							// https://github.com/kubernetes/kubernetes/blob/90c9f7b3e198e82a756a68ffeac978a00d606e55/pkg/kubelet/kubelet_pods.go#L1440-L1445
+							// This prevents the pod from becoming pending
+							status.LastTerminationState.Terminated = &v1.ContainerStateTerminated{
+								Reason:   "ContainerStatusUnknown",
+								Message:  "The container could not be located when the pod was deleted.  The container used to be Running",
+								ExitCode: 138, // one more than 137 for the other case of missing containers
+							}
+							statuses[container.Name] = status
+						} else {
+							fmt.Printf("WEIRD! pod state was unexpected! -- %v/%v %q\n%v\n\n", pod.Namespace, pod.Name, container.Name, spew.Sdump(status))
+
+						}
+					} else {
+						fmt.Printf("WEIRD! pod is not deleted! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+
+					}
+				} else {
+					fmt.Printf("WEIRD! pod was something! -- %v/%v %q\n%v\n\n", pod.Namespace, pod.Name, container.Name, spew.Sdump(oldStatuses))
+
+				}
+
+			} else {
+				fmt.Printf("WEIRD! CONTAINER OLD STATUS FOUND! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
+
+			}
+
 		}
 	}
 

@@ -477,6 +477,11 @@ func (m *kubeGenericRuntimeManager) getPodContainerStatuses(uid kubetypes.UID, n
 		statuses[i] = cStatus
 	}
 
+	// if containers are missing, then I think we can end up with a default indicating the container waiting, which results in the pod status indicating that the pod is
+	// pending.  The problem is that this results in pods that were running becoming pending.  This suggests one of a few things:
+	//  1. container stopped, but the kubelet didn't get to observe the termination to set a lasttermination state (or the kubelet missed it somehow).
+	//  2. container is actually running, but the CRI didn't tell the kubelet so the kubelet ends up in an incorrect state (says pending, really running)
+
 	sort.Sort(containerStatusByCreated(statuses))
 	return statuses, nil
 }
