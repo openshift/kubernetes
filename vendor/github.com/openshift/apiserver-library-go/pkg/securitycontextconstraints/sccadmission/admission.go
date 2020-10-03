@@ -170,8 +170,18 @@ func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Att
 		return i < j
 	})
 
-	providers, errs := sccmatching.CreateProvidersFromConstraints(a.GetNamespace(), constraints, c.client)
-	logProviders(pod, providers, errs)
+	var providers []sccmatching.SecurityContextConstraintsProvider
+	// we don't care about the timeout error
+	wait.PollImmediate(1*time.Second, 10*time.Second, func() (done bool, err error) {
+		var errs []error
+		providers, errs = sccmatching.CreateProvidersFromConstraints(a.GetNamespace(), constraints, c.client)
+		logProviders(pod, providers, errs)
+
+		if len(providers) > 0{
+			return true, nil
+		}
+		return false, nil
+	})
 
 	if len(providers) == 0 {
 		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraintsProvider available to validate pod request"))
