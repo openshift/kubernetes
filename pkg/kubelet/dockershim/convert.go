@@ -112,8 +112,10 @@ func toDockerContainerStatus(state runtimeapi.ContainerState) string {
 	case runtimeapi.ContainerState_CONTAINER_EXITED:
 		return "exited"
 	case runtimeapi.ContainerState_CONTAINER_UNKNOWN:
-		fallthrough
+		fmt.Printf("WEIRD! CONTAINER_STATUS was explicitly unknown! -- %q\n", state)
+		return "unknown"
 	default:
+		fmt.Printf("WEIRD! CONTAINER_STATUS was UNHANDLED unknown! -- %q\n", state)
 		return "unknown"
 	}
 }
@@ -129,6 +131,7 @@ func toRuntimeAPIContainerState(state string) runtimeapi.ContainerState {
 	case strings.HasPrefix(state, libdocker.StatusCreatedPrefix):
 		return runtimeapi.ContainerState_CONTAINER_CREATED
 	default:
+		fmt.Printf("WEIRD! MISSING_CONTAINER_STATE_HANDLING! -- %q\n", state)
 		return runtimeapi.ContainerState_CONTAINER_UNKNOWN
 	}
 }

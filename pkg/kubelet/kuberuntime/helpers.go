@@ -64,9 +64,11 @@ func toKubeContainerState(state runtimeapi.ContainerState) kubecontainer.State {
 	case runtimeapi.ContainerState_CONTAINER_EXITED:
 		return kubecontainer.ContainerStateExited
 	case runtimeapi.ContainerState_CONTAINER_UNKNOWN:
+		fmt.Printf("WEIRD! CONTAINER STATE WAS UNKNOWN! -- %q\n", state)
 		return kubecontainer.ContainerStateUnknown
 	}
 
+	fmt.Printf("WEIRD! CONTAINER STATE WAS UNEXPECTED! -- %q\n", state)
 	return kubecontainer.ContainerStateUnknown
 }
 

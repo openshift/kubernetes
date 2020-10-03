@@ -1639,6 +1639,13 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 				ContainerID: cid,
 			}
 		default:
+			fmt.Printf("WEIRD! cs.state fell into the default case! -- %q\n", cs.State)
+			// this collapses any unknown state to container waiting.  If any container is waiting, then the pod status moves to pending even if it is running.
+			// if I'm reading this correctly, then any failure to read status on any container results in the entire pod going pending even if the containers
+			// are actually running.
+			// see https://github.com/kubernetes/kubernetes/blob/5d1b3e26af73dde33ecb6a3e69fb5876ceab192f/pkg/kubelet/kuberuntime/kuberuntime_container.go#L497 to
+			// https://github.com/kubernetes/kubernetes/blob/8976e3620f8963e72084971d9d4decbd026bf49f/pkg/kubelet/kuberuntime/helpers.go#L58-L71
+			// and interpreted here https://github.com/kubernetes/kubernetes/blob/b27e78f590a0d43e4a23ca3b2bf1739ca4c6e109/pkg/kubelet/kubelet_pods.go#L1434-L1439
 			status.State.Waiting = &v1.ContainerStateWaiting{}
 		}
 		return status
