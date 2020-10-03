@@ -159,7 +159,7 @@ func (m *manager) Start() {
 
 	klog.Info("Starting to sync pod status with apiserver")
 	//lint:ignore SA1015 Ticker can link since this is only called once and doesn't handle termination.
-	syncTicker := time.Tick(syncPeriod)
+	//syncTicker := time.Tick(syncPeriod)
 	// syncPod and syncBatch share the same go routine to avoid sync races.
 	go wait.Forever(func() {
 		for {
@@ -168,13 +168,13 @@ func (m *manager) Start() {
 				klog.V(5).Infof("Status Manager: syncing pod: %q, with status: (%d, %v) from podStatusChannel",
 					syncRequest.podUID, syncRequest.status.version, syncRequest.status.status)
 				m.syncPod(syncRequest.podUID, syncRequest.status)
-			case <-syncTicker:
-				klog.V(5).Infof("Status Manager: syncing batch")
-				// remove any entries in the status channel since the batch will handle them
-				for i := len(m.podStatusChannel); i > 0; i-- {
-					<-m.podStatusChannel
-				}
-				m.syncBatch()
+				//case <-syncTicker:
+				//	klog.V(5).Infof("Status Manager: syncing batch")
+				//	// remove any entries in the status channel since the batch will handle them
+				//	for i := len(m.podStatusChannel); i > 0; i-- {
+				//		<-m.podStatusChannel
+				//	}
+				//	m.syncBatch()
 			}
 		}
 	}, 0)
@@ -441,19 +441,11 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 	m.podStatuses[pod.UID] = newStatus
 
 	somethingugly.Intent(pod.Namespace, pod.Name, "", newStatus.status.Phase)
-	select {
-	case m.podStatusChannel <- podStatusSyncRequest{pod.UID, newStatus}:
-		klog.V(5).Infof("Status Manager: adding pod: %q, with status: (%d, %v) to podStatusChannel",
-			pod.UID, newStatus.version, newStatus.status)
-		return true
-	default:
-		somethingugly.Skip(pod.Namespace, pod.Name, "", newStatus.status.Phase)
-		// Let the periodic syncBatch handle the update if the channel is full.
-		// We can't block, since we hold the mutex lock.
-		klog.V(4).Infof("Skipping the status update for pod %q for now because the channel is full; status: %+v",
-			format.Pod(pod), status)
-		return false
-	}
+	// force a wait just to see.
+	m.podStatusChannel <- podStatusSyncRequest{pod.UID, newStatus}
+	klog.V(5).Infof("Status Manager: adding pod: %q, with status: (%d, %v) to podStatusChannel",
+		pod.UID, newStatus.version, newStatus.status)
+	return true
 }
 
 // updateLastTransitionTime updates the LastTransitionTime of a pod condition.
