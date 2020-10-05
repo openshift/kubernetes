@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/kubernetes/pkg/kubelet/somethingugly"
+
 	clientset "k8s.io/client-go/kubernetes"
 
 	v1 "k8s.io/api/core/v1"
@@ -438,6 +440,7 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 	}
 	m.podStatuses[pod.UID] = newStatus
 
+	somethingugly.Intent(pod.Namespace, pod.Name, "", newStatus.status.Phase)
 	select {
 	case m.podStatusChannel <- podStatusSyncRequest{pod.UID, newStatus}:
 		klog.V(5).Infof("Status Manager: adding pod: %q, with status: (%d, %v) to podStatusChannel",
@@ -560,6 +563,11 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 	}
 
 	oldStatus := pod.Status.DeepCopy()
+	somethingugly.APIPatch(pod.Namespace, pod.Name, oldStatus.Phase, status.status.Phase)
+	if oldStatus.Phase == v1.PodRunning && status.status.Phase == v1.PodPending {
+		klog.Errorf("#### OMG! we're setting pod/%v -n %v from running to pending!", pod.Name, pod.Namespace)
+		somethingugly.Dump(pod.Namespace, pod.Name)
+	}
 	newPod, patchBytes, unchanged, err := statusutil.PatchPodStatus(m.kubeClient, pod.Namespace, pod.Name, pod.UID, *oldStatus, mergePodStatus(*oldStatus, status.status))
 	klog.V(3).Infof("Patch status for pod %q with %q", format.Pod(pod), patchBytes)
 	if err != nil {

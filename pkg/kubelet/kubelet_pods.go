@@ -1735,6 +1735,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		// setting this value ensures that we show as stopped here, not as waiting:
 		// https://github.com/kubernetes/kubernetes/blob/90c9f7b3e198e82a756a68ffeac978a00d606e55/pkg/kubelet/kubelet_pods.go#L1440-L1445
 		// This prevents the pod from becoming pending
+		fmt.Printf("WEIRD! writing termination to avoid pending pod! -- %v/%v %q\n", pod.Namespace, pod.Name, container.Name)
 		status.LastTerminationState.Terminated = &v1.ContainerStateTerminated{
 			Reason:   "ContainerStatusUnknown",
 			Message:  "The container could not be located when the pod was deleted.  The container used to be Running",
