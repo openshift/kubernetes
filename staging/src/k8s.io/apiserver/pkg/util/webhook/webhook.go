@@ -136,7 +136,7 @@ func (g *GenericWebhook) WithExponentialBackoff(ctx context.Context, webhookFn f
 // increasing backoff when. It returns an error for which shouldRetry returns true, confirming it to be retriable.
 func WithExponentialBackoff(ctx context.Context, retryBackoff wait.Backoff, webhookFn func() error, shouldRetry func(error) bool) error {
 	var err error
-	wait.ExponentialBackoff(retryBackoff, func() (bool, error) {
+	wait.ExponentialBackoffWithContext(ctx, retryBackoff, func() (bool, error) {
 		err = webhookFn()
 		if shouldRetry(err) {
 			return false, nil
