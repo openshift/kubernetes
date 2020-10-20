@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-openapi/spec"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/anonymous"
@@ -54,6 +55,9 @@ type DelegatingAuthenticatorConfig struct {
 	APIAudiences authenticator.Audiences
 
 	RequestHeaderConfig *RequestHeaderConfig
+
+	// WebhookRetryBackoff specifies the backoff parameters of webhook retry
+	WebhookRetryBackoff wait.Backoff
 }
 
 func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDefinitions, error) {
@@ -79,7 +83,7 @@ func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.Secur
 	}
 
 	if c.TokenAccessReviewClient != nil {
-		tokenAuth, err := webhooktoken.NewFromInterface(c.TokenAccessReviewClient, c.APIAudiences)
+		tokenAuth, err := webhooktoken.NewFromInterface(c.TokenAccessReviewClient, c.APIAudiences, c.WebhookRetryBackoff)
 		if err != nil {
 			return nil, nil, err
 		}

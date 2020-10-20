@@ -35,6 +35,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	v1 "k8s.io/client-go/tools/clientcmd/api/v1"
@@ -68,7 +69,7 @@ var (
 		Name: "test-cluster",
 	}
 	groupVersions = []schema.GroupVersion{}
-	retryBackoff  = time.Duration(500) * time.Millisecond
+	retryBackoff  = DefaultRetryBackoff(time.Duration(500) * time.Millisecond)
 )
 
 // TestKubeConfigFile ensures that a kube config file, regardless of validity, is handled properly
@@ -652,4 +653,32 @@ func newTestServer(clientCert, clientKey, caCert []byte, handler func(http.Respo
 	server.StartTLS()
 
 	return server, nil
+}
+
+func TestGenericWebhookRetryBackoff(t *testing.T) {
+	webhook := &GenericWebhook{
+		RetryBackoff: wait.Backoff{
+			Duration: 5 * time.Millisecond,
+			Factor:   1.5,
+			Jitter:   0.2,
+			Steps:    5,
+		},
+
+		ShouldRetry: func(e error) bool {
+			return true
+		},
+	}
+
+	callCount := 0
+	webhookFunc := func() rest.Result {
+		callCount++
+		return rest.Result{}
+	}
+
+	webhook.WithExponentialBackoff(context.TODO(), webhookFunc)
+	webhook.WithExponentialBackoff(context.TODO(), webhookFunc)
+
+	if callCount != 10 {
+		t.Errorf("expected a total of 10 webhook retries but got: %d", callCount)
+	}
 }

@@ -36,8 +36,12 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/token/cache"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/util/webhook"
 	v1 "k8s.io/client-go/tools/clientcmd/api/v1"
 )
+
+// intended to be used by the test only.
+var testRetryBackoffWithNoDelay = webhook.DefaultRetryBackoff(0)
 
 // V1Service mocks a remote authentication service.
 type V1Service interface {
@@ -193,12 +197,12 @@ func newV1TokenAuthenticator(serverURL string, clientCert, clientKey, ca []byte,
 		return nil, err
 	}
 
-	c, err := tokenReviewInterfaceFromKubeconfig(p, "v1", nil)
+	c, err := tokenReviewInterfaceFromKubeconfig(p, "v1", DefaultRetryBackoff, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	authn, err := newWithBackoff(c, 0, implicitAuds)
+	authn, err := newWithBackoff(c, testRetryBackoffWithNoDelay, implicitAuds)
 	if err != nil {
 		return nil, err
 	}

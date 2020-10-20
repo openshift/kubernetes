@@ -19,6 +19,7 @@ package authorizerfactory
 import (
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
@@ -35,6 +36,9 @@ type DelegatingAuthorizerConfig struct {
 	// DenyCacheTTL is the length of time that an unsuccessful authorization response will be cached.
 	// You generally want more responsive, "deny, try again" flows.
 	DenyCacheTTL time.Duration
+
+	// WebhookRetryBackoff specifies the backoff parameters of webhook retry
+	WebhookRetryBackoff wait.Backoff
 }
 
 func (c DelegatingAuthorizerConfig) New() (authorizer.Authorizer, error) {
@@ -42,5 +46,6 @@ func (c DelegatingAuthorizerConfig) New() (authorizer.Authorizer, error) {
 		c.SubjectAccessReviewClient,
 		c.AllowCacheTTL,
 		c.DenyCacheTTL,
+		c.WebhookRetryBackoff,
 	)
 }

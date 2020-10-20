@@ -37,6 +37,7 @@ import (
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 	"k8s.io/apiserver/pkg/audit"
+	"k8s.io/apiserver/pkg/util/webhook"
 	"k8s.io/client-go/tools/clientcmd/api/v1"
 )
 
@@ -106,7 +107,7 @@ func newWebhook(t *testing.T, endpoint string, groupVersion schema.GroupVersion)
 	// NOTE(ericchiang): Do we need to use a proper serializer?
 	require.NoError(t, stdjson.NewEncoder(f).Encode(config), "writing kubeconfig")
 
-	b, err := NewBackend(f.Name(), groupVersion, DefaultInitialBackoff, nil)
+	b, err := NewBackend(f.Name(), groupVersion, webhook.DefaultRetryBackoff(DefaultInitialBackoffDelay), nil)
 	require.NoError(t, err, "initializing backend")
 
 	return b.(*backend)

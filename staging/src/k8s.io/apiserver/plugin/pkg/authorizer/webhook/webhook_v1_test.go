@@ -39,8 +39,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/util/webhook"
 	v1 "k8s.io/client-go/tools/clientcmd/api/v1"
 )
+
+// intended to be used by the test only.
+var testRetryBackoffWithNoDelay = webhook.DefaultRetryBackoff(0)
 
 func TestV1NewFromConfig(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
@@ -186,11 +190,11 @@ current-context: default
 				return fmt.Errorf("failed to execute test template: %v", err)
 			}
 			// Create a new authorizer
-			sarClient, err := subjectAccessReviewInterfaceFromKubeconfig(p, "v1", nil)
+			sarClient, err := subjectAccessReviewInterfaceFromKubeconfig(p, "v1", DefaultRetryBackoff, nil)
 			if err != nil {
 				return fmt.Errorf("error building sar client: %v", err)
 			}
-			_, err = newWithBackoff(sarClient, 0, 0, 0)
+			_, err = newWithBackoff(sarClient, 0, 0, testRetryBackoffWithNoDelay)
 			return err
 		}()
 		if err != nil && !tt.wantErr {
@@ -325,11 +329,11 @@ func newV1Authorizer(callbackURL string, clientCert, clientKey, ca []byte, cache
 	if err := json.NewEncoder(tempfile).Encode(config); err != nil {
 		return nil, err
 	}
-	sarClient, err := subjectAccessReviewInterfaceFromKubeconfig(p, "v1", nil)
+	sarClient, err := subjectAccessReviewInterfaceFromKubeconfig(p, "v1", testRetryBackoffWithNoDelay, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error building sar client: %v", err)
 	}
-	return newWithBackoff(sarClient, cacheTime, cacheTime, 0)
+	return newWithBackoff(sarClient, cacheTime, cacheTime, testRetryBackoffWithNoDelay)
 }
 
 func TestV1TLSConfig(t *testing.T) {

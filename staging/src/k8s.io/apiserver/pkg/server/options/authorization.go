@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	"k8s.io/apiserver/pkg/authorization/path"
@@ -59,13 +60,17 @@ type DelegatingAuthorizationOptions struct {
 
 	// AlwaysAllowGroups are groups which are allowed to take any actions.  In kube, this is system:masters.
 	AlwaysAllowGroups []string
+
+	// WebhookRetryBackoff specifies the backoff parameters for authorization webhook retry
+	WebhookRetryBackoff wait.Backoff
 }
 
 func NewDelegatingAuthorizationOptions() *DelegatingAuthorizationOptions {
 	return &DelegatingAuthorizationOptions{
 		// very low for responsiveness, but high enough to handle storms
-		AllowCacheTTL: 10 * time.Second,
-		DenyCacheTTL:  10 * time.Second,
+		AllowCacheTTL:       10 * time.Second,
+		DenyCacheTTL:        10 * time.Second,
+		WebhookRetryBackoff: DefaultAuthWebhookRetryBackoff(),
 	}
 }
 
@@ -149,6 +154,7 @@ func (s *DelegatingAuthorizationOptions) toAuthorizer(client kubernetes.Interfac
 			SubjectAccessReviewClient: client.AuthorizationV1().SubjectAccessReviews(),
 			AllowCacheTTL:             s.AllowCacheTTL,
 			DenyCacheTTL:              s.DenyCacheTTL,
+			WebhookRetryBackoff:       s.WebhookRetryBackoff,
 		}
 		delegatedAuthorizer, err := cfg.New()
 		if err != nil {

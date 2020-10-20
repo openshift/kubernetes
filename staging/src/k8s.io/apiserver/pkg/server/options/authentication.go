@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	"k8s.io/apiserver/pkg/server"
@@ -35,6 +36,17 @@ import (
 	"k8s.io/klog/v2"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 )
+
+// DefaultAuthWebhookRetryBackoff is the default backoff parameters for
+// both authentication and authorization webhook used by the apiserver.
+func DefaultAuthWebhookRetryBackoff() wait.Backoff {
+	return wait.Backoff{
+		Duration: 500 * time.Millisecond,
+		Factor:   1.5,
+		Jitter:   0.2,
+		Steps:    5,
+	}
+}
 
 type RequestHeaderAuthenticationOptions struct {
 	// ClientCAFile is the root certificate bundle to verify client certificates on incoming requests
@@ -177,6 +189,9 @@ type DelegatingAuthenticationOptions struct {
 	// TolerateInClusterLookupFailure indicates failures to look up authentication configuration from the cluster configmap should not be fatal.
 	// Setting this can result in an authenticator that will reject all requests.
 	TolerateInClusterLookupFailure bool
+
+	// WebhookRetryBackoff specifies the backoff parameters for authentication webhook retry
+	WebhookRetryBackoff wait.Backoff
 }
 
 func NewDelegatingAuthenticationOptions() *DelegatingAuthenticationOptions {
@@ -189,6 +204,7 @@ func NewDelegatingAuthenticationOptions() *DelegatingAuthenticationOptions {
 			GroupHeaders:        []string{"x-remote-group"},
 			ExtraHeaderPrefixes: []string{"x-remote-extra-"},
 		},
+		WebhookRetryBackoff: DefaultAuthWebhookRetryBackoff(),
 	}
 }
 
@@ -233,8 +249,9 @@ func (s *DelegatingAuthenticationOptions) ApplyTo(authenticationInfo *server.Aut
 	}
 
 	cfg := authenticatorfactory.DelegatingAuthenticatorConfig{
-		Anonymous: true,
-		CacheTTL:  s.CacheTTL,
+		Anonymous:           true,
+		CacheTTL:            s.CacheTTL,
+		WebhookRetryBackoff: s.WebhookRetryBackoff,
 	}
 
 	client, err := s.getClient()

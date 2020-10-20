@@ -86,7 +86,7 @@ func getTestWebhookTokenAuth(serverURL string, customDial utilnet.DialFunc) (aut
 	if err := json.NewEncoder(kubecfgFile).Encode(config); err != nil {
 		return nil, err
 	}
-	webhookTokenAuth, err := webhook.New(kubecfgFile.Name(), "v1beta1", nil, customDial)
+	webhookTokenAuth, err := webhook.New(kubecfgFile.Name(), "v1beta1", nil, webhook.DefaultRetryBackoff, customDial)
 	if err != nil {
 		return nil, err
 	}
