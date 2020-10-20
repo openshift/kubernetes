@@ -24,6 +24,8 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 	versionedinformers "k8s.io/client-go/informers"
 	"k8s.io/kubernetes/pkg/kubeapiserver/authorizer"
 	authzmodes "k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
@@ -37,6 +39,7 @@ type BuiltInAuthorizationOptions struct {
 	WebhookVersion              string
 	WebhookCacheAuthorizedTTL   time.Duration
 	WebhookCacheUnauthorizedTTL time.Duration
+	WebhookRetryBackoff         wait.Backoff
 }
 
 // NewBuiltInAuthorizationOptions create a BuiltInAuthorizationOptions with default value
@@ -46,6 +49,7 @@ func NewBuiltInAuthorizationOptions() *BuiltInAuthorizationOptions {
 		WebhookVersion:              "v1beta1",
 		WebhookCacheAuthorizedTTL:   5 * time.Minute,
 		WebhookCacheUnauthorizedTTL: 30 * time.Second,
+		WebhookRetryBackoff:         genericoptions.DefaultAuthWebhookRetryBackoff(),
 	}
 }
 
@@ -127,5 +131,6 @@ func (o *BuiltInAuthorizationOptions) ToAuthorizationConfig(versionedInformerFac
 		WebhookCacheAuthorizedTTL:   o.WebhookCacheAuthorizedTTL,
 		WebhookCacheUnauthorizedTTL: o.WebhookCacheUnauthorizedTTL,
 		VersionedInformerFactory:    versionedInformerFactory,
+		WebhookRetryBackoff:         o.WebhookRetryBackoff,
 	}
 }

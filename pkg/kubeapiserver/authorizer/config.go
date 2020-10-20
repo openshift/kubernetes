@@ -21,6 +21,7 @@ import (
 	"time"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	"k8s.io/apiserver/pkg/authorization/union"
@@ -53,6 +54,8 @@ type Config struct {
 	WebhookCacheAuthorizedTTL time.Duration
 	// TTL for caching of unauthorized responses from the webhook server.
 	WebhookCacheUnauthorizedTTL time.Duration
+	// WebhookRetryBackoff specifies the backoff parameters of webhook retry
+	WebhookRetryBackoff wait.Backoff
 
 	VersionedInformerFactory versionedinformers.SharedInformerFactory
 
@@ -108,6 +111,7 @@ func (config Config) New() (authorizer.Authorizer, authorizer.RuleResolver, erro
 				config.WebhookVersion,
 				config.WebhookCacheAuthorizedTTL,
 				config.WebhookCacheUnauthorizedTTL,
+				config.WebhookRetryBackoff,
 				config.CustomDial)
 			if err != nil {
 				return nil, nil, err

@@ -27,6 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/egressselector"
@@ -101,9 +102,10 @@ type TokenFileAuthenticationOptions struct {
 
 // WebHookAuthenticationOptions contains web hook authentication options for API Server
 type WebHookAuthenticationOptions struct {
-	ConfigFile string
-	Version    string
-	CacheTTL   time.Duration
+	ConfigFile   string
+	Version      string
+	CacheTTL     time.Duration
+	RetryBackoff wait.Backoff
 }
 
 // NewBuiltInAuthenticationOptions create a new BuiltInAuthenticationOptions, just set default token cache TTL
@@ -172,8 +174,9 @@ func (o *BuiltInAuthenticationOptions) WithTokenFile() *BuiltInAuthenticationOpt
 // WithWebHook set default value for web hook authentication
 func (o *BuiltInAuthenticationOptions) WithWebHook() *BuiltInAuthenticationOptions {
 	o.WebHook = &WebHookAuthenticationOptions{
-		Version:  "v1beta1",
-		CacheTTL: 2 * time.Minute,
+		Version:      "v1beta1",
+		CacheTTL:     2 * time.Minute,
+		RetryBackoff: genericoptions.DefaultAuthWebhookRetryBackoff(),
 	}
 	return o
 }
@@ -419,6 +422,7 @@ func (o *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		ret.WebhookTokenAuthnConfigFile = o.WebHook.ConfigFile
 		ret.WebhookTokenAuthnVersion = o.WebHook.Version
 		ret.WebhookTokenAuthnCacheTTL = o.WebHook.CacheTTL
+		ret.WebhookRetryBackoff = o.WebHook.RetryBackoff
 
 		if len(o.WebHook.ConfigFile) > 0 && o.WebHook.CacheTTL > 0 {
 			if o.TokenSuccessCacheTTL > 0 && o.WebHook.CacheTTL < o.TokenSuccessCacheTTL {

@@ -405,8 +405,9 @@ func TestAddFlags(t *testing.T) {
 			BindNetwork: "tcp",
 		}).WithLoopback(),
 		Authentication: &apiserveroptions.DelegatingAuthenticationOptions{
-			CacheTTL:   10 * time.Second,
-			ClientCert: apiserveroptions.ClientCertAuthenticationOptions{},
+			CacheTTL:            10 * time.Second,
+			WebhookRetryBackoff: apiserveroptions.DefaultAuthWebhookRetryBackoff(),
+			ClientCert:          apiserveroptions.ClientCertAuthenticationOptions{},
 			RequestHeader: apiserveroptions.RequestHeaderAuthenticationOptions{
 				UsernameHeaders:     []string{"x-remote-user"},
 				GroupHeaders:        []string{"x-remote-group"},
@@ -417,6 +418,7 @@ func TestAddFlags(t *testing.T) {
 		Authorization: &apiserveroptions.DelegatingAuthorizationOptions{
 			AllowCacheTTL:                10 * time.Second,
 			DenyCacheTTL:                 10 * time.Second,
+			WebhookRetryBackoff:          apiserveroptions.DefaultAuthWebhookRetryBackoff(),
 			RemoteKubeConfigFileOptional: true,
 			AlwaysAllowPaths:             []string{"/healthz"}, // note: this does not match /healthz/ or /healthz/*
 		},

@@ -22,6 +22,7 @@ import (
 	"github.com/go-openapi/spec"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	"k8s.io/apiserver/pkg/authentication/group"
@@ -68,6 +69,8 @@ type Config struct {
 	WebhookTokenAuthnConfigFile string
 	WebhookTokenAuthnVersion    string
 	WebhookTokenAuthnCacheTTL   time.Duration
+	// WebhookRetryBackoff specifies the backoff parameters of webhook retry
+	WebhookRetryBackoff wait.Backoff
 
 	TokenSuccessCacheTTL time.Duration
 	TokenFailureCacheTTL time.Duration
@@ -282,7 +285,7 @@ func newServiceAccountAuthenticator(iss string, keyfiles []string, apiAudiences 
 }
 
 func newWebhookTokenAuthenticator(config Config) (authenticator.Token, error) {
-	webhookTokenAuthenticator, err := webhook.New(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnVersion, config.APIAudiences, config.CustomDial)
+	webhookTokenAuthenticator, err := webhook.New(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnVersion, config.APIAudiences, config.WebhookRetryBackoff, config.CustomDial)
 	if err != nil {
 		return nil, err
 	}
