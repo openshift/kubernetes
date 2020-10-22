@@ -102,7 +102,7 @@ func (t *topologyTestSuite) DefineTests(driver TestDriver, pattern testpatterns.
 	// registers its own BeforeEach which creates the namespace. Beware that it
 	// also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
-	f := framework.NewDefaultFramework("topology")
+	f := framework.NewFrameworkWithCustomTimeouts("topology", getDriverTimeouts(driver))
 
 	init := func() topologyTest {
 
@@ -175,7 +175,7 @@ func (t *topologyTestSuite) DefineTests(driver TestDriver, pattern testpatterns.
 
 		t.createResources(cs, &l, nil)
 
-		err = e2epod.WaitForPodRunningInNamespace(cs, l.pod)
+		err = e2epod.WaitTimeoutForPodRunningInNamespace(cs, l.pod.Name, l.pod.Namespace, f.Timeouts.PodStart)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Verifying pod scheduled to correct node")

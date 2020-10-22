@@ -110,7 +110,7 @@ func (v *volumeExpandTestSuite) DefineTests(driver TestDriver, pattern testpatte
 	// registers its own BeforeEach which creates the namespace. Beware that it
 	// also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
-	f := framework.NewDefaultFramework("volume-expand")
+	f := framework.NewFrameworkWithCustomTimeouts("volume-expand", getDriverTimeouts(driver))
 
 	init := func() {
 		l = local{}
@@ -177,7 +177,7 @@ func (v *volumeExpandTestSuite) DefineTests(driver TestDriver, pattern testpatte
 				SeLinuxLabel:  e2epv.SELinuxLabel,
 				NodeSelection: l.config.ClientNodeSelection,
 			}
-			l.pod, err = e2epod.CreateSecPodWithNodeSelection(f.ClientSet, &podConfig, framework.PodStartTimeout)
+			l.pod, err = e2epod.CreateSecPodWithNodeSelection(f.ClientSet, &podConfig, f.Timeouts.PodStart)
 			defer func() {
 				err = e2epod.DeletePodWithWait(f.ClientSet, l.pod)
 				framework.ExpectNoError(err, "while cleaning up pod already deleted in resize test")
@@ -247,7 +247,7 @@ func (v *volumeExpandTestSuite) DefineTests(driver TestDriver, pattern testpatte
 				SeLinuxLabel:  e2epv.SELinuxLabel,
 				NodeSelection: l.config.ClientNodeSelection,
 			}
-			l.pod, err = e2epod.CreateSecPodWithNodeSelection(f.ClientSet, &podConfig, framework.PodStartTimeout)
+			l.pod, err = e2epod.CreateSecPodWithNodeSelection(f.ClientSet, &podConfig, f.Timeouts.PodStart)
 			defer func() {
 				err = e2epod.DeletePodWithWait(f.ClientSet, l.pod)
 				framework.ExpectNoError(err, "while cleaning up pod already deleted in resize test")

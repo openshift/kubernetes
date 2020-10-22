@@ -173,6 +173,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 		}
 		scTest := testsuites.StorageClassTest{
 			Name:                 m.driver.GetDriverInfo().Name,
+			Timeouts:             f.Timeouts,
 			Provisioner:          sc.Provisioner,
 			Parameters:           sc.Parameters,
 			ClaimSize:            "1Gi",
@@ -375,7 +376,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				csiInlineVolumesEnabled := test.expectEphemeral
 				if test.expectPodInfo {
 					ginkgo.By("checking for CSIInlineVolumes feature")
-					csiInlineVolumesEnabled, err = testsuites.CSIInlineVolumesEnabled(m.cs, f.Namespace.Name)
+					csiInlineVolumesEnabled, err = testsuites.CSIInlineVolumesEnabled(m.cs, f.Timeouts, f.Namespace.Name)
 					framework.ExpectNoError(err, "failed to test for CSIInlineVolumes")
 				}
 
@@ -1058,7 +1059,7 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				sc, _, pod := createPod(false /* persistent volume, late binding as specified above */)
 				framework.ExpectEqual(sc.Name, scName, "pre-selected storage class name not used")
 
-				waitCtx, cancel := context.WithTimeout(context.Background(), podStartTimeout)
+				waitCtx, cancel := context.WithTimeout(context.Background(), f.Timeouts.PodStart)
 				defer cancel()
 				condition := anyOf(
 					podRunning(waitCtx, f.ClientSet, pod.Name, pod.Namespace),

@@ -101,7 +101,7 @@ func (t *stressTestSuite) DefineTests(driver TestDriver, pattern testpatterns.Te
 	// registers its own BeforeEach which creates the namespace. Beware that it
 	// also registers an AfterEach which renders f unusable. Any code using
 	// f must run inside an It or Context callback.
-	f := framework.NewDefaultFramework("stress")
+	f := framework.NewFrameworkWithCustomTimeouts("stress", getDriverTimeouts(driver))
 
 	init := func() *stressTest {
 		cs = f.ClientSet
@@ -181,8 +181,7 @@ func (t *stressTestSuite) DefineTests(driver TestDriver, pattern testpatterns.Te
 						_, err := cs.CoreV1().Pods(pod.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 						framework.ExpectNoError(err)
 
-						err = e2epod.WaitForPodRunningInNamespace(cs, pod)
-						framework.ExpectNoError(err)
+						err = e2epod.WaitTimeoutForPodRunningInNamespace(cs, pod.Name, pod.Namespace, f.Timeouts.PodStart)
 
 						// TODO: write data per pod and validate it everytime
 
