@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
@@ -107,28 +108,32 @@ cluster's shared state through which all other components interact.`,
 			cliflag.PrintFlags(fs)
 
 			if len(s.OpenShiftConfig) > 0 {
-				enablement.ForceOpenShift()
+				// if we are running openshift, we modify the admission chain defaults accordingly
+				admissionenablement.InstallOpenShiftAdmissionPlugins(s)
+
 				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
 				if err != nil {
 					klog.Fatal(err)
 				}
-
-				// this forces a patch to be called
-				// TODO we're going to try to remove bits of the patching.
-				configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(genericapiserver.NewEmptyDelegate(), openshiftConfig)
-				OpenShiftKubeAPIServerConfigPatch = configPatchFn
-				OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
+				enablement.ForceOpenShift(openshiftConfig)
 
 				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
 				if err != nil {
 					return err
 				}
+
 				// hopefully this resets the flags?
 				if err := cmd.ParseFlags(args); err != nil {
 					return err
 				}
 
-				enablement.ForceGlobalInitializationForOpenShift(s)
+				// print merged flags (merged from OpenshiftConfig)
+				cliflag.PrintFlags(cmd.Flags())
+
+				enablement.ForceGlobalInitializationForOpenShift()
+			} else {
+				// print default flags
+				cliflag.PrintFlags(cmd.Flags())
 			}
 
 			// set default options
@@ -209,10 +214,6 @@ func CreateServerChain(config CompletedConfig) (*aggregatorapiserver.APIAggregat
 
 	kubeAPIServer, err := config.ControlPlane.New(apiExtensionsServer.GenericAPIServer)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := PatchKubeAPIServerServer(kubeAPIServer); err != nil {
 		return nil, err
 	}
 
@@ -343,6 +344,15 @@ func CreateKubeAPIServerConfig(opts options.CompletedOptions) (
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create real dynamic external client: %w", err)
 	}
+
+	if err := openshiftkubeapiserver.OpenShiftKubeAPIServerConfigPatch(genericConfig, versionedInformers, &pluginInitializers); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to patch: %v", err)
+	}
+
+	if enablement.IsOpenShift() {
+		admissionenablement.SetAdmissionDefaults(&opts.CompletedOptions, versionedInformers, clientgoExternalClient)
+	}
+
 	err = opts.Admission.ApplyTo(
 		genericConfig,
 		versionedInformers,
