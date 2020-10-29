@@ -23,6 +23,13 @@ import (
 	"net/http"
 	"time"
 
+	noopoteltrace "go.opentelemetry.io/otel/trace/noop"
+
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
+	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
+	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
+
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -155,6 +162,8 @@ func BuildGenericConfig(
 	// Disable compression for self-communication, since we are going to be
 	// on a fast local network
 	genericConfig.LoopbackClientConfig.DisableCompression = true
+
+	enablement.SetLoopbackClientConfig(genericConfig.LoopbackClientConfig)
 
 	kubeClientConfig := genericConfig.LoopbackClientConfig
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
@@ -391,6 +400,15 @@ func CreateConfig(
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create real dynamic external client: %w", err)
 	}
+
+	if err := openshiftkubeapiserver.OpenShiftKubeAPIServerConfigPatch(genericConfig, versionedInformers, &genericInitializers); err != nil {
+		return nil, nil, fmt.Errorf("failed to patch: %v", err)
+	}
+
+	if enablement.IsOpenShift() {
+		admissionenablement.SetAdmissionDefaults(&opts, versionedInformers, clientgoExternalClient)
+	}
+
 	err = opts.Admission.ApplyTo(
 		genericConfig,
 		versionedInformers,
