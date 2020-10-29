@@ -26,6 +26,9 @@ import (
 	"net/url"
 	"os"
 
+	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
+	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
+
 	"github.com/spf13/cobra"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -102,6 +105,31 @@ cluster's shared state through which all other components interact.`,
 				return err
 			}
 			cliflag.PrintFlags(fs)
+
+			if len(s.OpenShiftConfig) > 0 {
+				enablement.ForceOpenShift()
+				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
+				if err != nil {
+					klog.Fatal(err)
+				}
+
+				// this forces a patch to be called
+				// TODO we're going to try to remove bits of the patching.
+				configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(genericapiserver.NewEmptyDelegate(), openshiftConfig)
+				OpenShiftKubeAPIServerConfigPatch = configPatchFn
+				OpenShiftKubeAPIServerServerPatch = serverPatchContext.PatchServer
+
+				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
+				if err != nil {
+					return err
+				}
+				// hopefully this resets the flags?
+				if err := cmd.ParseFlags(args); err != nil {
+					return err
+				}
+
+				enablement.ForceGlobalInitializationForOpenShift(s)
+			}
 
 			// set default options
 			completedOptions, err := s.Complete()
@@ -181,6 +209,10 @@ func CreateServerChain(config CompletedConfig) (*aggregatorapiserver.APIAggregat
 
 	kubeAPIServer, err := config.ControlPlane.New(apiExtensionsServer.GenericAPIServer)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := PatchKubeAPIServerServer(kubeAPIServer); err != nil {
 		return nil, err
 	}
 
