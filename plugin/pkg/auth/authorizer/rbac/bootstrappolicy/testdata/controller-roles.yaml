@@ -512,6 +512,12 @@ items:
     - update
     - watch
   - apiGroups:
+    - discovery.k8s.io
+    resources:
+    - endpointslices/restricted
+    verbs:
+    - create
+  - apiGroups:
     - ""
     - events.k8s.io
     resources:
@@ -561,6 +567,12 @@ items:
     - list
     - update
     - watch
+  - apiGroups:
+    - discovery.k8s.io
+    resources:
+    - endpointslices/restricted
+    verbs:
+    - create
   - apiGroups:
     - ""
     - events.k8s.io
