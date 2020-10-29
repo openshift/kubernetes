@@ -373,7 +373,7 @@ xargs -L 100 go mod edit -fmt
 
 # disallow transitive dependencies on k8s.io/kubernetes
 loopback_deps=()
-kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' || true)
+kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' | grep -v 'github.com/openshift/apiserver-library-go' || true)
 if (( "${#loopback_deps[@]}" > 0 )); then
   kube::log::error "${#loopback_deps[@]} disallowed transitive k8s.io/kubernetes dependencies exist via the following imports:" >&22 2>&1
   kube::log::error "${loopback_deps[@]}" >&22 2>&1
