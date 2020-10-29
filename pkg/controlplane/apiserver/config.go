@@ -43,6 +43,7 @@ import (
 
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controlplane"
