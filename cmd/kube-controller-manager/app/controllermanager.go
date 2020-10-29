@@ -139,6 +139,11 @@ controller, and serviceaccounts controller.`,
 				return err
 			}
 
+			if err := ShimForOpenShift(s, c); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				return err
+			}
+
 			// add feature enablement metrics
 			fg := s.ComponentGlobalsRegistry.FeatureGateFor(basecompatibility.DefaultKubeComponent)
 			fg.(featuregate.MutableFeatureGate).AddMetrics()
@@ -404,6 +409,8 @@ func Run(ctx context.Context, c *config.CompletedConfig) error {
 
 // ControllerContext defines the context object for controller
 type ControllerContext struct {
+	OpenShiftContext config.OpenShiftContext
+
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder clientbuilder.ControllerClientBuilder
 
@@ -486,7 +493,12 @@ func CreateControllerContext(ctx context.Context, s *config.CompletedConfig, roo
 		return ControllerContext{}, fmt.Errorf("failed to create Kubernetes client for %q: %w", "shared-informers", err)
 	}
 
-	sharedInformers := informers.NewSharedInformerFactoryWithOptions(versionedClient, ResyncPeriod(s)(), informers.WithTransform(trim))
+	var sharedInformers informers.SharedInformerFactory
+	if InformerFactoryOverride == nil {
+		sharedInformers = informers.NewSharedInformerFactoryWithOptions(versionedClient, ResyncPeriod(s)(), informers.WithTransform(trim))
+	} else {
+		sharedInformers = InformerFactoryOverride
+	}
 
 	metadataConfig, err := rootClientBuilder.Config("metadata-informers")
 	if err != nil {
@@ -519,6 +531,7 @@ func CreateControllerContext(ctx context.Context, s *config.CompletedConfig, roo
 	}, 30*time.Second, ctx.Done())
 
 	controllerContext := ControllerContext{
+		OpenShiftContext:                s.OpenShiftContext,
 		ClientBuilder:                   clientBuilder,
 		InformerFactory:                 sharedInformers,
 		ObjectOrMetadataInformerFactory: informerfactory.NewInformerFactory(sharedInformers, metadataInformers),
