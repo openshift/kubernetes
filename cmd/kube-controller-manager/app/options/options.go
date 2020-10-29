@@ -117,6 +117,8 @@ type KubeControllerManagerOptions struct {
 
 	// Parsedflags holds the parsed CLI flags.
 	ParsedFlags *cliflag.NamedFlagSets
+
+	OpenShiftContext kubecontrollerconfig.OpenShiftContext
 }
 
 // NewKubeControllerManagerOptions creates a new KubeControllerManagerOptions with a default config.
@@ -323,6 +325,8 @@ func (s *KubeControllerManagerOptions) Flags(allControllers []string, disabledBy
 		s.ControllerShutdownTimeout, "Time to wait for the controllers to shut down before terminating the executable")
 
 	s.ComponentGlobalsRegistry.AddFlags(fss.FlagSet("generic"))
+	fs.StringVar(&s.OpenShiftContext.OpenShiftConfig, "openshift-config", s.OpenShiftContext.OpenShiftConfig, "indicates that this process should be compatible with openshift start master")
+	fs.MarkHidden("openshift-config")
 
 	return fss
 }
@@ -443,6 +447,9 @@ func (s *KubeControllerManagerOptions) ApplyTo(c *kubecontrollerconfig.Config, a
 		}
 	}
 	c.ControllerShutdownTimeout = s.ControllerShutdownTimeout
+
+	c.OpenShiftContext = s.OpenShiftContext
+
 	return nil
 }
 
