@@ -53,6 +53,30 @@ var (
 		"linux/ppc64le", "linux/s390x",
 		"windows/arm64",
 	}
+
+	// directories we always ignore
+	standardIgnoreDirs = []string{
+		// Staging code is symlinked from vendor/k8s.io, and uses import
+		// paths as if it were inside of vendor/. It fails typechecking
+		// inside of staging/, but works when typechecked as part of vendor/.
+		"staging",
+		// OS-specific vendor code tends to be imported by OS-specific
+		// packages. We recursively typecheck imported vendored packages for
+		// each OS, but don't typecheck everything for every OS.
+		"vendor",
+		"_output",
+		// This is a weird one. /testdata/ is *mostly* ignored by Go,
+		// and this translates to kubernetes/vendor not working.
+		// edit/record.go doesn't compile without gopkg.in/yaml.v2
+		// in $GOSRC/$GOROOT (both typecheck and the shell script).
+		"pkg/kubectl/cmd/testdata/edit",
+		// Tools we use for maintaining the code base but not necessarily
+		// ship as part of the release
+		"hack/tools",
+		// Tooling specific to openshift that is not shipped as part
+		// of a release.
+		"openshift-hack",
+	}
 )
 
 func newConfig(platform string) *packages.Config {
