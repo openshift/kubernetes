@@ -78,6 +78,8 @@ kube::golang::server_targets() {
     staging/src/k8s.io/kube-aggregator
     staging/src/k8s.io/apiextensions-apiserver
     cluster/gce/gci/mounter
+    cmd/watch-termination
+    openshift-hack/cmd/k8s-tests
   )
   echo "${targets[@]}"
 }
@@ -359,7 +361,9 @@ kube::golang::is_statically_linked() {
   if [[ -n "${KUBE_CGO_OVERRIDES_LIST:+x}" ]]; then
     for e in "${KUBE_CGO_OVERRIDES_LIST[@]}"; do [[ "${1}" == *"/${e}" ]] && return 1; done;
   fi
-  for e in "${KUBE_STATIC_BINARIES[@]}"; do [[ "${1}" == *"/${e}" ]] && return 0; done;
+  if [[ -n "${KUBE_STATIC_BINARIES:+x}" ]]; then
+    for e in "${KUBE_STATIC_BINARIES[@]}"; do [[ "${1}" == *"/${e}" ]] && return 0; done;
+  fi
   if [[ -n "${KUBE_STATIC_OVERRIDES_LIST:+x}" ]]; then
     for e in "${KUBE_STATIC_OVERRIDES_LIST[@]}"; do [[ "${1}" == *"/${e}" ]] && return 0; done;
   fi
@@ -495,7 +499,7 @@ kube::golang::set_platform_envs() {
 
   # if CC is defined for platform then always enable it
   ccenv=$(echo "$platform" | awk -F/ '{print "KUBE_" toupper($1) "_" toupper($2) "_CC"}')
-  if [ -n "${!ccenv-}" ]; then 
+  if [ -n "${!ccenv-}" ]; then
     export CGO_ENABLED=1
     export CC="${!ccenv}"
   fi
@@ -505,28 +509,7 @@ kube::golang::set_platform_envs() {
 # Inputs:
 #   env-var GO_VERSION is the desired go version to use, downloading it if needed (defaults to content of .go-version)
 #   env-var FORCE_HOST_GO set to a non-empty value uses the go version in the $PATH and skips ensuring $GO_VERSION is used
-kube::golang::internal::verify_go_version() {
-  # default GO_VERSION to content of .go-version
-  GO_VERSION="${GO_VERSION:-"$(cat "${KUBE_ROOT}/.go-version")"}"
-  if [ "${GOTOOLCHAIN:-auto}" != 'auto' ]; then
-    # no-op, just respect GOTOOLCHAIN
-    :
-  elif [ -n "${FORCE_HOST_GO:-}" ]; then
-    # ensure existing host version is used, like before GOTOOLCHAIN existed
-    export GOTOOLCHAIN='local'
-  else
-    # otherwise, we want to ensure the go version matches GO_VERSION
-    GOTOOLCHAIN="go${GO_VERSION}"
-    export GOTOOLCHAIN
-    # if go is either not installed or too old to respect GOTOOLCHAIN then use gimme
-    if ! (command -v go >/dev/null && [ "$(go version | cut -d' ' -f3)" = "${GOTOOLCHAIN}" ]); then
-      export GIMME_ENV_PREFIX=${GIMME_ENV_PREFIX:-"${KUBE_OUTPUT}/.gimme/envs"}
-      export GIMME_VERSION_PREFIX=${GIMME_VERSION_PREFIX:-"${KUBE_OUTPUT}/.gimme/versions"}
-      # eval because the output of this is shell to set PATH etc.
-      eval "$("${KUBE_ROOT}/third_party/gimme/gimme" "${GO_VERSION}")"
-    fi
-  fi
-
+kube::golang::verify_go_version() {
   if [[ -z "$(command -v go)" ]]; then
     kube::log::usage_from_stdin <<EOF
 Can't find 'go' in PATH, please fix and retry.
