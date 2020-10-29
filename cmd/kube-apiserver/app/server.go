@@ -32,6 +32,10 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
+	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
+	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
+
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
