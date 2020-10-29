@@ -133,3 +133,17 @@ func createRestConfigForHealthMonitor(restConfig *rest.Config) *rest.Config {
 
 	return &restConfigCopy
 }
+
+// mergeCh takes two stop channels and return a single one that
+// closes as soon as one of the inputs closes or receives data.
+func mergeCh(stopCh1, stopCh2 <-chan struct{}) <-chan struct{} {
+	merged := make(chan struct{})
+	go func() {
+		defer close(merged)
+		select {
+		case <-stopCh1:
+		case <-stopCh2:
+		}
+	}()
+	return merged
+}
