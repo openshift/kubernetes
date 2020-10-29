@@ -67,7 +67,7 @@ func TestWithLogging(t *testing.T) {
 	shouldLogRequest := func() bool { return true }
 	var handler http.Handler
 	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	handler = withLogging(withLogging(handler, DefaultStacktracePred, shouldLogRequest), DefaultStacktracePred, shouldLogRequest)
+	handler = withLogging(withLogging(handler, DefaultStacktracePred, shouldLogRequest, nil), DefaultStacktracePred, shouldLogRequest, nil)
 
 	func() {
 		defer func() {
@@ -135,7 +135,7 @@ func TestUnlogged(t *testing.T) {
 			}
 		})
 		if makeLogger {
-			handler = WithLogging(handler, DefaultStacktracePred)
+			handler = WithLogging(handler, DefaultStacktracePred, nil)
 		}
 
 		handler.ServeHTTP(origWriter, req)
