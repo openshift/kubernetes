@@ -78,6 +78,8 @@ kube::golang::server_targets() {
     staging/src/k8s.io/kube-aggregator
     staging/src/k8s.io/apiextensions-apiserver
     cluster/gce/gci/mounter
+    cmd/watch-termination
+    openshift-hack/cmd/k8s-tests
   )
   echo "${targets[@]}"
 }
@@ -316,20 +318,7 @@ readonly KUBE_ALL_TARGETS=(
 )
 readonly KUBE_ALL_BINARIES=("${KUBE_ALL_TARGETS[@]##*/}")
 
-readonly KUBE_STATIC_BINARIES=(
-  apiextensions-apiserver
-  kube-aggregator
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
-  kube-proxy
-  kube-log-runner
-  kubeadm
-  kubectl
-  kubectl-convert
-  kubemark
-  mounter
-)
+readonly KUBE_STATIC_LIBRARIES=()
 
 # Fully-qualified package names that we want to instrument for coverage information.
 readonly KUBE_COVERAGE_INSTRUMENTED_PACKAGES=(
@@ -495,7 +484,7 @@ kube::golang::set_platform_envs() {
 
   # if CC is defined for platform then always enable it
   ccenv=$(echo "$platform" | awk -F/ '{print "KUBE_" toupper($1) "_" toupper($2) "_CC"}')
-  if [ -n "${!ccenv-}" ]; then 
+  if [ -n "${!ccenv-}" ]; then
     export CGO_ENABLED=1
     export CC="${!ccenv}"
   fi
@@ -599,7 +588,7 @@ kube::golang::setup_gomaxprocs() {
   # when running in a container, please see https://github.com/golang/go/issues/33803
   if [[ -z "${GOMAXPROCS:-}" ]]; then
     if ! command -v ncpu >/dev/null 2>&1; then
-      go -C "${KUBE_ROOT}/hack/tools" install ./ncpu || echo "Will not automatically set GOMAXPROCS"
+      GO111MODULE=on go -C "${KUBE_ROOT}/hack/tools" install -mod=readonly ./ncpu || echo "Will not automatically set GOMAXPROCS"
     fi
     if command -v ncpu >/dev/null 2>&1; then
       GOMAXPROCS=$(ncpu)
