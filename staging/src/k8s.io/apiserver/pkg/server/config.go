@@ -330,6 +330,11 @@ type EventSink interface {
 	Create(event *corev1.Event) (*corev1.Event, error)
 }
 
+// EventSink allows to create events.
+type EventSink interface {
+	Create(event *corev1.Event) (*corev1.Event, error)
+}
+
 type RecommendedConfig struct {
 	Config
 
