@@ -41,6 +41,8 @@ type ServiceUpgradeTest struct {
 // Name returns the tracking name of the test.
 func (ServiceUpgradeTest) Name() string { return "service-upgrade" }
 
+func shouldTestPDBs() bool { return true }
+
 // Setup creates a service with a load balancer and makes sure it's reachable.
 func (t *ServiceUpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	serviceName := "service-test"
