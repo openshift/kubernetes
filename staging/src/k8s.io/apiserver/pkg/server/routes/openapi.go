@@ -1,3 +1,4 @@
+
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -50,11 +51,35 @@ func (oa OpenAPI) InstallV2(c *restful.Container, mux *mux.PathRecorderMux) (*ha
 	// delegation chain share one config, and with lazy building their builds
 	// are no longer sequential, so each build works on its own copy.
 	config := *oa.Config
+
+	// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints
+	// with a CRD. This loop removes all CRQ,RBR, SCC paths
+	// from the OpenAPI spec such that they don't conflict with the CRD
+	// apiextensions-apiserver spec during merging.
+	oa.Config.IgnorePrefixes = append(oa.Config.IgnorePrefixes,
+		"/apis/quota.openshift.io/v1/clusterresourcequotas",
+		"/apis/security.openshift.io/v1/securitycontextconstraints",
+		"/apis/authorization.openshift.io/v1/rolebindingrestrictions",
+		"/apis/authorization.openshift.io/v1/namespaces/{namespace}/rolebindingrestrictions",
+		"/apis/authorization.openshift.io/v1/watch/namespaces/{namespace}/rolebindingrestrictions",
+		"/apis/authorization.openshift.io/v1/watch/rolebindingrestrictions")
+
 	source := cached.Once(cached.Func(func() (*spec.Swagger, string, error) {
 		spec, err := builder2.BuildOpenAPISpecFromRoutes(restfuladapter.AdaptWebServices(c.RegisteredWebServices()), &config)
 		if err != nil {
 			klog.Errorf("Failed to build OpenAPI v2 spec: %v", err)
 			return nil, "", err
+		}
+		// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints
+		// with a CRD. This loop removes all CRQ,RBR, SCC paths
+		// from the OpenAPI spec such that they don't conflict with the CRD
+		// apiextensions-apiserver spec during merging.
+		for pth := range spec.Paths.Paths {
+			if strings.HasPrefix(pth, "/apis/quota.openshift.io/v1/clusterresourcequotas") ||
+				strings.Contains(pth, "rolebindingrestrictions") ||
+				strings.HasPrefix(pth, "/apis/security.openshift.io/v1/securitycontextconstraints") {
+				delete(spec.Paths.Paths, pth)
+			}
 		}
 		spec.Definitions = handler.PruneDefaults(spec.Definitions)
 		return spec, "openapi-v2-static", nil
