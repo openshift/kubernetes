@@ -56,6 +56,7 @@ func (c *Config) New(proxyTransport *http.Transport, egressSelector *egressselec
 	}
 	kubePluginInitializer := NewPluginInitializer(
 		cloudConfig,
+		NewAdmissionRESTMapper(discoveryRESTMapper),
 		quotainstall.NewQuotaConfigurationForAdmission(),
 		exclusion.Excluded(),
 	)
