@@ -577,7 +577,7 @@ func TestSyncService(t *testing.T) {
 						{Name: "sctp-example", TargetPort: intstr.FromInt(3456), Protocol: v1.ProtocolSCTP},
 					},
 					Selector:   map[string]string{"foo": "bar"},
-					IPFamilies: []v1.IPFamily{v1.IPv4Protocol},
+					IPFamily: &ipv4Family,
 				},
 			},
 			pods: []*v1.Pod{
@@ -658,7 +658,7 @@ func TestSyncService(t *testing.T) {
 				{
 					Conditions: discovery.EndpointConditions{
 						Ready:       utilpointer.BoolPtr(true),
-						Accepting:   utilpointer.BoolPtr(true),
+						Serving:     utilpointer.BoolPtr(true),
 						Terminating: utilpointer.BoolPtr(false),
 					},
 					Addresses: []string{"10.0.0.1"},
@@ -668,7 +668,7 @@ func TestSyncService(t *testing.T) {
 				{
 					Conditions: discovery.EndpointConditions{
 						Ready:       utilpointer.BoolPtr(false),
-						Accepting:   utilpointer.BoolPtr(true),
+						Serving:     utilpointer.BoolPtr(true),
 						Terminating: utilpointer.BoolPtr(true),
 					},
 					Addresses: []string{"10.0.0.2"},
@@ -693,7 +693,7 @@ func TestSyncService(t *testing.T) {
 						{Name: "sctp-example", TargetPort: intstr.FromInt(3456), Protocol: v1.ProtocolSCTP},
 					},
 					Selector:   map[string]string{"foo": "bar"},
-					IPFamilies: []v1.IPFamily{v1.IPv4Protocol},
+					IPFamily: &ipv4Family,
 				},
 			},
 			pods: []*v1.Pod{
@@ -797,7 +797,7 @@ func TestSyncService(t *testing.T) {
 						{Name: "sctp-example", TargetPort: intstr.FromInt(3456), Protocol: v1.ProtocolSCTP},
 					},
 					Selector:   map[string]string{"foo": "bar"},
-					IPFamilies: []v1.IPFamily{v1.IPv4Protocol},
+					IPFamily: &ipv4Family,
 				},
 			},
 			pods: []*v1.Pod{
@@ -878,7 +878,7 @@ func TestSyncService(t *testing.T) {
 				{
 					Conditions: discovery.EndpointConditions{
 						Ready:       utilpointer.BoolPtr(true),
-						Accepting:   utilpointer.BoolPtr(true),
+						Serving:     utilpointer.BoolPtr(true),
 						Terminating: utilpointer.BoolPtr(false),
 					},
 					Addresses: []string{"10.0.0.1"},
@@ -888,7 +888,7 @@ func TestSyncService(t *testing.T) {
 				{
 					Conditions: discovery.EndpointConditions{
 						Ready:       utilpointer.BoolPtr(false),
-						Accepting:   utilpointer.BoolPtr(false),
+						Serving:     utilpointer.BoolPtr(false),
 						Terminating: utilpointer.BoolPtr(true),
 					},
 					Addresses: []string{"10.0.0.2"},
@@ -913,7 +913,7 @@ func TestSyncService(t *testing.T) {
 						{Name: "sctp-example", TargetPort: intstr.FromInt(3456), Protocol: v1.ProtocolSCTP},
 					},
 					Selector:   map[string]string{"foo": "bar"},
-					IPFamilies: []v1.IPFamily{v1.IPv4Protocol},
+					IPFamily: &ipv4Family,
 				},
 			},
 			pods: []*v1.Pod{

@@ -255,7 +255,7 @@ func TestPodToEndpoint(t *testing.T) {
 				Addresses: []string{"1.2.3.5"},
 				Conditions: discovery.EndpointConditions{
 					Ready:       utilpointer.BoolPtr(true),
-					Accepting:   utilpointer.BoolPtr(true),
+					Serving:     utilpointer.BoolPtr(true),
 					Terminating: utilpointer.BoolPtr(false),
 				},
 				Topology: map[string]string{"kubernetes.io/hostname": "node-1"},
@@ -297,7 +297,7 @@ func TestPodToEndpoint(t *testing.T) {
 				Addresses: []string{"1.2.3.5"},
 				Conditions: discovery.EndpointConditions{
 					Ready:       utilpointer.BoolPtr(false),
-					Accepting:   utilpointer.BoolPtr(true),
+					Serving:     utilpointer.BoolPtr(true),
 					Terminating: utilpointer.BoolPtr(true),
 				},
 				Topology: map[string]string{"kubernetes.io/hostname": "node-1"},
@@ -339,7 +339,7 @@ func TestPodToEndpoint(t *testing.T) {
 				Addresses: []string{"1.2.3.5"},
 				Conditions: discovery.EndpointConditions{
 					Ready:       utilpointer.BoolPtr(false),
-					Accepting:   utilpointer.BoolPtr(false),
+					Serving:     utilpointer.BoolPtr(false),
 					Terminating: utilpointer.BoolPtr(true),
 				},
 				Topology: map[string]string{"kubernetes.io/hostname": "node-1"},
