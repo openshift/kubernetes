@@ -297,7 +297,7 @@ func setConfigFromSecret(cfg *Config) error {
 
 	secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
-		klog.Warningf("Cannot get secret %s in namespace %s. error: %q", secretName, secretNamespace, err)
+		klog.Errorf("cannot get secret %s in namespace %s. error: %q", os.secretName, os.secretNamespace, err)
 		return err
 	}
 
@@ -305,13 +305,36 @@ func setConfigFromSecret(cfg *Config) error {
 		err = gcfg.ReadStringInto(cfg, string(content))
 		if err != nil {
 			klog.Error("Cannot parse data from the secret.")
-			return fmt.Errorf("cannot parse data from the secret")
+			return fmt.Errorf("cannot parse data from the secret: %s", err)
 		}
+		provider, err := newProvider(*cfg)
+		if err != nil {
+			return fmt.Errorf("cannot initialize cloud provider using data from the secret: %s", err)
+		}
+		os.provider = provider
+		os.region = cfg.Global.Region
+		klog.Info("OpenStack cloud provider was initialized using data from the secret.")
 		return nil
 	}
 
 	klog.Error("Cannot find \"clouds.conf\" key in the secret.")
 	return fmt.Errorf("cannot find \"clouds.conf\" key in the secret")
+}
+
+func (os *OpenStack) ensureCloudProviderWasInitialized() error {
+	if os.provider != nil {
+		return nil
+	}
+
+	if os.secretName != "" && os.secretNamespace != "" {
+		err := os.setConfigFromSecret()
+		if err != nil {
+			return fmt.Errorf("cloud provider is not initialized: %s", err)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("cloud provider is not initialized")
 }
 
 func readConfig(config io.Reader) (Config, error) {
