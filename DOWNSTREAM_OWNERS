@@ -1,0 +1,17 @@
+reviewers:
+  - abhat
+  - danwinship
+  - dcbw
+  - JacobTanenbaum
+approvers:
+  - abhat
+  - danwinship
+  - dcbw
+  - JacobTanenbaum
+  - jcamaano
+  - knobunc
+  - trozet
+
+# Bugzilla info
+component: Networking
+subcomponent: openshift-sdn
