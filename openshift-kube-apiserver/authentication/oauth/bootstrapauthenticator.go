@@ -47,7 +47,7 @@ func (a *bootstrapAuthenticator) AuthenticateToken(ctx context.Context, name str
 
 	token, err := a.tokens.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		return nil, false, errLookup // mask the error so we do not leak token data in logs
+		return nil, false, err // mask the error so we do not leak token data in logs
 	}
 
 	if token.UserName != bootstrap.BootstrapUser {

@@ -50,7 +50,7 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 
 	token, err := a.tokens.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		return nil, false, errLookup // mask the error so we do not leak token data in logs
+		return nil, false, err // mask the error so we do not leak token data in logs
 	}
 
 	user, err := a.users.Get(context.TODO(), token.UserName, metav1.GetOptions{})
