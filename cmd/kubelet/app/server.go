@@ -259,6 +259,11 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 			// set up signal context here in order to be reused by kubelet and docker shim
 			ctx := genericapiserver.SetupSignalContext()
 
+			// start a watch on certain files that need to trigger a kubelet restart.  This wraps the context
+			// so that there is a chance to more cleanly shutdown on a requested exit.  The grace here is hardcoded, but open
+			// to changes.
+			ctx = startRestartOnFileChanges(ctx)
+
 			// run the kubelet
 			klog.V(5).Infof("KubeletConfiguration: %#v", kubeletServer.KubeletConfiguration)
 			if err := Run(ctx, kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate); err != nil {
