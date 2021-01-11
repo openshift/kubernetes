@@ -292,7 +292,7 @@ profiles:
 					AllowCacheTTL:                10 * time.Second,
 					DenyCacheTTL:                 10 * time.Second,
 					RemoteKubeConfigFileOptional: true,
-					AlwaysAllowPaths:             []string{"/healthz"}, // note: this does not match /healthz/ or /healthz/*
+					AlwaysAllowPaths:             []string{"/healthz", "/metrics"}, // note: this does not match /healthz/ or /healthz/*
 				},
 				Logs: logs.NewOptions(),
 			},
@@ -300,8 +300,8 @@ profiles:
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
 				Parallelism:        16,
 				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
-				HealthzBindAddress: "0.0.0.0:10251",
-				MetricsBindAddress: "0.0.0.0:10251",
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,
@@ -390,7 +390,7 @@ profiles:
 					AllowCacheTTL:                10 * time.Second,
 					DenyCacheTTL:                 10 * time.Second,
 					RemoteKubeConfigFileOptional: true,
-					AlwaysAllowPaths:             []string{"/healthz"}, // note: this does not match /healthz/ or /healthz/*
+					AlwaysAllowPaths:             []string{"/healthz", "/metrics"}, // note: this does not match /healthz/ or /healthz/*
 				},
 				Logs: logs.NewOptions(),
 			},
@@ -398,8 +398,8 @@ profiles:
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
 				Parallelism:        16,
 				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
-				HealthzBindAddress: "", // defaults empty when not running from config file
-				MetricsBindAddress: "", // defaults empty when not running from config file
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,
@@ -456,15 +456,15 @@ profiles:
 					AllowCacheTTL:                10 * time.Second,
 					DenyCacheTTL:                 10 * time.Second,
 					RemoteKubeConfigFileOptional: true,
-					AlwaysAllowPaths:             []string{"/healthz"}, // note: this does not match /healthz/ or /healthz/*
+					AlwaysAllowPaths:             []string{"/healthz", "/metrics"}, // note: this does not match /healthz/ or /healthz/*
 				},
 				Logs: logs.NewOptions(),
 			},
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
 				Parallelism:        16,
 				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
-				HealthzBindAddress: "", // defaults empty when not running from config file
-				MetricsBindAddress: "", // defaults empty when not running from config file
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,
@@ -503,8 +503,8 @@ profiles:
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
 				Parallelism:        16,
 				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
-				HealthzBindAddress: "0.0.0.0:10251",
-				MetricsBindAddress: "0.0.0.0:10251",
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,
@@ -578,8 +578,8 @@ profiles:
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
 				Parallelism:        16,
 				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
-				HealthzBindAddress: "0.0.0.0:10251",
-				MetricsBindAddress: "0.0.0.0:10251",
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,
@@ -653,8 +653,10 @@ profiles:
 			},
 			expectedUsername: "flag",
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
-				Parallelism:     16,
-				AlgorithmSource: kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
+				Parallelism:        16,
+				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,
@@ -706,8 +708,10 @@ profiles:
 			},
 			expectedUsername: "flag",
 			expectedConfig: kubeschedulerconfig.KubeSchedulerConfiguration{
-				Parallelism:     16,
-				AlgorithmSource: kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
+				Parallelism:        16,
+				AlgorithmSource:    kubeschedulerconfig.SchedulerAlgorithmSource{Provider: &defaultSource},
+				HealthzBindAddress: "0.0.0.0:10259",
+				MetricsBindAddress: "0.0.0.0:10259",
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           true,
 					EnableContentionProfiling: true,

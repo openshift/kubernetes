@@ -2127,6 +2127,8 @@ function start-kube-scheduler {
     params+=("--config=/etc/srv/kubernetes/kube-scheduler/config")
   else
     params+=("--kubeconfig=/etc/srv/kubernetes/kube-scheduler/kubeconfig")
+    params+=("--authentication-kubeconfig=/etc/srv/kubernetes/kube-scheduler/kubeconfig")
+    params+=("--authorization-kubeconfig=/etc/srv/kubernetes/kube-scheduler/kubeconfig")
     if [[ -n "${SCHEDULING_ALGORITHM_PROVIDER:-}"  ]]; then
       params+=("--algorithm-provider=${SCHEDULING_ALGORITHM_PROVIDER}")
     fi

@@ -25,6 +25,7 @@ import (
 	goruntime "runtime"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -56,6 +57,18 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/metrics/resources"
 	"k8s.io/kubernetes/pkg/scheduler/profile"
 )
+
+// TODO: delete this check after insecure flags removed in v1.24
+func checkNonZeroInsecurePort(fs *pflag.FlagSet) error {
+	val, err := fs.GetInt("port")
+	if err != nil {
+		return err
+	}
+	if val != 0 {
+		return fmt.Errorf("invalid port value %d: only zero is allowed", val)
+	}
+	return nil
+}
 
 // Option configures a framework.Registry.
 type Option func(runtime.Registry) error
@@ -121,6 +134,11 @@ func runCommand(cmd *cobra.Command, opts *options.Options, registryOptions ...Op
 	verflag.PrintAndExitIfRequested()
 	cliflag.PrintFlags(cmd.Flags())
 
+	err := checkNonZeroInsecurePort(cmd.Flags())
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
@@ -171,21 +189,8 @@ func Run(ctx context.Context, cc *schedulerserverconfig.CompletedConfig, sched *
 	}
 
 	// Start up the healthz server.
-	if cc.InsecureServing != nil {
-		separateMetrics := cc.InsecureMetricsServing != nil
-		handler := buildHandlerChain(newHealthzHandler(&cc.ComponentConfig, cc.InformerFactory, isLeader, separateMetrics, checks...), nil, nil)
-		if err := cc.InsecureServing.Serve(handler, 0, ctx.Done()); err != nil {
-			return fmt.Errorf("failed to start healthz server: %v", err)
-		}
-	}
-	if cc.InsecureMetricsServing != nil {
-		handler := buildHandlerChain(newMetricsHandler(&cc.ComponentConfig, cc.InformerFactory, isLeader), nil, nil)
-		if err := cc.InsecureMetricsServing.Serve(handler, 0, ctx.Done()); err != nil {
-			return fmt.Errorf("failed to start metrics server: %v", err)
-		}
-	}
 	if cc.SecureServing != nil {
-		handler := buildHandlerChain(newHealthzHandler(&cc.ComponentConfig, cc.InformerFactory, isLeader, false, checks...), cc.Authentication.Authenticator, cc.Authorization.Authorizer)
+		handler := buildHandlerChain(newHealthzAndMetricsHandler(&cc.ComponentConfig, cc.InformerFactory, isLeader, false, checks...), cc.Authentication.Authenticator, cc.Authorization.Authorizer)
 		// TODO: handle stoppedCh returned by c.SecureServing.Serve
 		if _, err := cc.SecureServing.Serve(handler, 0, ctx.Done()); err != nil {
 			// fail early for secure handlers, removing the old error loop from above
@@ -262,29 +267,12 @@ func installMetricHandler(pathRecorderMux *mux.PathRecorderMux, informers inform
 	})
 }
 
-// newMetricsHandler builds a metrics server from the config.
-func newMetricsHandler(config *kubeschedulerconfig.KubeSchedulerConfiguration, informers informers.SharedInformerFactory, isLeader func() bool) http.Handler {
-	pathRecorderMux := mux.NewPathRecorderMux("kube-scheduler")
-	installMetricHandler(pathRecorderMux, informers, isLeader)
-	if config.EnableProfiling {
-		routes.Profiling{}.Install(pathRecorderMux)
-		if config.EnableContentionProfiling {
-			goruntime.SetBlockProfileRate(1)
-		}
-		routes.DebugFlags{}.Install(pathRecorderMux, "v", routes.StringFlagPutHandler(logs.GlogSetter))
-	}
-	return pathRecorderMux
-}
-
-// newHealthzHandler creates a healthz server from the config, and will also
-// embed the metrics handler if the healthz and metrics address configurations
-// are the same.
-func newHealthzHandler(config *kubeschedulerconfig.KubeSchedulerConfiguration, informers informers.SharedInformerFactory, isLeader func() bool, separateMetrics bool, checks ...healthz.HealthChecker) http.Handler {
+// newHealthzAndMetricsHandler creates a healthz server from the config, and will also
+// embed the metrics handler.
+func newHealthzAndMetricsHandler(config *kubeschedulerconfig.KubeSchedulerConfiguration, informers informers.SharedInformerFactory, isLeader func() bool, separateMetrics bool, checks ...healthz.HealthChecker) http.Handler {
 	pathRecorderMux := mux.NewPathRecorderMux("kube-scheduler")
 	healthz.InstallHandler(pathRecorderMux, checks...)
-	if !separateMetrics {
-		installMetricHandler(pathRecorderMux, informers, isLeader)
-	}
+	installMetricHandler(pathRecorderMux, informers, isLeader)
 	if config.EnableProfiling {
 		routes.Profiling{}.Install(pathRecorderMux)
 		if config.EnableContentionProfiling {

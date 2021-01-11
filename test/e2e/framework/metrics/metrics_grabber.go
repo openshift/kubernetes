@@ -33,10 +33,8 @@ import (
 )
 
 const (
-	// insecureSchedulerPort is the default port for the scheduler status server.
-	// May be overridden by a flag at startup.
-	// Deprecated: use the secure KubeSchedulerPort instead.
-	insecureSchedulerPort = 10251
+	// schedulerPort is the default port for the scheduler status server.
+	schedulerPort = 10259
 	// insecureKubeControllerManagerPort is the default port for the controller manager status server.
 	// May be overridden by a flag at startup.
 	// Deprecated: use the secure KubeControllerManagerPort instead.
@@ -152,7 +150,7 @@ func (g *Grabber) GrabFromScheduler() (SchedulerMetrics, error) {
 	if g.kubeScheduler == "" {
 		return SchedulerMetrics{}, fmt.Errorf("kube-scheduler pod is not registered. Skipping Scheduler's metrics gathering")
 	}
-	output, err := g.getMetricsFromPod(g.client, g.kubeScheduler, metav1.NamespaceSystem, insecureSchedulerPort)
+	output, err := g.getMetricsFromPod(g.client, g.kubeScheduler, metav1.NamespaceSystem, schedulerPort, true)
 	if err != nil {
 		return SchedulerMetrics{}, err
 	}
@@ -173,7 +171,7 @@ func (g *Grabber) GrabFromClusterAutoscaler() (ClusterAutoscalerMetrics, error) 
 		client = g.client
 		namespace = metav1.NamespaceSystem
 	}
-	output, err := g.getMetricsFromPod(client, "cluster-autoscaler", namespace, 8085)
+	output, err := g.getMetricsFromPod(client, "cluster-autoscaler", namespace, 8085, false)
 	if err != nil {
 		return ClusterAutoscalerMetrics{}, err
 	}
@@ -196,7 +194,7 @@ func (g *Grabber) GrabFromControllerManager() (ControllerManagerMetrics, error) 
 
 		var lastMetricsFetchErr error
 		if metricsWaitErr := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			_, lastMetricsFetchErr = g.getMetricsFromPod(g.client, podName, metav1.NamespaceSystem, insecureKubeControllerManagerPort)
+			_, lastMetricsFetchErr = g.getMetricsFromPod(g.client, podName, metav1.NamespaceSystem, insecureKubeControllerManagerPort, false)
 			return lastMetricsFetchErr == nil, nil
 		}); metricsWaitErr != nil {
 			err = fmt.Errorf("error waiting for controller manager pod to expose metrics: %v; %v", metricsWaitErr, lastMetricsFetchErr)
@@ -207,7 +205,7 @@ func (g *Grabber) GrabFromControllerManager() (ControllerManagerMetrics, error) 
 		return ControllerManagerMetrics{}, err
 	}
 
-	output, err := g.getMetricsFromPod(g.client, podName, metav1.NamespaceSystem, insecureKubeControllerManagerPort)
+	output, err := g.getMetricsFromPod(g.client, podName, metav1.NamespaceSystem, insecureKubeControllerManagerPort, false)
 	if err != nil {
 		return ControllerManagerMetrics{}, err
 	}
@@ -281,12 +279,18 @@ func (g *Grabber) Grab() (Collection, error) {
 	return result, nil
 }
 
-func (g *Grabber) getMetricsFromPod(client clientset.Interface, podName string, namespace string, port int) (string, error) {
+func (g *Grabber) getMetricsFromPod(client clientset.Interface, podName string, namespace string, port int, enableHTTPS bool) (string, error) {
+	var name string
+	if enableHTTPS {
+		name = fmt.Sprintf("https:%s:%d", podName, port)
+	} else {
+		name = fmt.Sprintf("%s:%d", podName, port)
+	}
 	rawOutput, err := client.CoreV1().RESTClient().Get().
 		Namespace(namespace).
 		Resource("pods").
 		SubResource("proxy").
-		Name(fmt.Sprintf("%v:%v", podName, port)).
+		Name(name).
 		Suffix("metrics").
 		Do(context.TODO()).Raw()
 	if err != nil {

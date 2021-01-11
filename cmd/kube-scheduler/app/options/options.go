@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
 	"time"
 
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -53,16 +53,15 @@ import (
 
 // Options has all the params needed to run a Scheduler
 type Options struct {
-	// The default values. These are overridden if ConfigFile is set or by values in InsecureServing.
+	// The default values.
 	ComponentConfig kubeschedulerconfig.KubeSchedulerConfiguration
 
-	SecureServing           *apiserveroptions.SecureServingOptionsWithLoopback
-	CombinedInsecureServing *CombinedInsecureServingOptions
-	Authentication          *apiserveroptions.DelegatingAuthenticationOptions
-	Authorization           *apiserveroptions.DelegatingAuthorizationOptions
-	Metrics                 *metrics.Options
-	Logs                    *logs.Options
-	Deprecated              *DeprecatedOptions
+	SecureServing  *apiserveroptions.SecureServingOptionsWithLoopback
+	Authentication *apiserveroptions.DelegatingAuthenticationOptions
+	Authorization  *apiserveroptions.DelegatingAuthorizationOptions
+	Metrics        *metrics.Options
+	Logs           *logs.Options
+	Deprecated     *DeprecatedOptions
 
 	// ConfigFile is the location of the scheduler server's configuration file.
 	ConfigFile string
@@ -80,26 +79,11 @@ func NewOptions() (*Options, error) {
 		return nil, err
 	}
 
-	hhost, hport, err := splitHostIntPort(cfg.HealthzBindAddress)
-	if err != nil {
-		return nil, err
-	}
-
 	o := &Options{
 		ComponentConfig: *cfg,
 		SecureServing:   apiserveroptions.NewSecureServingOptions().WithLoopback(),
-		CombinedInsecureServing: &CombinedInsecureServingOptions{
-			Healthz: (&apiserveroptions.DeprecatedInsecureServingOptions{
-				BindNetwork: "tcp",
-			}).WithLoopback(),
-			Metrics: (&apiserveroptions.DeprecatedInsecureServingOptions{
-				BindNetwork: "tcp",
-			}).WithLoopback(),
-			BindPort:    hport,
-			BindAddress: hhost,
-		},
-		Authentication: apiserveroptions.NewDelegatingAuthenticationOptions(),
-		Authorization:  apiserveroptions.NewDelegatingAuthorizationOptions(),
+		Authentication:  apiserveroptions.NewDelegatingAuthenticationOptions(),
+		Authorization:   apiserveroptions.NewDelegatingAuthorizationOptions(),
 		Deprecated: &DeprecatedOptions{
 			UseLegacyPolicyConfig:          false,
 			PolicyConfigMapNamespace:       metav1.NamespaceSystem,
@@ -123,18 +107,6 @@ func NewOptions() (*Options, error) {
 	return o, nil
 }
 
-func splitHostIntPort(s string) (string, int, error) {
-	host, port, err := net.SplitHostPort(s)
-	if err != nil {
-		return "", 0, err
-	}
-	portInt, err := strconv.Atoi(port)
-	if err != nil {
-		return "", 0, err
-	}
-	return host, portInt, err
-}
-
 func newDefaultComponentConfig() (*kubeschedulerconfig.KubeSchedulerConfiguration, error) {
 	versionedCfg := kubeschedulerconfigv1beta1.KubeSchedulerConfiguration{}
 	versionedCfg.DebuggingConfiguration = *configv1alpha1.NewRecommendedDebuggingConfiguration()
@@ -145,6 +117,21 @@ func newDefaultComponentConfig() (*kubeschedulerconfig.KubeSchedulerConfiguratio
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+// TODO: remove these insecure flags in v1.24
+func addDummyInsecureFlags(fs *pflag.FlagSet) {
+	var (
+		bindAddr = net.IPv4(127, 0, 0, 1)
+		bindPort = 0
+	)
+
+	fs.IPVar(&bindAddr, "address", bindAddr,
+		"The IP address on which to serve the insecure --port (set to 0.0.0.0 for all IPv4 interfaces and :: for all IPv6 interfaces).")
+	fs.MarkDeprecated("address", "This flag has no effect now and will be removed in v1.24. Please use --bind-address instead.")
+
+	fs.IntVar(&bindPort, "port", bindPort, "The port on which to serve unsecured, unauthenticated access. Set to 0 to disable.")
+	fs.MarkDeprecated("port", "This flag has no effect now and will be removed in v1.24. Please use --secure-port instead.")
 }
 
 // Flags returns flags for a specific scheduler by section name
@@ -161,7 +148,7 @@ func (o *Options) Flags() (nfs cliflag.NamedFlagSets) {
 	fs.StringVar(&o.Master, "master", o.Master, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 
 	o.SecureServing.AddFlags(nfs.FlagSet("secure serving"))
-	o.CombinedInsecureServing.AddFlags(nfs.FlagSet("insecure serving"))
+	addDummyInsecureFlags(nfs.FlagSet("insecure serving"))
 	o.Authentication.AddFlags(nfs.FlagSet("authentication"))
 	o.Authorization.AddFlags(nfs.FlagSet("authorization"))
 	o.Deprecated.AddFlags(nfs.FlagSet("deprecated"), &o.ComponentConfig)
@@ -181,9 +168,6 @@ func (o *Options) ApplyTo(c *schedulerappconfig.Config) error {
 
 		// apply deprecated flags if no config file is loaded (this is the old behaviour).
 		o.Deprecated.ApplyTo(&c.ComponentConfig)
-		if err := o.CombinedInsecureServing.ApplyTo(c, &c.ComponentConfig); err != nil {
-			return err
-		}
 	} else {
 		cfg, err := loadConfigFromFile(o.ConfigFile)
 		if err != nil {
@@ -202,11 +186,6 @@ func (o *Options) ApplyTo(c *schedulerappconfig.Config) error {
 		// these configs are no longer merged and they should not be used simultaneously
 		if !emptySchedulerProfileConfig(c.ComponentConfig.Profiles) && c.ComponentConfig.AlgorithmSource.Policy != nil {
 			return fmt.Errorf("cannot set a Plugin config and Policy config")
-		}
-
-		// use the loaded config file only, with the exception of --address and --port.
-		if err := o.CombinedInsecureServing.ApplyToFromLoadedConfig(c, &c.ComponentConfig); err != nil {
-			return err
 		}
 	}
 
@@ -243,7 +222,6 @@ func (o *Options) Validate() []error {
 		errs = append(errs, err.Errors()...)
 	}
 	errs = append(errs, o.SecureServing.Validate()...)
-	errs = append(errs, o.CombinedInsecureServing.Validate()...)
 	errs = append(errs, o.Authentication.Validate()...)
 	errs = append(errs, o.Authorization.Validate()...)
 	errs = append(errs, o.Deprecated.Validate()...)

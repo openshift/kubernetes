@@ -46,8 +46,8 @@ func TestSchedulerDefaults(t *testing.T) {
 			config: &v1beta1.KubeSchedulerConfiguration{},
 			expected: &v1beta1.KubeSchedulerConfiguration{
 				Parallelism:        pointer.Int32Ptr(16),
-				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10251"),
-				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10251"),
+				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10259"),
+				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10259"),
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
@@ -87,8 +87,8 @@ func TestSchedulerDefaults(t *testing.T) {
 			},
 			expected: &v1beta1.KubeSchedulerConfiguration{
 				Parallelism:        pointer.Int32Ptr(16),
-				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10251"),
-				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10251"),
+				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10259"),
+				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10259"),
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
@@ -144,8 +144,8 @@ func TestSchedulerDefaults(t *testing.T) {
 			},
 			expected: &v1beta1.KubeSchedulerConfiguration{
 				Parallelism:        pointer.Int32Ptr(16),
-				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10251"),
-				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10251"),
+				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10259"),
+				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10259"),
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
@@ -195,8 +195,8 @@ func TestSchedulerDefaults(t *testing.T) {
 			},
 			expected: &v1beta1.KubeSchedulerConfiguration{
 				Parallelism:        pointer.Int32Ptr(16),
-				HealthzBindAddress: pointer.StringPtr("1.2.3.4:10251"),
-				MetricsBindAddress: pointer.StringPtr("1.2.3.4:10251"),
+				HealthzBindAddress: pointer.StringPtr("1.2.3.4:10259"),
+				MetricsBindAddress: pointer.StringPtr("1.2.3.4:10259"),
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,
@@ -266,8 +266,8 @@ func TestSchedulerDefaults(t *testing.T) {
 			},
 			expected: &v1beta1.KubeSchedulerConfiguration{
 				Parallelism:        pointer.Int32Ptr(8),
-				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10251"),
-				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10251"),
+				HealthzBindAddress: pointer.StringPtr("0.0.0.0:10259"),
+				MetricsBindAddress: pointer.StringPtr("0.0.0.0:10259"),
 				DebuggingConfiguration: componentbaseconfig.DebuggingConfiguration{
 					EnableProfiling:           &enable,
 					EnableContentionProfiling: &enable,

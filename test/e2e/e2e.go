@@ -37,6 +37,7 @@ import (
 	"github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtimeutils "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -302,6 +303,24 @@ func setupSuite() {
 		nodeKiller := framework.NewNodeKiller(framework.TestContext.NodeKiller, c, framework.TestContext.Provider)
 		go nodeKiller.Run(framework.TestContext.NodeKiller.NodeKillerStopCh)
 	}
+
+	// Allow anonymous access to `/metrics` in tests
+	klog.Infof("Setup RBAC rules to allow anonymous access to /metrics endpoint")
+	_, err = c.RbacV1().ClusterRoles().Create(context.TODO(), &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: "anonymous-metrics-viewer"},
+		Rules: []rbacv1.PolicyRule{
+			{Verbs: []string{"get"}, NonResourceURLs: []string{"/metrics"}},
+		},
+	}, metav1.CreateOptions{})
+	framework.ExpectNoError(err)
+	_, err = c.RbacV1().ClusterRoleBindings().Create(context.TODO(), &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "anonymous-metrics-viewer"},
+		RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "anonymous-metrics-viewer"},
+		Subjects: []rbacv1.Subject{
+			{Kind: rbacv1.UserKind, Name: "system:anonymous"},
+		},
+	}, metav1.CreateOptions{})
+	framework.ExpectNoError(err)
 }
 
 // logClusterImageSources writes out cluster image sources.
