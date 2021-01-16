@@ -196,9 +196,11 @@ func (r *reconciler) reconcileByPortMapping(
 		// if >0 existing slices, mark all but 1 for deletion.
 		slices.toDelete = existingSlices[1:]
 
-		// Return early if first slice matches desired endpoints.
+		// Return early if first slice matches desired endpoints, labels and annotations
 		totals = totalChanges(existingSlices[0], desiredSet)
-		if totals.added == 0 && totals.updated == 0 && totals.removed == 0 {
+		if totals.added == 0 && totals.updated == 0 && totals.removed == 0 &&
+			!updateEndpointSliceAnnotations(endpoints.Annotations, existingSlices[0].Annotations) &&
+			!updateEndpointSliceLabels(endpoints.Labels, existingSlices[0].Labels) {
 			return slices, totals
 		}
 	}

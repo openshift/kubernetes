@@ -19,6 +19,7 @@ package endpointslicemirroring
 import (
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -91,6 +92,7 @@ func newEndpointSlice(endpoints *corev1.Endpoints, ports []discovery.EndpointPor
 	epSlice := &discovery.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:          map[string]string{},
+			Annotations:     map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{*ownerRef},
 			Namespace:       endpoints.Namespace,
 		},
@@ -99,12 +101,22 @@ func newEndpointSlice(endpoints *corev1.Endpoints, ports []discovery.EndpointPor
 		Endpoints:   []discovery.Endpoint{},
 	}
 
+	// clone all labels
 	for label, val := range endpoints.Labels {
 		epSlice.Labels[label] = val
 	}
 
+	// overwrite specific labels
 	epSlice.Labels[discovery.LabelServiceName] = endpoints.Name
 	epSlice.Labels[discovery.LabelManagedBy] = controllerName
+
+	// clone all annotations but EndpointsLastChangeTriggerTime
+	for annotation, val := range endpoints.Annotations {
+		if annotation == corev1.EndpointsLastChangeTriggerTime {
+			continue
+		}
+		epSlice.Annotations[annotation] = val
+	}
 
 	if sliceName == "" {
 		epSlice.GenerateName = getEndpointSlicePrefix(endpoints.Name)
@@ -277,4 +289,36 @@ func skipMirror(labels map[string]string) bool {
 func hasLeaderElection(annotations map[string]string) bool {
 	_, ok := annotations[resourcelock.LeaderElectionRecordAnnotationKey]
 	return ok
+}
+
+// updateEndpointSliceLabels returns true if all labels in a are not present in b
+func updateEndpointSliceLabels(a, b map[string]string) bool {
+	if len(a) > len(b) {
+		return true
+	}
+	if reflect.DeepEqual(a, b) {
+		return false
+	}
+	for k, v1 := range a {
+		if v2, ok := b[k]; !ok || v1 != v2 {
+			return true
+		}
+	}
+	return false
+}
+
+// updateEndpointSliceAnnotations returns true if the annotations in a and b are
+// not equal (skipping the corev1.EndpointsLastChangeTriggerTime annotation in a)
+func updateEndpointSliceAnnotations(a, b map[string]string) bool {
+	annotations := map[string]string{}
+	for k, v := range a {
+		if k == corev1.EndpointsLastChangeTriggerTime {
+			continue
+		}
+		annotations[k] = v
+	}
+	if !apiequality.Semantic.DeepEqual(annotations, b) {
+		return true
+	}
+	return false
 }
