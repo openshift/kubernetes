@@ -19,6 +19,7 @@ package validating
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -63,6 +64,14 @@ func (d *validatingDispatcher) Dispatch(ctx context.Context, attr admission.Attr
 		if invocation == nil {
 			continue
 		}
+
+		// The bootstrap kube-apiserver doesn't have service network access, so webhook requests won't work on it.
+		// These are correctly rejected today, but the error returned doesn't tell the client to retry and results in "ugly"
+		// log messages which people write bugs about.  This error would hide the messages.
+		if isKubeAPIServer, _ := os.LookupEnv("OPENSHIFT_BOOTSTRAP_KUBE_APISERVER"); isKubeAPIServer == "true" {
+			return apierrors.NewTooManyRequests("the bootstrap kube-apiserver does not support server network webhook requests, but other kube-apiservers are likely to be available soon", 1)
+		}
+
 		relevantHooks = append(relevantHooks, invocation)
 		// If we already have this version, continue
 		if _, ok := versionedAttrs[invocation.Kind]; ok {

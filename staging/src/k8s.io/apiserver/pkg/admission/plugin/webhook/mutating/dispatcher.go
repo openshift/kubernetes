@@ -21,6 +21,7 @@ package mutating
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
@@ -103,6 +104,14 @@ func (a *mutatingDispatcher) Dispatch(ctx context.Context, attr admission.Attrib
 		if invocation == nil {
 			continue
 		}
+
+		// The bootstrap kube-apiserver doesn't have service network access, so webhook requests won't work on it.
+		// These are correctly rejected today, but the error returned doesn't tell the client to retry and results in "ugly"
+		// log messages which people write bugs about.  This error would hide the messages.
+		if isKubeAPIServer, _ := os.LookupEnv("OPENSHIFT_BOOTSTRAP_KUBE_APISERVER"); isKubeAPIServer == "true" {
+			return apierrors.NewTooManyRequests("the bootstrap kube-apiserver does not support server network webhook requests, but other kube-apiservers are likely to be available soon", 1)
+		}
+
 		hook, ok := invocation.Webhook.GetMutatingWebhook()
 		if !ok {
 			return fmt.Errorf("mutating webhook dispatch requires v1.MutatingWebhook, but got %T", hook)
