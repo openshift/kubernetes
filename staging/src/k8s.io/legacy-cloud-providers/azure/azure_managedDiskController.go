@@ -341,6 +341,13 @@ func (c *Cloud) GetLabelsForVolume(ctx context.Context, pv *v1.PersistentVolume)
 		return nil, nil
 	}
 
+	// Ignore unmanaged volumes
+	klog.Infof("JSAF: got kind %v disk %+v", pv.Spec.AzureDisk.Kind, pv.Spec.AzureDisk)
+	if pv.Spec.AzureDisk.Kind == nil || *pv.Spec.AzureDisk.Kind != v1.AzureManagedDisk {
+		klog.Infof("JSAF: skipping labels")
+		return nil, nil
+	}
+
 	return c.GetAzureDiskLabels(pv.Spec.AzureDisk.DataDiskURI)
 }
 
