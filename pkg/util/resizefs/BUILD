@@ -25,9 +25,6 @@ go_library(
         "@io_bazel_rules_go//go/platform:freebsd": [
             "//staging/src/k8s.io/mount-utils:go_default_library",
         ],
-        "@io_bazel_rules_go//go/platform:illumos": [
-            "//staging/src/k8s.io/mount-utils:go_default_library",
-        ],
         "@io_bazel_rules_go//go/platform:ios": [
             "//staging/src/k8s.io/mount-utils:go_default_library",
         ],

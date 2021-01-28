@@ -6,6 +6,7 @@ go_library(
         "csi.go",
         "csi_objects.go",
         "in_tree.go",
+        "mock_csi.go",
     ],
     importpath = "k8s.io/kubernetes/test/e2e/storage/drivers",
     visibility = ["//visibility:public"],
@@ -29,13 +30,16 @@ go_library(
         "//test/e2e/framework/pv:go_default_library",
         "//test/e2e/framework/skipper:go_default_library",
         "//test/e2e/framework/volume:go_default_library",
+        "//test/e2e/storage/drivers/csi-test/driver:go_default_library",
+        "//test/e2e/storage/drivers/csi-test/mock/service:go_default_library",
+        "//test/e2e/storage/drivers/proxy:go_default_library",
         "//test/e2e/storage/testpatterns:go_default_library",
         "//test/e2e/storage/testsuites:go_default_library",
         "//test/e2e/storage/utils:go_default_library",
         "//test/e2e/storage/vsphere:go_default_library",
         "//test/utils/image:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
-        "//vendor/gopkg.in/yaml.v2:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
     ],
 )
 
@@ -48,7 +52,13 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [":package-srcs"],
+    srcs = [
+        ":package-srcs",
+        "//test/e2e/storage/drivers/csi-test/driver:all-srcs",
+        "//test/e2e/storage/drivers/csi-test/mock/cache:all-srcs",
+        "//test/e2e/storage/drivers/csi-test/mock/service:all-srcs",
+        "//test/e2e/storage/drivers/proxy:all-srcs",
+    ],
     tags = ["automanaged"],
     visibility = ["//visibility:public"],
 )

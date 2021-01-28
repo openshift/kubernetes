@@ -37,13 +37,15 @@ package drivers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/onsi/ginkgo"
+	"google.golang.org/grpc/codes"
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -57,6 +59,7 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
+	mockservice "k8s.io/kubernetes/test/e2e/storage/drivers/csi-test/mock/service"
 	"k8s.io/kubernetes/test/e2e/storage/testpatterns"
 	"k8s.io/kubernetes/test/e2e/storage/testsuites"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
@@ -252,7 +255,7 @@ type mockCSIDriver struct {
 	enableTopology      bool
 	enableNodeExpansion bool
 	cleanupHandle       framework.CleanupActionHandle
-	javascriptHooks     map[string]string
+	hooks               mockservice.Hooks
 	tokenRequests       []storagev1.TokenRequest
 	requiresRepublish   *bool
 	fsGroupPolicy       *storagev1.FSGroupPolicy
@@ -269,10 +272,85 @@ type CSIMockDriverOpts struct {
 	EnableResizing      bool
 	EnableNodeExpansion bool
 	EnableSnapshot      bool
-	JavascriptHooks     map[string]string
+	Hooks               mockservice.Hooks
 	TokenRequests       []storagev1.TokenRequest
 	RequiresRepublish   *bool
 	FSGroupPolicy       *storagev1.FSGroupPolicy
+	CSICalls            *MockCSICalls
+}
+
+// Dummy structure that parses just volume_attributes and error code out of logged CSI call
+type MockCSICall struct {
+	json string // full log entry
+
+	Method  string
+	Request struct {
+		VolumeContext map[string]string `json:"volume_context"`
+	}
+	FullError struct {
+		Code    codes.Code `json:"code"`
+		Message string     `json:"message"`
+	}
+	Error string
+}
+
+// MockCSICalls is a Thread-safe storage for MockCSICall instances.
+type MockCSICalls struct {
+	calls []MockCSICall
+	mutex sync.Mutex
+}
+
+// Get returns all currently recorded calls.
+func (c *MockCSICalls) Get() []MockCSICall {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	return c.calls[:]
+}
+
+// Add appens one new call at the end.
+func (c *MockCSICalls) Add(call MockCSICall) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.calls = append(c.calls, call)
+}
+
+// LogGRPC takes individual parameters from the mock CSI driver and adds them.
+func (c *MockCSICalls) LogGRPC(method string, request, reply interface{}, err error) {
+	// Encoding to JSON and decoding mirrors the traditional way of capturing calls.
+	// Probably could be simplified now...
+	logMessage := struct {
+		Method   string
+		Request  interface{}
+		Response interface{}
+		// Error as string, for backward compatibility.
+		// "" on no error.
+		Error string
+		// Full error dump, to be able to parse out full gRPC error code and message separately in a test.
+		FullError error
+	}{
+		Method:    method,
+		Request:   request,
+		Response:  reply,
+		FullError: err,
+	}
+
+	if err != nil {
+		logMessage.Error = err.Error()
+	}
+
+	msg, _ := json.Marshal(logMessage)
+	call := MockCSICall{
+		json: string(msg),
+	}
+	json.Unmarshal(msg, &call)
+
+	// Trim gRPC service name, i.e. "/csi.v1.Identity/Probe" -> "Probe"
+	methodParts := strings.Split(call.Method, "/")
+	call.Method = methodParts[len(methodParts)-1]
+
+	c.Add(call)
 }
 
 var _ testsuites.TestDriver = &mockCSIDriver{}
@@ -329,7 +407,7 @@ func InitMockCSIDriver(driverOpts CSIMockDriverOpts) testsuites.TestDriver {
 		attachable:          !driverOpts.DisableAttach,
 		attachLimit:         driverOpts.AttachLimit,
 		enableNodeExpansion: driverOpts.EnableNodeExpansion,
-		javascriptHooks:     driverOpts.JavascriptHooks,
+		hooks:               driverOpts.Hooks,
 		tokenRequests:       driverOpts.TokenRequests,
 		requiresRepublish:   driverOpts.RequiresRepublish,
 		fsGroupPolicy:       driverOpts.FSGroupPolicy,
@@ -399,27 +477,6 @@ func (m *mockCSIDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTest
 		containerArgs = append(containerArgs, "--node-expand-required=true")
 	}
 
-	// Create a config map with javascript hooks. Create it even when javascriptHooks
-	// are empty, so we can unconditionally add it to the mock pod.
-	const hooksConfigMapName = "mock-driver-hooks"
-	hooksYaml, err := yaml.Marshal(m.javascriptHooks)
-	framework.ExpectNoError(err)
-	hooks := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: hooksConfigMapName,
-		},
-		Data: map[string]string{
-			"hooks.yaml": string(hooksYaml),
-		},
-	}
-
-	_, err = f.ClientSet.CoreV1().ConfigMaps(ns2).Create(context.TODO(), hooks, metav1.CreateOptions{})
-	framework.ExpectNoError(err)
-
-	if len(m.javascriptHooks) > 0 {
-		containerArgs = append(containerArgs, "--hooks-file=/etc/hooks/hooks.yaml")
-	}
-
 	o := utils.PatchCSIOptions{
 		OldDriverName:            "csi-mock",
 		NewDriverName:            "csi-mock-" + f.UniqueName,
@@ -455,12 +512,6 @@ func (m *mockCSIDriver) PrepareTest(f *framework.Framework) (*testsuites.PerTest
 		tryFunc(func() { f.DeleteNamespace(ns1) })
 
 		ginkgo.By("uninstalling csi mock driver")
-		tryFunc(func() {
-			err := f.ClientSet.CoreV1().ConfigMaps(ns2).Delete(context.TODO(), hooksConfigMapName, metav1.DeleteOptions{})
-			if err != nil {
-				framework.Logf("deleting failed: %s", err)
-			}
-		})
 
 		tryFunc(cleanup)
 		tryFunc(cancelLogging)

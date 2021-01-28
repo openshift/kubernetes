@@ -30,6 +30,7 @@ import (
 
 // RegistryList holds public and private image registries
 type RegistryList struct {
+	AlpineRegistry          string `yaml:"alpineRegistry"`
 	GcAuthenticatedRegistry string `yaml:"gcAuthenticatedRegistry"`
 	DockerLibraryRegistry   string `yaml:"dockerLibraryRegistry"`
 	DockerGluster           string `yaml:"dockerGluster"`
@@ -69,6 +70,7 @@ func (i *Config) SetVersion(version string) {
 
 func initReg() RegistryList {
 	registry := RegistryList{
+		AlpineRegistry:          "alpine",
 		GcAuthenticatedRegistry: "gcr.io/authenticated-image-pulling",
 		DockerLibraryRegistry:   "docker.io/library",
 		DockerGluster:           "docker.io/gluster",
@@ -102,6 +104,7 @@ func initReg() RegistryList {
 
 var (
 	registry                = initReg()
+	alpineRegistry          = registry.AlpineRegistry
 	dockerLibraryRegistry   = registry.DockerLibraryRegistry
 	dockerGluster           = registry.DockerGluster
 	e2eRegistry             = registry.E2eRegistry
@@ -384,6 +387,9 @@ func ReplaceRegistryInImageURL(imageURL string) (string, error) {
 	}
 
 	switch registryAndUser {
+	// TODO: remove this together with switching to official images.
+	case "pohly":
+		// pass
 	case "gcr.io/kubernetes-e2e-test-images":
 		registryAndUser = e2eRegistry
 	case "gcr.io/kubernetes-e2e-test-images/volume":
@@ -400,6 +406,8 @@ func ReplaceRegistryInImageURL(imageURL string) (string, error) {
 		registryAndUser = gcrReleaseRegistry
 	case "docker.io/library":
 		registryAndUser = dockerLibraryRegistry
+	case "alpine":
+		registryAndUser = alpineRegistry
 	default:
 		if countParts == 1 {
 			// We assume we found an image from docker hub library

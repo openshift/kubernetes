@@ -33,9 +33,6 @@ go_library(
         "@io_bazel_rules_go//go/platform:freebsd": [
             "//pkg/kubelet/eviction:go_default_library",
         ],
-        "@io_bazel_rules_go//go/platform:illumos": [
-            "//pkg/kubelet/eviction:go_default_library",
-        ],
         "@io_bazel_rules_go//go/platform:ios": [
             "//pkg/kubelet/eviction:go_default_library",
         ],

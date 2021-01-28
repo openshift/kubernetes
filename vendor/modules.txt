@@ -223,9 +223,9 @@ github.com/clusterhq/flocker-go
 # github.com/clusterhq/flocker-go => github.com/clusterhq/flocker-go v0.0.0-20160920122132-2b8b7259d313
 # github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa
 # github.com/codegangsta/negroni => github.com/codegangsta/negroni v1.0.0
-# github.com/container-storage-interface/spec v1.2.0 => github.com/container-storage-interface/spec v1.2.0
+# github.com/container-storage-interface/spec v1.3.0 => github.com/container-storage-interface/spec v1.3.0
 ## explicit
-# github.com/container-storage-interface/spec => github.com/container-storage-interface/spec v1.2.0
+# github.com/container-storage-interface/spec => github.com/container-storage-interface/spec v1.3.0
 github.com/container-storage-interface/spec/lib/go/csi
 # github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59 => github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59
 # github.com/containerd/cgroups => github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59
@@ -503,6 +503,7 @@ github.com/golang/groupcache/lru
 # github.com/golang/mock => github.com/golang/mock v1.4.1
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.4.3 => github.com/golang/protobuf v1.4.3
+## explicit
 # github.com/golang/protobuf => github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
@@ -1186,6 +1187,7 @@ github.com/seccomp/libseccomp-golang
 github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/sanitized_anchor_name => github.com/shurcooL/sanitized_anchor_name v1.0.0
 # github.com/sirupsen/logrus v1.6.0 => github.com/sirupsen/logrus v1.6.0
+## explicit
 github.com/sirupsen/logrus
 # github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.6.0
 # github.com/smartystreets/assertions => github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
