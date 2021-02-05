@@ -1066,6 +1066,29 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 		if svcInfo.ExternalPolicyLocal() {
 			externalPolicyChain = localPolicyChain
+		// Prefer local endpoint for the DNS service.
+		// Fixes <https://bugzilla.redhat.com/show_bug.cgi?id=1919737>.
+		// TODO: Delete this if-block once internal traffic policy is
+		// implemented and the DNS operator is updated to use it.
+		if svcNameString == "openshift-dns/dns-default:dns" {
+			for _, ep := range allEndpoints {
+				if ep.GetIsLocal() {
+					klog.V(4).Infof("Found a local endpoint %q for service %q; preferring the local endpoint and ignoring %d other endpoints", ep.String(), svcNameString, len(allEndpoints) - 1)
+					allEndpoints = []proxy.Endpoint{ep}
+					break
+				}
+			}
+		}
+
+		svcChain := svcInfo.servicePortChainName
+		if hasEndpoints {
+			// Create the per-service chain, retaining counters if possible.
+			if chain, ok := existingNATChains[svcChain]; ok {
+				proxier.natChains.WriteBytes(chain)
+			} else {
+				proxier.natChains.Write(utiliptables.MakeChainLine(svcChain))
+			}
+			activeNATChains[svcChain] = true
 		}
 
 		// These chains are where *ALL* rules which match traffic that is
