@@ -173,9 +173,7 @@ func run() int {
 				close(termCh)
 			}
 
-			klog.Infof("Received signal %s. Forwarding to sub-process %q.", s, args[0])
-
-			cmd.Process.Signal(s)
+			klog.Infof("Received signal %s", s)
 		}
 	}()
 
