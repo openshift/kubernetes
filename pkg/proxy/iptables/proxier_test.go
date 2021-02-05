@@ -2071,6 +2071,247 @@ func TestClusterIPGeneral(t *testing.T) {
 	})
 }
 
+func TestOpenShiftDNSHackTCP(t *testing.T) {
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt)
+	svcIP := "172.30.0.10"
+	svcPort := 53
+	podPort := 5353
+	svcPortName := proxy.ServicePortName{
+		NamespacedName: makeNSN("openshift-dns", "dns-default"),
+		Port:           "dns-tcp",
+		Protocol:       v1.ProtocolTCP,
+	}
+
+	makeServiceMap(fp,
+		makeTestService(svcPortName.Namespace, svcPortName.Name, func(svc *v1.Service) {
+			svc.Spec.ClusterIP = svcIP
+			svc.Spec.Ports = []v1.ServicePort{{
+				Name:     svcPortName.Port,
+				Port:     int32(svcPort),
+				Protocol: svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	populateEndpointSlices(fp,
+		makeTestEndpointSlice(svcPortName.Namespace, svcPortName.Name, 1, func(eps *discovery.EndpointSlice) {
+			eps.AddressType = discovery.AddressTypeIPv4
+			eps.Endpoints = []discovery.Endpoint{{
+				// This endpoint is ignored because it's remote
+				Addresses: []string{"10.180.0.2"},
+				NodeName:  ptr.To("node2"),
+			}, {
+				Addresses: []string{"10.180.0.1"},
+				NodeName:  ptr.To(testHostname),
+			}}
+			eps.Ports = []discovery.EndpointPort{{
+				Name:     ptr.To(svcPortName.Port),
+				Port:     ptr.To[int32](int32(podPort)),
+				Protocol: &svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	fp.syncProxyRules()
+
+	expected := dedent.Dedent(`
+		*filter
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-EXTERNAL-SERVICES - [0:0]
+		:KUBE-FIREWALL - [0:0]
+		:KUBE-FORWARD - [0:0]
+		:KUBE-PROXY-FIREWALL - [0:0]
+		-A KUBE-FIREWALL -m comment --comment "block incoming localnet connections" -d 127.0.0.0/8 ! -s 127.0.0.0/8 -m conntrack ! --ctstate RELATED,ESTABLISHED,DNAT -j DROP
+		-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+		COMMIT
+		*nat
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-MARK-MASQ - [0:0]
+		:KUBE-POSTROUTING - [0:0]
+		:KUBE-SEP-2BB3P6JTCQXWOZ75 - [0:0]
+		:KUBE-SVC-6BRQXW4I6ZZ3LHZH - [0:0]
+		-A KUBE-SERVICES -m comment --comment "openshift-dns/dns-default:dns-tcp cluster IP" -m tcp -p tcp -d 172.30.0.10 --dport 53 -j KUBE-SVC-6BRQXW4I6ZZ3LHZH
+		-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+		-A KUBE-MARK-MASQ -j MARK --or-mark 0x4000
+		-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+		-A KUBE-POSTROUTING -j MARK --xor-mark 0x4000
+		-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+		-A KUBE-SEP-2BB3P6JTCQXWOZ75 -m comment --comment openshift-dns/dns-default:dns-tcp -s 10.180.0.1 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-2BB3P6JTCQXWOZ75 -m comment --comment openshift-dns/dns-default:dns-tcp -m tcp -p tcp -j DNAT --to-destination 10.180.0.1:5353
+		-A KUBE-SVC-6BRQXW4I6ZZ3LHZH -m comment --comment "openshift-dns/dns-default:dns-tcp cluster IP" -m tcp -p tcp -d 172.30.0.10 --dport 53 ! -s 10.0.0.0/8 -j KUBE-MARK-MASQ
+		-A KUBE-SVC-6BRQXW4I6ZZ3LHZH -m comment --comment "openshift-dns/dns-default:dns-tcp -> 10.180.0.1:5353" -j KUBE-SEP-2BB3P6JTCQXWOZ75
+		COMMIT
+		`)
+	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
+}
+
+func TestOpenShiftDNSHackUDP(t *testing.T) {
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt)
+	svcIP := "172.30.0.10"
+	svcPort := 53
+	podPort := 5353
+	svcPortName := proxy.ServicePortName{
+		NamespacedName: makeNSN("openshift-dns", "dns-default"),
+		Port:           "dns",
+		Protocol:       v1.ProtocolUDP,
+	}
+
+	makeServiceMap(fp,
+		makeTestService(svcPortName.Namespace, svcPortName.Name, func(svc *v1.Service) {
+			svc.Spec.ClusterIP = svcIP
+			svc.Spec.Ports = []v1.ServicePort{{
+				Name:     svcPortName.Port,
+				Port:     int32(svcPort),
+				Protocol: svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	populateEndpointSlices(fp,
+		makeTestEndpointSlice(svcPortName.Namespace, svcPortName.Name, 1, func(eps *discovery.EndpointSlice) {
+			eps.AddressType = discovery.AddressTypeIPv4
+			eps.Endpoints = []discovery.Endpoint{{
+				// This endpoint is ignored because it's remote
+				Addresses: []string{"10.180.0.2"},
+				NodeName:  ptr.To("node2"),
+			}, {
+				Addresses: []string{"10.180.0.1"},
+				NodeName:  ptr.To(testHostname),
+			}}
+			eps.Ports = []discovery.EndpointPort{{
+				Name:     ptr.To(svcPortName.Port),
+				Port:     ptr.To[int32](int32(podPort)),
+				Protocol: &svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	fp.syncProxyRules()
+
+	expected := dedent.Dedent(`
+		*filter
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-EXTERNAL-SERVICES - [0:0]
+		:KUBE-FIREWALL - [0:0]
+		:KUBE-FORWARD - [0:0]
+		:KUBE-PROXY-FIREWALL - [0:0]
+		-A KUBE-FIREWALL -m comment --comment "block incoming localnet connections" -d 127.0.0.0/8 ! -s 127.0.0.0/8 -m conntrack ! --ctstate RELATED,ESTABLISHED,DNAT -j DROP
+		-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+		COMMIT
+		*nat
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-MARK-MASQ - [0:0]
+		:KUBE-POSTROUTING - [0:0]
+		:KUBE-SEP-DYOI7QYSVZXR6VUA - [0:0]
+		:KUBE-SVC-BGNS3J6UB7MMLVDO - [0:0]
+		-A KUBE-SERVICES -m comment --comment "openshift-dns/dns-default:dns cluster IP" -m udp -p udp -d 172.30.0.10 --dport 53 -j KUBE-SVC-BGNS3J6UB7MMLVDO
+		-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+		-A KUBE-MARK-MASQ -j MARK --or-mark 0x4000
+		-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+		-A KUBE-POSTROUTING -j MARK --xor-mark 0x4000
+		-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+		-A KUBE-SEP-DYOI7QYSVZXR6VUA -m comment --comment openshift-dns/dns-default:dns -s 10.180.0.1 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-DYOI7QYSVZXR6VUA -m comment --comment openshift-dns/dns-default:dns -m udp -p udp -j DNAT --to-destination 10.180.0.1:5353
+		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns cluster IP" -m udp -p udp -d 172.30.0.10 --dport 53 ! -s 10.0.0.0/8 -j KUBE-MARK-MASQ
+		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns -> 10.180.0.1:5353" -j KUBE-SEP-DYOI7QYSVZXR6VUA
+		COMMIT
+		`)
+	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
+}
+
+func TestOpenShiftDNSHackFallback(t *testing.T) {
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt)
+	svcIP := "172.30.0.10"
+	svcPort := 53
+	podPort := 5353
+	svcPortName := proxy.ServicePortName{
+		NamespacedName: makeNSN("openshift-dns", "dns-default"),
+		Port:           "dns",
+		Protocol:       v1.ProtocolUDP,
+	}
+
+	makeServiceMap(fp,
+		makeTestService(svcPortName.Namespace, svcPortName.Name, func(svc *v1.Service) {
+			svc.Spec.ClusterIP = svcIP
+			svc.Spec.Ports = []v1.ServicePort{{
+				Name:     svcPortName.Port,
+				Port:     int32(svcPort),
+				Protocol: svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	populateEndpointSlices(fp,
+		makeTestEndpointSlice(svcPortName.Namespace, svcPortName.Name, 1, func(eps *discovery.EndpointSlice) {
+			eps.AddressType = discovery.AddressTypeIPv4
+			// Both endpoints are used because neither is local
+			eps.Endpoints = []discovery.Endpoint{{
+				Addresses: []string{"10.180.1.2"},
+				NodeName:  ptr.To("node2"),
+			}, {
+				Addresses: []string{"10.180.2.3"},
+				NodeName:  ptr.To("node3"),
+			}}
+			eps.Ports = []discovery.EndpointPort{{
+				Name:     ptr.To(svcPortName.Port),
+				Port:     ptr.To[int32](int32(podPort)),
+				Protocol: &svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	fp.syncProxyRules()
+
+	expected := dedent.Dedent(`
+		*filter
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-EXTERNAL-SERVICES - [0:0]
+		:KUBE-FIREWALL - [0:0]
+		:KUBE-FORWARD - [0:0]
+		:KUBE-PROXY-FIREWALL - [0:0]
+		-A KUBE-FIREWALL -m comment --comment "block incoming localnet connections" -d 127.0.0.0/8 ! -s 127.0.0.0/8 -m conntrack ! --ctstate RELATED,ESTABLISHED,DNAT -j DROP
+		-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+		COMMIT
+		*nat
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-MARK-MASQ - [0:0]
+		:KUBE-POSTROUTING - [0:0]
+		:KUBE-SEP-HBTKKYYQD5LT7Q5V - [0:0]
+		:KUBE-SEP-UJYYVAPCRGSFEWJK - [0:0]
+		:KUBE-SVC-BGNS3J6UB7MMLVDO - [0:0]
+		-A KUBE-SERVICES -m comment --comment "openshift-dns/dns-default:dns cluster IP" -m udp -p udp -d 172.30.0.10 --dport 53 -j KUBE-SVC-BGNS3J6UB7MMLVDO
+		-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+		-A KUBE-MARK-MASQ -j MARK --or-mark 0x4000
+		-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+		-A KUBE-POSTROUTING -j MARK --xor-mark 0x4000
+		-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+		-A KUBE-SEP-HBTKKYYQD5LT7Q5V -m comment --comment openshift-dns/dns-default:dns -s 10.180.1.2 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-HBTKKYYQD5LT7Q5V -m comment --comment openshift-dns/dns-default:dns -m udp -p udp -j DNAT --to-destination 10.180.1.2:5353
+		-A KUBE-SEP-UJYYVAPCRGSFEWJK -m comment --comment openshift-dns/dns-default:dns -s 10.180.2.3 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-UJYYVAPCRGSFEWJK -m comment --comment openshift-dns/dns-default:dns -m udp -p udp -j DNAT --to-destination 10.180.2.3:5353
+		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns cluster IP" -m udp -p udp -d 172.30.0.10 --dport 53 ! -s 10.0.0.0/8 -j KUBE-MARK-MASQ
+		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns -> 10.180.1.2:5353" -m statistic --mode random --probability 0.5000000000 -j KUBE-SEP-HBTKKYYQD5LT7Q5V
+		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns -> 10.180.2.3:5353" -j KUBE-SEP-UJYYVAPCRGSFEWJK
+		COMMIT
+		`)
+	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
+}
+
 func TestLoadBalancer(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	fp := NewFakeProxier(ipt)
