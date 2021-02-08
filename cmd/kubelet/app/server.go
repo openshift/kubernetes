@@ -261,7 +261,7 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 			kubeletDeps.KubeletConfigController = kubeletConfigController
 
 			// set up signal context here in order to be reused by kubelet and docker shim
-			ctx := genericapiserver.SetupSignalContext()
+			ctx := genericapiserver.SetupSignalContext(true)
 
 			// make the kubelet's config safe for logging
 			config := kubeletServer.KubeletConfiguration.DeepCopy()
