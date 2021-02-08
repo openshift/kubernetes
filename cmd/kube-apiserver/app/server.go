@@ -76,7 +76,7 @@ func init() {
 // NewAPIServerCommand creates a *cobra.Command object with default parameters
 func NewAPIServerCommand() *cobra.Command {
 	s := options.NewServerRunOptions()
-	ctx := signals.SetupSignalContext()
+	ctx := signals.SetupSignalContextNotExiting()
 	featureGate := s.GenericServerRunOptions.ComponentGlobalsRegistry.FeatureGateFor(basecompatibility.DefaultKubeComponent)
 
 	cmd := &cobra.Command{
