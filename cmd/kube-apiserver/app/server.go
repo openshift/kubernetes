@@ -152,7 +152,7 @@ cluster's shared state through which all other components interact.`,
 			return nil
 		},
 	}
-	cmd.SetContext(genericapiserver.SetupSignalContext())
+	cmd.SetContext(genericapiserver.SetupSignalContextNotExiting())
 
 	fs := cmd.Flags()
 	namedFlagSets := s.Flags()
