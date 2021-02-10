@@ -1450,13 +1450,23 @@ var _ = utils.SIGDescribe("CSI mock volume", func() {
 				fsGroupVal := int64(rand.Int63n(20000) + 1024)
 				fsGroup := &fsGroupVal
 
-				_, _, pod := createPodWithFSGroup(fsGroup) /* persistent volume */
+				driver, err := getDriver(f.ClientSet, m.config.GetUniqueDriverName())
+				framework.Logf("CSIDriverName: %s, FSGroupPolicy: %s", driver.Name, *driver.Spec.FSGroupPolicy)
+
+				_, pvc, pod := createPodWithFSGroup(fsGroup) /* persistent volume */
+
+				pv, err := getVolume(f.ClientSet, pvc)
+				if err != nil {
+					framework.ExpectNoError(err, "unable to get PV")
+				}
+				// This outputs a little ugly, but I'd rather get the full PV information at this point
+				framework.Logf("PV Details: %v", pv)
 
 				mountPath := pod.Spec.Containers[0].VolumeMounts[0].MountPath
 				dirName := mountPath + "/" + f.UniqueName
 				fileName := dirName + "/" + f.UniqueName
 
-				err := e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
+				err = e2epod.WaitForPodNameRunningInNamespace(m.cs, pod.Name, pod.Namespace)
 				framework.ExpectNoError(err, "failed to start pod")
 
 				// Create the subdirectory to ensure that fsGroup propagates
@@ -1974,6 +1984,27 @@ func getVolumeHandle(cs clientset.Interface, claim *v1.PersistentVolumeClaim) st
 		return ""
 	}
 	return pv.Spec.CSI.VolumeHandle
+}
+
+func getVolume(cs clientset.Interface, claim *v1.PersistentVolumeClaim) (*v1.PersistentVolume, error) {
+	claim, err := cs.CoreV1().PersistentVolumeClaims(claim.Namespace).Get(context.TODO(), claim.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	pvName := claim.Spec.VolumeName
+	pv, err := cs.CoreV1().PersistentVolumes().Get(context.TODO(), pvName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return pv, nil
+}
+
+func getDriver(cs clientset.Interface, driverName string) (*storagev1.CSIDriver, error) {
+	driver, err := cs.StorageV1().CSIDrivers().Get(context.TODO(), driverName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return driver, nil
 }
 
 func getVolumeLimitFromCSINode(csiNode *storagev1.CSINode, driverName string) int32 {
