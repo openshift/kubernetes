@@ -217,6 +217,14 @@ loop:
 	for i, provider = range providers {
 		if !allowedForUserOrSA(provider) {
 			denied = append(denied, provider.GetSCCName())
+			// this will cause every security context constraint attempted, in order, to the failure
+			validationErrs = append(validationErrs,
+				field.Forbidden(
+					field.NewPath(fmt.Sprintf("provider %q: ", provider.GetSCCName())),
+					"not usable by user or serviceaccount",
+				),
+			)
+
 			continue
 		}
 
