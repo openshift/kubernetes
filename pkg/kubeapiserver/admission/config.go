@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/klog/v2"
 
+	"github.com/openshift/library-go/pkg/client/openshiftrestmapper"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	webhookinit "k8s.io/apiserver/pkg/admission/plugin/webhook/initializer"
@@ -66,7 +67,7 @@ func (c *Config) New(proxyTransport *http.Transport, egressSelector *egressselec
 	discoveryRESTMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	kubePluginInitializer := NewPluginInitializer(
 		cloudConfig,
-		discoveryRESTMapper,
+		openshiftrestmapper.NewOpenShiftHardcodedRESTMapper(discoveryRESTMapper),
 		quotainstall.NewQuotaConfigurationForAdmission(),
 	)
 
