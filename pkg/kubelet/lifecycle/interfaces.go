@@ -16,7 +16,11 @@ limitations under the License.
 
 package lifecycle
 
-import "k8s.io/api/core/v1"
+import (
+	"sync"
+
+	v1 "k8s.io/api/core/v1"
+)
 
 // PodAdmitAttributes is the context for a pod admission decision.
 // The member fields of this struct should never be mutated.
@@ -100,9 +104,24 @@ type PodLifecycleTarget interface {
 // PodAdmitHandlers maintains a list of handlers to pod admission.
 type PodAdmitHandlers []PodAdmitHandler
 
+// podAdmitHandlersLock handles the R/W concurency of PodAdmitHandlers.
+var podAdmitHandlersLock = sync.RWMutex{}
+
 // AddPodAdmitHandler adds the specified observer.
 func (handlers *PodAdmitHandlers) AddPodAdmitHandler(a PodAdmitHandler) {
+	podAdmitHandlersLock.Lock()
+	defer podAdmitHandlersLock.Unlock()
 	*handlers = append(*handlers, a)
+}
+
+// Lock the PodAdmitHandlers for reading.
+func (handlers *PodAdmitHandlers) Lock() {
+	podAdmitHandlersLock.RLock()
+}
+
+// Unlock the PodAdmitHandlers for reading.
+func (handlers *PodAdmitHandlers) Unlock() {
+	podAdmitHandlersLock.RUnlock()
 }
 
 // PodSyncLoopHandlers maintains a list of handlers to pod sync loop.
