@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -288,19 +288,12 @@ func ProcessPodVolumes(pod *v1.Pod, addVolumes bool, desiredStateOfWorld cache.D
 
 func translateInTreeSpecToCSIIfNeeded(spec *volume.Spec, nodeName types.NodeName, vpm *volume.VolumePluginMgr, csiMigratedPluginManager csimigration.PluginManager, csiTranslator csimigration.InTreeToCSITranslator) (*volume.Spec, error) {
 	translatedSpec := spec
-	migratable, err := csiMigratedPluginManager.IsMigratable(spec)
-	if err != nil {
-		return nil, err
-	}
-	if !migratable {
-		// Jump out of translation fast so we don't check the node if the spec itself is not migratable
-		return spec, nil
-	}
 	migrationSupportedOnNode, err := isCSIMigrationSupportedOnNode(nodeName, spec, vpm, csiMigratedPluginManager)
 	if err != nil {
 		return nil, err
 	}
-	if migratable && migrationSupportedOnNode {
+
+	if migrationSupportedOnNode {
 		translatedSpec, err = csimigration.TranslateInTreeSpecToCSI(spec, csiTranslator)
 		if err != nil {
 			return nil, err
