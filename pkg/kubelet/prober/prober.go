@@ -177,7 +177,7 @@ func (pb *prober) runProbe(ctx context.Context, probeType probeType, p *v1.Probe
 			utilfeature.DefaultFeatureGate.Enabled(features.H2CContainerProbe) {
 			return pb.http.ProbeH2C(req, timeout)
 		}
-		return pb.http.Probe(req, timeout)
+		return pb.maybeProbeForBody(pb.http, req, timeout, pod, container, probeType)
 
 	case p.TCPSocket != nil:
 		port, err := probe.ResolveContainerPort(p.TCPSocket.Port, &container)
