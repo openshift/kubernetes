@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/klog/v2"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -125,23 +127,48 @@ func (podStrategy) CheckGracefulDelete(ctx context.Context, obj runtime.Object, 
 		return false
 	}
 	pod := obj.(*api.Pod)
+	shouldLog := pod.Namespace == "deletion-debugging"
+	if shouldLog {
+		klog.Infof("#### 1z deleting pod from ns")
+	}
 	period := int64(0)
 	// user has specified a value
 	if options.GracePeriodSeconds != nil {
+		if shouldLog {
+			klog.Infof("#### 1a GracePeriodSeconds to %v", options.GracePeriodSeconds)
+		}
+
 		period = *options.GracePeriodSeconds
 	} else {
+
+		if shouldLog {
+			klog.Infof("#### 1b GracePeriodSeconds not set")
+		}
+
 		// use the default value if set, or deletes the pod immediately (0)
 		if pod.Spec.TerminationGracePeriodSeconds != nil {
+			if shouldLog {
+				klog.Infof("#### 1c TerminationGracePeriodSeconds to %v", pod.Spec.TerminationGracePeriodSeconds)
+			}
 			period = *pod.Spec.TerminationGracePeriodSeconds
 		}
 	}
 	// if the pod is not scheduled, delete immediately
 	if len(pod.Spec.NodeName) == 0 {
+		if shouldLog {
+			klog.Infof("#### 1d missing node, set to zero")
+		}
 		period = 0
 	}
 	// if the pod is already terminated, delete immediately
 	if pod.Status.Phase == api.PodFailed || pod.Status.Phase == api.PodSucceeded {
+		if shouldLog {
+			klog.Infof("#### 1e terminal phase, set to zero", pod.Status.Phase)
+		}
 		period = 0
+	}
+	if shouldLog {
+		klog.Infof("#### 1f setting period to %v", period)
 	}
 	// ensure the options and the pod are in sync
 	options.GracePeriodSeconds = &period
