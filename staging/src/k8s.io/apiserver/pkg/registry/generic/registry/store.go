@@ -1053,7 +1053,11 @@ func (e *Store) DeleteCollection(ctx context.Context, deleteValidation rest.Vali
 					errs <- err
 					return
 				}
-				if _, _, err := e.Delete(ctx, accessor.GetName(), deleteValidation, options); err != nil && !apierrors.IsNotFound(err) {
+				// the pod strategy mutates the options in the last line. If it finds a pod that is unscheduled or terminated taht is inside
+				// of a collection it is deleting, then the options get mutated to zero. This is a bad outcome for all
+				// other pods.
+				// because david is lazy,  he'll let you test with a deepcopy before fixing the actual problem.
+				if _, _, err := e.Delete(ctx, accessor.GetName(), deleteValidation, options.DeepCopy()); err != nil && !apierrors.IsNotFound(err) {
 					klog.V(4).Infof("Delete %s in DeleteCollection failed: %v", accessor.GetName(), err)
 					errs <- err
 					return
