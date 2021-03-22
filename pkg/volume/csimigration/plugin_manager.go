@@ -49,13 +49,7 @@ func NewPluginManager(m PluginNameMapper) PluginManager {
 	}
 }
 
-// IsMigrationCompleteForPlugin indicates whether CSI migration has been completed
-// for a particular storage plugin
-func (pm PluginManager) IsMigrationCompleteForPlugin(pluginName string) bool {
-	if pm.useKCMPluginManagerFeatureGates {
-		return pm.kcmIsMigrationCompleteForPlugin(pluginName)
-	}
-
+func (pm PluginManager) isMigrationCompleteForPlugin(pluginName string) bool {
 	// CSIMigration feature and plugin specific migration feature flags should
 	// be enabled for plugin specific migration completion feature flags to be
 	// take effect
@@ -81,13 +75,7 @@ func (pm PluginManager) IsMigrationCompleteForPlugin(pluginName string) bool {
 	}
 }
 
-// IsMigrationEnabledForPlugin indicates whether CSI migration has been enabled
-// for a particular storage plugin
-func (pm PluginManager) IsMigrationEnabledForPlugin(pluginName string) bool {
-	if pm.useKCMPluginManagerFeatureGates {
-		return pm.kcmIsMigrationEnabledForPlugin(pluginName)
-	}
-
+func (pm PluginManager) isMigrationEnabledForPlugin(pluginName string) bool {
 	// CSIMigration feature should be enabled along with the plugin-specific one
 	if !utilfeature.DefaultFeatureGate.Enabled(features.CSIMigration) {
 		return false

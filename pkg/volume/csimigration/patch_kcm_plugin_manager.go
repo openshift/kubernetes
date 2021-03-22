@@ -14,6 +14,26 @@ func NewKCMPluginManager(m PluginNameMapper, featureGate featuregate.FeatureGate
 }
 
 // IsMigrationCompleteForPlugin indicates whether CSI migration has been completed
+// for a particular storage plugin
+func (pm PluginManager) IsMigrationCompleteForPlugin(pluginName string) bool {
+	if pm.useKCMPluginManagerFeatureGates {
+		return pm.kcmIsMigrationCompleteForPlugin(pluginName)
+	}
+
+	return pm.isMigrationCompleteForPlugin(pluginName)
+}
+
+// IsMigrationEnabledForPlugin indicates whether CSI migration has been enabled
+// for a particular storage plugin
+func (pm PluginManager) IsMigrationEnabledForPlugin(pluginName string) bool {
+	if pm.useKCMPluginManagerFeatureGates {
+		return pm.kcmIsMigrationEnabledForPlugin(pluginName)
+	}
+
+	return pm.isMigrationEnabledForPlugin(pluginName)
+}
+
+// IsMigrationCompleteForPlugin indicates whether CSI migration has been completed
 // for a particular storage plugin. A complete migration will need to:
 // 1. Enable CSIMigrationXX for the plugin
 // 2. Unregister the in-tree plugin by setting the InTreePluginXXUnregister feature gate
@@ -30,7 +50,7 @@ func (pm PluginManager) kcmIsMigrationCompleteForPlugin(pluginName string) bool 
 		return pm.featureGate.Enabled(features.KCMInTreePluginAWSUnregister)
 	default:
 		// default to the normal path
-		return pm.IsMigrationCompleteForPlugin(pluginName)
+		return pm.isMigrationCompleteForPlugin(pluginName)
 	}
 }
 
@@ -48,6 +68,6 @@ func (pm PluginManager) kcmIsMigrationEnabledForPlugin(pluginName string) bool {
 		return pm.featureGate.Enabled(features.KCMCSIMigrationAWS)
 	default:
 		// default to the normal path
-		return pm.IsMigrationEnabledForPlugin(pluginName)
+		return pm.isMigrationEnabledForPlugin(pluginName)
 	}
 }
