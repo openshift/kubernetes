@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/component-base/featuregate"
 	csilibplugins "k8s.io/csi-translation-lib/plugins"
@@ -38,6 +38,8 @@ type PluginNameMapper interface {
 // PluginManager keeps track of migrated state of in-tree plugins
 type PluginManager struct {
 	PluginNameMapper
+
+	useKCMPluginManagerFeatureGates bool
 }
 
 // NewPluginManager returns a new PluginManager instance
@@ -50,6 +52,10 @@ func NewPluginManager(m PluginNameMapper) PluginManager {
 // IsMigrationCompleteForPlugin indicates whether CSI migration has been completed
 // for a particular storage plugin
 func (pm PluginManager) IsMigrationCompleteForPlugin(pluginName string) bool {
+	if pm.useKCMPluginManagerFeatureGates {
+		return pm.kcmIsMigrationCompleteForPlugin(pluginName)
+	}
+
 	// CSIMigration feature and plugin specific migration feature flags should
 	// be enabled for plugin specific migration completion feature flags to be
 	// take effect
@@ -78,6 +84,10 @@ func (pm PluginManager) IsMigrationCompleteForPlugin(pluginName string) bool {
 // IsMigrationEnabledForPlugin indicates whether CSI migration has been enabled
 // for a particular storage plugin
 func (pm PluginManager) IsMigrationEnabledForPlugin(pluginName string) bool {
+	if pm.useKCMPluginManagerFeatureGates {
+		return pm.kcmIsMigrationEnabledForPlugin(pluginName)
+	}
+
 	// CSIMigration feature should be enabled along with the plugin-specific one
 	if !utilfeature.DefaultFeatureGate.Enabled(features.CSIMigration) {
 		return false
