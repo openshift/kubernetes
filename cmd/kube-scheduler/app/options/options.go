@@ -57,6 +57,8 @@ import (
 	kubeschedulerconfig "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/apis/config/validation"
 	netutils "k8s.io/utils/net"
+
+	libgorestclient "github.com/openshift/library-go/pkg/config/client"
 )
 
 // Options has all the params needed to run a Scheduler
@@ -88,6 +90,9 @@ type Options struct {
 
 	// Flags hold the parsed CLI flags.
 	Flags *cliflag.NamedFlagSets
+
+	// OpenShiftContext is additional context that we need to launch the kube-scheduler for openshift.
+	OpenShiftContext schedulerappconfig.OpenShiftContext
 }
 
 // NewOptions returns default scheduler app options.
@@ -209,6 +214,7 @@ func (o *Options) initFlags() {
 	fs.StringVar(&o.ConfigFile, "config", o.ConfigFile, "The path to the configuration file.")
 	fs.StringVar(&o.WriteConfigTo, "write-config-to", o.WriteConfigTo, "If set, write the configuration values to this file and exit.")
 	fs.StringVar(&o.Master, "master", o.Master, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
+	fs.BoolVar(&o.OpenShiftContext.UnsupportedKubeAPIOverPreferredHost, "unsupported-kube-api-over-localhost", false, "when set makes KS prefer talking to localhost kube-apiserver (when available) instead of an LB")
 
 	o.SecureServing.AddFlags(nfs.FlagSet("secure serving"))
 	o.Authentication.AddFlags(nfs.FlagSet("authentication"))
@@ -253,6 +259,10 @@ func (o *Options) ApplyTo(logger klog.Logger, c *schedulerappconfig.Config) erro
 	kubeConfig, err := createKubeConfig(c.ComponentConfig.ClientConnection, o.Master)
 	if err != nil {
 		return err
+	}
+	if c.OpenShiftContext.PreferredHostRoundTripperWrapperFn != nil {
+		libgorestclient.DefaultServerName(kubeConfig)
+		kubeConfig.Wrap(c.OpenShiftContext.PreferredHostRoundTripperWrapperFn)
 	}
 	c.KubeConfig = kubeConfig
 
@@ -312,6 +322,7 @@ func (o *Options) Config(ctx context.Context) (*schedulerappconfig.Config, error
 	}
 
 	c := &schedulerappconfig.Config{}
+	c.OpenShiftContext = o.OpenShiftContext
 	if err := o.ApplyTo(logger, c); err != nil {
 		return nil, err
 	}
