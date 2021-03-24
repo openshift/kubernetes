@@ -21,14 +21,14 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.0
-	github.com/moby/term v0.0.0-20200312100748-672ec06f55cd
+	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
 	github.com/onsi/ginkgo v4.5.0-origin.1+incompatible
 	github.com/onsi/gomega v1.7.0
 	github.com/russross/blackfriday v1.5.2
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.20.0
 	k8s.io/apimachinery v0.20.0
@@ -45,13 +45,7 @@ require (
 )
 
 replace (
-	github.com/go-bindata/go-bindata => github.com/go-bindata/go-bindata v3.1.1+incompatible
-	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
-	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.5.0-origin.1+incompatible
-	github.com/robfig/cron => github.com/robfig/cron v1.1.0
-	go.uber.org/multierr => go.uber.org/multierr v1.1.0
-	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
