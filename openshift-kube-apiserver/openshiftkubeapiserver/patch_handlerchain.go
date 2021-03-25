@@ -218,7 +218,7 @@ func newWatchRateLimit(handler http.Handler, theClock clock.Clock) watchRateLimi
 
 	return watchRateLimit{
 		delegate:               handler,
-		earlyRateLimiter:       flowcontrol.NewTokenBucketRateLimiterWithClock(16.6, 100, theClock),
+		earlyRateLimiter:       flowcontrol.NewTokenBucketRateLimiterWithClock(0.5, 1, theClock),
 		middleRateLimiter:      flowcontrol.NewTokenBucketRateLimiterWithClock(33.3, 100, theClock),
 		authorizerAttributesFn: filters.GetAuthorizerAttributes,
 		clock:                  theClock,
