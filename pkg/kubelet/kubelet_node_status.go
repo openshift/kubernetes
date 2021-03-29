@@ -41,8 +41,11 @@ import (
 	kubeletapis "k8s.io/kubelet/pkg/apis"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/events"
+	"k8s.io/kubernetes/pkg/kubelet/managed"
 	"k8s.io/kubernetes/pkg/kubelet/nodestatus"
+	"k8s.io/kubernetes/pkg/kubelet/sharedcpus"
 	volutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
@@ -145,7 +148,48 @@ func (kl *Kubelet) reconcileInitialNodeWithExistingNode(logger klog.Logger, init
 	requiresUpdate = kl.updateDefaultLabels(initialNode, existingNode) || requiresUpdate
 	requiresUpdate = kl.reconcileExtendedResource(logger, initialNode, existingNode) || requiresUpdate
 	requiresUpdate = kl.reconcileHugePageResource(logger, initialNode, existingNode) || requiresUpdate
+	if managed.IsEnabled() {
+		requiresUpdate = kl.addManagementNodeCapacity(logger, initialNode, existingNode) || requiresUpdate
+	}
+	requiresUpdate = kl.reconcileSharedCPUsNodeCapacity(initialNode, existingNode) || requiresUpdate
 	return requiresUpdate
+}
+
+// addManagementNodeCapacity adds the managednode capacity to the node
+func (kl *Kubelet) addManagementNodeCapacity(logger klog.Logger, initialNode, existingNode *v1.Node) bool {
+	updateDefaultResources(initialNode, existingNode)
+	machineInfo, err := kl.cadvisor.MachineInfo(logger)
+	if err != nil {
+		klog.Errorf("Unable to calculate managed node capacity for %q: %v", kl.nodeName, err)
+		return false
+	}
+	cpuRequest := cadvisor.CapacityFromMachineInfo(machineInfo)[v1.ResourceCPU]
+	cpuRequestInMilli := cpuRequest.MilliValue()
+	newCPURequest := resource.NewMilliQuantity(cpuRequestInMilli*1000, cpuRequest.Format)
+	managedResourceName := managed.GenerateResourceName("management")
+	if existingCapacity, ok := existingNode.Status.Capacity[managedResourceName]; ok && existingCapacity.Equal(*newCPURequest) {
+		return false
+	}
+	existingNode.Status.Capacity[managedResourceName] = *newCPURequest
+	return true
+}
+
+func (kl *Kubelet) reconcileSharedCPUsNodeCapacity(initialNode, existingNode *v1.Node) bool {
+	updateDefaultResources(initialNode, existingNode)
+	sharedCPUsResourceName := sharedcpus.GetResourceName()
+	if !sharedcpus.IsEnabled() {
+		if _, ok := existingNode.Status.Capacity[sharedCPUsResourceName]; ok {
+			delete(existingNode.Status.Capacity, sharedCPUsResourceName)
+			return true
+		}
+		return false
+	}
+	q := resource.NewQuantity(sharedcpus.GetConfig().ContainersLimit, resource.DecimalSI)
+	if existingCapacity, ok := existingNode.Status.Capacity[sharedCPUsResourceName]; ok && existingCapacity.Equal(*q) {
+		return false
+	}
+	existingNode.Status.Capacity[sharedCPUsResourceName] = *q
+	return true
 }
 
 // reconcileHugePageResource will update huge page capacity for each page size and remove huge page sizes no longer supported
@@ -367,6 +411,11 @@ func (kl *Kubelet) initialNode(ctx context.Context) (*v1.Node, error) {
 	if kl.providerID != "" {
 		node.Spec.ProviderID = kl.providerID
 	}
+
+	if managed.IsEnabled() {
+		kl.addManagementNodeCapacity(logger, node, node)
+	}
+	kl.reconcileSharedCPUsNodeCapacity(node, node)
 
 	kl.setNodeStatus(ctx, node)
 
@@ -852,3 +901,4 @@ func nodeConditionsHaveChanged(originalConditions []v1.NodeCondition, conditions
 	}
 	return false
 }
+
