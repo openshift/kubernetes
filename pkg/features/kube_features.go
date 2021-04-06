@@ -800,7 +800,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	IPv6DualStack:                                  {Default: false, PreRelease: featuregate.Alpha},
 	EndpointSlice:                                  {Default: true, PreRelease: featuregate.Beta},
 	EndpointSliceProxying:                          {Default: true, PreRelease: featuregate.Beta},
-	EndpointSliceTerminatingCondition:              {Default: false, PreRelease: featuregate.Alpha},
+	EndpointSliceTerminatingCondition:              {Default: true, PreRelease: featuregate.Alpha},
 	EndpointSliceNodeName:                          {Default: false, PreRelease: featuregate.Alpha},
 	WindowsEndpointSliceProxying:                   {Default: false, PreRelease: featuregate.Alpha},
 	EvenPodsSpread:                                 {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.21
