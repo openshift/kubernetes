@@ -296,3 +296,14 @@ With good tooling, the cost of this procedure should be ~10 minutes at
 most. Re-picking carries should not result in conflicts since the base of the
 rebase branch will be the same as before. The only potential sources of conflict
 will be the newly added commits.
+
+## Blocking the merge queue
+
+Close to merging a rebase it is good practice to block any merges to openshift/kubernetes
+fork. To do that follow these steps:
+
+1. Open new issues in openshift/kubernetes
+2. Use `Master Branch Frozen For Kubernetes Merging | branch:master` as issue title
+3. Add `tide/merge-blocker` label to issues (you might need group lead for this)
+4. All PR's  (including the rebase) are now forbidden to merge to master branch
+5. Before landing the rebase PR, close this issue
