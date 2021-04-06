@@ -385,7 +385,7 @@ func startVolumeExpandController(ctx ControllerContext) (http.Handler, bool, err
 			ctx.Cloud,
 			plugins,
 			csiTranslator,
-			csimigration.NewPluginManager(csiTranslator),
+			csimigration.NewKCMPluginManager(csiTranslator),
 			filteredDialOptions,
 		)
 
