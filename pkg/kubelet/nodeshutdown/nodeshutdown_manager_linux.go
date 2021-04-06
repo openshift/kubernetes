@@ -88,10 +88,7 @@ func NewManager(getPodsFunc eviction.ActivePodsFunc, killPodFunc eviction.KillPo
 
 // Start starts the node shutdown manager and will start watching the node for shutdown events.
 func (m *Manager) Start() error {
-	if !utilfeature.DefaultFeatureGate.Enabled(features.GracefulNodeShutdown) {
-		return nil
-	}
-	if m.shutdownGracePeriodRequested == 0 {
+	if !m.isFeatureEnabled() {
 		return nil
 	}
 
@@ -177,9 +174,14 @@ func (m *Manager) aquireInhibitLock() error {
 	return nil
 }
 
+// Returns if the feature is enabled
+func (m *Manager) isFeatureEnabled() bool {
+	return utilfeature.DefaultFeatureGate.Enabled(features.GracefulNodeShutdown) && m.shutdownGracePeriodRequested > 0
+}
+
 // ShutdownStatus will return an error if the node is currently shutting down.
 func (m *Manager) ShutdownStatus() error {
-	if !utilfeature.DefaultFeatureGate.Enabled(features.GracefulNodeShutdown) {
+	if !m.isFeatureEnabled() {
 		return nil
 	}
 
