@@ -214,6 +214,9 @@ var (
 			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
 
 			`NetworkPolicy between server and client should support a 'default-deny-all' policy`, // uses egress feature
+
+			`acl-logging when using one of the plugins 'redhat/openshift-ovs-networkpolicy' should activate acl-logging`, // feature is not supported by openshift-sdn
+
 		},
 	}
 
