@@ -21,8 +21,6 @@ var (
 
 			`\[Feature:CrossNamespacePodAffinity\]`,
 
-			`\[Feature:GenericEphemeralVolume\]`,
-
 			`\[Feature:DaemonSetUpdateSurge\]`,
 
 			`\[Feature:StorageVersionAPI\]`,
