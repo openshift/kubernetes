@@ -49,6 +49,7 @@ github.com/Azure/go-autorest/autorest/mocks
 github.com/Azure/go-autorest/autorest/to
 # github.com/Azure/go-autorest/autorest/to => github.com/Azure/go-autorest/autorest/to v0.2.0
 # github.com/Azure/go-autorest/autorest/validation v0.1.0 => github.com/Azure/go-autorest/autorest/validation v0.1.0
+## explicit
 github.com/Azure/go-autorest/autorest/validation
 # github.com/Azure/go-autorest/autorest/validation => github.com/Azure/go-autorest/autorest/validation v0.1.0
 # github.com/Azure/go-autorest/logger v0.2.0 => github.com/Azure/go-autorest/logger v0.2.0
@@ -307,6 +308,8 @@ github.com/daviddengcn/go-colortext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible => github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go v3.2.0+incompatible
+# github.com/dnaeon/go-vcr v1.0.1 => github.com/dnaeon/go-vcr v1.0.1
+## explicit
 # github.com/dnaeon/go-vcr => github.com/dnaeon/go-vcr v1.0.1
 # github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1+incompatible
 ## explicit
@@ -921,26 +924,62 @@ github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 # github.com/openshift/api v0.0.0-20210414143350-f71e361ed3f4 => github.com/openshift/api v0.0.0-20210414143350-f71e361ed3f4
 ## explicit
+github.com/openshift/api
 # github.com/openshift/api => github.com/openshift/api v0.0.0-20210414143350-f71e361ed3f4
+github.com/openshift/api/apiserver
 github.com/openshift/api/apiserver/v1
+github.com/openshift/api/apps
 github.com/openshift/api/apps/v1
+github.com/openshift/api/authorization
 github.com/openshift/api/authorization/v1
+github.com/openshift/api/build
 github.com/openshift/api/build/v1
+github.com/openshift/api/cloudnetwork
+github.com/openshift/api/cloudnetwork/v1
+github.com/openshift/api/config
 github.com/openshift/api/config/v1
+github.com/openshift/api/helm
+github.com/openshift/api/helm/v1beta1
+github.com/openshift/api/image
 github.com/openshift/api/image/docker10
 github.com/openshift/api/image/dockerpre012
 github.com/openshift/api/image/v1
+github.com/openshift/api/imageregistry
+github.com/openshift/api/imageregistry/v1
+github.com/openshift/api/kubecontrolplane
 github.com/openshift/api/kubecontrolplane/v1
+github.com/openshift/api/legacyconfig/v1
+github.com/openshift/api/network
 github.com/openshift/api/network/v1
+github.com/openshift/api/networkoperator
+github.com/openshift/api/networkoperator/v1
+github.com/openshift/api/oauth
 github.com/openshift/api/oauth/v1
+github.com/openshift/api/openshiftcontrolplane
+github.com/openshift/api/openshiftcontrolplane/v1
+github.com/openshift/api/operator
+github.com/openshift/api/operator/v1
+github.com/openshift/api/operator/v1alpha1
+github.com/openshift/api/operatorcontrolplane
+github.com/openshift/api/operatorcontrolplane/v1alpha1
+github.com/openshift/api/osin
 github.com/openshift/api/osin/v1
 github.com/openshift/api/pkg/serialization
+github.com/openshift/api/project
 github.com/openshift/api/project/v1
+github.com/openshift/api/quota
 github.com/openshift/api/quota/v1
+github.com/openshift/api/route
 github.com/openshift/api/route/v1
+github.com/openshift/api/samples
+github.com/openshift/api/samples/v1
 github.com/openshift/api/security
 github.com/openshift/api/security/v1
+github.com/openshift/api/servicecertsigner
+github.com/openshift/api/servicecertsigner/v1alpha1
+github.com/openshift/api/template
 github.com/openshift/api/template/v1
+github.com/openshift/api/user
 github.com/openshift/api/user/v1
 # github.com/openshift/apiserver-library-go v0.0.0-20210401085424-478bd0360e43 => github.com/openshift/apiserver-library-go v0.0.0-20210401085424-478bd0360e43
 ## explicit
@@ -1159,6 +1198,7 @@ github.com/russross/blackfriday/v2
 # github.com/russross/blackfriday/v2 => github.com/russross/blackfriday/v2 v2.0.1
 # github.com/ryanuber/columnize => github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f
 # github.com/satori/go.uuid v1.2.0 => github.com/satori/go.uuid v1.2.0
+## explicit
 github.com/satori/go.uuid
 # github.com/satori/go.uuid => github.com/satori/go.uuid v1.2.0
 # github.com/sean-/seed => github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
@@ -1743,6 +1783,7 @@ gopkg.in/square/go-jose.v2/jwt
 gopkg.in/tomb.v1
 # gopkg.in/tomb.v1 => gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 # gopkg.in/warnings.v0 v0.1.1 => gopkg.in/warnings.v0 v0.1.1
+## explicit
 gopkg.in/warnings.v0
 # gopkg.in/warnings.v0 => gopkg.in/warnings.v0 v0.1.1
 # gopkg.in/yaml.v2 v2.4.0 => gopkg.in/yaml.v2 v2.4.0
