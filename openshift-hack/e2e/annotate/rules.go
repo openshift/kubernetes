@@ -109,9 +109,6 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:IPv6DualStack\]`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1945329
-			`should drop INVALID conntrack entries`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {

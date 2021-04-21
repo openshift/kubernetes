@@ -707,8 +707,6 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": "should be able to preserve UDP traffic when server pod cycles for a NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Conntrack should drop INVALID conntrack entries": "should drop INVALID conntrack entries [Disabled:Broken] [Suite:k8s]",
-
 	"[Top Level] [sig-network] DNS configMap nameserver Change stubDomain should be able to change stubDomain configuration [Slow][Serial]": "should be able to change stubDomain configuration [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
 
 	"[Top Level] [sig-network] DNS configMap nameserver Forward PTR lookup should forward PTR records lookup to upstream nameserver [Slow][Serial]": "should forward PTR records lookup to upstream nameserver [Slow][Serial] [Disabled:SpecialConfig] [Suite:k8s]",
