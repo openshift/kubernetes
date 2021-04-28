@@ -20,6 +20,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"k8s.io/api/core/v1"
@@ -62,6 +63,10 @@ func applyDefaults(pod *api.Pod, source string, isFile bool, nodeName types.Node
 		// DeepHashObject resets the hash, so we should write the pod source
 		// information AFTER it.
 		if isFile {
+			bootTime, err := exec.Command("who", "-b").Output()
+			if err == nil && bootTime != nil {
+				fmt.Fprintf(hasher, "booted:%s", bootTime)
+			}
 			fmt.Fprintf(hasher, "host:%s", nodeName)
 			fmt.Fprintf(hasher, "file:%s", source)
 		} else {
