@@ -163,6 +163,11 @@ func (e *resourceExpirationEvaluator) RemoveDeletedKinds(groupName string, versi
 		}
 
 		for resourceName := range versionedResourcesStorageMap[apiVersion] {
+			// per https://bugzilla.redhat.com/show_bug.cgi?id=1954481 we need to serve
+			// flowcontrol.apiserver.k8s.io/v1alpha1 for 4.8
+			if groupName == "flowcontrol.apiserver.k8s.io" && apiVersion == "v1alpha1" {
+				continue
+			}
 			if !shouldRemoveResourceAndSubresources(resourcesToRemove, resourceName) {
 				continue
 			}
@@ -178,6 +183,11 @@ func (e *resourceExpirationEvaluator) RemoveDeletedKinds(groupName string, versi
 	}
 
 	for _, apiVersion := range versionsToRemove.List() {
+		// per https://bugzilla.redhat.com/show_bug.cgi?id=1954481 we need to serve
+		// flowcontrol.apiserver.k8s.io/v1alpha1 for 4.8
+		if groupName == "flowcontrol.apiserver.k8s.io" && apiVersion == "v1alpha1" {
+			continue
+		}
 		klog.V(1).Infof("Removing version %v.%v because it is time to stop serving it because it has no resources per APILifecycle.", apiVersion, groupName)
 		delete(versionedResourcesStorageMap, apiVersion)
 	}
