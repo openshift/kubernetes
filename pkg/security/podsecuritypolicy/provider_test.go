@@ -1444,7 +1444,7 @@ func TestValidateProjectedVolume(t *testing.T) {
 		{
 			desc:                  "deny if secret is not allowed",
 			allowedFSTypes:        []policy.FSType{policy.EmptyDir},
-			projectedVolumeSource: serviceaccount.TokenVolumeSource(),
+			projectedVolumeSource: serviceaccount.TokenVolumeSource("service-account-token-secret"),
 			wantAllow:             false,
 		},
 		{
@@ -1471,7 +1471,7 @@ func TestValidateProjectedVolume(t *testing.T) {
 		{
 			desc:                  "allow if secret is allowed and the projected volume sources equals to the ones injected by service account admission plugin",
 			allowedFSTypes:        []policy.FSType{policy.Secret},
-			projectedVolumeSource: serviceaccount.TokenVolumeSource(),
+			projectedVolumeSource: serviceaccount.TokenVolumeSource("service-account-token-secret"),
 			wantAllow:             true,
 		},
 	}

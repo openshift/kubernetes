@@ -285,6 +285,19 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 			},
 		},
 	}
+	secret := api.VolumeProjection{
+		Secret: &api.SecretProjection{
+			LocalObjectReference: api.LocalObjectReference{
+				Name: "some-secret-that-is-allowed-anyway",
+			},
+			Items: []api.KeyToPath{
+				{
+					Key:  "service-ca.crt",
+					Path: "service-ca.crt",
+				},
+			},
+		},
+	}
 
 	tests := []struct {
 		desc   string
@@ -300,6 +313,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 						ExpirationSeconds: serviceaccount.WarnOnlyBoundTokenExpirationSeconds,
 					}},
 					configMap,
+					secret,
 					downwardAPI,
 				},
 			},
@@ -314,6 +328,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 						ExpirationSeconds: serviceaccount.WarnOnlyBoundTokenExpirationSeconds,
 					}},
 					configMap,
+					secret,
 					downwardAPI,
 				},
 			},
@@ -336,6 +351,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 							},
 						},
 					},
+					secret,
 					downwardAPI,
 				},
 			},
@@ -346,6 +362,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 				Sources: []api.VolumeProjection{
 					serviceAccountToken,
 					configMap,
+					secret,
 					{
 						DownwardAPI: &api.DownwardAPIProjection{
 							Items: []api.DownwardAPIVolumeFile{
@@ -368,6 +385,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 				Sources: []api.VolumeProjection{
 					serviceAccountToken,
 					configMap,
+					secret,
 					{
 						DownwardAPI: &api.DownwardAPIProjection{
 							Items: []api.DownwardAPIVolumeFile{
@@ -386,6 +404,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 				Sources: []api.VolumeProjection{
 					serviceAccountToken,
 					configMap,
+					secret,
 					{
 						DownwardAPI: &api.DownwardAPIProjection{
 							Items: []api.DownwardAPIVolumeFile{
@@ -408,6 +427,7 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 				Sources: []api.VolumeProjection{
 					serviceAccountToken,
 					configMap,
+					secret,
 					{
 						DownwardAPI: &api.DownwardAPIProjection{
 							Items: []api.DownwardAPIVolumeFile{
@@ -425,20 +445,30 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 			},
 		},
 		{
-			desc: "deny if Secret exists",
+			desc: "deny if Secret has wrong field path",
 			volume: &api.ProjectedVolumeSource{
 				Sources: []api.VolumeProjection{
-					{
-						Secret: &api.SecretProjection{},
-					},
 					configMap,
 					downwardAPI,
 					serviceAccountToken,
+					{
+						Secret: &api.SecretProjection{
+							LocalObjectReference: api.LocalObjectReference{
+								Name: "some-secret-that-is-allowed-anyway",
+							},
+							Items: []api.KeyToPath{
+								{
+									Key:  "not-service-ca.crt",
+									Path: "not-service-ca.crt",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		{
-			desc: "deny if none of ServiceAccountToken, ConfigMap and DownwardAPI exist",
+			desc: "deny if none of ServiceAccountToken, ConfigMap, DownwardAPI and Secret exist",
 			volume: &api.ProjectedVolumeSource{
 				Sources: []api.VolumeProjection{
 					{},
@@ -446,12 +476,13 @@ func TestIsOnlyServiceAccountTokenSources(t *testing.T) {
 			},
 		},
 		{
-			desc: "allow if any of ServiceAccountToken, ConfigMap and DownwardAPI matches",
+			desc: "allow if any of ServiceAccountToken, ConfigMap, DownwardAPI and Secret matches",
 			volume: &api.ProjectedVolumeSource{
 				Sources: []api.VolumeProjection{
 					configMap,
 					downwardAPI,
 					serviceAccountToken,
+					secret,
 				},
 			},
 			want: true,

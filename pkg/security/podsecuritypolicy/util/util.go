@@ -23,6 +23,7 @@ import (
 	policy "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	controllerserviceaccount "k8s.io/kubernetes/pkg/controller/serviceaccount"
 )
 
 const (
@@ -253,7 +254,7 @@ func EqualStringSlices(a, b []string) bool {
 func IsOnlyServiceAccountTokenSources(v *api.ProjectedVolumeSource) bool {
 	for _, s := range v.Sources {
 		// reject any projected source that does not match any of our expected source types
-		if s.ServiceAccountToken == nil && s.ConfigMap == nil && s.DownwardAPI == nil {
+		if s.ServiceAccountToken == nil && s.ConfigMap == nil && s.DownwardAPI == nil && s.Secret == nil {
 			return false
 		}
 		if t := s.ServiceAccountToken; t != nil && (t.Path != "token" || t.Audience != "") {
@@ -270,6 +271,15 @@ func IsOnlyServiceAccountTokenSources(v *api.ProjectedVolumeSource) bool {
 					return false
 				}
 			}
+		}
+
+		if s.Secret != nil { // FIXME? We don’t check the secret projection’s LocalObjectReference because the caller is allowed to use Secret volume type directly anyway
+			for _, d := range s.Secret.Items {
+				if d.Path != controllerserviceaccount.ServiceServingCASecretKey {
+					return false
+				}
+			}
+
 		}
 	}
 	return true

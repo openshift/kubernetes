@@ -41,6 +41,7 @@ import (
 	"k8s.io/component-base/featuregate"
 	podutil "k8s.io/kubernetes/pkg/api/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	controllerserviceaccount "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
@@ -328,29 +329,32 @@ func (s *Plugin) getServiceAccount(namespace string, name string) (*corev1.Servi
 	return nil, errors.NewNotFound(api.Resource("serviceaccount"), name)
 }
 
-// getReferencedServiceAccountToken returns the name of the first referenced secret which is a ServiceAccountToken for the service account
-func (s *Plugin) getReferencedServiceAccountToken(serviceAccount *corev1.ServiceAccount) (string, error) {
+// getReferencedServiceAccountToken returns the name of the first referenced secret which is a ServiceAccountToken for the service account, and whether it contains service-ca.crt.
+func (s *Plugin) getReferencedServiceAccountToken(serviceAccount *corev1.ServiceAccount) (string, bool, error) {
 	if len(serviceAccount.Secrets) == 0 {
-		return "", nil
+		return "", false, nil
 	}
 
 	tokens, err := s.getServiceAccountTokens(serviceAccount)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	accountTokens := sets.NewString()
+	hasServiceServingCA := map[string]bool{}
 	for _, token := range tokens {
 		accountTokens.Insert(token.Name)
+		_, ok := token.Data[controllerserviceaccount.ServiceServingCASecretKey] // This may be false during bootstrap.
+		hasServiceServingCA[token.Name] = ok
 	}
 	// Prefer secrets in the order they're referenced.
 	for _, secret := range serviceAccount.Secrets {
 		if accountTokens.Has(secret.Name) {
-			return secret.Name, nil
+			return secret.Name, hasServiceServingCA[secret.Name], nil
 		}
 	}
 
-	return "", nil
+	return "", false, nil
 }
 
 // getServiceAccountTokens returns all ServiceAccountToken secrets for the given ServiceAccount
@@ -430,12 +434,10 @@ func (s *Plugin) mountServiceAccountToken(serviceAccount *corev1.ServiceAccount,
 		serviceAccountToken string
 		err                 error
 	)
-	if !s.boundServiceAccountTokenVolume {
-		// Find the name of a referenced ServiceAccountToken secret we can mount
-		serviceAccountToken, err = s.getReferencedServiceAccountToken(serviceAccount)
-		if err != nil {
-			return fmt.Errorf("Error looking up service account token for %s/%s: %v", serviceAccount.Namespace, serviceAccount.Name, err)
-		}
+	// Find the name of a referenced ServiceAccountToken secret we can mount
+	serviceAccountToken, hasServiceServingCA, err := s.getReferencedServiceAccountToken(serviceAccount)
+	if err != nil {
+		return fmt.Errorf("Error looking up service account token for %s/%s: %v", serviceAccount.Namespace, serviceAccount.Name, err)
 	}
 	if len(serviceAccountToken) == 0 && !s.boundServiceAccountTokenVolume {
 		// We don't have an API token to mount, so return
@@ -516,17 +518,20 @@ func (s *Plugin) mountServiceAccountToken(serviceAccount *corev1.ServiceAccount,
 
 	// Add the volume if a container needs it
 	if !hasTokenVolume && needsTokenVolume {
-		pod.Spec.Volumes = append(pod.Spec.Volumes, s.createVolume(tokenVolumeName, serviceAccountToken))
+		pod.Spec.Volumes = append(pod.Spec.Volumes, s.createVolume(tokenVolumeName, serviceAccountToken, hasServiceServingCA))
 	}
 	return nil
 }
 
-func (s *Plugin) createVolume(tokenVolumeName, secretName string) api.Volume {
+func (s *Plugin) createVolume(tokenVolumeName, secretName string, hasServiceServingCA bool) api.Volume {
 	if s.boundServiceAccountTokenVolume {
+		if !hasServiceServingCA {
+			secretName = ""
+		}
 		return api.Volume{
 			Name: tokenVolumeName,
 			VolumeSource: api.VolumeSource{
-				Projected: TokenVolumeSource(),
+				Projected: TokenVolumeSource(secretName),
 			},
 		}
 	}
@@ -541,8 +546,8 @@ func (s *Plugin) createVolume(tokenVolumeName, secretName string) api.Volume {
 }
 
 // TokenVolumeSource returns the projected volume source for service account token.
-func TokenVolumeSource() *api.ProjectedVolumeSource {
-	return &api.ProjectedVolumeSource{
+func TokenVolumeSource(serviceAccountTokenSecretName string) *api.ProjectedVolumeSource {
+	res := &api.ProjectedVolumeSource{
 		Sources: []api.VolumeProjection{
 			{
 				ServiceAccountToken: &api.ServiceAccountTokenProjection{
@@ -578,4 +583,20 @@ func TokenVolumeSource() *api.ProjectedVolumeSource {
 			},
 		},
 	}
+	if serviceAccountTokenSecretName != "" {
+		res.Sources = append(res.Sources, api.VolumeProjection{
+			Secret: &api.SecretProjection{
+				LocalObjectReference: api.LocalObjectReference{
+					Name: serviceAccountTokenSecretName,
+				},
+				Items: []api.KeyToPath{
+					{
+						Key:  controllerserviceaccount.ServiceServingCASecretKey,
+						Path: controllerserviceaccount.ServiceServingCASecretKey,
+					},
+				},
+			},
+		})
+	}
+	return res
 }

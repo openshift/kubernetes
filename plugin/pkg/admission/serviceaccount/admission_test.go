@@ -220,6 +220,7 @@ func TestAssignsDefaultServiceAccountAndRejectsMissingAPIToken(t *testing.T) {
 
 func TestAssignsDefaultServiceAccountAndBoundTokenWithNoSecretTokens(t *testing.T) {
 	ns := "myns"
+	serviceAccountTokenSecretName := "some-service-account-token-secret"
 
 	admit := NewServiceAccount()
 	informerFactory := informers.NewSharedInformerFactory(nil, controller.NoResyncPeriodFunc())
@@ -234,6 +235,22 @@ func TestAssignsDefaultServiceAccountAndBoundTokenWithNoSecretTokens(t *testing.
 			Name:      DefaultServiceAccountName,
 			Namespace: ns,
 		},
+		Secrets: []corev1.ObjectReference{
+			{
+				Name: serviceAccountTokenSecretName,
+			},
+		},
+	})
+	informerFactory.Core().V1().Secrets().Informer().GetStore().Add(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountTokenSecretName,
+			Namespace: ns,
+			Annotations: map[string]string{
+				corev1.ServiceAccountNameKey: DefaultServiceAccountName,
+			},
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+		Data: map[string][]byte{"service-ca.crt": []byte("contents")},
 	})
 
 	pod := &api.Pod{
@@ -255,6 +272,7 @@ func TestAssignsDefaultServiceAccountAndBoundTokenWithNoSecretTokens(t *testing.
 					{ServiceAccountToken: &api.ServiceAccountTokenProjection{ExpirationSeconds: 3607, Path: "token"}},
 					{ConfigMap: &api.ConfigMapProjection{LocalObjectReference: api.LocalObjectReference{Name: "kube-root-ca.crt"}, Items: []api.KeyToPath{{Key: "ca.crt", Path: "ca.crt"}}}},
 					{DownwardAPI: &api.DownwardAPIProjection{Items: []api.DownwardAPIVolumeFile{{Path: "namespace", FieldRef: &api.ObjectFieldSelector{APIVersion: "v1", FieldPath: "metadata.namespace"}}}}},
+					{Secret: &api.SecretProjection{LocalObjectReference: api.LocalObjectReference{Name: serviceAccountTokenSecretName}, Items: []api.KeyToPath{{Key: "service-ca.crt", Path: "service-ca.crt"}}}},
 				},
 			},
 		},
@@ -351,7 +369,7 @@ func TestAutomountsAPIToken(t *testing.T) {
 			tokenName = generatedVolumeName
 		}
 
-		expectedVolume := admit.createVolume(tokenName, tokenName)
+		expectedVolume := admit.createVolume(tokenName, tokenName, false)
 		expectedVolumeMount := api.VolumeMount{
 			Name:      tokenName,
 			ReadOnly:  true,
