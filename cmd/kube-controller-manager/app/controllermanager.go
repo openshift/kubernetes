@@ -139,7 +139,7 @@ controller, and serviceaccounts controller.`,
 				return err
 			}
 			cliflag.PrintFlags(cmd.Flags())
-			
+
 			if err := SetUpPreferredHostForOpenShift(s); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
@@ -495,9 +495,7 @@ func ControllersDisabledByDefault() []string {
 			controllersDisabledByDefault = append(controllersDisabledByDefault, name)
 		}
 	}
-
 	sort.Strings(controllersDisabledByDefault)
-
 	return controllersDisabledByDefault
 }
 
@@ -581,6 +579,7 @@ func NewControllerDescriptors() map[string]*ControllerDescriptor {
 	register(newPersistentVolumeProtectionControllerDescriptor())
 	register(newTTLAfterFinishedControllerDescriptor())
 	register(newRootCACertificatePublisherControllerDescriptor())
+	register(newServiceCACertPublisher())
 	register(newEphemeralVolumeControllerDescriptor())
 
 	// feature gated
