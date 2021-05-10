@@ -140,7 +140,7 @@ controller, and serviceaccounts controller.`,
 				return err
 			}
 			cliflag.PrintFlags(cmd.Flags())
-			
+
 			if err := SetUpPreferredHostForOpenShift(s); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
