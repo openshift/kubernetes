@@ -16,6 +16,8 @@ limitations under the License.
 
 package names
 
+import cpnames "k8s.io/cloud-provider/names"
+
 // Canonical controller names
 //
 // NAMING CONVENTIONS
@@ -77,6 +79,7 @@ const (
 	PersistentVolumeProtectionController         = "persistentvolume-protection-controller"
 	TTLAfterFinishedController                   = "ttl-after-finished-controller"
 	RootCACertificatePublisherController         = "root-ca-certificate-publisher-controller"
+	ServiceCACertificatePublisherController      = "service-ca-certificate-publisher-controller"
 	EphemeralVolumeController                    = "ephemeral-volume-controller"
 	StorageVersionGarbageCollectorController     = "storageversion-garbage-collector-controller"
 	ResourceClaimController                      = "resourceclaim-controller"
@@ -84,3 +87,55 @@ const (
 	ValidatingAdmissionPolicyStatusController    = "validatingadmissionpolicy-status-controller"
 	ServiceCIDRController                        = "service-cidr-controller"
 )
+
+// KCMControllerAliases returns a mapping of aliases to canonical controller names
+//
+// These aliases ensure backwards compatibility and should never be removed!
+// Only addition of new aliases is allowed, and only when a canonical name is changed (please see CHANGE POLICY of controller names)
+func KCMControllerAliases() map[string]string {
+	// return a new reference to achieve immutability of the mapping
+	return map[string]string{
+		"serviceaccount-token":                 ServiceAccountTokenController,
+		"endpoint":                             EndpointsController,
+		"endpointslice":                        EndpointSliceController,
+		"endpointslicemirroring":               EndpointSliceMirroringController,
+		"replicationcontroller":                ReplicationControllerController,
+		"podgc":                                PodGarbageCollectorController,
+		"resourcequota":                        ResourceQuotaController,
+		"namespace":                            NamespaceController,
+		"serviceaccount":                       ServiceAccountController,
+		"garbagecollector":                     GarbageCollectorController,
+		"daemonset":                            DaemonSetController,
+		"job":                                  JobController,
+		"deployment":                           DeploymentController,
+		"replicaset":                           ReplicaSetController,
+		"horizontalpodautoscaling":             HorizontalPodAutoscalerController,
+		"disruption":                           DisruptionController,
+		"statefulset":                          StatefulSetController,
+		"cronjob":                              CronJobController,
+		"csrsigning":                           CertificateSigningRequestSigningController,
+		"csrapproving":                         CertificateSigningRequestApprovingController,
+		"csrcleaner":                           CertificateSigningRequestCleanerController,
+		"ttl":                                  TTLController,
+		"bootstrapsigner":                      BootstrapSignerController,
+		"tokencleaner":                         TokenCleanerController,
+		"nodeipam":                             NodeIpamController,
+		"nodelifecycle":                        NodeLifecycleController,
+		"service":                              cpnames.ServiceLBController,
+		"route":                                cpnames.NodeRouteController,
+		"cloud-node-lifecycle":                 cpnames.CloudNodeLifecycleController,
+		"persistentvolume-binder":              PersistentVolumeBinderController,
+		"attachdetach":                         PersistentVolumeAttachDetachController,
+		"persistentvolume-expander":            PersistentVolumeExpanderController,
+		"clusterrole-aggregation":              ClusterRoleAggregationController,
+		"pvc-protection":                       PersistentVolumeClaimProtectionController,
+		"pv-protection":                        PersistentVolumeProtectionController,
+		"ttl-after-finished":                   TTLAfterFinishedController,
+		"root-ca-cert-publisher":               RootCACertificatePublisherController,
+		"service-ca-cert-publisher":            ServiceCACertificatePublisherController,
+		"ephemeral-volume":                     EphemeralVolumeController,
+		"storage-version-gc":                   StorageVersionGarbageCollectorController,
+		"resource-claim-controller":            ResourceClaimController,
+		"legacy-service-account-token-cleaner": LegacyServiceAccountTokenCleanerController,
+	}
+}
