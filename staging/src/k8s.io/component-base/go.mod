@@ -19,7 +19,7 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.1-0.20180122172545-ddea229ff1df // indirect
 	go.uber.org/zap v1.10.0
-	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
+	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
 	gotest.tools/v3 v3.0.3 // indirect
 	k8s.io/apimachinery v0.21.0-rc.0
 	k8s.io/client-go v0.21.0-rc.0
@@ -31,6 +31,8 @@ replace (
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
 	go.uber.org/multierr => go.uber.org/multierr v1.1.0
+	golang.org/x/net => golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go

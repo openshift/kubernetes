@@ -200,21 +200,23 @@ github.com/chai2010/gettext-go/gettext
 github.com/chai2010/gettext-go/gettext/mo
 github.com/chai2010/gettext-go/gettext/plural
 github.com/chai2010/gettext-go/gettext/po
-# github.com/checkpoint-restore/go-criu/v4 v4.1.0 => github.com/checkpoint-restore/go-criu/v4 v4.1.0
-github.com/checkpoint-restore/go-criu/v4
 # github.com/checkpoint-restore/go-criu/v4 => github.com/checkpoint-restore/go-criu/v4 v4.1.0
-github.com/checkpoint-restore/go-criu/v4/rpc
+# github.com/checkpoint-restore/go-criu/v5 v5.0.0 => github.com/checkpoint-restore/go-criu/v5 v5.0.0
+github.com/checkpoint-restore/go-criu/v5
+# github.com/checkpoint-restore/go-criu/v5 => github.com/checkpoint-restore/go-criu/v5 v5.0.0
+github.com/checkpoint-restore/go-criu/v5/rpc
 # github.com/cheekybits/genny => github.com/cheekybits/genny v0.0.0-20170328200008-9127e812e1e9
 # github.com/chzyer/logex => github.com/chzyer/logex v1.1.10
 # github.com/chzyer/readline => github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 # github.com/chzyer/test => github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
-# github.com/cilium/ebpf v0.2.0 => github.com/cilium/ebpf v0.2.0
+# github.com/cilium/ebpf v0.5.0 => github.com/cilium/ebpf v0.2.0
 github.com/cilium/ebpf
 # github.com/cilium/ebpf => github.com/cilium/ebpf v0.2.0
 github.com/cilium/ebpf/asm
 github.com/cilium/ebpf/internal
 github.com/cilium/ebpf/internal/btf
 github.com/cilium/ebpf/internal/unix
+github.com/cilium/ebpf/link
 # github.com/clusterhq/flocker-go v0.0.0-20160920122132-2b8b7259d313 => github.com/clusterhq/flocker-go v0.0.0-20160920122132-2b8b7259d313
 ## explicit
 github.com/clusterhq/flocker-go
@@ -227,10 +229,10 @@ github.com/container-storage-interface/spec/lib/go/csi
 # github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59 => github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59
 # github.com/containerd/cgroups => github.com/containerd/cgroups v0.0.0-20200531161412-0dbf7f05ba59
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/console v1.0.1 => github.com/containerd/console v1.0.1
+# github.com/containerd/console v1.0.2 => github.com/containerd/console v1.0.1
 github.com/containerd/console
 # github.com/containerd/console => github.com/containerd/console v1.0.1
-# github.com/containerd/containerd v1.4.4 => github.com/containerd/containerd v1.4.4
+# github.com/containerd/containerd v1.5.0 => github.com/containerd/containerd v1.4.4
 # github.com/containerd/containerd => github.com/containerd/containerd v1.4.4
 github.com/containerd/containerd/api/services/containers/v1
 github.com/containerd/containerd/api/services/tasks/v1
@@ -248,6 +250,7 @@ github.com/containerd/containerd/platforms
 # github.com/containerd/fifo => github.com/containerd/fifo v0.0.0-20190226154929-a9fb20d87448
 # github.com/containerd/go-runc => github.com/containerd/go-runc v0.0.0-20180907222934-5a6d9f37cfa3
 # github.com/containerd/ttrpc v1.0.2 => github.com/containerd/ttrpc v1.0.2
+## explicit
 github.com/containerd/ttrpc
 # github.com/containerd/ttrpc => github.com/containerd/ttrpc v1.0.2
 # github.com/containerd/typeurl => github.com/containerd/typeurl v1.0.1
@@ -281,7 +284,7 @@ github.com/coreos/go-semver/semver
 github.com/coreos/go-systemd/daemon
 github.com/coreos/go-systemd/journal
 github.com/coreos/go-systemd/util
-# github.com/coreos/go-systemd/v22 v22.1.0 => github.com/coreos/go-systemd/v22 v22.1.0
+# github.com/coreos/go-systemd/v22 v22.3.1 => github.com/coreos/go-systemd/v22 v22.1.0
 # github.com/coreos/go-systemd/v22 => github.com/coreos/go-systemd/v22 v22.1.0
 github.com/coreos/go-systemd/v22/dbus
 # github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f => github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
@@ -432,7 +435,7 @@ github.com/go-ozzo/ozzo-validation/is
 # github.com/go-stack/stack => github.com/go-stack/stack v1.8.0
 # github.com/gobuffalo/flect => github.com/gobuffalo/flect v0.2.0
 # github.com/gobuffalo/here => github.com/gobuffalo/here v0.6.0
-# github.com/godbus/dbus/v5 v5.0.3 => github.com/godbus/dbus/v5 v5.0.3
+# github.com/godbus/dbus/v5 v5.0.4 => github.com/godbus/dbus/v5 v5.0.3
 ## explicit
 github.com/godbus/dbus/v5
 # github.com/godbus/dbus/v5 => github.com/godbus/dbus/v5 v5.0.3
@@ -503,9 +506,9 @@ github.com/golang/protobuf/ptypes/wrappers
 ## explicit
 github.com/google/btree
 # github.com/google/btree => github.com/google/btree v1.0.0
-# github.com/google/cadvisor v0.39.0 => github.com/google/cadvisor v0.39.0
+# github.com/google/cadvisor v0.39.1-0.20210512194617-0173a0c6f768 => github.com/google/cadvisor v0.39.1-0.20210512194617-0173a0c6f768
 ## explicit
-# github.com/google/cadvisor => github.com/google/cadvisor v0.39.0
+# github.com/google/cadvisor => github.com/google/cadvisor v0.39.1-0.20210512194617-0173a0c6f768
 github.com/google/cadvisor/accelerators
 github.com/google/cadvisor/cache/memory
 github.com/google/cadvisor/client/v2
@@ -788,7 +791,7 @@ github.com/moby/ipvs
 github.com/moby/spdystream
 # github.com/moby/spdystream => github.com/moby/spdystream v0.2.0
 github.com/moby/spdystream/spdy
-# github.com/moby/sys/mountinfo v0.4.0 => github.com/moby/sys/mountinfo v0.4.0
+# github.com/moby/sys/mountinfo v0.4.1 => github.com/moby/sys/mountinfo v0.4.0
 github.com/moby/sys/mountinfo
 # github.com/moby/sys/mountinfo => github.com/moby/sys/mountinfo v0.4.0
 # github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 => github.com/moby/term v0.0.0-20201216013528-df9cb8a40635
@@ -883,9 +886,9 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.0.0-rc93 => github.com/opencontainers/runc v1.0.0-rc93
+# github.com/opencontainers/runc v1.0.0-rc94 => github.com/opencontainers/runc v1.0.0-rc94
 ## explicit
-# github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc93
+# github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc94
 github.com/opencontainers/runc/libcontainer
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/capabilities
@@ -908,9 +911,10 @@ github.com/opencontainers/runc/libcontainer/seccomp/patchbpf
 github.com/opencontainers/runc/libcontainer/stacktrace
 github.com/opencontainers/runc/libcontainer/system
 github.com/opencontainers/runc/libcontainer/user
+github.com/opencontainers/runc/libcontainer/userns
 github.com/opencontainers/runc/libcontainer/utils
 github.com/opencontainers/runc/types
-# github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d => github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d
+# github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417 => github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d
 # github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20200929063507-e6143ca7d51d
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/selinux v1.8.0 => github.com/opencontainers/selinux v1.8.0
@@ -1242,6 +1246,7 @@ github.com/vishvananda/netlink
 # github.com/vishvananda/netlink => github.com/vishvananda/netlink v1.1.0
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae => github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
+## explicit
 github.com/vishvananda/netns
 # github.com/vishvananda/netns => github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
 # github.com/vmware/govmomi v0.20.3 => github.com/vmware/govmomi v0.20.3
@@ -1449,7 +1454,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/mod => golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210224082022-3d97a244fca7 => golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
+# golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 => golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
 ## explicit
 # golang.org/x/net => golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
 golang.org/x/net/bpf
@@ -1482,7 +1487,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 => golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 # golang.org/x/sync => golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073 => golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
+# golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 => golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
 ## explicit
 # golang.org/x/sys => golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
 golang.org/x/sys/cpu
@@ -1621,7 +1626,7 @@ google.golang.org/appengine/urlfetch
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/googleapis/rpc/status
 google.golang.org/genproto/protobuf/field_mask
-# google.golang.org/grpc v1.27.1 => google.golang.org/grpc v1.27.1
+# google.golang.org/grpc v1.33.2 => google.golang.org/grpc v1.27.1
 ## explicit
 google.golang.org/grpc
 # google.golang.org/grpc => google.golang.org/grpc v1.27.1
