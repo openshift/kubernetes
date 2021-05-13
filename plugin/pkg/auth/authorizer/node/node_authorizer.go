@@ -95,7 +95,7 @@ func (r *NodeAuthorizer) Authorize(ctx context.Context, attrs authorizer.Attribu
 	nodeName, isNode := r.identifier.NodeIdentity(attrs.GetUser())
 	if !isNode {
 		// reject requests from non-nodes
-		return authorizer.DecisionNoOpinion, "", nil
+		return authorizer.DecisionNoOpinion, "non-node", nil
 	}
 	if len(nodeName) == 0 {
 		// reject requests from unidentifiable nodes
@@ -136,7 +136,7 @@ func (r *NodeAuthorizer) Authorize(ctx context.Context, attrs authorizer.Attribu
 	if rbac.RulesAllow(attrs, r.nodeRules...) {
 		return authorizer.DecisionAllow, "", nil
 	}
-	return authorizer.DecisionNoOpinion, "", nil
+	return authorizer.DecisionNoOpinion, "auth-node", nil
 }
 
 // authorizeStatusUpdate authorizes get/update/patch requests to status subresources of the specified type if they are related to the specified node

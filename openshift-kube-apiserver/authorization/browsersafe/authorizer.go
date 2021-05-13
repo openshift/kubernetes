@@ -34,11 +34,11 @@ func (a *browserSafeAuthorizer) Authorize(ctx context.Context, attributes author
 
 	// check if the request was not allowed and we changed the attributes
 	if decision == authorizer.DecisionAllow || !changed {
-		return decision, reason, err
+		return decision, "browser-safe-auth-1" + reason, err
 	}
 
 	// if so, use this information to update the reason
-	return decision, safeAttributes.reason(reason), err
+	return decision, "browser-safe-auth-2" + safeAttributes.reason(reason), err
 }
 
 func (a *browserSafeAuthorizer) getBrowserSafeAttributes(attributes authorizer.Attributes) authorizer.Attributes {

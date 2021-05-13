@@ -220,7 +220,7 @@ func (w *WebhookAuthorizer) Authorize(ctx context.Context, attr authorizer.Attri
 	case r.Status.Allowed:
 		return authorizer.DecisionAllow, r.Status.Reason, nil
 	default:
-		return authorizer.DecisionNoOpinion, r.Status.Reason, nil
+		return authorizer.DecisionNoOpinion, "webhook:" + r.Status.Reason, nil
 	}
 
 }

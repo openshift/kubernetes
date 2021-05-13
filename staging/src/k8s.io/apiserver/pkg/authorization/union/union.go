@@ -65,7 +65,7 @@ func (authzHandler unionAuthzHandler) Authorize(ctx context.Context, a authorize
 		}
 	}
 
-	return authorizer.DecisionNoOpinion, strings.Join(reasonlist, "\n"), utilerrors.NewAggregate(errlist)
+	return authorizer.DecisionNoOpinion, "union(" + strings.Join(reasonlist, "\n") + ")", utilerrors.NewAggregate(errlist)
 }
 
 // unionAuthzRulesHandler authorizer against a chain of authorizer.RuleResolver

@@ -84,7 +84,7 @@ func (r *privilegedGroupAuthorizer) Authorize(ctx context.Context, attr authoriz
 			}
 		}
 	}
-	return authorizer.DecisionNoOpinion, "", nil
+	return authorizer.DecisionNoOpinion, "privGroupAuth", nil
 }
 
 // NewPrivilegedGroups is for use in loopback scenarios

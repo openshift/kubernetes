@@ -69,6 +69,11 @@ func (v *authorizingVisitor) visit(source fmt.Stringer, rule *rbacv1.PolicyRule,
 	if err != nil {
 		v.errors = append(v.errors, err)
 	}
+	if rule != nil {
+		v.reason += "r"
+	} else {
+		v.reason += "-"
+	}
 	return true
 }
 
@@ -119,11 +124,11 @@ func (r *RBACAuthorizer) Authorize(ctx context.Context, requestAttributes author
 		klog.Infof("RBAC: no rules authorize user %q with groups %q to %s %s", requestAttributes.GetUser().GetName(), requestAttributes.GetUser().GetGroups(), operation, scope)
 	}
 
-	reason := ""
+	reason := ruleCheckingVisitor.reason
 	if len(ruleCheckingVisitor.errors) > 0 {
 		reason = fmt.Sprintf("RBAC: %v", utilerrors.NewAggregate(ruleCheckingVisitor.errors))
 	}
-	return authorizer.DecisionNoOpinion, reason, nil
+	return authorizer.DecisionNoOpinion, "no-opinion-auth-rbac(" + reason + ")", nil
 }
 
 func (r *RBACAuthorizer) RulesFor(user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {

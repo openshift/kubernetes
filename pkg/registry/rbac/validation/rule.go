@@ -177,6 +177,7 @@ func (d *roleBindingDescriber) String() string {
 }
 
 func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, visitor func(source fmt.Stringer, rule *rbacv1.PolicyRule, err error) bool) {
+	prefix := fmt.Sprintf("RULES FOR %s (%s): ", user.GetName(), namespace)
 	if clusterRoleBindings, err := r.clusterRoleBindingLister.ListClusterRoleBindings(); err != nil {
 		if !visitor(nil, nil, err) {
 			return
@@ -186,6 +187,7 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 		for _, clusterRoleBinding := range clusterRoleBindings {
 			subjectIndex, applies := appliesTo(user, clusterRoleBinding.Subjects, "")
 			if !applies {
+				klog.Infof("%s: skipping cluster-role-binding %s", prefix, clusterRoleBinding.Name)
 				continue
 			}
 			rules, err := r.GetRoleReferenceRules(clusterRoleBinding.RoleRef, "")
@@ -195,6 +197,7 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 				}
 				continue
 			}
+			klog.Infof("%s: cluster-role-binding %s: got %d rules", prefix, clusterRoleBinding.Name, len(rules))
 			sourceDescriber.binding = clusterRoleBinding
 			sourceDescriber.subject = &clusterRoleBinding.Subjects[subjectIndex]
 			for i := range rules {
@@ -215,6 +218,7 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 			for _, roleBinding := range roleBindings {
 				subjectIndex, applies := appliesTo(user, roleBinding.Subjects, namespace)
 				if !applies {
+					klog.Infof("%s: skipping role-binding %s", prefix, roleBinding.Name)
 					continue
 				}
 				rules, err := r.GetRoleReferenceRules(roleBinding.RoleRef, namespace)
@@ -224,6 +228,7 @@ func (r *DefaultRuleResolver) VisitRulesFor(user user.Info, namespace string, vi
 					}
 					continue
 				}
+				klog.Infof("%s: role-binding %s: got %d rules", prefix, roleBinding.Name, len(rules))
 				sourceDescriber.binding = roleBinding
 				sourceDescriber.subject = &roleBinding.Subjects[subjectIndex]
 				for i := range rules {

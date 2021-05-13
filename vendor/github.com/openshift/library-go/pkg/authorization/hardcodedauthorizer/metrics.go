@@ -29,7 +29,7 @@ func (metricsAuthorizer) Authorize(ctx context.Context, a authorizer.Attributes)
 		return authorizer.DecisionAllow, "requesting metrics is allowed", nil
 	}
 
-	return authorizer.DecisionNoOpinion, "", nil
+	return authorizer.DecisionNoOpinion, "metrics", nil
 }
 
 // NewHardCodedMetricsAuthorizer returns a hardcoded authorizer for checking metrics.

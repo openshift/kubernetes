@@ -28,7 +28,7 @@ func (a *scopeAuthorizer) Authorize(ctx context.Context, attributes authorizer.A
 
 	scopes := user.GetExtra()[authorizationv1.ScopesKey]
 	if len(scopes) == 0 {
-		return authorizer.DecisionNoOpinion, "", nil
+		return authorizer.DecisionNoOpinion, "no-scope", nil
 	}
 
 	nonFatalErrors := ""
@@ -41,7 +41,7 @@ func (a *scopeAuthorizer) Authorize(ctx context.Context, attributes authorizer.A
 
 	// check rules against attributes
 	if authorizerrbac.RulesAllow(attributes, rules...) {
-		return authorizer.DecisionNoOpinion, "", nil
+		return authorizer.DecisionNoOpinion, "auth-scopeauth", nil
 	}
 
 	// the scope prevent this.  We need to authoritatively deny
