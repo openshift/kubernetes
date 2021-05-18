@@ -960,12 +960,14 @@ func (p *csiPlugin) newAttacherDetacher() (*csiAttacher, error) {
 }
 
 func unregisterDriver(driverName string) error {
+	klog.Infof("Starting un-registering CSIDriver %v", driverName)
 	csiDrivers.Delete(driverName)
 
 	if err := nim.UninstallCSIDriver(driverName); err != nil {
 		return errors.New(log("Error uninstalling CSI driver: %v", err))
 	}
 
+	klog.Infof("Finishing un-registering CSIDriver %v", driverName)
 	return nil
 }
 

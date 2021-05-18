@@ -107,6 +107,7 @@ func NewNodeInfoManager(
 // If multiple calls to InstallCSIDriver() are made in parallel, some calls might receive Node or
 // CSINode update conflicts, which causes the function to retry the corresponding update.
 func (nim *nodeInfoManager) InstallCSIDriver(driverName string, driverNodeID string, maxAttachLimit int64, topology map[string]string) error {
+	klog.Infof("Starting installing CSIDriver %v on Node %v", driverName, driverNodeID)
 	if driverNodeID == "" {
 		return fmt.Errorf("error adding CSI driver node info: driverNodeID must not be empty")
 	}
@@ -125,7 +126,7 @@ func (nim *nodeInfoManager) InstallCSIDriver(driverName string, driverNodeID str
 	if err != nil {
 		return fmt.Errorf("error updating CSINode object with CSI driver node info: %v", err)
 	}
-
+	klog.Infof("Finishing installing CSIDriver %v on Node %v", driverName, driverNodeID)
 	return nil
 }
 
@@ -134,6 +135,7 @@ func (nim *nodeInfoManager) InstallCSIDriver(driverName string, driverNodeID str
 // If multiple calls to UninstallCSIDriver() are made in parallel, some calls might receive Node or
 // CSINode update conflicts, which causes the function to retry the corresponding update.
 func (nim *nodeInfoManager) UninstallCSIDriver(driverName string) error {
+	klog.Infof("Starting un-installing CSIDriver %v", driverName)
 	err := nim.uninstallDriverFromCSINode(driverName)
 	if err != nil {
 		return fmt.Errorf("error uninstalling CSI driver from CSINode object %v", err)
@@ -146,6 +148,7 @@ func (nim *nodeInfoManager) UninstallCSIDriver(driverName string) error {
 	if err != nil {
 		return fmt.Errorf("error removing CSI driver node info from Node object %v", err)
 	}
+	klog.Infof("Finishing un-installing CSIDriver %v", driverName)
 	return nil
 }
 
