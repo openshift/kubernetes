@@ -396,6 +396,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	<-stoppedCh
 
 	// Wait for all requests to finish, which are bounded by the RequestTimeout variable.
+	s.Eventf(corev1.EventTypeNormal, "TerminationGracefulTerminationWaitGroup", "All pending requests processed waiting for HandlerChainWaitGroup")
 	s.HandlerChainWaitGroup.Wait()
 	s.Eventf(corev1.EventTypeNormal, "TerminationGracefulTerminationFinished", "All pending requests processed")
 
@@ -436,10 +437,14 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) (<-chan
 	// ensure cleanup.
 	go func() {
 		<-stopCh
+		s.Eventf(corev1.EventTypeNormal, "TerminationStopChClosed", "NonBlockingRun stopCh closed")
 		close(internalStopCh)
 		if stoppedCh != nil {
+			s.Eventf(corev1.EventTypeNormal, "TerminationWaitingForStoppedCh", "NonBlockingRun waiting for stoppedCh (in-flight rq)")
 			<-stoppedCh
+			s.Eventf(corev1.EventTypeNormal, "TerminationStoppedChClosed", "NonBlockingRun waiting all pending finished")
 		}
+		s.Eventf(corev1.EventTypeNormal, "TerminationWaitingForWaitGroup", "NonBlockingRun")
 		s.HandlerChainWaitGroup.Wait()
 		close(auditStopCh)
 	}()
