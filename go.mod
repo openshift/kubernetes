@@ -49,6 +49,10 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/golang/mock v1.4.1
+	github.com/golangplus/bytes v0.0.0-20160111154220-45c989fe5450 // indirect
+	github.com/golangplus/fmt v0.0.0-20150411045040-2a5d6d7d2995 // indirect
+	github.com/golangplus/testing v0.0.0-20180327235837-af21d9c3145e // indirect
+	github.com/google/btree v1.0.0
 	github.com/google/cadvisor v0.38.8
 	github.com/google/go-cmp v0.5.2
 	github.com/google/gofuzz v1.1.0
@@ -134,6 +138,8 @@ require (
 	k8s.io/sample-apiserver v0.0.0
 	k8s.io/system-validators v1.2.0
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.0.3 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -454,6 +460,7 @@ replace (
 	github.com/vmware/govmomi => github.com/vmware/govmomi v0.20.3
 	github.com/willf/bitset => github.com/willf/bitset v1.1.11-0.20200630133818-d5bec3311243
 	github.com/xiang90/probing => github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2
+	github.com/xlab/handysort => github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1
 	github.com/yuin/goldmark => github.com/yuin/goldmark v1.2.1
 	go.etcd.io/bbolt => go.etcd.io/bbolt v1.3.5
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489 // ae9734ed278b is the SHA for git tag v3.4.13
@@ -547,6 +554,8 @@ replace (
 	rsc.io/quote/v3 => rsc.io/quote/v3 v3.1.0
 	rsc.io/sampler => rsc.io/sampler v1.3.0
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.8
+	sigs.k8s.io/kube-storage-version-migrator => sigs.k8s.io/kube-storage-version-migrator v0.0.3
 	sigs.k8s.io/kustomize => sigs.k8s.io/kustomize v2.0.3+incompatible
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.0.3
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
