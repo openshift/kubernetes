@@ -1777,10 +1777,6 @@ func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 		return fmt.Errorf("pod not found")
 	}
 	podPair := kubecontainer.PodPair{APIPod: pod, RunningPod: &runningPod}
-
-	if _, ok := kl.podManager.GetMirrorPodByPod(pod); ok {
-		kl.podKiller.MarkMirrorPodPendingTermination(pod)
-	}
 	kl.podKiller.KillPod(&podPair)
 
 	// We leave the volume/directory cleanup to the periodic cleanup routine.
