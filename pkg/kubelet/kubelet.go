@@ -1503,12 +1503,10 @@ func (kl *Kubelet) syncPod(o syncPodOptions) error {
 		return nil
 	}
 
-	// If a pod is still gracefully terminating, then we do not want to
-	// take further action. This mitigates static pods and deleted pods
-	// from getting rerun prematurely or their cgroups being deleted before
-	// the runtime cleans up.
+	// If the pod is a static pod and its mirror pod is still gracefully terminating,
+	// we do not want to start the new static pod until the old static pod is gracefully terminated.
 	podFullName := kubecontainer.GetPodFullName(pod)
-	if kl.podKiller.IsPodPendingTerminationByPodName(podFullName) {
+	if kl.podKiller.IsMirrorPodPendingTerminationByPodName(podFullName) {
 		return fmt.Errorf("pod %q is pending termination", podFullName)
 	}
 
@@ -1776,6 +1774,10 @@ func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 		return fmt.Errorf("pod not found")
 	}
 	podPair := kubecontainer.PodPair{APIPod: pod, RunningPod: &runningPod}
+
+	if _, ok := kl.podManager.GetMirrorPodByPod(pod); ok {
+		kl.podKiller.MarkMirrorPodPendingTermination(pod)
+	}
 	kl.podKiller.KillPod(&podPair)
 
 	// We leave the volume/directory cleanup to the periodic cleanup routine.
