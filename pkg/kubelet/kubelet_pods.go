@@ -1137,7 +1137,7 @@ func (kl *Kubelet) HandlePodCleanups() error {
 // PodKiller handles requests for killing pods
 type PodKiller interface {
 	// KillPod receives pod speficier representing the pod to kill
-	KillPod(podPair *kubecontainer.PodPair)
+	KillPod(pair *kubecontainer.PodPair)
 	// PerformPodKillingWork performs the actual pod killing work via calling CRI
 	// It returns after its Close() func is called and all outstanding pod killing requests are served
 	PerformPodKillingWork()
@@ -1215,9 +1215,10 @@ func (pk *podKillerWithChannel) markPodTerminated(uid string) {
 	delete(pk.podTerminationMap, uid)
 }
 
-// KillPod sends pod killing request to the killer after marks the pod
-// unless the given pod has been marked to be killed
-func (pk *podKillerWithChannel) KillPod(podPair *kubecontainer.PodPair) {
+// checkAndMarkPodPendingTerminationByPod checks to see if the pod is being
+// killed and returns true if it is, otherwise the pod is added to the map and
+// returns false
+func (pk *podKillerWithChannel) checkAndMarkPodPendingTerminationByPod(podPair *kubecontainer.PodPair) bool {
 	pk.podKillingLock.Lock()
 	defer pk.podKillingLock.Unlock()
 	var apiPodExists bool
@@ -1248,10 +1249,9 @@ func (pk *podKillerWithChannel) KillPod(podPair *kubecontainer.PodPair) {
 		} else {
 			klog.V(4).Infof("running pod %q is pending termination", podPair.RunningPod.ID)
 		}
-		return
+		return true
 	}
-	// Limit to one request per pod
-	pk.podKillingCh <- podPair
+	return false
 }
 
 // Close closes the channel through which requests are delivered
@@ -1259,10 +1259,20 @@ func (pk *podKillerWithChannel) Close() {
 	close(pk.podKillingCh)
 }
 
+// KillPod sends pod killing request to the killer
+func (pk *podKillerWithChannel) KillPod(pair *kubecontainer.PodPair) {
+	pk.podKillingCh <- pair
+}
+
 // PerformPodKillingWork launches a goroutine to kill a pod received from the channel if
 // another goroutine isn't already in action.
 func (pk *podKillerWithChannel) PerformPodKillingWork() {
 	for podPair := range pk.podKillingCh {
+		if pk.checkAndMarkPodPendingTerminationByPod(podPair) {
+			// Pod is already being killed
+			continue
+		}
+
 		runningPod := podPair.RunningPod
 		apiPod := podPair.APIPod
 
