@@ -236,6 +236,9 @@ const (
 	// init/join time for use later. kubeadm annotates the node object with this information
 	AnnotationKubeadmCRISocket = "kubeadm.alpha.kubernetes.io/cri-socket"
 
+	// UnknownCRISocket defines the undetected or unknown CRI socket
+	UnknownCRISocket = "/var/run/unknown.sock"
+
 	// KubeadmConfigConfigMap specifies in what ConfigMap in the kube-system namespace the `kubeadm init` configuration should be stored
 	KubeadmConfigConfigMap = "kubeadm-config"
 
@@ -317,7 +320,7 @@ const (
 	NodeBootstrapTokenAuthGroup = "system:bootstrappers:kubeadm:default-node-token"
 
 	// DefaultCIImageRepository points to image registry where CI uploads images from ci-cross build job
-	DefaultCIImageRepository = "gcr.io/kubernetes-ci-images"
+	DefaultCIImageRepository = "gcr.io/k8s-staging-ci-images"
 
 	// CoreDNSConfigMap specifies in what ConfigMap in the kube-system namespace the CoreDNS config should be stored
 	CoreDNSConfigMap = "coredns"
@@ -469,7 +472,7 @@ var (
 		16: "3.3.17-0",
 		17: "3.4.3-0",
 		18: "3.4.3-0",
-		19: "3.4.9-1",
+		19: "3.4.13-0",
 		20: "3.4.13-0",
 		21: "3.4.13-0",
 	}

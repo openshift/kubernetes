@@ -170,11 +170,6 @@ func (cfg *Config) Complete() CompletedConfig {
 
 // NewWithDelegate returns a new instance of APIAggregator from the given config.
 func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.DelegationTarget) (*APIAggregator, error) {
-	// Prevent generic API server to install OpenAPI handler. Aggregator server
-	// has its own customized OpenAPI handler.
-	openAPIConfig := c.GenericConfig.OpenAPIConfig
-	c.GenericConfig.OpenAPIConfig = nil
-
 	genericServer, err := c.GenericConfig.New("kube-aggregator", delegationTarget)
 	if err != nil {
 		return nil, err
@@ -190,6 +185,7 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 	)
 
 	s := &APIAggregator{
+<<<<<<< HEAD
 		GenericAPIServer:                genericServer,
 		delegateHandler:                 delegationTarget.UnprotectedHandler(),
 		proxyTransport:                  c.ExtraConfig.ProxyTransport,
@@ -202,6 +198,19 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		openAPIConfig:                   openAPIConfig,
 		egressSelector:                  c.GenericConfig.EgressSelector,
 		proxyCurrentCertKeyContent:      func() (bytes []byte, bytes2 []byte) { return nil, nil },
+=======
+		GenericAPIServer:           genericServer,
+		delegateHandler:            delegationTarget.UnprotectedHandler(),
+		proxyTransport:             c.ExtraConfig.ProxyTransport,
+		proxyHandlers:              map[string]*proxyHandler{},
+		handledGroups:              sets.String{},
+		lister:                     informerFactory.Apiregistration().V1().APIServices().Lister(),
+		APIRegistrationInformers:   informerFactory,
+		serviceResolver:            c.ExtraConfig.ServiceResolver,
+		openAPIConfig:              c.GenericConfig.OpenAPIConfig,
+		egressSelector:             c.GenericConfig.EgressSelector,
+		proxyCurrentCertKeyContent: func() (bytes []byte, bytes2 []byte) { return nil, nil },
+>>>>>>> v1.20.7
 	}
 
 	apiGroupInfo := apiservicerest.NewRESTStorage(c.GenericConfig.MergedResourceConfig, c.GenericConfig.RESTOptionsGetter)

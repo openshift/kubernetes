@@ -247,7 +247,7 @@ type DockerOptions struct {
 
 // makePodSourceConfig creates a config.PodConfig from the given
 // KubeletConfiguration or returns an error.
-func makePodSourceConfig(kubeCfg *kubeletconfiginternal.KubeletConfiguration, kubeDeps *Dependencies, nodeName types.NodeName) (*config.PodConfig, error) {
+func makePodSourceConfig(kubeCfg *kubeletconfiginternal.KubeletConfiguration, kubeDeps *Dependencies, nodeName types.NodeName, nodeHasSynced func() bool) (*config.PodConfig, error) {
 	manifestURLHeader := make(http.Header)
 	if len(kubeCfg.StaticPodURLHeader) > 0 {
 		for k, v := range kubeCfg.StaticPodURLHeader {
@@ -273,8 +273,8 @@ func makePodSourceConfig(kubeCfg *kubeletconfiginternal.KubeletConfiguration, ku
 	}
 
 	if kubeDeps.KubeClient != nil {
-		klog.Infof("Watching apiserver")
-		config.NewSourceApiserver(kubeDeps.KubeClient, nodeName, cfg.Channel(kubetypes.ApiserverSource))
+		klog.Info("Adding apiserver pod source")
+		config.NewSourceApiserver(kubeDeps.KubeClient, nodeName, nodeHasSynced, cfg.Channel(kubetypes.ApiserverSource))
 	}
 	return cfg, nil
 }
@@ -380,9 +380,32 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		}
 	}
 
+	var nodeHasSynced cache.InformerSynced
+	var nodeLister corelisters.NodeLister
+
+	// If kubeClient == nil, we are running in standalone mode (i.e. no API servers)
+	// If not nil, we are running as part of a cluster and should sync w/API
+	if kubeDeps.KubeClient != nil {
+		kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeDeps.KubeClient, 0, informers.WithTweakListOptions(func(options *metav1.ListOptions) {
+			options.FieldSelector = fields.Set{api.ObjectNameField: string(nodeName)}.String()
+		}))
+		nodeLister = kubeInformers.Core().V1().Nodes().Lister()
+		nodeHasSynced = func() bool {
+			return kubeInformers.Core().V1().Nodes().Informer().HasSynced()
+		}
+		kubeInformers.Start(wait.NeverStop)
+		klog.Info("Attempting to sync node with API server")
+	} else {
+		// we don't have a client to sync!
+		nodeIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+		nodeLister = corelisters.NewNodeLister(nodeIndexer)
+		nodeHasSynced = func() bool { return true }
+		klog.Info("Kubelet is running in standalone mode, will skip API server sync")
+	}
+
 	if kubeDeps.PodConfig == nil {
 		var err error
-		kubeDeps.PodConfig, err = makePodSourceConfig(kubeCfg, kubeDeps, nodeName)
+		kubeDeps.PodConfig, err = makePodSourceConfig(kubeCfg, kubeDeps, nodeName, nodeHasSynced)
 		if err != nil {
 			return nil, err
 		}
@@ -434,6 +457,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		serviceHasSynced = func() bool { return true }
 	}
 
+<<<<<<< HEAD
 	var nodeHasSynced cache.InformerSynced
 	var nodeLister corelisters.NodeLister
 
@@ -460,6 +484,8 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		klog.Info("Kubelet client is nil")
 	}
 
+=======
+>>>>>>> v1.20.7
 	// construct a node reference used for events
 	nodeRef := &v1.ObjectReference{
 		Kind:      "Node",
@@ -818,7 +844,11 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		v1.NamespaceNodeLease,
 		util.SetNodeOwnerFunc(klet.heartbeatClient, string(klet.nodeName)))
 
-	klet.shutdownManager = nodeshutdown.NewManager(klet.GetActivePods, killPodNow(klet.podWorkers, kubeDeps.Recorder), kubeCfg.ShutdownGracePeriod.Duration, kubeCfg.ShutdownGracePeriodCriticalPods.Duration)
+	// setup node shutdown manager
+	shutdownManager, shutdownAdmitHandler := nodeshutdown.NewManager(klet.GetActivePods, killPodNow(klet.podWorkers, kubeDeps.Recorder), klet.syncNodeStatus, kubeCfg.ShutdownGracePeriod.Duration, kubeCfg.ShutdownGracePeriodCriticalPods.Duration)
+
+	klet.shutdownManager = shutdownManager
+	klet.admitHandlers.AddPodAdmitHandler(shutdownAdmitHandler)
 
 	// Finally, put the most recent version of the config on the Kubelet, so
 	// people can see how it was configured.
