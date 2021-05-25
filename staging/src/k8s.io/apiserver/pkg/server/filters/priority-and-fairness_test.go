@@ -21,19 +21,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"reflect"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	flowcontrol "k8s.io/api/flowcontrol/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/apis/flowcontrol/bootstrap"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
@@ -43,11 +36,7 @@ import (
 	utilflowcontrol "k8s.io/apiserver/pkg/util/flowcontrol"
 	fq "k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing"
 	fcmetrics "k8s.io/apiserver/pkg/util/flowcontrol/metrics"
-	"k8s.io/client-go/informers"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/component-base/metrics/legacyregistry"
-	"k8s.io/component-base/metrics/testutil"
 )
 
 type mockDecision int
@@ -344,6 +333,7 @@ func TestApfCancelWaitRequest(t *testing.T) {
 	})
 }
 
+<<<<<<< HEAD
 func TestPriorityAndFairnessWithPanicRecoverAndTimeoutFilter(t *testing.T) {
 	fcmetrics.Register()
 
@@ -581,6 +571,8 @@ func newConfiguration(fsName, plName, user string, responseType flowcontrol.Limi
 	return []runtime.Object{fs, pl}
 }
 
+=======
+>>>>>>> parent of d1880916d21 (UPSTREAM: 97206: clean up executing request on panic)
 // gathers and checks the metrics.
 func checkForExpectedMetrics(t *testing.T, expectedMetrics []string) {
 	metricsFamily, err := legacyregistry.DefaultGatherer.Gather()
@@ -600,41 +592,4 @@ func checkForExpectedMetrics(t *testing.T, expectedMetrics []string) {
 			}
 		}
 	}
-}
-
-// gaugeValueMatch ensures that the value of gauge metrics matching the labelFilter is as expected.
-func gaugeValueMatch(name string, labelFilter map[string]string, wantValue int) error {
-	metrics, err := legacyregistry.DefaultGatherer.Gather()
-	if err != nil {
-		return fmt.Errorf("failed to gather metrics: %s", err)
-	}
-
-	sum := 0
-	familyMatch, labelMatch := false, false
-	for _, mf := range metrics {
-		if mf.GetName() != name {
-			continue
-		}
-
-		familyMatch = true
-		for _, metric := range mf.GetMetric() {
-			if !testutil.LabelsMatch(metric, labelFilter) {
-				continue
-			}
-
-			labelMatch = true
-			sum += int(metric.GetGauge().GetValue())
-		}
-	}
-	if !familyMatch {
-		return fmt.Errorf("expected to find the metric family: %s in the gathered result", name)
-	}
-	if !labelMatch {
-		return fmt.Errorf("expected to find metrics with matching labels: %#+v", labelFilter)
-	}
-	if wantValue != sum {
-		return fmt.Errorf("expected the sum to be: %d, but got: %d for gauge metric: %s with labels %#+v", wantValue, sum, name, labelFilter)
-	}
-
-	return nil
 }
