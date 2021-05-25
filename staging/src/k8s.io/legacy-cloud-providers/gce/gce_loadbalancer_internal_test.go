@@ -31,13 +31,8 @@ import (
 	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud"
 	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud/meta"
 	"github.com/GoogleCloudPlatform/k8s-cloud-provider/pkg/cloud/mock"
-<<<<<<< HEAD
-	compute "google.golang.org/api/compute/v1"
-	v1 "k8s.io/api/core/v1"
-=======
 	"google.golang.org/api/compute/v1"
 	"k8s.io/api/core/v1"
->>>>>>> v1.20.7
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
