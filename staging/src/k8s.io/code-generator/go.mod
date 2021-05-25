@@ -14,9 +14,14 @@ require (
 	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
 	golang.org/x/text v0.3.4 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 	k8s.io/gengo v0.0.0-20201113003025-83324d819ded
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
 )
 
-replace k8s.io/code-generator => ../code-generator
+replace (
+	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.5.0-origin.1+incompatible
+	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
+	k8s.io/code-generator => ../code-generator
+)
