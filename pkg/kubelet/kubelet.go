@@ -457,35 +457,6 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		serviceHasSynced = func() bool { return true }
 	}
 
-<<<<<<< HEAD
-	var nodeHasSynced cache.InformerSynced
-	var nodeLister corelisters.NodeLister
-
-	if kubeDeps.KubeClient != nil {
-		kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeDeps.KubeClient, 0, informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			options.FieldSelector = fields.Set{api.ObjectNameField: string(nodeName)}.String()
-		}))
-		nodeLister = kubeInformers.Core().V1().Nodes().Lister()
-		nodeHasSynced = func() bool {
-			if kubeInformers.Core().V1().Nodes().Informer().HasSynced() {
-				klog.Infof("kubelet nodes sync")
-				return true
-			}
-			klog.Infof("kubelet nodes not sync")
-			return false
-		}
-		kubeInformers.Start(wait.NeverStop)
-		klog.Info("Kubelet client is not nil")
-	} else {
-		// we dont have a client to sync!
-		nodeIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-		nodeLister = corelisters.NewNodeLister(nodeIndexer)
-		nodeHasSynced = func() bool { return true }
-		klog.Info("Kubelet client is nil")
-	}
-
-=======
->>>>>>> v1.20.7
 	// construct a node reference used for events
 	nodeRef := &v1.ObjectReference{
 		Kind:      "Node",
