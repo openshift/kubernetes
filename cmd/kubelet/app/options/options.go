@@ -513,6 +513,12 @@ func AddKubeletConfigFlags(mainfs *pflag.FlagSet, c *kubeletconfig.KubeletConfig
 	fs.Int32Var(&c.NodeStatusMaxImages, "node-status-max-images", c.NodeStatusMaxImages, "The maximum number of images to report in Node.Status.Images. If -1 is specified, no cap will be applied.")
 	fs.BoolVar(&c.KernelMemcgNotification, "kernel-memcg-notification", c.KernelMemcgNotification, "If enabled, the kubelet will integrate with the kernel memcg notification to determine if memory eviction thresholds are crossed rather than polling.")
 
+	// OpenTelemetry
+	fs.BoolVar(&c.OpenTelemetry.EnableTracing, "enable-tracing", c.OpenTelemetry.EnableTracing, ""+
+		"Enables collection of opentelemetry gRPC traces.")
+	fs.StringVar(&c.OpenTelemetry.TracingServiceName, "tracing-service-name", c.OpenTelemetry.TracingServiceName, "The name for opentelemetry service.")
+	fs.StringVar(&c.OpenTelemetry.CollectorEndpoint, "collector-endpoint", c.OpenTelemetry.CollectorEndpoint, "The tracing collector endpoint.")
+
 	// Flags intended for testing, not recommended used in production environments.
 	fs.Int64Var(&c.MaxOpenFiles, "max-open-files", c.MaxOpenFiles, "Number of files that can be opened by Kubelet process.")
 

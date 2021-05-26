@@ -252,4 +252,8 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 	if obj.EnableDebugFlagsHandler == nil {
 		obj.EnableDebugFlagsHandler = utilpointer.BoolPtr(true)
 	}
+	// OpenTelemetry TODO
+	obj.OpenTelemetry.EnableTracing = true
+	obj.OpenTelemetry.TracingServiceName = "kubelet"
+	obj.OpenTelemetry.CollectorEndpoint = "127.0.0.1:4317"
 }

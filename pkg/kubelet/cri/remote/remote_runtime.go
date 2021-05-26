@@ -20,9 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,6 +46,7 @@ type remoteRuntimeService struct {
 	runtimeClient runtimeapi.RuntimeServiceClient
 	// Cache last per-container error message to reduce log spam
 	logReduction *logreduction.LogReduction
+	tracerName   string
 }
 
 const (
@@ -51,7 +56,8 @@ const (
 
 // NewRemoteRuntimeService creates a new internalapi.RuntimeService.
 func NewRemoteRuntimeService(endpoint string, connectionTimeout time.Duration) (internalapi.RuntimeService, error) {
-	klog.V(3).InfoS("Connecting to runtime service", "endpoint", endpoint)
+	//TODO: This is just to test crio
+	klog.V(1).InfoS("Connecting to runtime service", "endpoint", endpoint)
 	addr, dialer, err := util.GetAddressAndDialer(endpoint)
 	if err != nil {
 		return nil, err
@@ -59,16 +65,26 @@ func NewRemoteRuntimeService(endpoint string, connectionTimeout time.Duration) (
 	ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithContextDialer(dialer), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize)))
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithContextDialer(dialer),
+		grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
+		grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMsgSize)),
+	)
 	if err != nil {
 		klog.ErrorS(err, "Connect remote runtime failed", "address", addr)
 		return nil, err
 	}
 
+	h, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+	tracerName := fmt.Sprintf("kubelet-%s", h)
 	return &remoteRuntimeService{
 		timeout:       connectionTimeout,
 		runtimeClient: runtimeapi.NewRuntimeServiceClient(conn),
 		logReduction:  logreduction.NewLogReduction(identicalErrorDelay),
+		tracerName:    tracerName,
 	}, nil
 }
 
@@ -108,6 +124,10 @@ func (r *remoteRuntimeService) RunPodSandbox(config *runtimeapi.PodSandboxConfig
 	ctx, cancel := getContextWithTimeout(timeout)
 	defer cancel()
 
+	tracer := otel.GetTracerProvider().Tracer(r.tracerName)
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "run-pod-sandbox")
+	defer span.End()
 	resp, err := r.runtimeClient.RunPodSandbox(ctx, &runtimeapi.RunPodSandboxRequest{
 		Config:         config,
 		RuntimeHandler: runtimeHandler,
@@ -137,6 +157,10 @@ func (r *remoteRuntimeService) StopPodSandbox(podSandBoxID string) error {
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
 
+	tracer := otel.GetTracerProvider().Tracer(r.tracerName)
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "stop-pod-sandbox")
+	defer span.End()
 	_, err := r.runtimeClient.StopPodSandbox(ctx, &runtimeapi.StopPodSandboxRequest{
 		PodSandboxId: podSandBoxID,
 	})
@@ -156,6 +180,10 @@ func (r *remoteRuntimeService) RemovePodSandbox(podSandBoxID string) error {
 	klog.V(10).InfoS("[RemoteRuntimeService] RemovePodSandbox", "podSandboxID", podSandBoxID, "timeout", r.timeout)
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
+	tracer := otel.GetTracerProvider().Tracer(r.tracerName)
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "remove-pod-sandbox")
+	defer span.End()
 
 	_, err := r.runtimeClient.RemovePodSandbox(ctx, &runtimeapi.RemovePodSandboxRequest{
 		PodSandboxId: podSandBoxID,

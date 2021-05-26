@@ -864,6 +864,9 @@ type KubeletConfiguration struct {
 	// Default: true
 	// +optional
 	EnableDebugFlagsHandler *bool `json:"enableDebugFlagsHandler,omitempty"`
+	// OpenTelemetry
+	// +optional
+	OpenTelemetry OpenTelemetryConfig
 }
 
 type KubeletAuthorizationMode string
@@ -949,4 +952,11 @@ type SerializedNodeConfigSource struct {
 type MemoryReservation struct {
 	NumaNode int32           `json:"numaNode"`
 	Limits   v1.ResourceList `json:"limits"`
+}
+
+// OpenTelemetry specifies configuration for opentelemetry tracing
+type OpenTelemetryConfig struct {
+	EnableTracing      bool
+	TracingServiceName string
+	CollectorEndpoint  string
 }

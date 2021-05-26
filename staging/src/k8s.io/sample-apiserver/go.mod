@@ -23,13 +23,17 @@ require (
 
 replace (
 	github.com/go-bindata/go-bindata => github.com/go-bindata/go-bindata v3.1.1+incompatible
+	github.com/golang/protobuf => github.com/golang/protobuf v1.4.3
+	github.com/google/go-cmp => github.com/google/go-cmp v0.5.4
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210422153130-25c8450d1535
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
 	github.com/robfig/cron => github.com/robfig/cron v1.1.0
+	github.com/stretchr/testify => github.com/stretchr/testify v1.6.1
 	go.uber.org/multierr => go.uber.org/multierr v1.1.0
+	google.golang.org/grpc => google.golang.org/grpc v1.27.1
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

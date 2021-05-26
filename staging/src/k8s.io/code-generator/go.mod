@@ -8,8 +8,8 @@ require (
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 	github.com/go-openapi/spec v0.19.5
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.4.3 // indirect
-	github.com/google/go-cmp v0.5.4 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/googleapis/gnostic v0.4.1
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -18,7 +18,7 @@ require (
 	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.1 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449 // indirect
 	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7 // indirect
 	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 // indirect
@@ -34,6 +34,10 @@ require (
 )
 
 replace (
+	github.com/golang/protobuf => github.com/golang/protobuf v1.4.3
+	github.com/google/go-cmp => github.com/google/go-cmp v0.5.4
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	github.com/stretchr/testify => github.com/stretchr/testify v1.6.1
+	google.golang.org/grpc => google.golang.org/grpc v1.27.1
 	k8s.io/code-generator => ../code-generator
 )
