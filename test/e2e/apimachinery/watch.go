@@ -353,8 +353,10 @@ var _ = SIGDescribe("Watchers", func() {
 			framework.ExpectNoError(err, "Failed to watch configmaps in the namespace %s", ns)
 			wcs = append(wcs, wc)
 			resourceVersion = waitForNextConfigMapEvent(wcs[0]).ResourceVersion
-			for _, wc := range wcs[1:] {
+			framework.Logf("iteration %d, watch 0, resourceVersion %s", i, resourceVersion)
+			for watchIndex, wc := range wcs[1:] {
 				e := waitForNextConfigMapEvent(wc)
+				framework.Logf("iteration %d, watch %d, resourceVersion %s", i, watchIndex+1, e.ResourceVersion)
 				if resourceVersion != e.ResourceVersion {
 					framework.Failf("resource version mismatch, expected %s but got %s", resourceVersion, e.ResourceVersion)
 				}
@@ -475,19 +477,22 @@ func produceConfigMapEvents(f *framework.Framework, stopc <-chan struct{}, minWa
 		switch op {
 		case createEvent:
 			cm.Name = name(i)
-			_, err := c.CoreV1().ConfigMaps(ns).Create(context.TODO(), cm, metav1.CreateOptions{})
+			createdCM, err := c.CoreV1().ConfigMaps(ns).Create(context.TODO(), cm, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "Failed to create configmap %s in namespace %s", cm.Name, ns)
+			framework.Logf("Created with resourceVersion %s", createdCM.ResourceVersion)
 			existing = append(existing, i)
 			i++
 		case updateEvent:
 			idx := rand.Intn(len(existing))
 			cm.Name = name(existing[idx])
-			_, err := c.CoreV1().ConfigMaps(ns).Update(context.TODO(), cm, metav1.UpdateOptions{})
+			updatedCM, err := c.CoreV1().ConfigMaps(ns).Update(context.TODO(), cm, metav1.UpdateOptions{})
 			framework.ExpectNoError(err, "Failed to update configmap %s in namespace %s", cm.Name, ns)
+			framework.Logf("Updated with resourceVersion %s", updatedCM.ResourceVersion)
 		case deleteEvent:
 			idx := rand.Intn(len(existing))
 			err := c.CoreV1().ConfigMaps(ns).Delete(context.TODO(), name(existing[idx]), metav1.DeleteOptions{})
 			framework.ExpectNoError(err, "Failed to delete configmap %s in namespace %s", name(existing[idx]), ns)
+			framework.Logf("Deleted (no resource version available")
 			existing = append(existing[:idx], existing[idx+1:]...)
 		default:
 			framework.Failf("Unsupported event operation: %d", op)
