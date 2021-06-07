@@ -106,14 +106,14 @@ func (c *controller) persistRequestCountForAllResources(ctx context.Context) {
 	// remove stale data
 	expiredHour := (time.Now().Hour() + 1) % 24
 	currentHour := time.Now().Hour()
-	countsToPersist.ExpireOldestCounts(expiredHour)
+	countsToPersist.ExpireOldestCountsNoLock(expiredHour)
 
 	// when this function returns, add any remaining counts back to the total to be retried for update
-	defer c.requestCounts.Add(countsToPersist)
+	defer c.requestCounts.AddBigLock(countsToPersist)
 
 	var wg sync.WaitGroup
 	for gvr := range countsToPersist.resourceToRequestCount {
-		resourceCount := countsToPersist.Resource(gvr)
+		resourceCount := countsToPersist.ResourceNoLock(gvr)
 		wg.Add(1)
 		go c.persistRequestCountForResource(ctx, &wg, currentHour, expiredHour, resourceCount)
 	}
@@ -150,7 +150,7 @@ func (c *controller) persistRequestCountForResource(ctx context.Context, wg *syn
 func removePersistedRequestCounts(nodeName string, currentHour int, persistedStatus *apiv1.APIRequestCountStatus, localResourceCount *resourceRequestCounts) {
 	for hourIndex := range localResourceCount.hourToRequestCount {
 		if currentHour != hourIndex {
-			localResourceCount.RemoveHour(hourIndex)
+			localResourceCount.RemoveHourNoLock(hourIndex)
 		}
 	}
 	for _, persistedNodeCount := range persistedStatus.CurrentHour.ByNode {
@@ -162,18 +162,18 @@ func removePersistedRequestCounts(nodeName string, currentHour int, persistedSta
 				user:      peristedUserCount.UserName,
 				userAgent: peristedUserCount.UserAgent,
 			}
-			localResourceCount.Hour(currentHour).RemoveUser(userKey)
+			localResourceCount.HourNoLock(currentHour).RemoveUserNoLock(userKey)
 		}
 	}
 
 	countToSuppress := int64(0)
-	for _, userCounts := range localResourceCount.Hour(currentHour).usersToRequestCounts {
+	for _, userCounts := range localResourceCount.HourNoLock(currentHour).usersToRequestCounts {
 		for _, verbCount := range userCounts.verbsToRequestCounts {
 			countToSuppress += verbCount.count
 		}
 	}
 
-	localResourceCount.Hour(currentHour).countToSuppress = countToSuppress
+	localResourceCount.HourNoLock(currentHour).countToSuppress = countToSuppress
 }
 
 func resourceToAPIName(resource schema.GroupVersionResource) string {
