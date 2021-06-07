@@ -176,6 +176,18 @@ func (c *resourceRequestCounts) Hour(hour int) *hourlyRequestCounts {
 	return c.hourToRequestCount[hour]
 }
 
+func (c *resourceRequestCounts) HourNoLock(hour int) *hourlyRequestCounts {
+	ret, ok := c.hourToRequestCount[hour]
+	if ok {
+		return ret
+	}
+
+	if _, ok := c.hourToRequestCount[hour]; !ok {
+		c.hourToRequestCount[hour] = newHourlyRequestCounts()
+	}
+	return c.hourToRequestCount[hour]
+}
+
 func (c *resourceRequestCounts) ExpireOldestCounts(expiredHour int) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -185,6 +197,12 @@ func (c *resourceRequestCounts) ExpireOldestCounts(expiredHour int) {
 func (c *resourceRequestCounts) Add(requestCounts *resourceRequestCounts) {
 	for hour, hourCount := range requestCounts.hourToRequestCount {
 		c.Hour(hour).Add(hourCount)
+	}
+}
+
+func (c *resourceRequestCounts) AddNoLock(requestCounts *resourceRequestCounts) {
+	for hour, hourCount := range requestCounts.hourToRequestCount {
+		c.HourNoLock(hour).AddNoLock(hourCount)
 	}
 }
 
@@ -265,9 +283,28 @@ func (c *hourlyRequestCounts) User(user userKey) *userRequestCounts {
 	return c.usersToRequestCounts[user]
 }
 
+func (c *hourlyRequestCounts) UserNoLock(user userKey) *userRequestCounts {
+	ret, ok := c.usersToRequestCounts[user]
+	if ok {
+		return ret
+	}
+
+	if _, ok := c.usersToRequestCounts[user]; !ok {
+		c.usersToRequestCounts[user] = newUserRequestCounts(user)
+	}
+	return c.usersToRequestCounts[user]
+}
+
 func (c *hourlyRequestCounts) Add(requestCounts *hourlyRequestCounts) {
 	for user, userCount := range requestCounts.usersToRequestCounts {
 		c.User(user).Add(userCount)
+	}
+	c.countToSuppress += requestCounts.countToSuppress
+}
+
+func (c *hourlyRequestCounts) AddNoLock(requestCounts *hourlyRequestCounts) {
+	for user, userCount := range requestCounts.usersToRequestCounts {
+		c.UserNoLock(user).AddNoLock(userCount)
 	}
 	c.countToSuppress += requestCounts.countToSuppress
 }
@@ -376,9 +413,27 @@ func (c *userRequestCounts) Verb(verb string) *verbRequestCount {
 	return c.verbsToRequestCounts[verb]
 }
 
+func (c *userRequestCounts) VerbNoLock(verb string) *verbRequestCount {
+	ret, ok := c.verbsToRequestCounts[verb]
+	if ok {
+		return ret
+	}
+
+	if _, ok := c.verbsToRequestCounts[verb]; !ok {
+		c.verbsToRequestCounts[verb] = &verbRequestCount{}
+	}
+	return c.verbsToRequestCounts[verb]
+}
+
 func (c *userRequestCounts) Add(requestCounts *userRequestCounts) {
 	for verb := range requestCounts.verbsToRequestCounts {
 		c.Verb(verb).Add(requestCounts.Verb(verb).count)
+	}
+}
+
+func (c *userRequestCounts) AddNoLock(requestCounts *userRequestCounts) {
+	for verb := range requestCounts.verbsToRequestCounts {
+		c.VerbNoLock(verb).AddNoLock(requestCounts.VerbNoLock(verb).count)
 	}
 }
 
@@ -429,6 +484,10 @@ type verbRequestCount struct {
 
 func (c *verbRequestCount) Add(count int64) {
 	atomic.AddInt64(&c.count, count)
+}
+
+func (c *verbRequestCount) AddNoLock(count int64) {
+	c.count += count
 }
 
 func (c *verbRequestCount) IncrementRequestCount(count int64) {
