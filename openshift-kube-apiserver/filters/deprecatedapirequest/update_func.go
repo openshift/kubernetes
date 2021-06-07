@@ -14,13 +14,18 @@ import (
 func SetRequestCountsForNode(nodeName string, currentHour, expiredHour int, countsToPersist *resourceRequestCounts) v1helpers.UpdateStatusFunc {
 	return func(maxNumUsers int, status *apiv1.APIRequestCountStatus) {
 		existingLogsFromAPI := apiStatusToRequestCount(countsToPersist.resource, status)
-		existingNodeLogFromAPI := existingLogsFromAPI.Node(nodeName)
-		existingNodeLogFromAPI.ExpireOldestCounts(expiredHour)
+		existingNodeLogFromAPI, ok := existingLogsFromAPI.nodeToRequestCount[nodeName]
+		if !ok {
+			existingNodeLogFromAPI = newAPIRequestCounts(nodeName)
+			existingNodeLogFromAPI.resourceToRequestCount[countsToPersist.resource] = newResourceRequestCounts(countsToPersist.resource)
+			existingNodeLogFromAPI.resourceToRequestCount[countsToPersist.resource].hourToRequestCount[currentHour] = newHourlyRequestCounts()
+		}
+		delete(existingNodeLogFromAPI.resourceToRequestCount[countsToPersist.resource].hourToRequestCount, expiredHour)
 
 		// updatedCounts is an alias so we recognize this, but it is based on the newly computed struct so we don't destroy
 		// our input data.
-		updatedCounts := existingNodeLogFromAPI.Resource(countsToPersist.resource)
-		updatedCounts.Add(countsToPersist)
+		updatedCounts := existingNodeLogFromAPI.resourceToRequestCount[countsToPersist.resource]
+		updatedCounts.AddNoLock(countsToPersist)
 		hourlyRequestLogs := resourceRequestCountToHourlyNodeRequestLog(nodeName, maxNumUsers, updatedCounts)
 
 		newStatus := setRequestCountsForNode(status, nodeName, currentHour, expiredHour, hourlyRequestLogs)
@@ -128,19 +133,60 @@ func apiStatusToRequestCount(resource schema.GroupVersionResource, status *apiv1
 	requestCount := newClusterRequestCounts()
 	for hour, hourlyCount := range status.Last24h {
 		for _, hourlyNodeCount := range hourlyCount.ByNode {
+			if _, ok := requestCount.nodeToRequestCount[hourlyNodeCount.NodeName]; !ok {
+				requestCount.nodeToRequestCount[hourlyNodeCount.NodeName] = newAPIRequestCounts(hourlyNodeCount.NodeName)
+				requestCount.nodeToRequestCount[hourlyNodeCount.NodeName].resourceToRequestCount[resource] = newResourceRequestCounts(resource)
+			}
+			if _, ok := requestCount.nodeToRequestCount[hourlyNodeCount.NodeName].resourceToRequestCount[resource].hourToRequestCount[hour]; !ok {
+				requestCount.nodeToRequestCount[hourlyNodeCount.NodeName].resourceToRequestCount[resource].hourToRequestCount[hour] = newHourlyRequestCounts()
+			}
 			for _, hourNodeUserCount := range hourlyNodeCount.ByUser {
+				userKey := userKey{
+					user:      hourNodeUserCount.UserName,
+					userAgent: hourNodeUserCount.UserAgent,
+				}
+				if _, ok := requestCount.
+					nodeToRequestCount[hourlyNodeCount.NodeName].
+					resourceToRequestCount[resource].
+					hourToRequestCount[hour].
+					usersToRequestCounts[userKey]; !ok {
+
+					requestCount.
+						nodeToRequestCount[hourlyNodeCount.NodeName].
+						resourceToRequestCount[resource].
+						hourToRequestCount[hour].
+						usersToRequestCounts[userKey] = newUserRequestCounts(userKey)
+				}
 				for _, hourlyNodeUserVerbCount := range hourNodeUserCount.ByVerb {
-					requestCount.IncrementRequestCount(
-						hourlyNodeCount.NodeName,
-						resource,
-						hour,
-						userKey{
-							user:      hourNodeUserCount.UserName,
-							userAgent: hourNodeUserCount.UserAgent,
-						},
-						hourlyNodeUserVerbCount.Verb,
-						hourlyNodeUserVerbCount.RequestCount,
-					)
+					if _, ok := requestCount.
+						nodeToRequestCount[hourlyNodeCount.NodeName].
+						resourceToRequestCount[resource].
+						hourToRequestCount[hour].
+						usersToRequestCounts[userKey].
+						verbsToRequestCounts[hourlyNodeUserVerbCount.Verb]; !ok {
+
+						requestCount.
+							nodeToRequestCount[hourlyNodeCount.NodeName].
+							resourceToRequestCount[resource].
+							hourToRequestCount[hour].
+							usersToRequestCounts[userKey].
+							verbsToRequestCounts[hourlyNodeUserVerbCount.Verb] = &verbRequestCount{
+							count: hourlyNodeUserVerbCount.RequestCount,
+						}
+					} else {
+						existing := requestCount.
+							nodeToRequestCount[hourlyNodeCount.NodeName].
+							resourceToRequestCount[resource].
+							hourToRequestCount[hour].
+							usersToRequestCounts[userKey].
+							verbsToRequestCounts[hourlyNodeUserVerbCount.Verb]
+						requestCount.
+							nodeToRequestCount[hourlyNodeCount.NodeName].
+							resourceToRequestCount[resource].
+							hourToRequestCount[hour].
+							usersToRequestCounts[userKey].
+							verbsToRequestCounts[hourlyNodeUserVerbCount.Verb].count = existing.count + hourlyNodeUserVerbCount.RequestCount
+					}
 				}
 			}
 		}
