@@ -54,6 +54,7 @@ func (c *clusterRequestCounts) String() string {
 }
 
 type apiRequestCounts struct {
+	bigLock                sync.RWMutex
 	lock                   sync.RWMutex
 	nodeName               string
 	resourceToRequestCount map[schema.GroupVersionResource]*resourceRequestCounts
@@ -82,13 +83,36 @@ func (c *apiRequestCounts) Resource(resource schema.GroupVersionResource) *resou
 	return c.resourceToRequestCount[resource]
 }
 
+func (c *apiRequestCounts) ResourceNoLock(resource schema.GroupVersionResource) *resourceRequestCounts {
+	ret, ok := c.resourceToRequestCount[resource]
+	if ok {
+		return ret
+	}
+
+	if _, ok := c.resourceToRequestCount[resource]; !ok {
+		c.resourceToRequestCount[resource] = newResourceRequestCounts(resource)
+	}
+	return c.resourceToRequestCount[resource]
+}
+
 func (c *apiRequestCounts) Add(requestCounts *apiRequestCounts) {
 	for resource := range requestCounts.resourceToRequestCount {
 		c.Resource(resource).Add(requestCounts.Resource(resource))
 	}
 }
 
+func (c *apiRequestCounts) AddBigLock(requestCounts *apiRequestCounts) {
+	c.bigLock.Lock()
+	defer c.bigLock.Unlock()
+
+	for resource := range requestCounts.resourceToRequestCount {
+		c.ResourceNoLock(resource).AddNoLock(requestCounts.ResourceNoLock(resource))
+	}
+}
+
 func (c *apiRequestCounts) IncrementRequestCount(resource schema.GroupVersionResource, hour int, user userKey, verb string, count int64) {
+	c.bigLock.RLock()
+	defer c.bigLock.RUnlock()
 	c.Resource(resource).IncrementRequestCount(hour, user, verb, count)
 }
 
@@ -97,6 +121,12 @@ func (c *apiRequestCounts) ExpireOldestCounts(expiredHour int) {
 	defer c.lock.Unlock()
 	for _, resource := range c.resourceToRequestCount {
 		resource.ExpireOldestCounts(expiredHour)
+	}
+}
+
+func (c *apiRequestCounts) ExpireOldestCountsNoLock(expiredHour int) {
+	for _, resource := range c.resourceToRequestCount {
+		resource.ExpireOldestCountsNoLock(expiredHour)
 	}
 }
 
@@ -194,6 +224,10 @@ func (c *resourceRequestCounts) ExpireOldestCounts(expiredHour int) {
 	delete(c.hourToRequestCount, expiredHour)
 }
 
+func (c *resourceRequestCounts) ExpireOldestCountsNoLock(expiredHour int) {
+	delete(c.hourToRequestCount, expiredHour)
+}
+
 func (c *resourceRequestCounts) Add(requestCounts *resourceRequestCounts) {
 	for hour, hourCount := range requestCounts.hourToRequestCount {
 		c.Hour(hour).Add(hourCount)
@@ -213,6 +247,10 @@ func (c *resourceRequestCounts) IncrementRequestCount(hour int, user userKey, ve
 func (c *resourceRequestCounts) RemoveHour(hour int) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	delete(c.hourToRequestCount, hour)
+}
+
+func (c *resourceRequestCounts) RemoveHourNoLock(hour int) {
 	delete(c.hourToRequestCount, hour)
 }
 
@@ -316,6 +354,10 @@ func (c *hourlyRequestCounts) IncrementRequestCount(user userKey, verb string, c
 func (c *hourlyRequestCounts) RemoveUser(user userKey) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	delete(c.usersToRequestCounts, user)
+}
+
+func (c *hourlyRequestCounts) RemoveUserNoLock(user userKey) {
 	delete(c.usersToRequestCounts, user)
 }
 
