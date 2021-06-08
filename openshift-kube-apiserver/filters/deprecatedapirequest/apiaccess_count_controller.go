@@ -109,7 +109,9 @@ func (c *controller) persistRequestCountForAllResources(ctx context.Context) {
 	countsToPersist.ExpireOldestCountsNoLock(expiredHour)
 
 	// when this function returns, add any remaining counts back to the total to be retried for update
-	defer c.requestCounts.AddBigLock(countsToPersist)
+	// removing this line breaks the actual content, but it ought to fully eliminate unique contention on the update
+	// paths
+	//defer c.requestCounts.AddBigLock(countsToPersist)
 
 	var wg sync.WaitGroup
 	for gvr := range countsToPersist.resourceToRequestCount {
