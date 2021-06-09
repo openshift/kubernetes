@@ -101,25 +101,25 @@ func (c *controller) persistRequestCountForAllResources(ctx context.Context) {
 	defer klog.V(2).Infof("finished updating top APIRequest counts")
 
 	// get the current count to persist, start a new in-memory count
-	countsToPersist := c.resetRequestCount()
+	c.resetRequestCount()
 
 	// remove stale data
-	expiredHour := (time.Now().Hour() + 1) % 24
-	currentHour := time.Now().Hour()
-	countsToPersist.ExpireOldestCountsNoLock(expiredHour)
-
-	// when this function returns, add any remaining counts back to the total to be retried for update
-	// removing this line breaks the actual content, but it ought to fully eliminate unique contention on the update
-	// paths
-	//defer c.requestCounts.AddBigLock(countsToPersist)
-
-	var wg sync.WaitGroup
-	for gvr := range countsToPersist.resourceToRequestCount {
-		resourceCount := countsToPersist.ResourceNoLock(gvr)
-		wg.Add(1)
-		go c.persistRequestCountForResource(ctx, &wg, currentHour, expiredHour, resourceCount)
-	}
-	wg.Wait()
+	//expiredHour := (time.Now().Hour() + 1) % 24
+	//currentHour := time.Now().Hour()
+	//countsToPersist.ExpireOldestCountsNoLock(expiredHour)
+	//
+	//// when this function returns, add any remaining counts back to the total to be retried for update
+	//// removing this line breaks the actual content, but it ought to fully eliminate unique contention on the update
+	//// paths
+	////defer c.requestCounts.AddBigLock(countsToPersist)
+	//
+	//var wg sync.WaitGroup
+	//for gvr := range countsToPersist.resourceToRequestCount {
+	//	resourceCount := countsToPersist.ResourceNoLock(gvr)
+	//	wg.Add(1)
+	//	go c.persistRequestCountForResource(ctx, &wg, currentHour, expiredHour, resourceCount)
+	//}
+	//wg.Wait()
 }
 
 func (c *controller) persistRequestCountForResource(ctx context.Context, wg *sync.WaitGroup, currentHour, expiredHour int, localResourceCount *resourceRequestCounts) {
