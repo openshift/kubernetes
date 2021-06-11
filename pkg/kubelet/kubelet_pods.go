@@ -32,6 +32,9 @@ import (
 	"strings"
 	"sync"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1362,6 +1365,10 @@ func (kl *Kubelet) validateContainerLogStatus(podName string, podStatus *v1.PodS
 // TODO: this method is returning logs of random container attempts, when it should be returning the most recent attempt
 // or all of them.
 func (kl *Kubelet) GetKubeletContainerLogs(ctx context.Context, podFullName, containerName string, logOptions *v1.PodLogOptions, stdout, stderr io.Writer) error {
+	tracer := otel.GetTracerProvider().Tracer("get-kubelet-ctr-logs")
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "get-kubelet-ctr-logs")
+	defer span.End()
 	// Pod workers periodically write status to statusManager. If status is not
 	// cached there, something is wrong (or kubelet just restarted and hasn't
 	// caught up yet). Just assume the pod is not ready yet.
