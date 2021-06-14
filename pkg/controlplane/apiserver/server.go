@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/kubernetes/pkg/controlplane/controller/kubernetesservice"
+
 	coordinationapiv1 "k8s.io/api/coordination/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,6 +138,11 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 		ClusterAuthenticationInfo: c.ClusterAuthenticationInfo,
 		VersionedInformers:        c.VersionedInformers,
 	}
+
+	kubernetesservice.KubeAPIServerEmitEventFn = s.GenericAPIServer.Eventf
+	s.GenericAPIServer.RegisterDestroyFunc(func() {
+		kubernetesservice.KubeAPIServerEmitEventFn = nil
+	})
 
 	client, err := kubernetes.NewForConfig(s.GenericAPIServer.LoopbackClientConfig)
 	if err != nil {
