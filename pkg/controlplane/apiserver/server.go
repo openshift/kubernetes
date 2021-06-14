@@ -130,6 +130,8 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 		VersionedInformers:        c.VersionedInformers,
 	}
 
+	kubernetesservice.KubeAPIServerEmitEventFn = m.GenericAPIServer.Eventf
+
 	client, err := kubernetes.NewForConfig(s.GenericAPIServer.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
