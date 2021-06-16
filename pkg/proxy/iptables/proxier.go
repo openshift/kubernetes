@@ -117,12 +117,15 @@ const sysctlBridgeCallIPTables = "net/bridge/bridge-nf-call-iptables"
 type serviceInfo struct {
 	*proxy.BaseServiceInfo
 	// The following fields are computed and stored for performance reasons.
-	nameString             string
-	clusterPolicyChainName utiliptables.Chain
-	localPolicyChainName   utiliptables.Chain
-	firewallChainName      utiliptables.Chain
-	externalChainName      utiliptables.Chain
+	serviceNameString        string
+	servicePortChainName     utiliptables.Chain
+	serviceFirewallChainName utiliptables.Chain
+	serviceLBChainName       utiliptables.Chain
+
+	localWithFallback bool
 }
+
+const localWithFallbackAnnotation = "traffic-policy.network.alpha.openshift.io/local-with-fallback"
 
 // returns a new proxy.ServicePort which abstracts a serviceInfo
 func newServiceInfo(port *v1.ServicePort, service *v1.Service, baseInfo *proxy.BaseServiceInfo) proxy.ServicePort {
@@ -137,6 +140,14 @@ func newServiceInfo(port *v1.ServicePort, service *v1.Service, baseInfo *proxy.B
 	info.localPolicyChainName = servicePortPolicyLocalChainName(info.nameString, protocol)
 	info.firewallChainName = serviceFirewallChainName(info.nameString, protocol)
 	info.externalChainName = serviceExternalChainName(info.nameString, protocol)
+
+	if _, set := service.Annotations[localWithFallbackAnnotation]; set {
+		if info.NodeLocalExternal() {
+			info.localWithFallback = true
+		} else {
+			klog.Warningf("Ignoring annotation %q on Service %s which does not have Local ExternalTrafficPolicy", localWithFallbackAnnotation, svcName)
+		}
+	}
 
 	return info
 }
@@ -1373,29 +1384,67 @@ func (proxier *Proxier) syncProxyRules() {
 			proxier.writeServiceToEndpointRules(svcNameString, svcInfo, clusterPolicyChain, clusterEndpoints, args)
 		}
 
-		if svcInfo.UsesLocalEndpoints() {
-			if len(localEndpoints) != 0 {
-				// Write rules jumping from localPolicyChain to localEndpointChains
-				proxier.writeServiceToEndpointRules(svcNameString, svcInfo, localPolicyChain, localEndpoints, args)
-			} else {
-				if svcInfo.InternalPolicyLocal() && utilfeature.DefaultFeatureGate.Enabled(features.ServiceInternalTrafficPolicy) {
-					serviceNoLocalEndpointsTotalInternal++
-				}
-				if svcInfo.ExternalPolicyLocal() {
-					serviceNoLocalEndpointsTotalExternal++
-				}
-				if hasEndpoints {
-					// Blackhole all traffic since there are no local endpoints
-					args = append(args[:0],
-						"-A", string(localPolicyChain),
-						"-m", "comment", "--comment",
-						fmt.Sprintf(`"%s has no local endpoints"`, svcNameString),
-						"-j",
-						string(KubeMarkDropChain),
-					)
-					proxier.natRules.Write(args)
-				}
-			}
+		// Write rules jumping from svcChain to readyEndpointChains
+		proxier.writeServiceToEndpointRules(svcNameString, svcInfo, svcChain, readyEndpointChains, args)
+
+		// The logic below this applies only if this service is marked as OnlyLocal
+		if !svcInfo.NodeLocalExternal() {
+			continue
+		}
+
+		// First rule in the chain redirects all pod -> external VIP traffic to the
+		// Service's ClusterIP instead. This happens whether or not we have local
+		// endpoints; only if localDetector is implemented
+		if proxier.localDetector.IsImplemented() {
+			args = append(args[:0],
+				"-A", string(svcXlbChain),
+				"-m", "comment", "--comment",
+				`"Redirect pods trying to reach external loadbalancer VIP to clusterIP"`,
+			)
+			proxier.natRules.Write(proxier.localDetector.JumpIfLocal(args, string(svcChain)))
+		}
+
+		// Next, redirect all src-type=LOCAL -> LB IP to the service chain for externalTrafficPolicy=Local
+		// This allows traffic originating from the host to be redirected to the service correctly,
+		// otherwise traffic to LB IPs are dropped if there are no local endpoints.
+		args = append(args[:0], "-A", string(svcXlbChain))
+		proxier.natRules.Write(
+			args,
+			"-m", "comment", "--comment", fmt.Sprintf(`"masquerade LOCAL traffic for %s LB IP"`, svcNameString),
+			"-m", "addrtype", "--src-type", "LOCAL", "-j", string(KubeMarkMasqChain))
+		proxier.natRules.Write(
+			args,
+			"-m", "comment", "--comment", fmt.Sprintf(`"route LOCAL traffic for %s LB IP to service chain"`, svcNameString),
+			"-m", "addrtype", "--src-type", "LOCAL", "-j", string(svcChain))
+
+		numLocalEndpoints := len(localEndpointChains)
+
+		// If "local-with-fallback" is in effect and there are no local endpoints,
+		// then NAT the traffic and forward to a remote endpoint
+		if numLocalEndpoints == 0 && svcInfo.localWithFallback {
+			proxier.natRules.Write(
+				"-A", string(svcXlbChain),
+				"-m", "comment", "--comment", `"local-with-fallback NAT"`,
+				"-j", string(KubeMarkMasqChain),
+			)
+
+			localEndpointChains = readyEndpointChains
+			numLocalEndpoints = len(localEndpointChains)
+		}
+
+		if numLocalEndpoints == 0 {
+			// Blackhole all traffic since there are no local endpoints
+			args = append(args[:0],
+				"-A", string(svcXlbChain),
+				"-m", "comment", "--comment",
+				fmt.Sprintf(`"%s has no local endpoints"`, svcNameString),
+				"-j",
+				string(KubeMarkDropChain),
+			)
+			proxier.natRules.Write(args)
+		} else {
+			// Write rules jumping from svcXlbChain to localEndpointChains
+			proxier.writeServiceToEndpointRules(svcNameString, svcInfo, svcXlbChain, localEndpointChains, args)
 		}
 	}
 
