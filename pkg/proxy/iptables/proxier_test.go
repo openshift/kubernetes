@@ -2160,14 +2160,14 @@ func TestOpenShiftDNSHack(t *testing.T) {
 			eps.Endpoints = []discovery.Endpoint{{
 				// This endpoint is ignored because it's remote
 				Addresses: []string{"10.180.0.2"},
-				NodeName:  utilpointer.StringPtr("node2"),
+				NodeName:  pointer.StringPtr("node2"),
 			}, {
 				Addresses: []string{"10.180.0.1"},
-				NodeName:  utilpointer.StringPtr(testHostname),
+				NodeName:  pointer.StringPtr(testHostname),
 			}}
 			eps.Ports = []discovery.EndpointPort{{
-				Name:     utilpointer.StringPtr(svcPortName.Port),
-				Port:     utilpointer.Int32(int32(podPort)),
+				Name:     pointer.StringPtr(svcPortName.Port),
+				Port:     pointer.Int32(int32(podPort)),
 				Protocol: &svcPortName.Protocol,
 			}}
 		}),
@@ -2217,7 +2217,7 @@ func TestOpenShiftDNSHack(t *testing.T) {
 		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns -> 10.180.0.1:5353" -j KUBE-SEP-DYOI7QYSVZXR6VUA
 		COMMIT
 		`)
-	assertIPTablesRulesEqual(t, getLine(), expected, fp.iptablesData.String())
+	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
 }
 
 func TestOpenShiftDNSHackFallback(t *testing.T) {
@@ -2249,14 +2249,14 @@ func TestOpenShiftDNSHackFallback(t *testing.T) {
 			// Both endpoints are used because neither is local
 			eps.Endpoints = []discovery.Endpoint{{
 				Addresses: []string{"10.180.1.2"},
-				NodeName:  utilpointer.StringPtr("node2"),
+				NodeName:  pointer.StringPtr("node2"),
 			}, {
 				Addresses: []string{"10.180.2.3"},
-				NodeName:  utilpointer.StringPtr("node3"),
+				NodeName:  pointer.StringPtr("node3"),
 			}}
 			eps.Ports = []discovery.EndpointPort{{
-				Name:     utilpointer.StringPtr(svcPortName.Port),
-				Port:     utilpointer.Int32(int32(podPort)),
+				Name:     pointer.StringPtr(svcPortName.Port),
+				Port:     pointer.Int32(int32(podPort)),
 				Protocol: &svcPortName.Protocol,
 			}}
 		}),
@@ -2310,7 +2310,7 @@ func TestOpenShiftDNSHackFallback(t *testing.T) {
 		-A KUBE-SVC-BGNS3J6UB7MMLVDO -m comment --comment "openshift-dns/dns-default:dns -> 10.180.2.3:5353" -j KUBE-SEP-UJYYVAPCRGSFEWJK
 		COMMIT
 		`)
-	assertIPTablesRulesEqual(t, getLine(), expected, fp.iptablesData.String())
+	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
 }
 
 func TestLoadBalancer(t *testing.T) {
@@ -3849,6 +3849,114 @@ func TestDisableLocalhostNodePortsIPv6(t *testing.T) {
 	)
 
 	fp.syncProxyRules()
+	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
+}
+
+func TestOnlyLocalWithFallback(t *testing.T) {
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt)
+	svcIP := "172.30.0.41"
+	svcPort := 80
+	svcNodePort := 3001
+	svcHealthCheckNodePort := 30000
+	svcLBIP := "1.2.3.4"
+	svcPortName := proxy.ServicePortName{
+		NamespacedName: makeNSN("ns1", "svc1"),
+		Port:           "p80",
+		Protocol:       v1.ProtocolTCP,
+	}
+	svcSessionAffinityTimeout := int32(10800)
+
+	makeServiceMap(fp,
+		makeTestService(svcPortName.Namespace, svcPortName.Name, func(svc *v1.Service) {
+			svc.ObjectMeta.Annotations = map[string]string{
+				localWithFallbackAnnotation: "",
+			}
+			svc.Spec.Type = "LoadBalancer"
+			svc.Spec.ClusterIP = svcIP
+			svc.Spec.Ports = []v1.ServicePort{{
+				Name:     svcPortName.Port,
+				Port:     int32(svcPort),
+				Protocol: v1.ProtocolTCP,
+				NodePort: int32(svcNodePort),
+			}}
+			svc.Spec.HealthCheckNodePort = int32(svcHealthCheckNodePort)
+			svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{{
+				IP: svcLBIP,
+			}}
+			svc.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
+			svc.Spec.SessionAffinity = v1.ServiceAffinityClientIP
+			svc.Spec.SessionAffinityConfig = &v1.SessionAffinityConfig{
+				ClientIP: &v1.ClientIPConfig{TimeoutSeconds: &svcSessionAffinityTimeout},
+			}
+		}),
+	)
+
+	epIP1 := "10.180.0.1"
+	epIP2 := "10.180.2.1"
+	tcpProtocol := v1.ProtocolTCP
+	populateEndpointSlices(fp,
+		makeTestEndpointSlice(svcPortName.Namespace, svcPortName.Name, 1, func(eps *discovery.EndpointSlice) {
+			eps.AddressType = discovery.AddressTypeIPv4
+			eps.Endpoints = []discovery.Endpoint{{
+				Addresses: []string{epIP1},
+				NodeName:  pointer.StringPtr("host1"),
+			}, {
+				Addresses: []string{epIP2},
+				NodeName:  pointer.StringPtr("host2"),
+			}}
+			eps.Ports = []discovery.EndpointPort{{
+				Name:     pointer.StringPtr(svcPortName.Port),
+				Port:     pointer.Int32(int32(svcPort)),
+				Protocol: &tcpProtocol,
+			}}
+		}),
+	)
+
+	fp.syncProxyRules()
+
+	expected := dedent.Dedent(`
+		*filter
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-EXTERNAL-SERVICES - [0:0]
+		:KUBE-FORWARD - [0:0]
+		:KUBE-PROXY-FIREWALL - [0:0]
+		-A KUBE-NODEPORTS -m comment --comment "ns1/svc1:p80 health check node port" -m tcp -p tcp --dport 30000 -j ACCEPT
+		-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+		COMMIT
+		*nat
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-EXT-XPGD46QRK7WJZT7O - [0:0]
+		:KUBE-MARK-MASQ - [0:0]
+		:KUBE-POSTROUTING - [0:0]
+		:KUBE-SEP-SXIVWICOYRO3J4NJ - [0:0]
+		:KUBE-SEP-ZX7GRIZKSNUQ3LAJ - [0:0]
+		:KUBE-SVC-XPGD46QRK7WJZT7O - [0:0]
+		-A KUBE-NODEPORTS -m comment --comment ns1/svc1:p80 -m tcp -p tcp --dport 3001 -j KUBE-EXT-XPGD46QRK7WJZT7O
+		-A KUBE-SERVICES -m comment --comment "ns1/svc1:p80 cluster IP" -m tcp -p tcp -d 172.30.0.41 --dport 80 -j KUBE-SVC-XPGD46QRK7WJZT7O
+		-A KUBE-SERVICES -m comment --comment "ns1/svc1:p80 loadbalancer IP" -m tcp -p tcp -d 1.2.3.4 --dport 80 -j KUBE-EXT-XPGD46QRK7WJZT7O
+		-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+		-A KUBE-EXT-XPGD46QRK7WJZT7O -m comment --comment "masquerade traffic for ns1/svc1:p80 external destinations" ! -s 10.0.0.0/8 -j KUBE-MARK-MASQ
+		-A KUBE-EXT-XPGD46QRK7WJZT7O -j KUBE-SVC-XPGD46QRK7WJZT7O
+		-A KUBE-MARK-MASQ -j MARK --or-mark 0x4000
+		-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+		-A KUBE-POSTROUTING -j MARK --xor-mark 0x4000
+		-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+		-A KUBE-SEP-SXIVWICOYRO3J4NJ -m comment --comment ns1/svc1:p80 -s 10.180.0.1 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-SXIVWICOYRO3J4NJ -m comment --comment ns1/svc1:p80 -m recent --name KUBE-SEP-SXIVWICOYRO3J4NJ --set -m tcp -p tcp -j DNAT --to-destination 10.180.0.1:80
+		-A KUBE-SEP-ZX7GRIZKSNUQ3LAJ -m comment --comment ns1/svc1:p80 -s 10.180.2.1 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-ZX7GRIZKSNUQ3LAJ -m comment --comment ns1/svc1:p80 -m recent --name KUBE-SEP-ZX7GRIZKSNUQ3LAJ --set -m tcp -p tcp -j DNAT --to-destination 10.180.2.1:80
+		-A KUBE-SVC-XPGD46QRK7WJZT7O -m comment --comment "ns1/svc1:p80 cluster IP" -m tcp -p tcp -d 172.30.0.41 --dport 80 ! -s 10.0.0.0/8 -j KUBE-MARK-MASQ
+		-A KUBE-SVC-XPGD46QRK7WJZT7O -m comment --comment "ns1/svc1:p80 -> 10.180.0.1:80" -m recent --name KUBE-SEP-SXIVWICOYRO3J4NJ --rcheck --seconds 10800 --reap -j KUBE-SEP-SXIVWICOYRO3J4NJ
+		-A KUBE-SVC-XPGD46QRK7WJZT7O -m comment --comment "ns1/svc1:p80 -> 10.180.2.1:80" -m recent --name KUBE-SEP-ZX7GRIZKSNUQ3LAJ --rcheck --seconds 10800 --reap -j KUBE-SEP-ZX7GRIZKSNUQ3LAJ
+		-A KUBE-SVC-XPGD46QRK7WJZT7O -m comment --comment "ns1/svc1:p80 -> 10.180.0.1:80" -m statistic --mode random --probability 0.5000000000 -j KUBE-SEP-SXIVWICOYRO3J4NJ
+		-A KUBE-SVC-XPGD46QRK7WJZT7O -m comment --comment "ns1/svc1:p80 -> 10.180.2.1:80" -j KUBE-SEP-ZX7GRIZKSNUQ3LAJ
+		COMMIT
+		`)
 	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
 }
 
