@@ -121,7 +121,11 @@ type serviceInfo struct {
 	servicePortChainName     utiliptables.Chain
 	serviceFirewallChainName utiliptables.Chain
 	serviceLBChainName       utiliptables.Chain
+
+	localWithFallback bool
 }
+
+const localWithFallbackAnnotation = "traffic-policy.network.alpha.openshift.io/local-with-fallback"
 
 // returns a new proxy.ServicePort which abstracts a serviceInfo
 func newServiceInfo(port *v1.ServicePort, service *v1.Service, baseInfo *proxy.BaseServiceInfo) proxy.ServicePort {
@@ -135,6 +139,14 @@ func newServiceInfo(port *v1.ServicePort, service *v1.Service, baseInfo *proxy.B
 	info.servicePortChainName = servicePortChainName(info.serviceNameString, protocol)
 	info.serviceFirewallChainName = serviceFirewallChainName(info.serviceNameString, protocol)
 	info.serviceLBChainName = serviceLBChainName(info.serviceNameString, protocol)
+
+	if _, set := service.Annotations[localWithFallbackAnnotation]; set {
+		if info.NodeLocalExternal() {
+			info.localWithFallback = true
+		} else {
+			klog.Warningf("Ignoring annotation %q on Service %s which does not have Local ExternalTrafficPolicy", localWithFallbackAnnotation, svcName)
+		}
+	}
 
 	return info
 }
@@ -1489,6 +1501,20 @@ func (proxier *Proxier) syncProxyRules() {
 			"-m", "addrtype", "--src-type", "LOCAL", "-j", string(svcChain))...)
 
 		numLocalEndpoints := len(localEndpointChains)
+
+		// If "local-with-fallback" is in effect and there are no local endpoints,
+		// then NAT the traffic and forward to a remote endpoint
+		if numLocalEndpoints == 0 && svcInfo.localWithFallback {
+			utilproxy.WriteLine(proxier.natRules,
+				"-A", string(svcXlbChain),
+				"-m", "comment", "--comment", `"local-with-fallback NAT"`,
+				"-j", string(KubeMarkMasqChain),
+			)
+
+			localEndpointChains = endpointChains
+			numLocalEndpoints = len(localEndpointChains)
+		}
+
 		if numLocalEndpoints == 0 {
 			// Blackhole all traffic since there are no local endpoints
 			args = append(args[:0],
