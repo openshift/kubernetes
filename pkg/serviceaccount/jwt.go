@@ -28,8 +28,9 @@ import (
 	"fmt"
 	"strings"
 
-	jose "gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
+	"k8s.io/klog/v2"
 
 	v1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -283,6 +284,7 @@ func (j *jwtTokenAuthenticator) AuthenticateToken(ctx context.Context, tokenData
 	}
 
 	if !found {
+		klog.Infof("#### Could not authenticate token (not found) errorlist=%v token=%v keys=%v", errlist, tokenData, j.keys)
 		return nil, false, utilerrors.NewAggregate(errlist)
 	}
 
@@ -302,6 +304,7 @@ func (j *jwtTokenAuthenticator) AuthenticateToken(ctx context.Context, tokenData
 
 	auds := authenticator.Audiences(tokenAudiences).Intersect(requestedAudiences)
 	if len(auds) == 0 && len(j.implicitAuds) != 0 {
+		klog.Infof("#### Could not authenticate token (audience error) token=%v", tokenData)
 		return nil, false, fmt.Errorf("token audiences %q is invalid for the target audiences %q", tokenAudiences, requestedAudiences)
 	}
 
@@ -309,6 +312,7 @@ func (j *jwtTokenAuthenticator) AuthenticateToken(ctx context.Context, tokenData
 	// issuer string.
 	sa, err := j.validator.Validate(ctx, tokenData, public, private)
 	if err != nil {
+		klog.Infof("#### Could not authenticate token (invalid) token=%v err=%v", tokenData, err)
 		return nil, false, err
 	}
 

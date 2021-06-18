@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"k8s.io/klog/v2"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +47,7 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 	// hash token for new-style sha256~ prefixed token
 	// TODO: reject non-sha256 prefix tokens in 4.7+
 	if !strings.HasPrefix(name, sha256Prefix) {
+		klog.Infof("#### Token not found for name=%v", name)
 		return nil, false, errOldFormat
 	}
 
@@ -55,11 +57,13 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 
 	token, err := a.tokens.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
+		klog.Infof("#### Token not found for name=%v err=%v", name, err)
 		return nil, false, errLookup // mask the error so we do not leak token data in logs
 	}
 
 	user, err := a.users.Get(context.TODO(), token.UserName, metav1.GetOptions{})
 	if err != nil {
+		klog.Infof("#### User not found for name=%v token.UserName=%v err=%v", name, token.UserName, err)
 		return nil, false, err
 	}
 
