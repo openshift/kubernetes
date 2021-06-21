@@ -6,9 +6,15 @@ go 1.16
 
 require (
 	github.com/google/go-cmp v0.5.4
+<<<<<<< HEAD
 	k8s.io/api v0.21.0-rc.0
 	k8s.io/apimachinery v0.21.0-rc.0
 	k8s.io/component-base v0.21.0-rc.0
+=======
+	k8s.io/api v0.0.0
+	k8s.io/apimachinery v0.0.0
+	k8s.io/component-base v0.0.0
+>>>>>>> v1.21.2
 	sigs.k8s.io/yaml v1.2.0
 )
 

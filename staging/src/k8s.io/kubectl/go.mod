@@ -15,6 +15,10 @@ require (
 	github.com/fatih/camelcase v1.0.0
 	github.com/fvbommel/sortorder v1.0.1
 	github.com/go-openapi/spec v0.19.5
+<<<<<<< HEAD
+=======
+	github.com/golangplus/testing v0.0.0-20180327235837-af21d9c3145e // indirect
+>>>>>>> v1.21.2
 	github.com/google/go-cmp v0.5.4
 	github.com/googleapis/gnostic v0.4.1
 	github.com/jonboulle/clockwork v0.1.0

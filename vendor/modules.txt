@@ -200,7 +200,10 @@ github.com/chai2010/gettext-go/gettext
 github.com/chai2010/gettext-go/gettext/mo
 github.com/chai2010/gettext-go/gettext/plural
 github.com/chai2010/gettext-go/gettext/po
+<<<<<<< HEAD
 # github.com/checkpoint-restore/go-criu/v4 => github.com/checkpoint-restore/go-criu/v4 v4.1.0
+=======
+>>>>>>> v1.21.2
 # github.com/checkpoint-restore/go-criu/v5 v5.0.0 => github.com/checkpoint-restore/go-criu/v5 v5.0.0
 github.com/checkpoint-restore/go-criu/v5
 # github.com/checkpoint-restore/go-criu/v5 => github.com/checkpoint-restore/go-criu/v5 v5.0.0
@@ -886,9 +889,15 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
+<<<<<<< HEAD
 # github.com/opencontainers/runc v1.0.0-rc95.0.20210608002938-1f5126fe967e => github.com/openshift/opencontainers-runc v1.0.0-rc95.0.20210608002938-1f5126fe967e
 ## explicit
 # github.com/opencontainers/runc => github.com/openshift/opencontainers-runc v1.0.0-rc95.0.20210608002938-1f5126fe967e
+=======
+# github.com/opencontainers/runc v1.0.0-rc95 => github.com/opencontainers/runc v1.0.0-rc95
+## explicit
+# github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc95
+>>>>>>> v1.21.2
 github.com/opencontainers/runc/libcontainer
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/capabilities
@@ -2814,8 +2823,8 @@ k8s.io/utils/trace
 # modernc.org/strutil => modernc.org/strutil v1.0.0
 # modernc.org/xc => modernc.org/xc v1.0.0
 # rsc.io/pdf => rsc.io/pdf v0.1.1
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
 # sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.8
