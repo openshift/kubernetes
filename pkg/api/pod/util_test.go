@@ -1189,50 +1189,55 @@ func TestDropProbeGracePeriod(t *testing.T) {
 		},
 	}
 
-	enabled := true
-	for _, oldPodInfo := range podInfo {
-		for _, newPodInfo := range podInfo {
-			oldPodHasGracePeriod, oldPod := oldPodInfo.hasGracePeriod, oldPodInfo.pod()
-			newPodHasGracePeriod, newPod := newPodInfo.hasGracePeriod, newPodInfo.pod()
-			if newPod == nil {
-				continue
-			}
+	//enabled := true
+	for _, enabled := range []bool{true, false} {
+		for _, oldPodInfo := range podInfo {
+			for _, newPodInfo := range podInfo {
+				oldPod := oldPodInfo.pod()
+				newPodHasGracePeriod, newPod := newPodInfo.hasGracePeriod, newPodInfo.pod()
 
-			t.Run(fmt.Sprintf("feature enabled=%v, old pod %v, new pod %v", enabled, oldPodInfo.description, newPodInfo.description), func(t *testing.T) {
-
-				var oldPodSpec *api.PodSpec
-				if oldPod != nil {
-					oldPodSpec = &oldPod.Spec
-				}
-				dropDisabledFields(&newPod.Spec, nil, oldPodSpec, nil)
-
-				// old pod should never be changed
-				if !reflect.DeepEqual(oldPod, oldPodInfo.pod()) {
-					t.Errorf("old pod changed: %v", diff.ObjectReflectDiff(oldPod, oldPodInfo.pod()))
+				if newPod == nil {
+					continue
 				}
 
-				switch {
-				case enabled || oldPodHasGracePeriod:
-					// new pod should not be changed if the feature is enabled, or if the old pod had subpaths
-					if !reflect.DeepEqual(newPod, newPodInfo.pod()) {
-						t.Errorf("new pod changed: %v", diff.ObjectReflectDiff(newPod, newPodInfo.pod()))
+				t.Run(fmt.Sprintf("feature enabled=%v, old pod %v, new pod %v", enabled, oldPodInfo.description, newPodInfo.description), func(t *testing.T) {
+
+					defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ProbeTerminationGracePeriod, enabled)()
+
+					var oldPodSpec *api.PodSpec
+					if oldPod != nil {
+						oldPodSpec = &oldPod.Spec
 					}
-				case newPodHasGracePeriod:
-					// new pod should be changed
-					if reflect.DeepEqual(newPod, newPodInfo.pod()) {
+					dropDisabledFields(&newPod.Spec, nil, oldPodSpec, nil)
+
+					// old pod should never be changed
+					if !reflect.DeepEqual(oldPod, oldPodInfo.pod()) {
+						t.Errorf("old pod changed: %v", cmp.Diff(oldPod, oldPodInfo.pod()))
+					}
+
+					switch {
+					case enabled:
+						// new pod should not be changed if the feature is enabled
+						if !reflect.DeepEqual(newPod, newPodInfo.pod()) {
+							t.Errorf("new pod changed: %v", cmp.Diff(newPod, newPodInfo.pod()))
+						}
+
+					case newPodHasGracePeriod:
+						// new pod should not have grace period if the feature gate is disabled
+						t.Errorf("new pod should not have grace period if the feature is disabled")
+
+					case reflect.DeepEqual(newPod, newPodInfo.pod()):
+						// new pod should be changed if the feature gate is disabled
 						t.Errorf("new pod was not changed")
+
+					default:
+						// new pod should not need to be changed
+						if !reflect.DeepEqual(newPod, newPodInfo.pod()) {
+							t.Errorf("new pod changed: %v", cmp.Diff(newPod, newPodInfo.pod()))
+						}
 					}
-					// new pod should not have subpaths
-					if !reflect.DeepEqual(newPod, podWithoutProbeGracePeriod()) {
-						t.Errorf("new pod had probe-level terminationGracePeriod: %v", diff.ObjectReflectDiff(newPod, podWithoutProbeGracePeriod()))
-					}
-				default:
-					// new pod should not need to be changed
-					if !reflect.DeepEqual(newPod, newPodInfo.pod()) {
-						t.Errorf("new pod changed: %v", diff.ObjectReflectDiff(newPod, newPodInfo.pod()))
-					}
-				}
-			})
+				})
+			}
 		}
 	}
 }

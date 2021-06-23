@@ -551,7 +551,7 @@ func dropDisabledFields(
 		})
 	}
 
-	if !utilfeature.DefaultFeatureGate.Enabled(features.ProbeTerminationGracePeriod) && !probeGracePeriodInUse(oldPodSpec) {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.ProbeTerminationGracePeriod) {
 		// Set pod-level terminationGracePeriodSeconds to nil if the feature is disabled and it is not used
 		VisitContainers(podSpec, AllContainers, func(c *api.Container, containerType ContainerType) bool {
 			if c.LivenessProbe != nil {
