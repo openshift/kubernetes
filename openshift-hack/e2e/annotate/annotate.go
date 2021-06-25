@@ -38,6 +38,19 @@ func Run() {
 		os.Exit(1)
 	}
 
+	unusedPatterns := false
+	for _, label := range generator.allLabels {
+		for _, match := range generator.matches[label] {
+			if !match.matched {
+				unusedPatterns = true
+				fmt.Fprintf(os.Stderr, "Unused pattern: %s => %s\n", label, match.pattern)
+			}
+		}
+	}
+	if unusedPatterns {
+		os.Exit(1)
+	}
+
 	// All tests must be associated with a sig (either upstream), or downstream
 	// If you get this error, you should add the [sig-X] tag to your test (if its
 	// in origin) or if it is upstream add a new rule to rules.go that assigns
@@ -102,26 +115,35 @@ func init() {
 	}
 }
 
+type matchable struct {
+	pattern string
+	literal string
+	re      *regexp.Regexp
+	matched bool
+}
+
 func newGenerator() *ginkgoTestRenamer {
 	var allLabels []string
-	matches := make(map[string]*regexp.Regexp)
-	stringMatches := make(map[string][]string)
+	matches := make(map[string][]*matchable)
 	excludes := make(map[string]*regexp.Regexp)
 
 	for label, items := range TestMaps {
 		sort.Strings(items)
 		allLabels = append(allLabels, label)
-		var remain []string
 		for _, item := range items {
+			if _, exists := matches[item]; exists {
+				fmt.Fprintf(os.Stderr, "multiple entries for pattern %q\n", item)
+				os.Exit(1)
+			}
+
+			match := &matchable{pattern: item}
 			re := regexp.MustCompile(item)
 			if p, ok := re.LiteralPrefix(); ok {
-				stringMatches[label] = append(stringMatches[label], p)
+				match.literal = p
 			} else {
-				remain = append(remain, item)
+				match.re = re
 			}
-		}
-		if len(remain) > 0 {
-			matches[label] = regexp.MustCompile(strings.Join(remain, `|`))
+			matches[label] = append(matches[label], match)
 		}
 	}
 	for label, items := range LabelExcludes {
@@ -134,7 +156,6 @@ func newGenerator() *ginkgoTestRenamer {
 
 	return &ginkgoTestRenamer{
 		allLabels:           allLabels,
-		stringMatches:       stringMatches,
 		matches:             matches,
 		excludes:            excludes,
 		excludedTestsFilter: excludedTestsFilter,
@@ -152,8 +173,7 @@ func newRenamerFromGenerated(names map[string]string) *ginkgoTestRenamer {
 
 type ginkgoTestRenamer struct {
 	allLabels           []string
-	stringMatches       map[string][]string
-	matches             map[string]*regexp.Regexp
+	matches             map[string][]*matchable
 	excludes            map[string]*regexp.Regexp
 	excludedTestsFilter *regexp.Regexp
 
@@ -186,15 +206,15 @@ func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.T
 			}
 
 			var hasLabel bool
-			for _, segment := range r.stringMatches[label] {
-				hasLabel = strings.Contains(combinedName, segment)
-				if hasLabel {
-					break
+			for _, match := range r.matches[label] {
+				if match.re != nil {
+					hasLabel = match.re.MatchString(combinedName)
+				} else {
+					hasLabel = strings.Contains(combinedName, match.literal)
 				}
-			}
-			if !hasLabel {
-				if re := r.matches[label]; re != nil {
-					hasLabel = r.matches[label].MatchString(combinedName)
+				if hasLabel {
+					match.matched = true
+					break
 				}
 			}
 
