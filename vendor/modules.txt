@@ -200,7 +200,6 @@ github.com/chai2010/gettext-go/gettext
 github.com/chai2010/gettext-go/gettext/mo
 github.com/chai2010/gettext-go/gettext/plural
 github.com/chai2010/gettext-go/gettext/po
-# github.com/checkpoint-restore/go-criu/v4 => github.com/checkpoint-restore/go-criu/v4 v4.1.0
 # github.com/checkpoint-restore/go-criu/v5 v5.0.0 => github.com/checkpoint-restore/go-criu/v5 v5.0.0
 github.com/checkpoint-restore/go-criu/v5
 # github.com/checkpoint-restore/go-criu/v5 => github.com/checkpoint-restore/go-criu/v5 v5.0.0
@@ -923,7 +922,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20210521075222-e273a339932a => github.com/openshift/api v0.0.0-20210422150128-d8a48168c81c
+# github.com/openshift/api v0.0.0-20210610130314-a6ac319a7eed => github.com/openshift/api v0.0.0-20210422150128-d8a48168c81c
 ## explicit
 # github.com/openshift/api => github.com/openshift/api v0.0.0-20210422150128-d8a48168c81c
 github.com/openshift/api/apiserver/v1
@@ -1078,7 +1077,7 @@ github.com/openshift/client-go/user/informers/externalversions/internalinterface
 github.com/openshift/client-go/user/informers/externalversions/user
 github.com/openshift/client-go/user/informers/externalversions/user/v1
 github.com/openshift/client-go/user/listers/user/v1
-# github.com/openshift/library-go v0.0.0-20210521084623-7392ea9b02ca => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
+# github.com/openshift/library-go v0.0.0-20210611143017-0d0ef669a361 => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
 ## explicit
 # github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
 github.com/openshift/library-go/pkg/apiserver/admission/admissionregistrationtesting
@@ -2814,8 +2813,9 @@ k8s.io/utils/trace
 # modernc.org/strutil => modernc.org/strutil v1.0.0
 # modernc.org/xc => modernc.org/xc v1.0.0
 # rsc.io/pdf => rsc.io/pdf v0.1.1
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15
-# sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.15
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19 => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
+## explicit
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.19
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
 # sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.8
