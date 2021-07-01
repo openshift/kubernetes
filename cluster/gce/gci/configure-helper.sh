@@ -1265,18 +1265,11 @@ EOF
   fi
 }
 
-# Create kubeconfig files for control plane components.
 function create-kubeconfig {
   local component=$1
   local token=$2
   echo "Creating kubeconfig file for component ${component}"
   mkdir -p "/etc/srv/kubernetes/${component}"
-
-  local kube_apiserver="localhost"
-  if [[ ${KUBECONFIG_USE_HOST_IP:-} == "true" ]] ; then
-    kube_apiserver=$(hostname -i)
-  fi
-  
   cat <<EOF >"/etc/srv/kubernetes/${component}/kubeconfig"
 apiVersion: v1
 kind: Config
@@ -1288,7 +1281,7 @@ clusters:
 - name: local
   cluster:
     insecure-skip-tls-verify: true
-    server: https://${kube_apiserver}:443
+    server: https://localhost:443
 contexts:
 - context:
     cluster: local
@@ -1459,40 +1452,105 @@ function create-master-etcd-apiserver-auth {
    fi
 }
 
+function docker-installed {
+    if systemctl cat docker.service &> /dev/null ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# util function to add a docker option to daemon.json file only if the daemon.json file is present.
+# accepts only one argument (docker options)
+function addockeropt {
+	DOCKER_OPTS_FILE=/etc/docker/daemon.json
+	if [ "$#" -lt 1 ]; then
+	echo "No arguments are passed while adding docker options. Expect one argument"
+	exit 1
+	elif [ "$#" -gt 1 ]; then
+	echo "Only one argument is accepted"
+	exit 1
+	fi
+	# appends the given input to the docker opts file i.e. /etc/docker/daemon.json file
+	if [ -f "$DOCKER_OPTS_FILE" ]; then
+	cat >> "${DOCKER_OPTS_FILE}" <<EOF
+  $1
+EOF
+	fi
+}
+
+function set_docker_options_non_ubuntu() {
+  # set docker options mtu and storage driver for non-ubuntu
+  # as it is default for ubuntu
+   if [[ -n "$(command -v lsb_release)" && $(lsb_release -si) == "Ubuntu" ]]; then
+      echo "Not adding docker options on ubuntu, as these are default on ubuntu. Bailing out..."
+      return
+   fi
+
+   addockeropt "\"mtu\": 1460,"
+   addockeropt "\"storage-driver\": \"overlay2\","
+
+   echo "setting live restore"
+   # Disable live-restore if the environment variable is set.
+   if [[ "${DISABLE_DOCKER_LIVE_RESTORE:-false}" == "true" ]]; then
+      addockeropt "\"live-restore\": \"false\","
+   fi
+}
+
 function assemble-docker-flags {
-  echo "Assemble docker command line flags"
-  local docker_opts="-p /var/run/docker.pid --iptables=false --ip-masq=false"
-  if [[ "${TEST_CLUSTER:-}" == "true" ]]; then
-    docker_opts+=" --log-level=debug"
-  else
-    docker_opts+=" --log-level=warn"
-  fi
-  if [[ "${NETWORK_PROVIDER:-}" == "kubenet" || "${NETWORK_PROVIDER:-}" == "cni" ]]; then
-    # set docker0 cidr to private ip address range to avoid conflict with cbr0 cidr range
-    docker_opts+=" --bip=169.254.123.1/24"
-  else
-    docker_opts+=" --bridge=cbr0"
+  echo "Assemble docker options"
+
+    # log the contents of the /etc/docker/daemon.json if already exists
+  if [ -f /etc/docker/daemon.json ]; then
+    echo "Contents of the old docker config"
+    cat /etc/docker/daemon.json
   fi
 
+  cat <<EOF >/etc/docker/daemon.json
+{
+EOF
+
+addockeropt "\"pidfile\": \"/var/run/docker.pid\",
+  \"iptables\": false,
+  \"ip-masq\": false,"
+
+  echo "setting log-level"
+  if [[ "${TEST_CLUSTER:-}" == "true" ]]; then
+    addockeropt "\"log-level\": \"debug\","
+  else
+    addockeropt "\"log-level\": \"warn\","
+  fi
+
+  echo "setting network bridge"
+  if [[ "${NETWORK_PROVIDER:-}" == "kubenet" || "${NETWORK_PROVIDER:-}" == "cni" ]]; then
+    # set docker0 cidr to private ip address range to avoid conflict with cbr0 cidr range
+    addockeropt "\"bip\": \"169.254.123.1/24\","
+  else
+    addockeropt "\"bridge\": \"cbr0\","
+  fi
+
+  echo "setting registry mirror"
+  # TODO (vteratipally)  move the registry-mirror completely to /etc/docker/daemon.json
+  local docker_opts=""
   # Decide whether to enable a docker registry mirror. This is taken from
   # the "kube-env" metadata value.
   if [[ -n "${DOCKER_REGISTRY_MIRROR_URL:-}" ]]; then
-    echo "Enable docker registry mirror at: ${DOCKER_REGISTRY_MIRROR_URL}"
-    docker_opts+=" --registry-mirror=${DOCKER_REGISTRY_MIRROR_URL}"
+      docker_opts+="--registry-mirror=${DOCKER_REGISTRY_MIRROR_URL} "
   fi
 
+  set_docker_options_non_ubuntu
+
+  echo "setting docker logging options"
   # Configure docker logging
-  docker_opts+=" --log-driver=${DOCKER_LOG_DRIVER:-json-file}"
-  docker_opts+=" --log-opt=max-size=${DOCKER_LOG_MAX_SIZE:-10m}"
-  docker_opts+=" --log-opt=max-file=${DOCKER_LOG_MAX_FILE:-5}"
-
-  # Disable live-restore if the environment variable is set.
-
-  if [[ "${DISABLE_DOCKER_LIVE_RESTORE:-false}" == "true" ]]; then
-    docker_opts+=" --live-restore=false"
-  fi
-
-  echo "DOCKER_OPTS=\"${docker_opts} ${EXTRA_DOCKER_OPTS:-}\"" > /etc/default/docker
+  addockeropt "\"log-driver\": \"${DOCKER_LOG_DRIVER:-json-file}\","
+  addockeropt "\"log-opts\": {
+      \"max-size\": \"${DOCKER_LOG_MAX_SIZE:-10m}\",
+      \"max-file\": \"${DOCKER_LOG_MAX_FILE:-5}\"
+    }"
+  cat <<EOF >>/etc/docker/daemon.json
+}
+EOF
+  echo "DOCKER_OPTS=\"${docker_opts}${EXTRA_DOCKER_OPTS:-}\"" > /etc/default/docker
 
   # Ensure TasksMax is sufficient for docker.
   # (https://github.com/kubernetes/kubernetes/issues/51977)
@@ -1702,8 +1760,8 @@ function start-kube-proxy {
 # Replaces the variables in the etcd manifest file with the real values, and then
 # copy the file to the manifest dir
 # $1: value for variable 'suffix'
-# $2: value for variable 'port', for listening to clients
-# $3: value for variable 'server_port', for etcd peering
+# $2: value for variable 'port'
+# $3: value for variable 'server_port'
 # $4: value for variable 'cpulimit'
 # $5: pod name, which should be either etcd or etcd-events
 function prepare-etcd-manifest {
@@ -1722,43 +1780,23 @@ function prepare-etcd-manifest {
   if [[ -n "${INITIAL_ETCD_CLUSTER_STATE:-}" ]]; then
     cluster_state="${INITIAL_ETCD_CLUSTER_STATE}"
   fi
-
-  # Configure mTLS for etcd peers.
   if [[ -n "${ETCD_CA_CERT:-}" && -n "${ETCD_PEER_KEY:-}" && -n "${ETCD_PEER_CERT:-}" ]]; then
     etcd_creds=" --peer-trusted-ca-file /etc/srv/kubernetes/etcd-ca.crt --peer-cert-file /etc/srv/kubernetes/etcd-peer.crt --peer-key-file /etc/srv/kubernetes/etcd-peer.key -peer-client-cert-auth "
     etcd_protocol="https"
   fi
 
-  # host_primary_ip is the primary internal IP of the host.
-  # Override host primary IP if specifically provided.
-  local host_primary_ip
-  host_primary_ip="${HOST_PRIMARY_IP:-$(hostname -i)}"
-
-  # Configure mTLS for clients (e.g. kube-apiserver).
-  # mTLS should only be enabled for etcd server but not etcd-events. If $1 suffix is empty, it's etcd server.
-  local etcd_listen_metrics_urls=""
+  # mTLS should only be enabled for etcd server but not etcd-events. if $1 suffix is empty, it's etcd server.
   if [[ -z "${suffix}" && -n "${ETCD_APISERVER_CA_KEY:-}" && -n "${ETCD_APISERVER_CA_CERT:-}" && -n "${ETCD_APISERVER_SERVER_KEY:-}" && -n "${ETCD_APISERVER_SERVER_CERT:-}" && -n "${ETCD_APISERVER_CLIENT_KEY:-}" && -n "${ETCD_APISERVER_CLIENT_CERT:-}" ]]; then
     etcd_apiserver_creds=" --client-cert-auth --trusted-ca-file ${ETCD_APISERVER_CA_CERT_PATH} --cert-file ${ETCD_APISERVER_SERVER_CERT_PATH} --key-file ${ETCD_APISERVER_SERVER_KEY_PATH} "
     etcd_apiserver_protocol="https"
     etcd_livenessprobe_port="2382"
-    etcd_listen_metrics_urls="http://${ETCD_LISTEN_CLIENT_IP:-127.0.0.1}:${etcd_livenessprobe_port}"
-    if [[ ${ETCD_LISTEN_ON_HOST_IP:-} == "true" ]]; then
-      etcd_listen_metrics_urls+=",http://${host_primary_ip}:${etcd_livenessprobe_port}"
-    fi
-    etcd_extra_args+=" --listen-metrics-urls=${etcd_listen_metrics_urls} "
+    etcd_extra_args+=" --listen-metrics-urls=http://${ETCD_LISTEN_CLIENT_IP:-127.0.0.1}:${etcd_livenessprobe_port} "
   fi
 
   if [[ -n "${ETCD_PROGRESS_NOTIFY_INTERVAL:-}" ]]; then
     etcd_extra_args+=" --experimental-watch-progress-notify-interval=${ETCD_PROGRESS_NOTIFY_INTERVAL}"
   fi
 
-  # If etcd is configured to listen on host IP, an additional client listening URL is added.
-  local etcd_listen_client_urls="${etcd_apiserver_protocol}://${ETCD_LISTEN_CLIENT_IP:-127.0.0.1}:$2"
-  if [[ ${ETCD_LISTEN_ON_HOST_IP:-} == "true" ]] ; then
-    etcd_listen_client_urls+=",${etcd_apiserver_protocol}://${host_primary_ip}:$2"
-  fi
-
-  # Generate etcd member URLs.
   for host in $(echo "${INITIAL_ETCD_CLUSTER:-${host_name}}" | tr "," "\n"); do
     etcd_host="etcd-${host}=${etcd_protocol}://${host}:$3"
     if [[ -n "${etcd_cluster}" ]]; then
@@ -1778,7 +1816,6 @@ function prepare-etcd-manifest {
   sed -i -e "s@{{ *etcd_cluster *}}@$etcd_cluster@g" "${temp_file}"
   sed -i -e "s@{{ *liveness_probe_initial_delay *}}@${ETCD_LIVENESS_PROBE_INITIAL_DELAY_SEC:-15}@g" "${temp_file}"
   sed -i -e "s@{{ *listen_client_ip *}}@${ETCD_LISTEN_CLIENT_IP:-127.0.0.1}@g" "${temp_file}"
-  sed -i -e "s@{{ *etcd_listen_client_urls *}}@${etcd_listen_client_urls:-}@g" "${temp_file}"
   # Get default storage backend from manifest file.
   local -r default_storage_backend=$( \
     grep -o "{{ *pillar\.get('storage_backend', '\(.*\)') *}}" "${temp_file}" | \

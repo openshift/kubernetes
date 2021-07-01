@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
@@ -59,7 +60,8 @@ type endpointSliceController struct {
 }
 
 func newController(nodeNames []string, batchPeriod time.Duration) (*fake.Clientset, *endpointSliceController) {
-	client := newClientset()
+	client := fake.NewSimpleClientset()
+
 	informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
 	nodeInformer := informerFactory.Core().V1().Nodes()
 	indexer := nodeInformer.Informer().GetIndexer()
@@ -67,11 +69,36 @@ func newController(nodeNames []string, batchPeriod time.Duration) (*fake.Clients
 		indexer.Add(&v1.Node{ObjectMeta: metav1.ObjectMeta{Name: nodeName}})
 	}
 
+	esInformer := informerFactory.Discovery().V1beta1().EndpointSlices()
+	esIndexer := esInformer.Informer().GetIndexer()
+
+	// These reactors are required to mock functionality that would be covered
+	// automatically if we weren't using the fake client.
+	client.PrependReactor("create", "endpointslices", k8stesting.ReactionFunc(func(action k8stesting.Action) (bool, runtime.Object, error) {
+		endpointSlice := action.(k8stesting.CreateAction).GetObject().(*discovery.EndpointSlice)
+
+		if endpointSlice.ObjectMeta.GenerateName != "" {
+			endpointSlice.ObjectMeta.Name = fmt.Sprintf("%s-%s", endpointSlice.ObjectMeta.GenerateName, rand.String(8))
+			endpointSlice.ObjectMeta.GenerateName = ""
+		}
+		endpointSlice.Generation = 1
+		esIndexer.Add(endpointSlice)
+
+		return false, endpointSlice, nil
+	}))
+	client.PrependReactor("update", "endpointslices", k8stesting.ReactionFunc(func(action k8stesting.Action) (bool, runtime.Object, error) {
+		endpointSlice := action.(k8stesting.CreateAction).GetObject().(*discovery.EndpointSlice)
+		endpointSlice.Generation++
+		esIndexer.Update(endpointSlice)
+
+		return false, endpointSlice, nil
+	}))
+
 	esController := NewController(
 		informerFactory.Core().V1().Pods(),
 		informerFactory.Core().V1().Services(),
 		nodeInformer,
-		informerFactory.Discovery().V1beta1().EndpointSlices(),
+		esInformer,
 		int32(100),
 		client,
 		batchPeriod)
@@ -1416,6 +1443,81 @@ func TestPodDeleteBatching(t *testing.T) {
 			for _, action := range client.Actions() {
 				t.Logf("action: %v %v", action.GetVerb(), action.GetResource())
 			}
+		})
+	}
+}
+
+func TestSyncServiceStaleInformer(t *testing.T) {
+	testcases := []struct {
+		name                     string
+		informerGenerationNumber int64
+		trackerGenerationNumber  int64
+		expectError              bool
+	}{
+		{
+			name:                     "informer cache outdated",
+			informerGenerationNumber: 10,
+			trackerGenerationNumber:  12,
+			expectError:              true,
+		},
+		{
+			name:                     "cache and tracker synced",
+			informerGenerationNumber: 10,
+			trackerGenerationNumber:  10,
+			expectError:              false,
+		},
+		{
+			name:                     "tracker outdated",
+			informerGenerationNumber: 10,
+			trackerGenerationNumber:  1,
+			expectError:              false,
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			_, esController := newController([]string{"node-1"}, time.Duration(0))
+			ns := metav1.NamespaceDefault
+			serviceName := "testing-1"
+
+			// Store Service in the cache
+			esController.serviceStore.Add(&v1.Service{
+				ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: ns},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{"foo": "bar"},
+					Ports:    []v1.ServicePort{{TargetPort: intstr.FromInt(80)}},
+				},
+			})
+
+			// Create EndpointSlice in the informer cache with informerGenerationNumber
+			epSlice1 := &discovery.EndpointSlice{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "matching-1",
+					Namespace:  ns,
+					Generation: testcase.informerGenerationNumber,
+					Labels: map[string]string{
+						discovery.LabelServiceName: serviceName,
+						discovery.LabelManagedBy:   controllerName,
+					},
+				},
+				AddressType: discovery.AddressTypeIPv4,
+			}
+			err := esController.endpointSliceStore.Add(epSlice1)
+			if err != nil {
+				t.Fatalf("Expected no error adding EndpointSlice: %v", err)
+			}
+
+			// Create EndpointSlice in the tracker with trackerGenerationNumber
+			epSlice2 := epSlice1.DeepCopy()
+			epSlice2.Generation = testcase.trackerGenerationNumber
+			esController.endpointSliceTracker.Update(epSlice2)
+
+			err = esController.syncService(fmt.Sprintf("%s/%s", ns, serviceName))
+			// Check if we got a StaleInformerCache error
+			if isStaleInformerCacheErr(err) != testcase.expectError {
+				t.Fatalf("Expected error because informer cache is outdated")
+			}
+
 		})
 	}
 }
