@@ -94,7 +94,7 @@ readonly KUBE_CONTAINER_RSYNC_PORT=8730
 # $1 - server architecture
 kube::build::get_docker_wrapped_binaries() {
   local debian_iptables_version=buster-v1.3.0
-  local go_runner_version=buster-v2.2.2
+  local go_runner_version=v2.3.1-go1.15.12-buster.0
   ### If you change any of these lists, please also update DOCKERIZED_BINARIES
   ### in build/BUILD. And kube::golang::server_image_targets
   local targets=(
@@ -574,10 +574,16 @@ function kube::build::run_build_command_ex() {
     --env "KUBE_BUILD_WITH_COVERAGE=${KUBE_BUILD_WITH_COVERAGE:-}"
     --env "KUBE_BUILD_PLATFORMS=${KUBE_BUILD_PLATFORMS:-}"
     --env "GOFLAGS=${GOFLAGS:-}"
-    --env "GOLDFLAGS=${GOLDFLAGS:-}"
     --env "GOGCFLAGS=${GOGCFLAGS:-}"
     --env "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-}"
   )
+
+  # use GOLDFLAGS only if it is set explicitly.
+  if [[ -v GOLDFLAGS ]]; then
+    docker_run_opts+=(
+      --env "GOLDFLAGS=${GOLDFLAGS:-}"
+    )
+  fi
 
   if [[ -n "${DOCKER_CGROUP_PARENT:-}" ]]; then
     kube::log::status "Using ${DOCKER_CGROUP_PARENT} as container cgroup parent"
