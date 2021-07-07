@@ -38,6 +38,7 @@ func addCadvisorFlags(fs *pflag.FlagSet) {
 
 	// e2e node tests rely on this
 	register(global, local, cadvisorflags.HousekeepingInterval)
+	register(global, local, "max_housekeeping_interval")
 
 	// finally, add cadvisor flags to the provided flagset
 	fs.AddFlagSet(local)
