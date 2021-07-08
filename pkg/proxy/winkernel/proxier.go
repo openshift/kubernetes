@@ -317,21 +317,23 @@ func newSourceVIP(hns HostNetworkService, network string, ip string, mac string,
 
 func (ep *endpointsInfo) Cleanup() {
 	Log(ep, "Endpoint Cleanup", 3)
-	if ep.refCount != nil {
+	if !ep.GetIsLocal() && ep.refCount != nil {
 		*ep.refCount--
-	}
 
-	// Remove the remote hns endpoint, if no service is referring it
-	// Never delete a Local Endpoint. Local Endpoints are already created by other entities.
-	// Remove only remote endpoints created by this service
-	if (ep.refCount == nil || *ep.refCount <= 0) && !ep.GetIsLocal() {
-		klog.V(4).Infof("Removing endpoints for %v, since no one is referencing it", ep)
-		err := ep.hns.deleteEndpoint(ep.hnsID)
-		if err == nil {
-			ep.hnsID = ""
-		} else {
-			klog.Errorf("Endpoint deletion failed for %v: %v", ep.IP(), err)
+		// Remove the remote hns endpoint, if no service is referring it
+		// Never delete a Local Endpoint. Local Endpoints are already created by other entities.
+		// Remove only remote endpoints created by this service
+		if *ep.refCount <= 0 && !ep.GetIsLocal() {
+			klog.V(4).Infof("Removing endpoints for %v, since no one is referencing it", ep)
+			err := ep.hns.deleteEndpoint(ep.hnsID)
+			if err == nil {
+				ep.hnsID = ""
+			} else {
+				klog.Errorf("Endpoint deletion failed for %v: %v", ep.IP(), err)
+			}
 		}
+
+		ep.refCount = nil
 	}
 }
 
@@ -368,7 +370,9 @@ func (proxier *Proxier) newServiceInfo(port *v1.ServicePort, service *v1.Service
 	}
 
 	for _, ingress := range service.Status.LoadBalancer.Ingress {
-		info.loadBalancerIngressIPs = append(info.loadBalancerIngressIPs, &loadBalancerIngressInfo{ip: ingress.IP})
+		if net.ParseIP(ingress.IP) != nil {
+			info.loadBalancerIngressIPs = append(info.loadBalancerIngressIPs, &loadBalancerIngressInfo{ip: ingress.IP})
+		}
 	}
 	return info
 }
@@ -1108,10 +1112,10 @@ func (proxier *Proxier) syncProxyRules() {
 			} else {
 				// We only share the refCounts for remote endpoints
 				ep.refCount = proxier.endPointsRefCount.getRefCount(newHnsEndpoint.hnsID)
+				*ep.refCount++
 			}
 
 			ep.hnsID = newHnsEndpoint.hnsID
-			*ep.refCount++
 
 			Log(ep, "Endpoint resource found", 3)
 		}

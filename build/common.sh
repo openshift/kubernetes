@@ -93,8 +93,8 @@ readonly KUBE_CONTAINER_RSYNC_PORT=8730
 #
 # $1 - server architecture
 kube::build::get_docker_wrapped_binaries() {
-  local debian_iptables_version=v12.1.2
-  local go_runner_version=buster-v2.0.1
+  local debian_iptables_version=buster-v1.6.1
+  local go_runner_version=v2.3.1-go1.15.13-buster.0
   ### If you change any of these lists, please also update DOCKERIZED_BINARIES
   ### in build/BUILD. And kube::golang::server_image_targets
   local targets=(
@@ -244,27 +244,6 @@ function kube::build::ensure_rsync() {
   if [[ -z "$(which rsync)" ]]; then
     kube::log::error "Can't find 'rsync' in PATH, please fix and retry."
     return 1
-  fi
-}
-
-function kube::build::update_dockerfile() {
-  if kube::build::is_gnu_sed; then
-    sed_opts=(-i)
-  else
-    sed_opts=(-i '')
-  fi
-  sed "${sed_opts[@]}" "s/KUBE_BUILD_IMAGE_CROSS_TAG/${KUBE_BUILD_IMAGE_CROSS_TAG}/" "${LOCAL_OUTPUT_BUILD_CONTEXT}/Dockerfile"
-}
-
-function kube::build::set_proxy() {
-  if [[ -n "${KUBERNETES_HTTPS_PROXY:-}" ]]; then
-    echo "ENV https_proxy $KUBERNETES_HTTPS_PROXY" >> "${LOCAL_OUTPUT_BUILD_CONTEXT}/Dockerfile"
-  fi
-  if [[ -n "${KUBERNETES_HTTP_PROXY:-}" ]]; then
-    echo "ENV http_proxy $KUBERNETES_HTTP_PROXY" >> "${LOCAL_OUTPUT_BUILD_CONTEXT}/Dockerfile"
-  fi
-  if [[ -n "${KUBERNETES_NO_PROXY:-}" ]]; then
-    echo "ENV no_proxy $KUBERNETES_NO_PROXY" >> "${LOCAL_OUTPUT_BUILD_CONTEXT}/Dockerfile"
   fi
 }
 
@@ -428,9 +407,7 @@ function kube::build::build_image() {
   dd if=/dev/urandom bs=512 count=1 2>/dev/null | LC_ALL=C tr -dc 'A-Za-z0-9' | dd bs=32 count=1 2>/dev/null > "${LOCAL_OUTPUT_BUILD_CONTEXT}/rsyncd.password"
   chmod go= "${LOCAL_OUTPUT_BUILD_CONTEXT}/rsyncd.password"
 
-  kube::build::update_dockerfile
-  kube::build::set_proxy
-  kube::build::docker_build "${KUBE_BUILD_IMAGE}" "${LOCAL_OUTPUT_BUILD_CONTEXT}" 'false'
+  kube::build::docker_build "${KUBE_BUILD_IMAGE}" "${LOCAL_OUTPUT_BUILD_CONTEXT}" 'false' "--build-arg=KUBE_BUILD_IMAGE_CROSS_TAG=${KUBE_BUILD_IMAGE_CROSS_TAG} --build-arg=KUBE_BASE_IMAGE_REGISTRY=${KUBE_BASE_IMAGE_REGISTRY}"
 
   # Clean up old versions of everything
   kube::build::docker_delete_old_containers "${KUBE_BUILD_CONTAINER_NAME_BASE}" "${KUBE_BUILD_CONTAINER_NAME}"
@@ -450,7 +427,10 @@ function kube::build::docker_build() {
   local -r image=$1
   local -r context_dir=$2
   local -r pull="${3:-true}"
-  local -ra build_cmd=("${DOCKER[@]}" build -t "${image}" "--pull=${pull}" "${context_dir}")
+  local build_args
+  IFS=" " read -r -a build_args <<< "$4"
+  readonly build_args
+  local -ra build_cmd=("${DOCKER[@]}" build -t "${image}" "--pull=${pull}" "${build_args[@]}" "${context_dir}")
 
   kube::log::status "Building Docker image ${image}"
   local docker_output
@@ -573,10 +553,16 @@ function kube::build::run_build_command_ex() {
     --env "KUBE_BUILD_WITH_COVERAGE=${KUBE_BUILD_WITH_COVERAGE:-}"
     --env "KUBE_BUILD_PLATFORMS=${KUBE_BUILD_PLATFORMS:-}"
     --env "GOFLAGS=${GOFLAGS:-}"
-    --env "GOLDFLAGS=${GOLDFLAGS:-}"
     --env "GOGCFLAGS=${GOGCFLAGS:-}"
     --env "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-}"
   )
+
+  # use GOLDFLAGS only if it is set explicitly.
+  if [[ -v GOLDFLAGS ]]; then
+    docker_run_opts+=(
+      --env "GOLDFLAGS=${GOLDFLAGS:-}"
+    )
+  fi
 
   if [[ -n "${DOCKER_CGROUP_PARENT:-}" ]]; then
     kube::log::status "Using ${DOCKER_CGROUP_PARENT} as container cgroup parent"

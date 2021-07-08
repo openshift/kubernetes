@@ -86,26 +86,23 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 			framework.Failf("failed to delete valid CR: %v", err)
 		}
 
-		// TODO(workload): re-enable client-side validation tests
-		/*
-			ginkgo.By("client-side validation (kubectl create and apply) rejects request with unknown properties when disallowed by the schema")
-			unknownCR := fmt.Sprintf(`{%s,"spec":{"foo":true}}`, meta)
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
-				framework.Failf("unexpected no error when creating CR with unknown field: %v", err)
-			}
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
-				framework.Failf("unexpected no error when applying CR with unknown field: %v", err)
-			}
+		ginkgo.By("client-side validation (kubectl create and apply) rejects request with unknown properties when disallowed by the schema")
+		unknownCR := fmt.Sprintf(`{%s,"spec":{"foo":true}}`, meta)
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
+			framework.Failf("unexpected no error when creating CR with unknown field: %v", err)
+		}
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, unknownCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `unknown field "foo"`) {
+			framework.Failf("unexpected no error when applying CR with unknown field: %v", err)
+		}
 
-			ginkgo.By("client-side validation (kubectl create and apply) rejects request without required properties")
-			noRequireCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"age":"10"}]}}`, meta)
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
-				framework.Failf("unexpected no error when creating CR without required field: %v", err)
-			}
-			if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
-				framework.Failf("unexpected no error when applying CR without required field: %v", err)
-			}
-		*/
+		ginkgo.By("client-side validation (kubectl create and apply) rejects request without required properties")
+		noRequireCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"age":"10"}]}}`, meta)
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "create", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
+			framework.Failf("unexpected no error when creating CR without required field: %v", err)
+		}
+		if _, err := framework.RunKubectlInput(f.Namespace.Name, noRequireCR, ns, "apply", "-f", "-"); err == nil || !strings.Contains(err.Error(), `missing required field "name"`) {
+			framework.Failf("unexpected no error when applying CR without required field: %v", err)
+		}
 
 		ginkgo.By("kubectl explain works to explain CR properties")
 		if err := verifyKubectlExplain(f.Namespace.Name, crd.Crd.Spec.Names.Plural, `(?s)DESCRIPTION:.*Foo CRD for Testing.*FIELDS:.*apiVersion.*<string>.*APIVersion defines.*spec.*<Object>.*Specification of Foo`); err != nil {
@@ -233,7 +230,7 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Privileged:ClusterAdmin]", fu
 		ns := fmt.Sprintf("--namespace=%v", f.Namespace.Name)
 
 		ginkgo.By("client-side validation (kubectl create and apply) allows request with any unknown properties")
-		randomCR := fmt.Sprintf(`{%s,"spec":{"b":[{"c":"d"}]}}`, meta)
+		randomCR := fmt.Sprintf(`{%s,"spec":{"a":null,"b":[{"c":"d"}]}}`, meta)
 		if _, err := framework.RunKubectlInput(f.Namespace.Name, randomCR, ns, "create", "-f", "-"); err != nil {
 			framework.Failf("failed to create random CR %s for CRD that allows unknown properties in a nested object: %v", randomCR, err)
 		}
@@ -511,13 +508,7 @@ func setupCRDAndVerifySchema(f *framework.Framework, schema, expect []byte, grou
 	return setupCRDAndVerifySchemaWithOptions(f, schema, expect, groupSuffix, versions)
 }
 
-func setupCRDAndVerifySchemaWithOptions(f *framework.Framework, schema, expect []byte, groupSuffix string, versions []string, options ...crd.Option) (tCRD *crd.TestCrd, err error) {
-	defer func() {
-		if err == nil {
-			framework.Logf("sleeping 45 seconds before running the actual tests, we hope that during all API servers converge during that window, see %q for more", "https://github.com/kubernetes/kubernetes/pull/90452")
-			time.Sleep(time.Second * 45)
-		}
-	}()
+func setupCRDAndVerifySchemaWithOptions(f *framework.Framework, schema, expect []byte, groupSuffix string, versions []string, options ...crd.Option) (*crd.TestCrd, error) {
 	group := fmt.Sprintf("%s-test-%s.example.com", f.BaseName, groupSuffix)
 	if len(versions) == 0 {
 		return nil, fmt.Errorf("require at least one version for CRD")
@@ -555,17 +546,17 @@ func setupCRDAndVerifySchemaWithOptions(f *framework.Framework, schema, expect [
 		}
 		crd.Spec.Versions = apiVersions
 	})
-	tCRD, err = crd.CreateMultiVersionTestCRD(f, group, options...)
+	crd, err := crd.CreateMultiVersionTestCRD(f, group, options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CRD: %v", err)
 	}
 
-	for _, v := range tCRD.Crd.Spec.Versions {
-		if err := waitForDefinition(f.ClientSet, definitionName(tCRD, v.Name), expect); err != nil {
+	for _, v := range crd.Crd.Spec.Versions {
+		if err := waitForDefinition(f.ClientSet, definitionName(crd, v.Name), expect); err != nil {
 			return nil, fmt.Errorf("%v", err)
 		}
 	}
-	return tCRD, nil
+	return crd, nil
 }
 
 func cleanupCRD(f *framework.Framework, crd *crd.TestCrd) error {

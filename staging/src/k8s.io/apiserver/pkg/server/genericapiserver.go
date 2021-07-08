@@ -19,7 +19,6 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"os"
 	gpath "path"
 	"strings"
 	"sync"
@@ -28,7 +27,6 @@ import (
 	systemd "github.com/coreos/go-systemd/daemon"
 	"github.com/go-openapi/spec"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -131,8 +129,14 @@ type GenericAPIServer struct {
 	// Enable swagger and/or OpenAPI if these configs are non-nil.
 	openAPIConfig *openapicommon.Config
 
+	// SkipOpenAPIInstallation indicates not to install the OpenAPI handler
+	// during PrepareRun.
+	// Set this to true when the specific API Server has its own OpenAPI handler
+	// (e.g. kube-aggregator)
+	skipOpenAPIInstallation bool
+
 	// OpenAPIVersionedService controls the /openapi/v2 endpoint, and can be used to update the served spec.
-	// It is set during PrepareRun.
+	// It is set during PrepareRun if `openAPIConfig` is non-nil unless `skipOpenAPIInstallation` is true.
 	OpenAPIVersionedService *handler.OpenAPIService
 
 	// StaticOpenAPISpec is the spec derived from the restful container endpoints.
@@ -168,8 +172,6 @@ type GenericAPIServer struct {
 	// the readiness stop channel is used to signal that the apiserver has initiated a shutdown sequence, this
 	// will cause readyz to return unhealthy.
 	readinessStopCh chan struct{}
-	// hasBeenReadyCh is closed when /readyz succeeds for the first time.
-	hasBeenReadyCh chan struct{}
 
 	// auditing. The backend is started after the server starts listening.
 	AuditBackend audit.Backend
@@ -201,10 +203,6 @@ type GenericAPIServer struct {
 	// The limit on the request body size that would be accepted and decoded in a write request.
 	// 0 means no limit.
 	maxRequestBodyBytes int64
-
-	// EventSink creates events.
-	eventSink EventSink
-	eventRef  *corev1.ObjectReference
 }
 
 // DelegationTarget is an interface which allows for composition of API servers with top level handling that works
@@ -291,7 +289,7 @@ type preparedGenericAPIServer struct {
 func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	s.delegationTarget.PrepareRun()
 
-	if s.openAPIConfig != nil {
+	if s.openAPIConfig != nil && !s.skipOpenAPIInstallation {
 		s.OpenAPIVersionedService, s.StaticOpenAPISpec = routes.OpenAPI{
 			Config: s.openAPIConfig,
 		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
@@ -334,40 +332,14 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 		// and stop sending traffic to this server.
 		close(s.readinessStopCh)
 
-		s.Eventf(corev1.EventTypeNormal, "TerminationStart", "Received signal to terminate, becoming unready, but keeping serving")
-
 		time.Sleep(s.ShutdownDelayDuration)
-
-		s.Eventf(corev1.EventTypeNormal, "TerminationMinimalShutdownDurationFinished", "The minimal shutdown duration of %v finished", s.ShutdownDelayDuration)
 	}()
-
-	lateStopCh := make(chan struct{})
-	if s.ShutdownDelayDuration > 0 {
-		go func() {
-			defer close(lateStopCh)
-
-			<-stopCh
-
-			time.Sleep(s.ShutdownDelayDuration * 8 / 10)
-		}()
-	}
-
-	s.SecureServingInfo.Listener = &terminationLoggingListener{
-		Listener:   s.SecureServingInfo.Listener,
-		lateStopCh: lateStopCh,
-	}
-	unexpectedRequestsEventf.Store(s.Eventf)
 
 	// close socket after delayed stopCh
 	stoppedCh, err := s.NonBlockingRun(delayedStopCh)
 	if err != nil {
 		return err
 	}
-
-	go func() {
-		<-delayedStopCh
-		s.Eventf(corev1.EventTypeNormal, "TerminationStoppedServing", "Server has stopped listening")
-	}()
 
 	<-stopCh
 
@@ -376,7 +348,6 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
-	s.Eventf(corev1.EventTypeNormal, "TerminationPreShutdownHooksFinished", "All pre-shutdown hooks have been finished")
 
 	// wait for the delayed stopCh before closing the handler chain (it rejects everything after Wait has been called).
 	<-delayedStopCh
@@ -385,7 +356,6 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 
 	// Wait for all requests to finish, which are bounded by the RequestTimeout variable.
 	s.HandlerChainWaitGroup.Wait()
-	s.Eventf(corev1.EventTypeNormal, "TerminationGracefulTerminationFinished", "All pending requests processed")
 
 	return nil
 }
@@ -639,34 +609,4 @@ func getResourceNamesForGroup(apiPrefix string, apiGroupInfo *APIGroupInfo, path
 	}
 
 	return resourceNames, nil
-}
-
-// Eventf creates an event with the API server as source, either in default namespace against default namespace, or
-// if POD_NAME/NAMESPACE are set against that pod.
-func (s *GenericAPIServer) Eventf(eventType, reason, messageFmt string, args ...interface{}) {
-	t := metav1.Time{Time: time.Now()}
-	host, _ := os.Hostname() // expicitly ignore error. Empty host is fine
-
-	ref := *s.eventRef
-	if len(ref.Namespace) == 0 {
-		ref.Namespace = "default" // TODO: event broadcaster sets event ns to default. We have to match. Odd.
-	}
-
-	e := &corev1.Event{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%v.%x", ref.Name, t.UnixNano()),
-			Namespace: ref.Namespace,
-		},
-		InvolvedObject: ref,
-		Reason:         reason,
-		Message:        fmt.Sprintf(messageFmt, args...),
-		Type:           eventType,
-		Source:         corev1.EventSource{Component: "apiserver", Host: host},
-	}
-
-	klog.V(2).Infof("Event(%#v): type: '%v' reason: '%v' %v", e.InvolvedObject, e.Type, e.Reason, e.Message)
-
-	if _, err := s.eventSink.Create(e); err != nil {
-		klog.Warningf("failed to create event %s/%s: %v", e.Namespace, e.Name, err)
-	}
 }

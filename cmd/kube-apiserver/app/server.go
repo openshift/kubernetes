@@ -30,15 +30,9 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
-	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
-	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
-
 	"github.com/spf13/cobra"
 
-	corev1 "k8s.io/api/core/v1"
 	extensionsapiserver "k8s.io/apiextensions-apiserver/pkg/apiserver"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -46,7 +40,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
-	"k8s.io/apiserver/pkg/endpoints/request"
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/egressselector"
@@ -74,8 +67,6 @@ import (
 	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/features"
 	generatedopenapi "k8s.io/kubernetes/pkg/generated/openapi"
@@ -88,7 +79,6 @@ import (
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/master/reconcilers"
 	"k8s.io/kubernetes/pkg/master/tunneler"
-	eventstorage "k8s.io/kubernetes/pkg/registry/core/event/storage"
 	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
@@ -118,35 +108,7 @@ cluster's shared state through which all other components interact.`,
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
-
-			if len(s.OpenShiftConfig) > 0 {
-				// if we are running openshift, we modify the admission chain defaults accordingly
-				admissionenablement.InstallOpenShiftAdmissionPlugins(s)
-
-				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
-				if err != nil {
-					klog.Fatal(err)
-				}
-				enablement.ForceOpenShift(openshiftConfig)
-
-				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
-				if err != nil {
-					return err
-				}
-
-				// hopefully this resets the flags?
-				if err := cmd.ParseFlags(args); err != nil {
-					return err
-				}
-
-				// print merged flags (merged from OpenshiftConfig)
-				cliflag.PrintFlags(cmd.Flags())
-
-				enablement.ForceGlobalInitializationForOpenShift()
-			} else {
-				// print default flags
-				cliflag.PrintFlags(cmd.Flags())
-			}
+			cliflag.PrintFlags(cmd.Flags())
 
 			// set default options
 			completedOptions, err := Complete(s)
@@ -220,7 +182,7 @@ func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan
 		return nil, err
 	}
 
-	kubeAPIServerConfig, insecureServingInfo, serviceResolver, pluginInitializer, err := CreateKubeAPIServerConfig(completedOptions, nodeTunneler, proxyTransport, stopCh)
+	kubeAPIServerConfig, insecureServingInfo, serviceResolver, pluginInitializer, err := CreateKubeAPIServerConfig(completedOptions, nodeTunneler, proxyTransport)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +286,6 @@ func CreateKubeAPIServerConfig(
 	s completedServerRunOptions,
 	nodeTunneler tunneler.Tunneler,
 	proxyTransport *http.Transport,
-	stopCh <-chan struct{},
 ) (
 	*master.Config,
 	*genericapiserver.DeprecatedInsecureServingInfo,
@@ -332,7 +293,7 @@ func CreateKubeAPIServerConfig(
 	[]admission.PluginInitializer,
 	error,
 ) {
-	genericConfig, versionedInformers, insecureServingInfo, serviceResolver, pluginInitializers, admissionPostStartHook, storageFactory, err := buildGenericConfig(s.ServerRunOptions, proxyTransport, stopCh)
+	genericConfig, versionedInformers, insecureServingInfo, serviceResolver, pluginInitializers, admissionPostStartHook, storageFactory, err := buildGenericConfig(s.ServerRunOptions, proxyTransport)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -373,13 +334,6 @@ func CreateKubeAPIServerConfig(
 			return nil, nil, nil, nil, err
 		}
 	}
-
-	var eventStorage *eventstorage.REST
-	eventStorage, err = eventstorage.NewREST(genericConfig.RESTOptionsGetter, uint64(s.EventTTL.Seconds()))
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	genericConfig.EventSink = eventRegistrySink{eventStorage}
 
 	config := &master.Config{
 		GenericConfig: genericConfig,
@@ -477,7 +431,6 @@ func CreateKubeAPIServerConfig(
 func buildGenericConfig(
 	s *options.ServerRunOptions,
 	proxyTransport *http.Transport,
-	stopCh <-chan struct{},
 ) (
 	genericConfig *genericapiserver.Config,
 	versionedInformers clientgoinformers.SharedInformerFactory,
@@ -489,14 +442,6 @@ func buildGenericConfig(
 	lastErr error,
 ) {
 	genericConfig = genericapiserver.NewConfig(legacyscheme.Codecs)
-	genericConfig.IsTerminating = func() bool {
-		select {
-		case <-stopCh:
-			return true
-		default:
-			return false
-		}
-	}
 	genericConfig.MergedResourceConfig = master.DefaultAPIResourceConfigSource()
 
 	if lastErr = s.GenericServerRunOptions.ApplyTo(genericConfig); lastErr != nil {
@@ -556,8 +501,6 @@ func buildGenericConfig(
 	// on a fast local network
 	genericConfig.LoopbackClientConfig.DisableCompression = true
 
-	enablement.SetLoopbackClientConfig(genericConfig.LoopbackClientConfig)
-
 	kubeClientConfig := genericConfig.LoopbackClientConfig
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -597,14 +540,6 @@ func buildGenericConfig(
 		return
 	}
 
-	if err := openshiftkubeapiserver.OpenShiftKubeAPIServerConfigPatch(genericConfig, versionedInformers, &pluginInitializers); err != nil {
-		lastErr = fmt.Errorf("failed to patch: %v", err)
-		return
-	}
-
-	if enablement.IsOpenShift() {
-		admissionenablement.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
-	}
 	err = s.Admission.ApplyTo(
 		genericConfig,
 		versionedInformers,
@@ -830,36 +765,4 @@ func getServiceIPAndRanges(serviceClusterIPRanges string) (net.IP, net.IPNet, ne
 		secondaryServiceIPRange = *secondaryServiceClusterCIDR
 	}
 	return apiServerServiceIP, primaryServiceIPRange, secondaryServiceIPRange, nil
-}
-
-// eventRegistrySink wraps an event registry in order to be used as direct event sync, without going through the API.
-type eventRegistrySink struct {
-	*eventstorage.REST
-}
-
-var _ genericapiserver.EventSink = eventRegistrySink{}
-
-func (s eventRegistrySink) Create(v1event *corev1.Event) (*corev1.Event, error) {
-	ctx := request.WithNamespace(request.WithRequestInfo(request.NewContext(), &request.RequestInfo{APIVersion: "v1"}), v1event.Namespace)
-
-	var event core.Event
-	if err := v1.Convert_v1_Event_To_core_Event(v1event, &event, nil); err != nil {
-		return nil, err
-	}
-
-	obj, err := s.REST.Create(ctx, &event, nil, &metav1.CreateOptions{})
-	if err != nil {
-		return nil, err
-	}
-	ret, ok := obj.(*core.Event)
-	if !ok {
-		return nil, fmt.Errorf("expected corev1.Event, got %T", obj)
-	}
-
-	var v1ret corev1.Event
-	if err := v1.Convert_core_Event_To_v1_Event(ret, &v1ret, nil); err != nil {
-		return nil, err
-	}
-
-	return &v1ret, nil
 }

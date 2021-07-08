@@ -750,7 +750,6 @@ func (os *OpenStack) GetLabelsForVolume(ctx context.Context, pv *v1.PersistentVo
 	if os.region != "" {
 		labels[v1.LabelZoneRegion] = os.region
 	}
-
 	klog.V(4).Infof("The Volume %s has labels %v", pv.Spec.Cinder.VolumeID, labels)
 
 	return labels, nil

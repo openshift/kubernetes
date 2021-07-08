@@ -140,12 +140,6 @@ func InstallReadyzHandler(mux mux, checks ...HealthChecker) {
 	InstallPathHandler(mux, "/readyz", checks...)
 }
 
-// InstallReadyzHandlerWithHealthyFunc is like InstallReadyzHandler, but in addition call firstTimeReady
-// the first time /readyz succeeds.
-func InstallReadyzHandlerWithHealthyFunc(mux mux, firstTimeReady func(), checks ...HealthChecker) {
-	InstallPathHandlerWithHealthyFunc(mux, "/readyz", firstTimeReady, checks...)
-}
-
 // InstallLivezHandler registers handlers for liveness checking on the path
 // "/livez" to mux. *All handlers* for mux must be specified in
 // exactly one call to InstallHandler. Calling InstallHandler more
@@ -160,12 +154,6 @@ func InstallLivezHandler(mux mux, checks ...HealthChecker) {
 // InstallPathHandler more than once for the same path and mux will
 // result in a panic.
 func InstallPathHandler(mux mux, path string, checks ...HealthChecker) {
-	InstallPathHandlerWithHealthyFunc(mux, path, nil, checks...)
-}
-
-// InstallPathHandlerWithHealthyFunc is like InstallPathHandler, but calls firstTimeHealthy exactly once
-// when the handler succeeds for the first time.
-func InstallPathHandlerWithHealthyFunc(mux mux, path string, firstTimeHealthy func(), checks ...HealthChecker) {
 	if len(checks) == 0 {
 		klog.V(5).Info("No default health checks specified. Installing the ping handler.")
 		checks = []HealthChecker{PingHealthz}
@@ -173,7 +161,6 @@ func InstallPathHandlerWithHealthyFunc(mux mux, path string, firstTimeHealthy fu
 
 	klog.V(5).Infof("Installing health checkers for (%v): %v", path, formatQuoted(checkerNames(checks...)...))
 
-	name := strings.Split(strings.TrimPrefix(path, "/"), "/")[0]
 	mux.Handle(path,
 		metrics.InstrumentHandlerFunc("GET",
 			/* group = */ "",
@@ -184,7 +171,7 @@ func InstallPathHandlerWithHealthyFunc(mux mux, path string, firstTimeHealthy fu
 			/* component = */ "",
 			/* deprecated */ false,
 			/* removedRelease */ "",
-			handleRootHealth(name, firstTimeHealthy, checks...)))
+			handleRootHealthz(checks...)))
 	for _, check := range checks {
 		mux.Handle(fmt.Sprintf("%s/%v", path, check.Name()), adaptCheckToHandler(check.Check))
 	}
@@ -220,11 +207,9 @@ func getExcludedChecks(r *http.Request) sets.String {
 	return sets.NewString()
 }
 
-// handleRootHealth returns an http.HandlerFunc that serves the provided checks.
-func handleRootHealth(name string, firstTimeHealthy func(), checks ...HealthChecker) http.HandlerFunc {
-	var notifyOnce sync.Once
-
-	return func(w http.ResponseWriter, r *http.Request) {
+// handleRootHealthz returns an http.HandlerFunc that serves the provided checks.
+func handleRootHealthz(checks ...HealthChecker) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		excluded := getExcludedChecks(r)
 		// failedVerboseLogOutput is for output to the log.  It indicates detailed failed output information for the log.
 		var failedVerboseLogOutput bytes.Buffer
@@ -255,27 +240,21 @@ func handleRootHealth(name string, firstTimeHealthy func(), checks ...HealthChec
 		}
 		// always be verbose on failure
 		if len(failedChecks) > 0 {
-			klog.V(2).Infof("%s check failed: %s\n%v", strings.Join(failedChecks, ","), name, failedVerboseLogOutput.String())
-			http.Error(httplog.Unlogged(r, w), fmt.Sprintf("%s%s check failed", individualCheckOutput.String(), name), http.StatusInternalServerError)
+			klog.V(2).Infof("healthz check failed: %s\n%v", strings.Join(failedChecks, ","), failedVerboseLogOutput.String())
+			http.Error(httplog.Unlogged(r, w), fmt.Sprintf("%shealthz check failed", individualCheckOutput.String()), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-
-		// signal first time this is healthy
-		if firstTimeHealthy != nil {
-			notifyOnce.Do(firstTimeHealthy)
-		}
-
 		if _, found := r.URL.Query()["verbose"]; !found {
 			fmt.Fprint(w, "ok")
 			return
 		}
 
 		individualCheckOutput.WriteTo(w)
-		fmt.Fprintf(w, "%s check passed\n", name)
-	}
+		fmt.Fprint(w, "healthz check passed\n")
+	})
 }
 
 // adaptCheckToHandler returns an http.HandlerFunc that serves the provided checks.

@@ -52,7 +52,6 @@ kube::test::find_dirs() {
           -o -path './third_party/*' \
           -o -path './staging/*' \
           -o -path './vendor/*' \
-          -o -path './openshift-hack/e2e/*' \
         \) -prune \
       \) -name '*_test.go' -print0 | xargs -0n1 dirname | sed "s|^\./|${KUBE_GO_PACKAGE}/|" | LC_ALL=C sort -u
 
@@ -60,11 +59,7 @@ kube::test::find_dirs() {
   )
 }
 
-# The default timeout of 120s is not sufficient for the following packages
-# whose successful execution takes longer than that.
-# - k8s.io/kubernetes/pkg/kubelet/volumemanager/reconciler
-# - k8s.io/kubernetes/pkg/volume/csi
-KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout=180s}
+KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout=120s}
 KUBE_COVER=${KUBE_COVER:-n} # set to 'y' to enable coverage collection
 KUBE_COVERMODE=${KUBE_COVERMODE:-atomic}
 # The directory to save test coverage reports to, if generating them. If unset,

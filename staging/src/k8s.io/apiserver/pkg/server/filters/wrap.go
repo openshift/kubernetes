@@ -56,11 +56,11 @@ func WithPanicRecovery(handler http.Handler, isTerminating func() bool, resolver
 		}
 		http.Error(w, "This request caused apiserver to panic. Look in the logs for details.", http.StatusInternalServerError)
 		klog.Errorf("apiserver panic'd on %v %v", req.Method, req.RequestURI)
-	}, isTerminating)
+	})
 }
 
-func withPanicRecovery(handler http.Handler, crashHandler func(http.ResponseWriter, *http.Request, interface{}), isTerminating func() bool) http.Handler {
-	handler = httplog.WithLogging(handler, httplog.DefaultStacktracePred, isTerminating)
+func withPanicRecovery(handler http.Handler, crashHandler func(http.ResponseWriter, *http.Request, interface{})) http.Handler {
+	handler = httplog.WithLogging(handler, httplog.DefaultStacktracePred)
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		defer runtime.HandleCrash(func(err interface{}) {
 			crashHandler(w, req, err)

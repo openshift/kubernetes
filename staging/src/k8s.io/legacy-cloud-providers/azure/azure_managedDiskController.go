@@ -21,6 +21,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"path"
 	"strconv"
 	"strings"
@@ -236,6 +237,10 @@ func (c *ManagedDiskController) DeleteManagedDisk(diskURI string) error {
 
 	rerr = c.common.cloud.DisksClient.Delete(ctx, resourceGroup, diskName)
 	if rerr != nil {
+		if rerr.HTTPStatusCode == http.StatusNotFound {
+			klog.V(2).Infof("azureDisk - disk(%s) is already deleted", diskURI)
+			return nil
+		}
 		return rerr.Error()
 	}
 	// We don't need poll here, k8s will immediately stop referencing the disk
@@ -295,6 +300,10 @@ func (c *ManagedDiskController) ResizeDisk(diskURI string, oldSize resource.Quan
 	// If disk already of greater or equal size than requested we return
 	if *result.DiskProperties.DiskSizeGB >= requestGiB {
 		return newSizeQuant, nil
+	}
+
+	if result.DiskProperties.DiskState != compute.Unattached {
+		return oldSize, fmt.Errorf("azureDisk - disk resize is only supported on Unattached disk, current disk state: %s, already attached to %s", result.DiskProperties.DiskState, to.String(result.ManagedBy))
 	}
 
 	diskParameter := compute.DiskUpdate{

@@ -11,6 +11,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/api/v1/pod:go_default_library",
+        "//pkg/apis/core/validation:go_default_library",
         "//pkg/features:go_default_library",
         "//pkg/scheduler/algorithmprovider:go_default_library",
         "//pkg/scheduler/apis/config:go_default_library",
@@ -19,6 +20,7 @@ go_library(
         "//pkg/scheduler/core:go_default_library",
         "//pkg/scheduler/framework/plugins:go_default_library",
         "//pkg/scheduler/framework/plugins/defaultbinder:go_default_library",
+        "//pkg/scheduler/framework/plugins/defaultpreemption:go_default_library",
         "//pkg/scheduler/framework/plugins/noderesources:go_default_library",
         "//pkg/scheduler/framework/plugins/queuesort:go_default_library",
         "//pkg/scheduler/framework/runtime:go_default_library",
@@ -65,6 +67,7 @@ go_test(
         "//pkg/scheduler/core:go_default_library",
         "//pkg/scheduler/framework/plugins:go_default_library",
         "//pkg/scheduler/framework/plugins/defaultbinder:go_default_library",
+        "//pkg/scheduler/framework/plugins/defaultpreemption:go_default_library",
         "//pkg/scheduler/framework/plugins/interpodaffinity:go_default_library",
         "//pkg/scheduler/framework/plugins/nodelabel:go_default_library",
         "//pkg/scheduler/framework/plugins/nodeports:go_default_library",

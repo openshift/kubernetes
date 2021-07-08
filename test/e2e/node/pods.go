@@ -63,23 +63,10 @@ var _ = SIGDescribe("Pods Extended", func() {
 			ginkgo.By("creating the pod")
 			name := "pod-submit-remove-" + string(uuid.NewUUID())
 			value := strconv.Itoa(time.Now().Nanosecond())
-			pod := &v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: name,
-					Labels: map[string]string{
-						"name": "foo",
-						"time": value,
-					},
-				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Name:  "agnhost",
-							Image: imageutils.GetE2EImage(imageutils.Agnhost),
-							Args:  []string{"pause"},
-						},
-					},
-				},
+			pod := e2epod.NewAgnhostPod(f.Namespace.Name, name, nil, nil, nil)
+			pod.ObjectMeta.Labels = map[string]string{
+				"name": "foo",
+				"time": value,
 			}
 
 			ginkgo.By("setting up selector")
@@ -276,7 +263,6 @@ var _ = SIGDescribe("Pods Extended", func() {
 						start := time.Now()
 						created := podClient.Create(pod)
 						ch := make(chan []watch.Event)
-						waitForWatch := make(chan struct{})
 						go func() {
 							defer ginkgo.GinkgoRecover()
 							defer close(ch)
@@ -289,7 +275,6 @@ var _ = SIGDescribe("Pods Extended", func() {
 								return
 							}
 							defer w.Stop()
-							close(waitForWatch)
 							events := []watch.Event{
 								{Type: watch.Added, Object: created},
 							}
@@ -306,10 +291,6 @@ var _ = SIGDescribe("Pods Extended", func() {
 							ch <- events
 						}()
 
-						select {
-						case <-ch: // in case the goroutine above exits before establishing the watch
-						case <-waitForWatch: // when the watch is established
-						}
 						t := time.Duration(rand.Intn(delay)) * time.Millisecond
 						time.Sleep(t)
 						err := podClient.Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})

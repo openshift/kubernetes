@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -652,4 +653,110 @@ func newTestServer(clientCert, clientKey, caCert []byte, handler func(http.Respo
 	server.StartTLS()
 
 	return server, nil
+}
+
+func TestWithExponentialBackoffContextIsAlreadyCanceled(t *testing.T) {
+	alwaysRetry := func(e error) bool {
+		return true
+	}
+
+	attemptsGot := 0
+	webhookFunc := func() error {
+		attemptsGot++
+		return nil
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	cancel()
+
+	// We don't expect the webhook function to be called since the context is already canceled.
+	err := WithExponentialBackoff(ctx, time.Millisecond, webhookFunc, alwaysRetry)
+
+	errExpected := fmt.Errorf("webhook call failed: %s", context.Canceled)
+	if errExpected.Error() != err.Error() {
+		t.Errorf("expected error: %v, but got: %v", errExpected, err)
+	}
+	if attemptsGot != 0 {
+		t.Errorf("expected %d webhook attempts, but got: %d", 0, attemptsGot)
+	}
+}
+
+func TestWithExponentialBackoffWebhookErrorIsMostImportant(t *testing.T) {
+	alwaysRetry := func(e error) bool {
+		return true
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	attemptsGot := 0
+	errExpected := errors.New("webhook not available")
+	webhookFunc := func() error {
+		attemptsGot++
+
+		// after the first attempt, the context is canceled
+		cancel()
+
+		return errExpected
+	}
+
+	// webhook err has higher priority than ctx error. we expect the webhook error to be returned.
+	err := WithExponentialBackoff(ctx, time.Millisecond, webhookFunc, alwaysRetry)
+
+	if attemptsGot != 1 {
+		t.Errorf("expected %d webhook attempts, but got: %d", 1, attemptsGot)
+	}
+	if errExpected != err {
+		t.Errorf("expected error: %v, but got: %v", errExpected, err)
+	}
+}
+
+func TestWithExponentialBackoffWithRetryExhaustedWhileContextIsNotCanceled(t *testing.T) {
+	alwaysRetry := func(e error) bool {
+		return true
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+
+	attemptsGot := 0
+	errExpected := errors.New("webhook not available")
+	webhookFunc := func() error {
+		attemptsGot++
+		return errExpected
+	}
+
+	// webhook err has higher priority than ctx error. we expect the webhook error to be returned.
+	err := WithExponentialBackoff(ctx, time.Millisecond, webhookFunc, alwaysRetry)
+
+	// WithExponentialBackoff has 5 steps for retry backoff parameters.
+	if attemptsGot != 5 {
+		t.Errorf("expected %d webhook attempts, but got: %d", 1, attemptsGot)
+	}
+	if errExpected != err {
+		t.Errorf("expected error: %v, but got: %v", errExpected, err)
+	}
+}
+
+func TestGenericWebhookWithExponentialBackoff(t *testing.T) {
+	attemptsPerCallExpected := 5
+	webhook := &GenericWebhook{
+		InitialBackoff: time.Millisecond,
+		ShouldRetry: func(e error) bool {
+			return true
+		},
+	}
+
+	attemptsGot := 0
+	webhookFunc := func() rest.Result {
+		attemptsGot++
+		return rest.Result{}
+	}
+
+	// number of retries should always be local to each call.
+	totalAttemptsExpected := attemptsPerCallExpected * 2
+	webhook.WithExponentialBackoff(context.TODO(), webhookFunc)
+	webhook.WithExponentialBackoff(context.TODO(), webhookFunc)
+
+	if totalAttemptsExpected != attemptsGot {
+		t.Errorf("expected a total of %d webhook attempts but got: %d", totalAttemptsExpected, attemptsGot)
+	}
 }

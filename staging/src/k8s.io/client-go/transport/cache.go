@@ -18,12 +18,11 @@ package transport
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
-
-	libgonetwork "github.com/openshift/library-go/pkg/network"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -90,7 +89,10 @@ func (c *tlsTransportCache) get(config *Config) (http.RoundTripper, error) {
 
 	dial := config.Dial
 	if dial == nil {
-		dial = libgonetwork.DefaultClientDialContext()
+		dial = (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext
 	}
 
 	// If we use are reloading files, we need to handle certificate rotation properly
