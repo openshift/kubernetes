@@ -1,3 +1,4 @@
+
 /*
 Copyright 2019 The Kubernetes Authors.
 
@@ -138,7 +139,9 @@ func TestEventSeries(t *testing.T) {
 			return false, err
 		}
 
-		if len(events.Items) != 1 {
+		// Be sure that at least the events we sent in the test were delivered.
+		// To add any events from the kube-apiserver itself will require this tolerate additional events.
+		if len(events.Items) < 1 {
 			return false, nil
 		}
 
@@ -146,7 +149,7 @@ func TestEventSeries(t *testing.T) {
 			return false, nil
 		}
 
-		if events.Items[0].Series.Count != 2 {
+		if events.Items[0].Series.Count < 2 {
 			return false, fmt.Errorf("expected EventSeries to have a starting count of 2, got: %d", events.Items[0].Series.Count)
 		}
 
