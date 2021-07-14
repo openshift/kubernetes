@@ -17,7 +17,10 @@ limitations under the License.
 package sliceutils
 
 import (
-	"k8s.io/api/core/v1"
+	"sort"
+
+	v1 "k8s.io/api/core/v1"
+	corev1helpers "k8s.io/component-helpers/scheduling/corev1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
@@ -60,3 +63,74 @@ func (a ByImageSize) Less(i, j int) bool {
 }
 func (a ByImageSize) Len() int      { return len(a) }
 func (a ByImageSize) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+// Cmp compares p1 and p2 and returns:
+//
+//   -1 if p1 <  p2
+//    0 if p1 == p2
+//   +1 if p1 >  p2
+//
+type cmpFunc func(p1, p2 *v1.Pod) int
+
+// MultiSorter implements the Sort interface, sorting changes within.
+type MultiSorter struct {
+	pods []*v1.Pod
+	cmp  []cmpFunc
+}
+
+// Sort sorts the argument slice according to the less functions passed to OrderedBy.
+func (ms *MultiSorter) Sort(pods []*v1.Pod) {
+	ms.pods = pods
+	sort.Sort(ms)
+}
+
+// OrderedBy returns a Sorter that sorts using the cmp functions, in order.
+// Call its Sort method to sort the data.
+func OrderedBy(cmp ...cmpFunc) *MultiSorter {
+	return &MultiSorter{
+		cmp: cmp,
+	}
+}
+
+// Len is part of sort.Interface.
+func (ms *MultiSorter) Len() int {
+	return len(ms.pods)
+}
+
+// Swap is part of sort.Interface.
+func (ms *MultiSorter) Swap(i, j int) {
+	ms.pods[i], ms.pods[j] = ms.pods[j], ms.pods[i]
+}
+
+// Less is part of sort.Interface.
+func (ms *MultiSorter) Less(i, j int) bool {
+	p1, p2 := ms.pods[i], ms.pods[j]
+	var k int
+	for k = 0; k < len(ms.cmp)-1; k++ {
+		cmpResult := ms.cmp[k](p1, p2)
+		// p1 is less than p2
+		if cmpResult < 0 {
+			return true
+		}
+		// p1 is greater than p2
+		if cmpResult > 0 {
+			return false
+		}
+		// we don't know yet
+	}
+	// the last cmp func is the final decider
+	return ms.cmp[k](p1, p2) < 0
+}
+
+// PriorityFirst compares pods by Priority, if priority is enabled.
+func PriorityFirst(p1, p2 *v1.Pod) int {
+	priority1 := corev1helpers.PodPriority(p1)
+	priority2 := corev1helpers.PodPriority(p2)
+	if priority1 == priority2 {
+		return 0
+	}
+	if priority1 < priority2 {
+		return 1
+	}
+	return -1
+}
