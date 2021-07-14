@@ -54,6 +54,7 @@ import (
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
 	"k8s.io/apiserver/pkg/endpoints/filterlatency"
+	"k8s.io/apiserver/pkg/endpoints/filters"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apiopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -788,10 +789,10 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 	// use the UnprotectedHandler from the delegation target to ensure that we don't attempt to double authenticator, authorize,
 	// or some other part of the filter chain in delegation cases.
 	if delegationTarget.UnprotectedHandler() == nil && c.EnableIndex {
-		s.Handler.NonGoRestfulMux.NotFoundHandler(routes.IndexLister{
+		s.Handler.NonGoRestfulMux.NotFoundHandler(WithNotFoundProtectorHandler(routes.IndexLister{
 			StatusCode:   http.StatusNotFound,
 			PathProvider: s.listedPathProvider,
-		})
+		}, s.hasBeenReadyCh, filters.GetAuthorizerAttributes))
 	}
 
 	return s, nil
