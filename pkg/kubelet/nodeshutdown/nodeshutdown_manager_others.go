@@ -21,6 +21,7 @@ package nodeshutdown
 import (
 	"time"
 
+	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/eviction"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 )
@@ -29,7 +30,10 @@ import (
 type Manager struct{}
 
 // NewManager returns a fake node shutdown manager for non linux platforms.
-func NewManager(getPodsFunc eviction.ActivePodsFunc, killPodFunc eviction.KillPodFunc, syncNodeStatus func(), shutdownGracePeriodRequested, shutdownGracePeriodCriticalPods time.Duration) (*Manager, lifecycle.PodAdmitHandler) {
+func NewManager(getPodsFunc eviction.ActivePodsFunc, killPodFunc eviction.KillPodFunc, syncNodeStatus func(),
+	shutdownGracePeriodRequested, shutdownGracePeriodCriticalPods time.Duration,
+	podPriorityShutdownGracePeriod []kubeletconfig.PodPriorityShutdownGracePeriod,
+) (*Manager, lifecycle.PodAdmitHandler) {
 	m := &Manager{}
 	return m, m
 }
