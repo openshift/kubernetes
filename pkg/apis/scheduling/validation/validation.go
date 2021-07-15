@@ -51,10 +51,18 @@ func ValidatePriorityClass(pc *scheduling.PriorityClass) field.ErrorList {
 // ValidatePriorityClassUpdate tests if required fields in the PriorityClass are
 // set and are valid. PriorityClass does not allow updating Name, and Value.
 func ValidatePriorityClassUpdate(pc, oldPc *scheduling.PriorityClass) field.ErrorList {
-	allErrs := apivalidation.ValidateObjectMetaUpdate(&pc.ObjectMeta, &oldPc.ObjectMeta, field.NewPath("metadata"))
 	// Name is immutable and is checked by the ObjectMeta validator.
-	if pc.Value != oldPc.Value {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("Value"), "may not be changed in an update."))
+	allErrs := apivalidation.ValidateObjectMetaUpdate(&pc.ObjectMeta, &oldPc.ObjectMeta, field.NewPath("metadata"))
+	// Don't allow updates to system-* priority classes
+	if strings.HasPrefix(pc.Name, scheduling.SystemPriorityClassPrefix) {
+		if is, _ := schedulingapiv1.IsKnownSystemPriorityClass(oldPc.Name, oldPc.Value, oldPc.GlobalDefault); is {
+			if oldPc.Value != pc.Value {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("Value"), "may not be changed in an update for system critical priority classes"))
+			}
+		}
+	} else if pc.Value > scheduling.HighestUserDefinablePriority {
+		// Non-system critical priority classes are not allowed to have a value larger than HighestUserDefinablePriority.
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("value"), fmt.Sprintf("maximum allowed value of a user defined priority is %v", scheduling.HighestUserDefinablePriority)))
 	}
 	// PreemptionPolicy is immutable and is checked by the ObjectMeta validator.
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(pc.PreemptionPolicy, oldPc.PreemptionPolicy, field.NewPath("preemptionPolicy"))...)

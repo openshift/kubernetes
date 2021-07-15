@@ -105,6 +105,13 @@ func TestValidatePriorityClassUpdate(t *testing.T) {
 			Value:         100,
 			GlobalDefault: true,
 		},
+		"remove value": {
+			ObjectMeta: metav1.ObjectMeta{Name: "tier1", Namespace: "", ResourceVersion: "2"},
+		},
+		"change value": {
+			ObjectMeta: metav1.ObjectMeta{Name: "tier1", Namespace: "", ResourceVersion: "2"},
+			Value:      101,
+		},
 	}
 
 	for k, v := range successCases {
@@ -131,23 +138,61 @@ func TestValidatePriorityClassUpdate(t *testing.T) {
 			},
 			T: field.ErrorTypeInvalid,
 		},
-		"remove value": {
+	}
+
+	for k, v := range errorCases {
+		errs := ValidatePriorityClassUpdate(&v.P, &old)
+		if len(errs) == 0 {
+			t.Errorf("Expected error for %s, but it succeeded", k)
+			continue
+		}
+		for i := range errs {
+			if errs[i].Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+		}
+	}
+
+}
+
+func TestValidateCriticalPriorityClassUpdate(t *testing.T) {
+	oldCriticalPriorityClass := scheduling.PriorityClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: scheduling.SystemClusterCritical,
+		},
+		Value:       scheduling.SystemCriticalPriority,
+		Description: "Used for system critical pods that must run in the cluster, but can be moved to another node if necessary.",
+	}
+	errorCases := map[string]struct {
+		P scheduling.PriorityClass
+		T field.ErrorType
+	}{
+		"change system critical priority class name": {
 			P: scheduling.PriorityClass{
-				ObjectMeta: metav1.ObjectMeta{Name: "tier1", Namespace: "", ResourceVersion: "2"},
+				ObjectMeta:  metav1.ObjectMeta{Name: scheduling.SystemClusterCritical + "1", ResourceVersion: "2"},
+				Value:       scheduling.SystemCriticalPriority,
+				Description: "Used for system critical pods that must run in the cluster, but can be moved to another node if necessary.",
+			},
+			T: field.ErrorTypeInvalid,
+		},
+		"change system critical priority class value": {
+			P: scheduling.PriorityClass{
+				ObjectMeta:  metav1.ObjectMeta{Name: scheduling.SystemClusterCritical, ResourceVersion: "2"},
+				Value:       scheduling.SystemCriticalPriority + 1000,
+				Description: "Used for system critical pods that must run in the cluster, but can be moved to another node if necessary.",
 			},
 			T: field.ErrorTypeForbidden,
 		},
-		"change value": {
+		"remove system critical priority class value": {
 			P: scheduling.PriorityClass{
-				ObjectMeta: metav1.ObjectMeta{Name: "tier1", Namespace: "", ResourceVersion: "2"},
-				Value:      101,
+				ObjectMeta: metav1.ObjectMeta{Name: "system-cluster-critical", ResourceVersion: "2"},
 			},
 			T: field.ErrorTypeForbidden,
 		},
 	}
 
 	for k, v := range errorCases {
-		errs := ValidatePriorityClassUpdate(&v.P, &old)
+		errs := ValidatePriorityClassUpdate(&v.P, &oldCriticalPriorityClass)
 		if len(errs) == 0 {
 			t.Errorf("Expected error for %s, but it succeeded", k)
 			continue
