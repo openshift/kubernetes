@@ -1259,8 +1259,9 @@ func (v schemaCoercingConverter) ConvertFieldLabel(gvk schema.GroupVersionKind, 
 // - generic pruning of unknown fields following a structural schema
 // - removal of non-defaulted non-nullable null map values.
 type unstructuredSchemaCoercer struct {
-	dropInvalidMetadata bool
-	repairGeneration    bool
+	dropInvalidMetadata  bool
+	repairGeneration     bool
+	assumeGoodObjectMeta bool
 
 	structuralSchemas     map[string]*structuralschema.Structural
 	structuralSchemaGK    schema.GroupKind
@@ -1277,9 +1278,30 @@ func (v *unstructuredSchemaCoercer) apply(u *unstructured.Unstructured) error {
 	if err != nil {
 		return err
 	}
-	objectMeta, foundObjectMeta, err := schemaobjectmeta.GetObjectMeta(u.Object, v.dropInvalidMetadata)
-	if err != nil {
-		return err
+
+	restoreObjectMeta := func() error { return nil }
+	if v.assumeGoodObjectMeta {
+		// avoid expensive unmarshal+marshal of schemaobjectmeta.GetObjectMeta
+		objectMeta, foundObjectMeta, err := unstructured.NestedFieldNoCopy(u.UnstructuredContent(), "metadata")
+		if err != nil {
+			return err
+		}
+		if foundObjectMeta {
+			restoreObjectMeta = func() error {
+				return unstructured.SetNestedField(u.UnstructuredContent(), objectMeta, "metadata")
+			}
+			delete(u.UnstructuredContent(), "metadata")
+		}
+	} else {
+		objectMeta, foundObjectMeta, err := schemaobjectmeta.GetObjectMeta(u.Object, v.dropInvalidMetadata)
+		if err != nil {
+			return err
+		}
+		if foundObjectMeta {
+			restoreObjectMeta = func() error {
+				return schemaobjectmeta.SetObjectMeta(u.Object, objectMeta)
+			}
+		}
 	}
 
 	// compare group and kind because also other object like DeleteCollection options pass through here
@@ -1296,10 +1318,6 @@ func (v *unstructuredSchemaCoercer) apply(u *unstructured.Unstructured) error {
 		if err := schemaobjectmeta.Coerce(nil, u.Object, v.structuralSchemas[gv.Version], false, v.dropInvalidMetadata); err != nil {
 			return err
 		}
-		// fixup missing generation in very old CRs
-		if v.repairGeneration && objectMeta.Generation == 0 {
-			objectMeta.Generation = 1
-		}
 	}
 
 	// restore meta fields, starting clean
@@ -1309,9 +1327,20 @@ func (v *unstructuredSchemaCoercer) apply(u *unstructured.Unstructured) error {
 	if foundApiVersion {
 		u.SetAPIVersion(apiVersion)
 	}
-	if foundObjectMeta {
-		if err := schemaobjectmeta.SetObjectMeta(u.Object, objectMeta); err != nil {
+	if err := restoreObjectMeta(); err != nil {
+		return err
+	}
+
+	// fixup missing generation in very old CRs
+	if v.repairGeneration && gv.Group == v.structuralSchemaGK.Group && kind == v.structuralSchemaGK.Kind {
+		gen, found, err := unstructured.NestedInt64(u.UnstructuredContent(), "metadata", "generation")
+		if err != nil {
 			return err
+		}
+		if !found || gen == 0 {
+			if err := unstructured.SetNestedField(u.UnstructuredContent(), 1, "metadata", "generation"); err != nil {
+				return err
+			}
 		}
 	}
 
