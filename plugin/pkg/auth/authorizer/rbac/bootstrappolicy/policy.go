@@ -222,7 +222,7 @@ func clusterRoles() []rbacv1.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:public-info-viewer"},
 			Rules: []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("get").URLs(
-					"/.well-known", "/.well-known/*",
+					"/.well-known", "/.well-known/oauth-authorization-server",
 				).RuleOrDie(),
 			},
 		},

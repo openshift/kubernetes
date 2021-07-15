@@ -1186,7 +1186,7 @@ items:
   rules:
   - nonResourceURLs:
     - /.well-known
-    - /.well-known/*
+    - /.well-known/oauth-authorization-server
     verbs:
     - get
 - apiVersion: rbac.authorization.k8s.io/v1
