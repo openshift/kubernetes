@@ -82,7 +82,7 @@ func (r *RBACAuthorizer) Authorize(ctx context.Context, requestAttributes author
 
 	// Build a detailed log of the denial.
 	// Make the whole block conditional so we don't do a lot of string-building we won't use.
-	if klog.V(5).Enabled() {
+	if klog.V(2).Enabled() {
 		var operation string
 		if requestAttributes.IsResourceRequest() {
 			b := &bytes.Buffer{}
