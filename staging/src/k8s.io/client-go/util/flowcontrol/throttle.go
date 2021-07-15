@@ -35,6 +35,8 @@ type RateLimiter interface {
 	Stop()
 	// QPS returns QPS of this rate limiter
 	QPS() float32
+	// WaitDuration returns the time this limiter has spent waiting.
+	WaitDuration() time.Duration
 	// Wait returns nil if a token is taken before the Context is done.
 	Wait(ctx context.Context) error
 }
@@ -43,6 +45,9 @@ type tokenBucketRateLimiter struct {
 	limiter *rate.Limiter
 	clock   Clock
 	qps     float32
+
+	lock sync.Mutex
+	wait time.Duration
 }
 
 // NewTokenBucketRateLimiter creates a rate limiter which implements a token bucket approach.
@@ -92,7 +97,14 @@ func (t *tokenBucketRateLimiter) TryAccept() bool {
 // Accept will block until a token becomes available
 func (t *tokenBucketRateLimiter) Accept() {
 	now := t.clock.Now()
-	t.clock.Sleep(t.limiter.ReserveN(now, 1).DelayFrom(now))
+	delay := t.limiter.ReserveN(now, 1).DelayFrom(now)
+
+	// record before delay
+	t.lock.Lock()
+	t.wait += delay
+	t.lock.Unlock()
+
+	t.clock.Sleep(delay)
 }
 
 func (t *tokenBucketRateLimiter) Stop() {
@@ -102,8 +114,22 @@ func (t *tokenBucketRateLimiter) QPS() float32 {
 	return t.qps
 }
 
+func (t *tokenBucketRateLimiter) WaitDuration() time.Duration {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	return t.wait
+}
+
 func (t *tokenBucketRateLimiter) Wait(ctx context.Context) error {
-	return t.limiter.Wait(ctx)
+	start := time.Now()
+
+	err := t.limiter.Wait(ctx)
+
+	// record before delay
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	t.wait += time.Now().Sub(start)
+	return err
 }
 
 type fakeAlwaysRateLimiter struct{}
@@ -122,6 +148,10 @@ func (t *fakeAlwaysRateLimiter) Accept() {}
 
 func (t *fakeAlwaysRateLimiter) QPS() float32 {
 	return 1
+}
+
+func (t *fakeAlwaysRateLimiter) WaitDuration() time.Duration {
+	return 0
 }
 
 func (t *fakeAlwaysRateLimiter) Wait(ctx context.Context) error {
@@ -152,6 +182,10 @@ func (t *fakeNeverRateLimiter) Accept() {
 
 func (t *fakeNeverRateLimiter) QPS() float32 {
 	return 1
+}
+
+func (t *fakeNeverRateLimiter) WaitDuration() time.Duration {
+	return 0
 }
 
 func (t *fakeNeverRateLimiter) Wait(ctx context.Context) error {
