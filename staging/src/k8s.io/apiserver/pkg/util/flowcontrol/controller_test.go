@@ -358,7 +358,8 @@ func TestAPFControllerWithGracefulShutdown(t *testing.T) {
 		100,
 		time.Minute,
 		metrics.PriorityLevelConcurrencyObserverPairGenerator,
-		cts)
+		cts,
+	)
 
 	stopCh, controllerCompletedCh := make(chan struct{}), make(chan struct{})
 	var controllerErr error

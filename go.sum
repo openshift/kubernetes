@@ -247,8 +247,8 @@ github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9/go.mod h1:XA3DeT6rxh2
 github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9/go.mod h1:0EXg4mc1CNP0HCqCz+K4ts155PXIlUywf0wqN+GfPZw=
 github.com/google/btree v1.0.0 h1:0udJVsspx3VBr5FwtLhQQtuAsVc79tTq0ocGIPAU6qo=
 github.com/google/btree v1.0.0/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
-github.com/google/cadvisor v0.38.5 h1:XOvqjL2+xMEuDORcLMv77NystZvQB7YgGxcKpRul/vE=
-github.com/google/cadvisor v0.38.5/go.mod h1:1OFB9sOOMkBdUBGCO/1SArawTnDscgMzTodacVDe8mA=
+github.com/google/cadvisor v0.38.7 h1:ZWyUz+23k1PRmEA+yrnDGtEC6IuU4Vc6439x2NQLHnA=
+github.com/google/cadvisor v0.38.7/go.mod h1:1OFB9sOOMkBdUBGCO/1SArawTnDscgMzTodacVDe8mA=
 github.com/google/go-cmp v0.5.2 h1:X2ev0eStA3AbceY54o37/0PQ/UWqKEiiO2dKL5OPaFM=
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/gofuzz v1.1.0 h1:Hsa8mG0dQ46ij8Sl2AYJDUv1oA9/d6Vk+3LG99Oe02g=

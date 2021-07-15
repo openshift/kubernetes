@@ -509,9 +509,9 @@ func newHandlerChain(t *testing.T, handler http.Handler, filter utilflowcontrol.
 		apfHandler.ServeHTTP(w, r)
 	})
 
-	handler = WithTimeoutForNonLongRunningRequests(handler, longRunningRequestCheck)
+	handler = WithTimeoutForNonLongRunningRequests(handler, longRunningRequestCheck, requestTimeout)
 	handler = apifilters.WithRequestInfo(handler, requestInfoFactory)
-	handler = WithPanicRecovery(handler, requestInfoFactory, func() bool { return false })
+	handler = WithPanicRecovery(handler, requestInfoFactory)
 	return handler
 }
 
