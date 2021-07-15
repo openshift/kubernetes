@@ -132,7 +132,7 @@ func (r *remoteRuntimeService) RunPodSandbox(config *runtimeapi.PodSandboxConfig
 // StopPodSandbox stops the sandbox. If there are any running containers in the
 // sandbox, they should be forced to termination.
 func (r *remoteRuntimeService) StopPodSandbox(podSandBoxID string) error {
-	klog.V(10).InfoS("[RemoteRuntimeService] StopPodSandbox", "podSandboxID", podSandBoxID, "timeout", r.timeout)
+	klog.V(4).InfoS("[RemoteRuntimeService] StopPodSandbox", "podSandboxID", podSandBoxID, "timeout", r.timeout)
 
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
@@ -145,7 +145,7 @@ func (r *remoteRuntimeService) StopPodSandbox(podSandBoxID string) error {
 		return err
 	}
 
-	klog.V(10).InfoS("[RemoteRuntimeService] StopPodSandbox Response", "podSandboxID", podSandBoxID)
+	klog.V(4).InfoS("[RemoteRuntimeService] StopPodSandbox Response", "podSandboxID", podSandBoxID)
 
 	return nil
 }

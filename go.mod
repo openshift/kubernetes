@@ -74,6 +74,7 @@ require (
 	github.com/openshift/library-go v0.0.0-20210521084623-7392ea9b02ca
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
+	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.10.0
 	github.com/quobyte/api v0.1.8
