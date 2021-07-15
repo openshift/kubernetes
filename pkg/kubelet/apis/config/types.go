@@ -407,6 +407,12 @@ type KubeletConfiguration struct {
 	EnableProfilingHandler bool
 	// EnableDebugFlagsHandler enables/debug/flags/v handler.
 	EnableDebugFlagsHandler bool
+	// EnableOtelTracing enables export of opentelemetry traces
+	// +optional
+	EnableOtelTracing bool
+	// OpenTelemetryConfig
+	// +optional
+	OpenTelemetryConfig OpenTelemetryConfig
 }
 
 // KubeletAuthorizationMode denotes the authorization mode for the kubelet
@@ -565,4 +571,10 @@ type ExecEnvVar struct {
 type MemoryReservation struct {
 	NumaNode int32
 	Limits   v1.ResourceList
+}
+
+// OpenTelemetryConfig specifies configuration for opentelemetry tracing
+type OpenTelemetryConfig struct {
+	TracingServiceName string
+	CollectorEndpoint  string
 }
