@@ -864,6 +864,10 @@ type KubeletConfiguration struct {
 	// Default: true
 	// +optional
 	EnableDebugFlagsHandler *bool `json:"enableDebugFlagsHandler,omitempty"`
+	// plegRelistPeriod sets the peg relist period to a duration
+	// Default: "1s"
+	// +optional
+	PlegRelistPeriod metav1.Duration `json:"plegRelistPeriod,omitempty"`
 }
 
 type KubeletAuthorizationMode string

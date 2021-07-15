@@ -50798,6 +50798,13 @@ func schema_k8sio_kubelet_config_v1beta1_KubeletConfiguration(ref common.Referen
 							Format:      "",
 						},
 					},
+					"plegRelistPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "plegRelistPeriod sets the peg relist period to a duration Default: \"1s\"",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
 				},
 			},
 		},

@@ -407,6 +407,10 @@ type KubeletConfiguration struct {
 	EnableProfilingHandler bool
 	// EnableDebugFlagsHandler enables/debug/flags/v handler.
 	EnableDebugFlagsHandler bool
+	// PlegRelistPeriod adds a pleg relist period duration
+	// Default: "1s"
+	// +optional
+	PlegRelistPeriod metav1.Duration
 }
 
 // KubeletAuthorizationMode denotes the authorization mode for the kubelet
