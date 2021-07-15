@@ -831,8 +831,17 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		v1.NamespaceNodeLease,
 		util.SetNodeOwnerFunc(klet.heartbeatClient, string(klet.nodeName)))
 
+	klog.InfoS("creating new nodeshutdown manager")
 	// setup node shutdown manager
-	shutdownManager, shutdownAdmitHandler := nodeshutdown.NewManager(klet.GetActivePods, killPodNow(klet.podWorkers, kubeDeps.Recorder), klet.syncNodeStatus, kubeCfg.ShutdownGracePeriod.Duration, kubeCfg.ShutdownGracePeriodCriticalPods.Duration)
+	klog.InfoS("Creating node shutdown manager", "shutdownGracePeriodRequested", kubeCfg.ShutdownGracePeriod.Duration, "shutdownGracePeriodCriticalPods", kubeCfg.ShutdownGracePeriodCriticalPods.Duration, "podPriorityShutdownGracePeriods", kubeCfg.PodPriorityShutdownGracePeriods)
+	shutdownManager, shutdownAdmitHandler := nodeshutdown.NewManager(&nodeshutdown.Config{
+		GetPodsFunc:                     klet.GetActivePods,
+		KillPodFunc:                     killPodNow(klet.podWorkers, kubeDeps.Recorder),
+		SyncNodeStatus:                  klet.syncNodeStatus,
+		ShutdownGracePeriodRequested:    kubeCfg.ShutdownGracePeriod.Duration,
+		ShutdownGracePeriodCriticalPods: kubeCfg.ShutdownGracePeriodCriticalPods.Duration,
+		PodPriorityShutdownGracePeriod:  kubeCfg.PodPriorityShutdownGracePeriods,
+	})
 
 	klet.shutdownManager = shutdownManager
 	klet.admitHandlers.AddPodAdmitHandler(shutdownAdmitHandler)
@@ -1182,7 +1191,7 @@ type Kubelet struct {
 	runtimeClassManager *runtimeclass.Manager
 
 	// Handles node shutdown events for the Node.
-	shutdownManager *nodeshutdown.Manager
+	shutdownManager nodeshutdown.Manager
 }
 
 // ListPodStats is delegated to StatsProvider, which implements stats.Provider interface

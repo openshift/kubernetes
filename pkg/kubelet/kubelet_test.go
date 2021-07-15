@@ -314,7 +314,13 @@ func newTestKubeletWithImageList(
 	kubelet.admitHandlers.AddPodAdmitHandler(evictionAdmitHandler)
 
 	// setup shutdown manager
-	shutdownManager, shutdownAdmitHandler := nodeshutdown.NewManager(kubelet.podManager.GetPods, killPodNow(kubelet.podWorkers, fakeRecorder), func() {}, 0 /* shutdownGracePeriodRequested*/, 0 /*shutdownGracePeriodCriticalPods */)
+	shutdownManager, shutdownAdmitHandler := nodeshutdown.NewManager(&nodeshutdown.Config{
+		GetPodsFunc:                     kubelet.podManager.GetPods,
+		KillPodFunc:                     killPodNow(kubelet.podWorkers, fakeRecorder),
+		SyncNodeStatus:                  func() {},
+		ShutdownGracePeriodRequested:    0,
+		ShutdownGracePeriodCriticalPods: 0,
+	})
 	kubelet.shutdownManager = shutdownManager
 	kubelet.admitHandlers.AddPodAdmitHandler(shutdownAdmitHandler)
 

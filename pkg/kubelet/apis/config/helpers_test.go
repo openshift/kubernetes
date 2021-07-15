@@ -216,6 +216,8 @@ var (
 		"OOMScoreAdj",
 		"PodCIDR",
 		"PodPidsLimit",
+		"PodPriorityShutdownGracePeriods[*].Priority",
+		"PodPriorityShutdownGracePeriods[*].ShutdownGracePeriodSeconds",
 		"PodsPerCore",
 		"Port",
 		"ProtectKernelDefaults",

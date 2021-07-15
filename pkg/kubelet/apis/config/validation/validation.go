@@ -154,6 +154,15 @@ func ValidateKubeletConfiguration(kc *kubeletconfig.KubeletConfiguration) error 
 	if (kc.ShutdownGracePeriod.Duration > 0 || kc.ShutdownGracePeriodCriticalPods.Duration > 0) && !localFeatureGate.Enabled(features.GracefulNodeShutdown) {
 		allErrors = append(allErrors, fmt.Errorf("invalid configuration: Specifying ShutdownGracePeriod or ShutdownGracePeriodCriticalPods requires feature gate GracefulNodeShutdown"))
 	}
+	if localFeatureGate.Enabled(features.PodPriorityBasedGracefulShutdown) {
+		if len(kc.PodPriorityShutdownGracePeriods) != 0 && (kc.ShutdownGracePeriod.Duration > 0 || kc.ShutdownGracePeriodCriticalPods.Duration > 0) {
+			allErrors = append(allErrors, fmt.Errorf("invalid configuration: Cannot specify both PodPriorityShutdownGracePeriods and ShutdownGracePeriod at the same time"))
+		}
+	} else {
+		if len(kc.PodPriorityShutdownGracePeriods) != 0 {
+			allErrors = append(allErrors, fmt.Errorf("invalid configuration: Specifying PodPriorityShutdownGracePeriods requires feature gate PodPriorityBasedGracefulShutdown"))
+		}
+	}
 
 	for _, val := range kc.EnforceNodeAllocatable {
 		switch val {

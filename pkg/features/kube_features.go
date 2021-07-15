@@ -755,6 +755,31 @@ const (
 	//
 	// Enables kubelet to detect CSI volume condition and send the event of the abnormal volume to the corresponding pod that is using it.
 	CSIVolumeHealth featuregate.Feature = "CSIVolumeHealth"
+
+	// owner: @marosset
+	// alpha: v1.22
+	//
+	// Enables support for 'HostProcess' containers on Windows nodes.
+	WindowsHostProcessContainers featuregate.Feature = "WindowsHostProcessContainers"
+
+	// owner: @ravig
+	// alpha: v1.22
+	//
+	// StatefulSetMinReadySeconds allows minReadySeconds to be respected by StatefulSet controller
+	StatefulSetMinReadySeconds featuregate.Feature = "StatefulSetMinReadySeconds"
+
+	// owner: @gjkim42
+	// kep: http://kep.k8s.io/2595
+	// alpha: v1.22
+	//
+	// Enables apiserver and kubelet to allow up to 32 DNSSearchPaths and up to 2048 DNSSearchListChars.
+	ExpandedDNSConfig featuregate.Feature = "ExpandedDNSConfig"
+
+	// owner: @wzshiming
+	// alpha: v1.22
+	//
+	// PodPriorityBasedGracefulShutdown Make the kubelet use shutdown configuration based on pod priority values for graceful shutdown.
+	PodPriorityBasedGracefulShutdown featuregate.Feature = "PodPriorityBasedGracefulShutdown"
 )
 
 func init() {
@@ -869,6 +894,10 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	KubeletPodResourcesGetAllocatable:              {Default: false, PreRelease: featuregate.Alpha},
 	NamespaceDefaultLabelName:                      {Default: true, PreRelease: featuregate.Beta}, // graduate to GA and lock to default in 1.22, remove in 1.24
 	CSIVolumeHealth:                                {Default: false, PreRelease: featuregate.Alpha},
+	WindowsHostProcessContainers:                   {Default: false, PreRelease: featuregate.Alpha},
+	StatefulSetMinReadySeconds:                     {Default: false, PreRelease: featuregate.Alpha},
+	ExpandedDNSConfig:                              {Default: false, PreRelease: featuregate.Alpha},
+	PodPriorityBasedGracefulShutdown:               {Default: true, PreRelease: featuregate.Alpha},
 
 	// inherited features from generic apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:

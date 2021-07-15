@@ -20,6 +20,7 @@ package nodeshutdown
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -33,7 +34,9 @@ import (
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	pkgfeatures "k8s.io/kubernetes/pkg/features"
+	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/nodeshutdown/systemd"
+	probetest "k8s.io/kubernetes/pkg/kubelet/prober/testing"
 )
 
 type fakeDbus struct {
@@ -74,12 +77,7 @@ func (f *fakeDbus) OverrideInhibitDelay(inhibitDelayMax time.Duration) error {
 	return nil
 }
 
-func makePod(name string, criticalPod bool, terminationGracePeriod *int64) *v1.Pod {
-	var priority int32
-	if criticalPod {
-		priority = scheduling.SystemCriticalPriority
-	}
-
+func makePod(name string, priority int32, terminationGracePeriod *int64) *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -93,15 +91,19 @@ func makePod(name string, criticalPod bool, terminationGracePeriod *int64) *v1.P
 }
 
 func TestManager(t *testing.T) {
-	normalPodNoGracePeriod := makePod("normal-pod-nil-grace-period", false /* criticalPod */, nil /* terminationGracePeriod */)
-	criticalPodNoGracePeriod := makePod("critical-pod-nil-grace-period", true /* criticalPod */, nil /* terminationGracePeriod */)
+	systemDbusTmp := systemDbus
+	defer func() {
+		systemDbus = systemDbusTmp
+	}()
+	normalPodNoGracePeriod := makePod("normal-pod-nil-grace-period", scheduling.DefaultPriorityWhenNoDefaultClassExists, nil /* terminationGracePeriod */)
+	criticalPodNoGracePeriod := makePod("critical-pod-nil-grace-period", scheduling.SystemCriticalPriority, nil /* terminationGracePeriod */)
 
 	shortGracePeriod := int64(2)
-	normalPodGracePeriod := makePod("normal-pod-grace-period", false /* criticalPod */, &shortGracePeriod /* terminationGracePeriod */)
-	criticalPodGracePeriod := makePod("critical-pod-grace-period", true /* criticalPod */, &shortGracePeriod /* terminationGracePeriod */)
+	normalPodGracePeriod := makePod("normal-pod-grace-period", scheduling.DefaultPriorityWhenNoDefaultClassExists, &shortGracePeriod /* terminationGracePeriod */)
+	criticalPodGracePeriod := makePod("critical-pod-grace-period", scheduling.SystemCriticalPriority, &shortGracePeriod /* terminationGracePeriod */)
 
 	longGracePeriod := int64(1000)
-	normalPodLongGracePeriod := makePod("normal-pod-long-grace-period", false /* criticalPod */, &longGracePeriod /* terminationGracePeriod */)
+	normalPodLongGracePeriod := makePod("normal-pod-long-grace-period", scheduling.DefaultPriorityWhenNoDefaultClassExists, &longGracePeriod /* terminationGracePeriod */)
 
 	var tests = []struct {
 		desc                             string
@@ -224,12 +226,20 @@ func TestManager(t *testing.T) {
 			}
 			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, pkgfeatures.GracefulNodeShutdown, true)()
 
-			manager, _ := NewManager(activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, tc.shutdownGracePeriodCriticalPods)
-			manager.clock = clock.NewFakeClock(time.Now())
+			manager, _ := NewManager(&Config{
+				GetPodsFunc:                     activePodsFunc,
+				KillPodFunc:                     killPodsFunc,
+				SyncNodeStatus:                  func() {},
+				ShutdownGracePeriodRequested:    tc.shutdownGracePeriodRequested,
+				ShutdownGracePeriodCriticalPods: tc.shutdownGracePeriodCriticalPods,
+				Clock:                           clock.NewFakeClock(time.Now()),
+			})
 
 			err := manager.Start()
 			if tc.expectedError != nil {
-				if !strings.Contains(err.Error(), tc.expectedError.Error()) {
+				if err == nil {
+					t.Errorf("unexpected error message. Got: <nil> want %s", tc.expectedError.Error())
+				} else if !strings.Contains(err.Error(), tc.expectedError.Error()) {
 					t.Errorf("unexpected error message. Got: %s want %s", err.Error(), tc.expectedError.Error())
 				}
 			} else {
@@ -239,7 +249,11 @@ func TestManager(t *testing.T) {
 				assert.Equal(t, manager.Admit(nil).Admit, true)
 
 				// Send fake shutdown event
-				fakeShutdownChan <- true
+				select {
+				case fakeShutdownChan <- true:
+				case <-time.After(1 * time.Second):
+					t.Fatal()
+				}
 
 				// Wait for all the pods to be killed
 				killedPodsToGracePeriods := map[string]int64{}
@@ -298,10 +312,253 @@ func TestFeatureEnabled(t *testing.T) {
 			}
 			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, pkgfeatures.GracefulNodeShutdown, tc.featureGateEnabled)()
 
-			manager, _ := NewManager(activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, 0 /*shutdownGracePeriodCriticalPods*/)
+			manager, _ := NewManager(activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, 0 /*shutdownGracePeriodCriticalPods*/, nil)
 			manager.clock = clock.NewFakeClock(time.Now())
 
 			assert.Equal(t, tc.expectEnabled, manager.isFeatureEnabled())
+		})
+	}
+}
+func TestRestart(t *testing.T) {
+	systemDbusTmp := systemDbus
+	defer func() {
+		systemDbus = systemDbusTmp
+	}()
+
+	shutdownGracePeriodRequested := 30 * time.Second
+	shutdownGracePeriodCriticalPods := 10 * time.Second
+	systemInhibitDelay := 40 * time.Second
+	overrideSystemInhibitDelay := 40 * time.Second
+	activePodsFunc := func() []*v1.Pod {
+		return nil
+	}
+	killPodsFunc := func(pod *v1.Pod, status v1.PodStatus, gracePeriodOverride *int64) error {
+		return nil
+	}
+	syncNodeStatus := func() {}
+
+	var shutdownChan chan bool
+	var connChan = make(chan struct{}, 1)
+
+	systemDbus = func() (dbusInhibiter, error) {
+		defer func() {
+			connChan <- struct{}{}
+		}()
+
+		shutdownChan = make(chan bool)
+		dbus := &fakeDbus{currentInhibitDelay: systemInhibitDelay, shutdownChan: shutdownChan, overrideSystemInhibitDelay: overrideSystemInhibitDelay}
+		return dbus, nil
+	}
+
+	manager, _ := NewManager(&Config{
+		GetPodsFunc:                     activePodsFunc,
+		KillPodFunc:                     killPodsFunc,
+		SyncNodeStatus:                  syncNodeStatus,
+		ShutdownGracePeriodRequested:    shutdownGracePeriodRequested,
+		ShutdownGracePeriodCriticalPods: shutdownGracePeriodCriticalPods,
+	})
+	err := manager.Start()
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	for i := 0; i != 5; i++ {
+		select {
+		case <-time.After(dbusReconnectPeriod * 5):
+			t.Fatal("wait dbus connect timeout")
+		case <-connChan:
+		}
+
+		time.Sleep(time.Second)
+		close(shutdownChan)
+	}
+}
+
+func Test_migrateConfig(t *testing.T) {
+	type args struct {
+		shutdownGracePeriodRequested    time.Duration
+		shutdownGracePeriodCriticalPods time.Duration
+	}
+	tests := []struct {
+		name string
+		args args
+		want []kubeletconfig.PodPriorityShutdownGracePeriod
+	}{
+		{
+			args: args{
+				shutdownGracePeriodRequested:    300 * time.Second,
+				shutdownGracePeriodCriticalPods: 120 * time.Second,
+			},
+			want: []kubeletconfig.PodPriorityShutdownGracePeriod{
+				{
+					Priority:                   scheduling.DefaultPriorityWhenNoDefaultClassExists,
+					ShutdownGracePeriodSeconds: 180,
+				},
+				{
+					Priority:                   scheduling.SystemCriticalPriority,
+					ShutdownGracePeriodSeconds: 120,
+				},
+			},
+		},
+		{
+			args: args{
+				shutdownGracePeriodRequested:    100 * time.Second,
+				shutdownGracePeriodCriticalPods: 0 * time.Second,
+			},
+			want: []kubeletconfig.PodPriorityShutdownGracePeriod{
+				{
+					Priority:                   scheduling.DefaultPriorityWhenNoDefaultClassExists,
+					ShutdownGracePeriodSeconds: 100,
+				},
+				{
+					Priority:                   scheduling.SystemCriticalPriority,
+					ShutdownGracePeriodSeconds: 0,
+				},
+			},
+		},
+		{
+			name: "empty configuration",
+			args: shutdownConfig{
+				shutdownGracePeriodRequested:    0 * time.Second,
+				shutdownGracePeriodCriticalPods: 0 * time.Second,
+			},
+			want: nil,
+		},
+		{
+			name: "wrong configuration",
+			args: shutdownConfig{
+				shutdownGracePeriodRequested:    1 * time.Second,
+				shutdownGracePeriodCriticalPods: 100 * time.Second,
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := migrateConfig(tt.args.shutdownGracePeriodRequested, tt.args.shutdownGracePeriodCriticalPods); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("migrateConfig() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_groupByPriority(t *testing.T) {
+	type args struct {
+		podPriorityShutdownGracePeriod []kubeletconfig.PodPriorityShutdownGracePeriod
+		pods                           []*v1.Pod
+	}
+	tests := []struct {
+		name string
+		args args
+		want []processShutdownGroup
+	}{
+		{
+			args: args{
+				podPriorityShutdownGracePeriod: migrateConfig(300*time.Second, 120*time.Second),
+				pods: []*v1.Pod{
+					makePod("normal-pod", scheduling.DefaultPriorityWhenNoDefaultClassExists, nil),
+					makePod("highest-user-definable-pod", scheduling.HighestUserDefinablePriority, nil),
+					makePod("critical-pod", scheduling.SystemCriticalPriority, nil),
+				},
+			},
+			want: []processShutdownGroup{
+				{
+					PodPriorityShutdownGracePeriod: kubeletconfig.PodPriorityShutdownGracePeriod{
+						Priority:                   scheduling.DefaultPriorityWhenNoDefaultClassExists,
+						ShutdownGracePeriodSeconds: 180,
+					},
+					Pods: []*v1.Pod{
+						makePod("normal-pod", scheduling.DefaultPriorityWhenNoDefaultClassExists, nil),
+						makePod("highest-user-definable-pod", scheduling.HighestUserDefinablePriority, nil),
+					},
+				},
+				{
+					PodPriorityShutdownGracePeriod: kubeletconfig.PodPriorityShutdownGracePeriod{
+						Priority:                   scheduling.SystemCriticalPriority,
+						ShutdownGracePeriodSeconds: 120,
+					},
+					Pods: []*v1.Pod{
+						makePod("critical-pod", scheduling.SystemCriticalPriority, nil),
+					},
+				},
+			},
+		},
+		{
+			args: args{
+				podPriorityShutdownGracePeriod: []kubeletconfig.PodPriorityShutdownGracePeriod{
+					{
+						Priority:                   1,
+						ShutdownGracePeriodSeconds: 10,
+					},
+					{
+						Priority:                   2,
+						ShutdownGracePeriodSeconds: 20,
+					},
+					{
+						Priority:                   3,
+						ShutdownGracePeriodSeconds: 30,
+					},
+					{
+						Priority:                   4,
+						ShutdownGracePeriodSeconds: 40,
+					},
+				},
+				pods: []*v1.Pod{
+					makePod("pod-0", 0, nil),
+					makePod("pod-1", 1, nil),
+					makePod("pod-2", 2, nil),
+					makePod("pod-3", 3, nil),
+					makePod("pod-4", 4, nil),
+					makePod("pod-5", 5, nil),
+				},
+			},
+			want: []processShutdownGroup{
+				{
+					PodPriorityShutdownGracePeriod: kubeletconfig.PodPriorityShutdownGracePeriod{
+						Priority:                   1,
+						ShutdownGracePeriodSeconds: 10,
+					},
+					Pods: []*v1.Pod{
+						makePod("pod-0", 0, nil),
+						makePod("pod-1", 1, nil),
+					},
+				},
+				{
+					PodPriorityShutdownGracePeriod: kubeletconfig.PodPriorityShutdownGracePeriod{
+						Priority:                   2,
+						ShutdownGracePeriodSeconds: 20,
+					},
+					Pods: []*v1.Pod{
+						makePod("pod-2", 2, nil),
+					},
+				},
+				{
+					PodPriorityShutdownGracePeriod: kubeletconfig.PodPriorityShutdownGracePeriod{
+						Priority:                   3,
+						ShutdownGracePeriodSeconds: 30,
+					},
+					Pods: []*v1.Pod{
+						makePod("pod-3", 3, nil),
+					},
+				},
+				{
+					PodPriorityShutdownGracePeriod: kubeletconfig.PodPriorityShutdownGracePeriod{
+						Priority:                   4,
+						ShutdownGracePeriodSeconds: 40,
+					},
+					Pods: []*v1.Pod{
+						makePod("pod-4", 4, nil),
+						makePod("pod-5", 5, nil),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := groupByPriority(tt.args.podPriorityShutdownGracePeriod, tt.args.pods); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("groupByPriority() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
