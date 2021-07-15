@@ -1769,6 +1769,22 @@ func failedState(cName string) v1.ContainerStatus {
 		},
 	}
 }
+func waitingWithLastTerminationUnknown(cName string, restartCount int32) v1.ContainerStatus {
+	return v1.ContainerStatus{
+		Name: cName,
+		State: v1.ContainerState{
+			Waiting: &v1.ContainerStateWaiting{Reason: "ContainerCreating"},
+		},
+		LastTerminationState: v1.ContainerState{
+			Terminated: &v1.ContainerStateTerminated{
+				Reason:   "ContainerStatusUnknown",
+				Message:  "The container could not be located when the pod was deleted.  The container used to be Running",
+				ExitCode: 137,
+			},
+		},
+		RestartCount: restartCount,
+	}
+}
 
 func TestPodPhaseWithRestartAlways(t *testing.T) {
 	desiredState := v1.PodSpec{
@@ -2080,6 +2096,97 @@ func TestPodPhaseWithRestartOnFailure(t *testing.T) {
 	for _, test := range tests {
 		status := getPhase(&test.pod.Spec, test.pod.Status.ContainerStatuses)
 		assert.Equal(t, test.status, status, "[test %s]", test.test)
+	}
+}
+
+func TestConvertToAPIContainerStatuses(t *testing.T) {
+	desiredState := v1.PodSpec{
+		NodeName: "machine",
+		Containers: []v1.Container{
+			{Name: "containerA"},
+			{Name: "containerB"},
+		},
+		RestartPolicy: v1.RestartPolicyAlways,
+	}
+	now := metav1.Now()
+
+	tests := []struct {
+		name              string
+		pod               *v1.Pod
+		currentStatus     *kubecontainer.PodStatus
+		previousStatus    []v1.ContainerStatus
+		containers        []v1.Container
+		hasInitContainers bool
+		isInitContainer   bool
+		expected          []v1.ContainerStatus
+	}{
+		{
+			name: "no previous statuses, previous termination",
+			pod: &v1.Pod{
+				Spec: desiredState,
+				Status: v1.PodStatus{
+					ContainerStatuses: []v1.ContainerStatus{
+						runningState("containerA"),
+						runningState("containerB"),
+					},
+				},
+				ObjectMeta: metav1.ObjectMeta{Name: "my-pod", DeletionTimestamp: &now},
+			},
+			currentStatus: &kubecontainer.PodStatus{},
+			previousStatus: []v1.ContainerStatus{
+				runningState("containerA"),
+				runningState("containerB"),
+			},
+			containers: desiredState.Containers,
+			// no init containers
+			// is not an init container
+			expected: []v1.ContainerStatus{
+				waitingWithLastTerminationUnknown("containerA", 0),
+				waitingWithLastTerminationUnknown("containerB", 0),
+			},
+		},
+		{
+			name: "no previous statuses, no previous termination",
+			pod: &v1.Pod{
+				Spec: desiredState,
+				Status: v1.PodStatus{
+					ContainerStatuses: []v1.ContainerStatus{
+						runningState("containerA"),
+						runningState("containerB"),
+					},
+				},
+			},
+			currentStatus: &kubecontainer.PodStatus{},
+			previousStatus: []v1.ContainerStatus{
+				runningState("containerA"),
+				runningState("containerB"),
+			},
+			containers: desiredState.Containers,
+			// no init containers
+			// is not an init container
+			expected: []v1.ContainerStatus{
+				waitingWithLastTerminationUnknown("containerA", 1),
+				waitingWithLastTerminationUnknown("containerB", 1),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+			defer testKubelet.Cleanup()
+			kl := testKubelet.kubelet
+			containerStatuses := kl.convertToAPIContainerStatuses(
+				test.pod,
+				test.currentStatus,
+				test.previousStatus,
+				test.containers,
+				test.hasInitContainers,
+				test.isInitContainer,
+			)
+			for i, status := range containerStatuses {
+				assert.Equal(t, test.expected[i], status, "[test %s]", test.name)
+			}
+		})
 	}
 }
 
