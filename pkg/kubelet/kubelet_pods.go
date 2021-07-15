@@ -1414,6 +1414,7 @@ func (kl *Kubelet) GetKubeletContainerLogs(ctx context.Context, podFullName, con
 
 // getPhase returns the phase of a pod given its container info.
 func getPhase(spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
+	klog.V(2).InfoS("container statuses for pod are", "containerStatuses", info)
 	pendingInitialization := 0
 	failedInitialization := 0
 	for _, container := range spec.InitContainers {
@@ -1478,6 +1479,7 @@ func getPhase(spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
 		return v1.PodFailed
 	}
 
+	klog.V(2).InfoS("Current pod phases", "running", running, "succeeded", succeeded, "unknown", unknown, "stopped", stopped, "waiting", waiting, "pendingInit", pendingInitialization)
 	switch {
 	case pendingInitialization > 0:
 		fallthrough
@@ -1517,7 +1519,7 @@ func getPhase(spec *v1.PodSpec, info []v1.ContainerStatus) v1.PodPhase {
 // generateAPIPodStatus creates the final API pod status for a pod, given the
 // internal pod status.
 func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.PodStatus) v1.PodStatus {
-	klog.V(3).InfoS("Generating pod status", "pod", klog.KObj(pod))
+	klog.V(2).InfoS("Generating pod status", "pod", klog.KObj(pod), "podStatus", podStatus, "containerStatuses", pod.Status.ContainerStatuses)
 
 	s := kl.convertStatusToAPIStatus(pod, podStatus)
 
@@ -1535,11 +1537,12 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 	spec := &pod.Spec
 	allStatus := append(append([]v1.ContainerStatus{}, s.ContainerStatuses...), s.InitContainerStatuses...)
 	s.Phase = getPhase(spec, allStatus)
+	klog.V(2).InfoS("Got phase for pod", "pod", klog.KObj(pod), "phase", s.Phase)
 	// Check for illegal phase transition
 	if pod.Status.Phase == v1.PodFailed || pod.Status.Phase == v1.PodSucceeded {
 		// API server shows terminal phase; transitions are not allowed
 		if s.Phase != pod.Status.Phase {
-			klog.ErrorS(nil, "Pod attempted illegal phase transition", "originalStatusPhase", pod.Status.Phase, "apiStatusPhase", s.Phase, "apiStatus", s)
+			klog.ErrorS(nil, "Pod attempted illegal phase transition", "pod", klog.KObj(pod), "originalStatusPhase", pod.Status.Phase, "apiStatusPhase", s.Phase, "apiStatus", s)
 			// Force back to phase from the API server
 			s.Phase = pod.Status.Phase
 		}
@@ -1663,6 +1666,7 @@ func (kl *Kubelet) convertStatusToAPIStatus(pod *v1.Pod, podStatus *kubecontaine
 // statuses into API container statuses.
 func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecontainer.PodStatus, previousStatus []v1.ContainerStatus, containers []v1.Container, hasInitContainers, isInitContainer bool) []v1.ContainerStatus {
 	convertContainerStatus := func(cs *kubecontainer.Status, oldStatus *v1.ContainerStatus) *v1.ContainerStatus {
+		klog.V(2).InfoS("generating container statuses", "pod", klog.KObj(pod), "currentStatus", cs, "oldStatus", oldStatus)
 		cid := cs.ID.String()
 		status := &v1.ContainerStatus{
 			Name:         cs.Name,
@@ -1720,11 +1724,13 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		return status
 	}
 
+	klog.V(2).InfoS("previous statuses are", "pod", klog.KObj(pod), "previousStatus", previousStatus)
 	// Fetch old containers statuses from old pod status.
 	oldStatuses := make(map[string]v1.ContainerStatus, len(containers))
 	for _, status := range previousStatus {
 		oldStatuses[status.Name] = status
 	}
+	klog.V(2).InfoS("old statuses map", "pod", klog.KObj(pod), "oldStatuses", oldStatuses)
 
 	// Set all container statuses to default waiting state
 	statuses := make(map[string]*v1.ContainerStatus, len(containers))
@@ -1734,6 +1740,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 	}
 
 	for _, container := range containers {
+		klog.V(2).InfoS("setting old container status", "pod", klog.KObj(pod), "container", container)
 		status := &v1.ContainerStatus{
 			Name:  container.Name,
 			Image: container.Image,
@@ -1742,8 +1749,6 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		oldStatus, found := oldStatuses[container.Name]
 		if found {
 			if oldStatus.State.Terminated != nil {
-				// Do not update status on terminated init containers as
-				// they be removed at any time.
 				status = &oldStatus
 			} else {
 				// Apply some values from the old statuses as the default values.
@@ -1754,6 +1759,9 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		statuses[container.Name] = status
 	}
 
+	klog.V(2).InfoS("reset statuses are", "pod", klog.KObj(pod), "statuses", statuses)
+	klog.V(2).InfoS("podStatus has containerStatuses", "pod", klog.KObj(pod), "ContainerStatuses", podStatus.ContainerStatuses)
+
 	for _, container := range containers {
 		found := false
 		for _, cStatus := range podStatus.ContainerStatuses {
@@ -1762,17 +1770,19 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 				break
 			}
 		}
+		klog.V(2).InfoS("container found status", "pod", klog.KObj(pod), "container", container, "found", found)
 		if found {
 			continue
 		}
 		// if no container is found, then assuming it should be waiting seems plausible, but the status code requires
-		// that a previous termination be present.  If we're offline long enough (or something removed the container?), then
+		// that a previous termination be present.  If we're offline long enough or something removed the container, then
 		// the previous termination may not be present.  This next code block ensures that if the container was previously running
 		// then when that container status disappears, we can infer that it terminated even if we don't know the status code.
 		// By setting the lasttermination state we are able to leave the container status waiting and present more accurate
 		// data via the API.
 
 		oldStatus, ok := oldStatuses[container.Name]
+		klog.V(2).InfoS("old container status", "pod", klog.KObj(pod), "container", container, "oldStatus", oldStatus)
 		if !ok {
 			continue
 		}
@@ -1785,21 +1795,16 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			continue
 		}
 
-		if pod.DeletionTimestamp == nil {
-			continue
-		}
-
-		// and if the pod itself is being deleted, then the CRI may have removed the container already and for whatever reason the kubelet missed the exit code
-		// (this seems not awesome).  We know at this point that we will not be restarting the container.
+		klog.InfoS("considering setting termination status", "pod", klog.KObj(pod), "container", container, "oldStatus", oldStatus)
 		status := statuses[container.Name]
 		// if the status we're about to write indicates the default, the Waiting status will force this pod back into Pending.
-		// That isn't true, we know the pod is going away.
+		// That isn't true, we know the pod was restarted.
 		isDefaultWaitingStatus := status.State.Waiting != nil && status.State.Waiting.Reason == ContainerCreating
 		if hasInitContainers {
 			isDefaultWaitingStatus = status.State.Waiting != nil && status.State.Waiting.Reason == PodInitializing
 		}
 		if !isDefaultWaitingStatus {
-			// we the status was written, don't override
+			// the status was written, don't override
 			continue
 		}
 		if status.LastTerminationState.Terminated != nil {
@@ -1815,6 +1820,12 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			Message:  "The container could not be located when the pod was deleted.  The container used to be Running",
 			ExitCode: 137,
 		}
+
+		// If the pod was not deleted, it's been restarted. Increment restart count.
+		if pod.DeletionTimestamp == nil {
+			status.RestartCount += 1
+		}
+
 		statuses[container.Name] = status
 	}
 
@@ -1892,6 +1903,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 	}
 
 	sort.Sort(kubetypes.SortedContainerStatuses(containerStatuses))
+	klog.V(2).InfoS("final statuses are", "statuses", containerStatuses)
 	return containerStatuses
 }
 
