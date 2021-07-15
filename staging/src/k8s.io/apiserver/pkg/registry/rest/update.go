@@ -128,7 +128,9 @@ func BeforeUpdate(strategy RESTUpdateStrategy, ctx context.Context, obj, old run
 	if !oldMeta.GetDeletionTimestamp().IsZero() {
 		objectMeta.SetDeletionTimestamp(oldMeta.GetDeletionTimestamp())
 	}
-	// an update can never remove/change grace period seconds
+	// an update can never remove/change grace period seconds, validation will ensure
+	// that it is immutable and we will treat the absence of the new value as defaulting
+	// to be consistent with older clients
 	if oldMeta.GetDeletionGracePeriodSeconds() != nil && objectMeta.GetDeletionGracePeriodSeconds() == nil {
 		objectMeta.SetDeletionGracePeriodSeconds(oldMeta.GetDeletionGracePeriodSeconds())
 	}

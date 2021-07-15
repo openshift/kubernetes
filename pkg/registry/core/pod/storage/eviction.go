@@ -34,6 +34,7 @@ import (
 	policyclient "k8s.io/client-go/kubernetes/typed/policy/v1"
 	"k8s.io/client-go/util/retry"
 	pdbhelper "k8s.io/component-helpers/apps/poddisruptionbudget"
+	"k8s.io/klog/v2"
 	podutil "k8s.io/kubernetes/pkg/api/pod"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/policy"
@@ -115,6 +116,11 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 	originalDeleteOptions, err := propagateDryRun(eviction, options)
 	if err != nil {
 		return nil, err
+	}
+
+	if originalDeleteOptions.GracePeriodSeconds != nil && *originalDeleteOptions.GracePeriodSeconds == 0 {
+		klog.Infof("DEBUG: ERROR: attempt to evict pod %s/%s with grace period zero", eviction.Namespace, eviction.Name)
+		return nil, errors.NewBadRequest("force deletion is not allowed with eviction")
 	}
 
 	if createValidation != nil {

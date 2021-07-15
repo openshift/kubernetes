@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -1001,6 +1002,27 @@ func (e *Store) Delete(ctx context.Context, name string, deleteValidation rest.V
 		preconditions.UID = options.Preconditions.UID
 		preconditions.ResourceVersion = options.Preconditions.ResourceVersion
 	}
+
+	if options.GracePeriodSeconds != nil && *options.GracePeriodSeconds == 0 {
+		var ns string
+		var timestamp *metav1.Time
+		accessor, ok := obj.(metav1.ObjectMetaAccessor)
+		if ok {
+			ns = accessor.GetObjectMeta().GetNamespace()
+			timestamp = accessor.GetObjectMeta().GetDeletionTimestamp()
+		}
+		u, ok := request.UserFrom(ctx)
+		if !ok {
+			klog.Infof("DEBUG: ERROR: Consumer requested delete of %s %s/%s with explicit grace period zero, not allowed", qualifiedResource, ns, name)
+			return nil, false, apierrors.NewInternalError(fmt.Errorf("unable to get user from context in deletion"))
+		}
+		if !strings.HasPrefix(u.GetName(), "system:node:") {
+			klog.Infof("DEBUG: ERROR: Consumer that is not node %s requested delete of %s %s/%s with explicit grace period zero (deletionTimestamp=%v)", u.GetName(), qualifiedResource, ns, name, timestamp)
+			return nil, false, apierrors.NewInternalError(fmt.Errorf("user %s tried to delete with grace period zero, only nodes are allowed to do that", u.GetName()))
+		}
+		klog.Infof("DEBUG: Node %s requested delete of %s %s/%s with explicit grace period zero and deletionTimestamp=%v", u.GetName(), qualifiedResource, ns, name, timestamp)
+	}
+
 	graceful, pendingGraceful, err := rest.BeforeDelete(e.DeleteStrategy, ctx, obj, options)
 	if err != nil {
 		return nil, false, err
