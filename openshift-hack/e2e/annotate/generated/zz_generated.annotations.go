@@ -177,13 +177,13 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] Security Context when creating containers with AllowPrivilegeEscalation should not allow privilege escalation when false [LinuxOnly] [NodeConformance] [Conformance]": "should not allow privilege escalation when false [LinuxOnly] [NodeConformance] [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should not launch unsafe, but not explicitly enabled sysctls on the node": "should not launch unsafe, but not explicitly enabled sysctls on the node [Disabled:Broken] [sig-node] [Suite:k8s]",
+	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should not launch unsafe, but not explicitly enabled sysctls on the node": "should not launch unsafe, but not explicitly enabled sysctls on the node [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should reject invalid sysctls": "should reject invalid sysctls [Disabled:Broken] [sig-node] [Suite:k8s]",
+	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should reject invalid sysctls": "should reject invalid sysctls [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should support sysctls": "should support sysctls [Disabled:Broken] [sig-node] [Suite:k8s]",
+	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should support sysctls": "should support sysctls [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should support unsafe sysctls which are actually whitelisted": "should support unsafe sysctls which are actually whitelisted [Disabled:Broken] [sig-node] [Suite:k8s]",
+	"[Top Level] [k8s.io] Sysctls [LinuxOnly] [NodeFeature:Sysctls] should support unsafe sysctls which are actually whitelisted": "should support unsafe sysctls which are actually whitelisted [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] Variable Expansion should allow composing env vars into new env vars [NodeConformance] [Conformance]": "should allow composing env vars into new env vars [NodeConformance] [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
