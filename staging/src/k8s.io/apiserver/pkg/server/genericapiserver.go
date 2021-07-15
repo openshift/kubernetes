@@ -217,6 +217,9 @@ type GenericAPIServer struct {
 	// EventSink creates events.
 	eventSink EventSink
 	eventRef  *corev1.ObjectReference
+
+	// TerminationStartCh indicates whether the server is terminating.
+	TerminationStartCh chan struct{}
 }
 
 // DelegationTarget is an interface which allows for composition of API servers with top level handling that works
@@ -338,6 +341,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 
 	go func() {
 		defer close(delayedStopCh)
+		defer close(s.TerminationStartCh)
 
 		<-stopCh
 
