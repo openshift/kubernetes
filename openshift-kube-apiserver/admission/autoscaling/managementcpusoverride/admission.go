@@ -180,9 +180,12 @@ func (a *managementCPUsOverride) Admit(ctx context.Context, attr admission.Attri
 		return admission.NewForbidden(attr, err) // can happen due to informer latency
 	}
 
-	// we can not decide the cluster type without status.controlPlaneTopology and status.infrastructureTopology
-	if clusterInfra.Status.ControlPlaneTopology == "" || clusterInfra.Status.InfrastructureTopology == "" {
-		return admission.NewForbidden(attr, fmt.Errorf("%s infrastructure resource has empty status.controlPlaneTopology or status.infrastructureTopology", PluginName))
+	if clusterInfra.Status.ControlPlaneTopology == "" {
+		clusterInfra.Status.ControlPlaneTopology = configv1.HighlyAvailableTopologyMode
+	}
+
+	if clusterInfra.Status.InfrastructureTopology == "" {
+		clusterInfra.Status.InfrastructureTopology = configv1.HighlyAvailableTopologyMode
 	}
 
 	// not the SNO cluster, skip mutation

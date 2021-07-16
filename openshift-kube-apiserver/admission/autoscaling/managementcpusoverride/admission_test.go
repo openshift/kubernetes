@@ -169,22 +169,26 @@ func TestAdmit(t *testing.T) {
 			expectedError:      fmt.Errorf(`failed to get workload annotation effect: the workload annotation value map["test":"test"] does not have "effect" key`),
 		},
 		{
-			name:               "should return admission error when the infrastructure resource status has empty ControlPlaneTopology",
+			name:               "should not return admission error when the infrastructure resource status has empty ControlPlaneTopology",
 			pod:                testManagedPod("", "250m", "500Mi", "250Mi"),
 			expectedCpuRequest: resource.MustParse("250m"),
 			namespace:          testManagedNamespace(),
 			nodes:              []*corev1.Node{testNodeWithManagementResource()},
 			infra:              testClusterInfraWithoutControlPlaneTopology(),
-			expectedError:      fmt.Errorf("%s infrastructure resource has empty status.controlPlaneTopology or status.infrastructureTopology", PluginName),
+			expectedAnnotations: map[string]string{
+				workloadAdmissionWarning: "FIXME",
+			},
 		},
 		{
-			name:               "should return admission error when the infrastructure resource status has empty InfrastructureTopology",
+			name:               "should not return admission error when the infrastructure resource status has empty InfrastructureTopology",
 			pod:                testManagedPod("", "250m", "500Mi", "250Mi"),
 			expectedCpuRequest: resource.MustParse("250m"),
 			namespace:          testManagedNamespace(),
 			nodes:              []*corev1.Node{testNodeWithManagementResource()},
 			infra:              testClusterInfraWithoutInfrastructureTopology(),
-			expectedError:      fmt.Errorf("%s infrastructure resource has empty status.controlPlaneTopology or status.infrastructureTopology", PluginName),
+			expectedAnnotations: map[string]string{
+				workloadAdmissionWarning: "FIXME",
+			},
 		},
 		{
 			name:               "should delete CPU requests and update workload CPU annotations for the burstable pod with managed annotation",
