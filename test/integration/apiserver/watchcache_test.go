@@ -86,6 +86,7 @@ func multiEtcdSetup(t testing.TB) (clientset.Interface, framework.CloseFunc) {
 }
 
 func TestWatchCacheUpdatedByEtcd(t *testing.T) {
+	t.Skip("skip until we get etcd 3.5")
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.EfficientWatchResumption, true)()
 
 	c, closeFn := multiEtcdSetup(t)
