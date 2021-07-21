@@ -365,6 +365,7 @@ type vaTest struct {
 }
 
 func Test_ADC_VolumeAttachmentRecovery(t *testing.T) {
+	t.Skip("sig-storage to debug Test_ADC_VolumeAttachmentRecovery")
 	for _, tc := range []vaTest{
 		{ // pod is scheduled
 			testName:          "Scheduled pod",
