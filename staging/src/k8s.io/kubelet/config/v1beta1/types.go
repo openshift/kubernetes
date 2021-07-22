@@ -1021,6 +1021,12 @@ type KubeletConfiguration struct {
 	// Default: true
 	// +optional
 	EnableDebugFlagsHandler *bool `json:"enableDebugFlagsHandler,omitempty"`
+	// EnableOtelTracing enables export of opentelemetry traces
+	// +optional
+	EnableOtelTracing *bool
+	// OpenTelemetryConfig
+	// +optional
+	OpenTelemetryConfig OpenTelemetryConfig
 	// SeccompDefault enables the use of `RuntimeDefault` as the default seccomp profile for all workloads.
 	// This requires the corresponding SeccompDefault feature gate to be enabled as well.
 	// Default: false
@@ -1135,4 +1141,10 @@ type MemorySwapConfiguration struct {
 	// +featureGate=NodeSwap
 	// +optional
 	SwapBehavior string `json:"swapBehavior,omitempty"`
+}
+
+// OpenTelemetryConfig specifies configuration for opentelemetry tracing
+type OpenTelemetryConfig struct {
+	TracingServiceName string
+	CollectorEndpoint  string
 }

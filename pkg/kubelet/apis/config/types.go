@@ -415,6 +415,12 @@ type KubeletConfiguration struct {
 	EnableProfilingHandler bool
 	// EnableDebugFlagsHandler enables/debug/flags/v handler.
 	EnableDebugFlagsHandler bool
+	// EnableOtelTracing enables export of opentelemetry traces
+	// +optional
+	EnableOtelTracing bool
+	// OpenTelemetryConfig
+	// +optional
+	OpenTelemetryConfig OpenTelemetryConfig
 	// SeccompDefault enables the use of `RuntimeDefault` as the default seccomp profile for all workloads.
 	SeccompDefault bool
 	// MemoryThrottlingFactor specifies the factor multiplied by the memory limit or node allocatable memory
@@ -584,6 +590,12 @@ type ExecEnvVar struct {
 type MemoryReservation struct {
 	NumaNode int32
 	Limits   v1.ResourceList
+}
+
+// OpenTelemetryConfig specifies configuration for opentelemetry tracing
+type OpenTelemetryConfig struct {
+	TracingServiceName string
+	CollectorEndpoint  string
 }
 
 type MemorySwapConfiguration struct {

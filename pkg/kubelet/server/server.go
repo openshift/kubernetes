@@ -37,6 +37,15 @@ import (
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorv2 "github.com/google/cadvisor/info/v2"
 	"github.com/google/cadvisor/metrics"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/semconv"
 	"google.golang.org/grpc"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/kubelet/metrics/collectors"
@@ -89,6 +98,7 @@ const (
 	logsPath            = "/logs/"
 	pprofBasePath       = "/debug/pprof/"
 	debugFlagPath       = "/debug/flags/v"
+	GRPCMaxSendMsgSize  = 16 * 1024 * 1024
 )
 
 // Server is a http.Handler which exposes kubelet functionality over HTTP.
@@ -187,9 +197,71 @@ func ListenAndServeKubeletReadOnlyServer(host HostInterface, resourceAnalyzer st
 	}
 }
 
+func initOtelTracing(ctx context.Context, enableTracing bool, otelServiceName, collectorEndpoint string) ([]otelgrpc.Option, error) {
+	if !enableTracing {
+		return nil, nil
+	}
+	var opts []otelgrpc.Option
+	// Maybe CRIO global TracerProvider is registered?
+	klog.Infof("Configuring OpenTelemetry exporter and tracer provider.")
+	exporter, err := otlp.NewExporter(ctx,
+		otlpgrpc.NewDriver(
+			otlpgrpc.WithEndpoint(collectorEndpoint),
+			otlpgrpc.WithInsecure(),
+		))
+	if err != nil {
+		return nil, err
+	}
+	res := resource.NewWithAttributes(
+		semconv.ServiceNameKey.String(otelServiceName),
+	)
+	bsp := sdktrace.NewBatchSpanProcessor(exporter)
+	// TODO: shutdown tracer provider? where?
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.AlwaysSample())),
+		sdktrace.WithSpanProcessor(bsp),
+		sdktrace.WithResource(res),
+	)
+	tmp := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	opts = []otelgrpc.Option{otelgrpc.WithPropagators(tmp), otelgrpc.WithTracerProvider(tp)}
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(tmp)
+	return opts, nil
+}
+
 // ListenAndServePodResources initializes a gRPC server to serve the PodResources service
-func ListenAndServePodResources(socket string, podsProvider podresources.PodsProvider, devicesProvider podresources.DevicesProvider, cpusProvider podresources.CPUsProvider, memoryProvider podresources.MemoryProvider) {
-	server := grpc.NewServer()
+func ListenAndServePodResources(socket string,
+	podsProvider podresources.PodsProvider,
+	devicesProvider podresources.DevicesProvider,
+	cpusProvider podresources.CPUsProvider,
+	memoryProvider podresources.MemoryProvider,
+	kubeCfg *kubeletconfiginternal.KubeletConfiguration) {
+	ctx := context.Background()
+	var (
+		serviceName string
+		err         error
+	)
+	// TODO: check backend connection, don't instrument if no connection
+	if len(kubeCfg.OpenTelemetryConfig.TracingServiceName) == 0 {
+		serviceName, err = os.Hostname()
+		if err != nil {
+			klog.ErrorS(err, "Failed to get hostname")
+			os.Exit(1)
+		}
+	}
+	opts, err := initOtelTracing(ctx, kubeCfg.EnableOtelTracing, serviceName, kubeCfg.OpenTelemetryConfig.CollectorEndpoint)
+	if err != nil {
+		klog.ErrorS(err, "Failed to configure opentelemetry tracing")
+		os.Exit(1)
+	}
+	otelUnaryServerInterceptor := otelgrpc.UnaryServerInterceptor(opts...)
+	otelStreamServerInterceptor := otelgrpc.StreamServerInterceptor(opts...)
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(grpcmiddleware.ChainUnaryServer(otelUnaryServerInterceptor)),
+		grpc.StreamInterceptor(grpcmiddleware.ChainStreamServer(otelStreamServerInterceptor)),
+		grpc.MaxSendMsgSize(GRPCMaxSendMsgSize),
+		grpc.MaxRecvMsgSize(GRPCMaxSendMsgSize),
+	)
 	podresourcesapiv1alpha1.RegisterPodResourcesListerServer(server, podresources.NewV1alpha1PodResourcesServer(podsProvider, devicesProvider))
 	podresourcesapi.RegisterPodResourcesListerServer(server, podresources.NewV1PodResourcesServer(podsProvider, devicesProvider, cpusProvider, memoryProvider))
 	l, err := util.CreateListener(socket)

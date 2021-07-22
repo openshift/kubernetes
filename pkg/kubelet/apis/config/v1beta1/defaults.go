@@ -255,6 +255,12 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 	if obj.EnableDebugFlagsHandler == nil {
 		obj.EnableDebugFlagsHandler = utilpointer.BoolPtr(true)
 	}
+	if obj.EnableOtelTracing == nil {
+		obj.EnableOtelTracing = utilpointer.BoolPtr(true)
+	}
+	if obj.OpenTelemetryConfig.CollectorEndpoint == "" {
+		obj.OpenTelemetryConfig.CollectorEndpoint = "0.0.0.0:4317"
+	}
 	if obj.SeccompDefault == nil {
 		obj.SeccompDefault = utilpointer.BoolPtr(false)
 	}
