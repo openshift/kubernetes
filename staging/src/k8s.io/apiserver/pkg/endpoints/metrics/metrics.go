@@ -230,6 +230,24 @@ var (
 		[]string{"source", "status"},
 	)
 
+	// RequestBeforeReadyTotal is a number of requests received before apiserver is ready
+	RequestBeforeReadyTotal = compbasemetrics.NewCounter(
+		&compbasemetrics.CounterOpts{
+			Name:           "apiserver_request_before_ready_total",
+			Help:           "Number of requests received before apiserver is ready",
+			StabilityLevel: compbasemetrics.ALPHA,
+		},
+	)
+
+	// RequestLateGracefulTerminationTotal is a number of requests received late in the graceful termination timeout
+	RequestLateGracefulTerminationTotal = compbasemetrics.NewCounter(
+		&compbasemetrics.CounterOpts{
+			Name:           "apiserver_request_late_graceful_termination_total",
+			Help:           "Number of requests received late in the graceful termination timeout",
+			StabilityLevel: compbasemetrics.ALPHA,
+		},
+	)
+
 	metrics = []resettableCollector{
 		deprecatedRequestGauge,
 		requestCounter,
@@ -248,6 +266,8 @@ var (
 		requestFilterDuration,
 		requestAbortsTotal,
 		requestPostTimeoutTotal,
+		RequestBeforeReadyTotal,
+		RequestLateGracefulTerminationTotal,
 	}
 
 	// these are the valid request methods which we report in our metrics. Any other request methods

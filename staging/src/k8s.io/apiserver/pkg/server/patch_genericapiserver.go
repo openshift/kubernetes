@@ -28,6 +28,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/audit"
+	"k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/klog/v2"
 )
 
@@ -80,6 +81,7 @@ func WithLateConnectionFilter(handler http.Handler) http.Handler {
 
 		if late {
 			if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
+				metrics.RequestLateGracefulTerminationTotal.Inc()
 				if isLocal(r) {
 					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-graceful", fmt.Sprintf("loopback=true,%v,readyz=false", r.URL.Host))
 					klog.V(4).Infof("Loopback request to %q (user agent %q) through connection created very late in the graceful termination process (more than 80%% has passed). This client probably does not watch /readyz and might get failures when termination is over.", r.URL.Path, r.UserAgent())
@@ -119,6 +121,7 @@ func WithNonReadyRequestLogging(handler http.Handler, hasBeenReadyCh <-chan stru
 
 		// ignore connections to local IP. Those clients better know what they are doing.
 		if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
+			metrics.RequestBeforeReadyTotal.Inc()
 			if isLocal(r) {
 				if !isKubeApiserverLoopBack(r) {
 					audit.AddAuditAnnotation(r.Context(), "openshift.io/unready", fmt.Sprintf("loopback=true,%v,readyz=false", r.URL.Host))
