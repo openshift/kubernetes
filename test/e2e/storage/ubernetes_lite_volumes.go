@@ -55,6 +55,15 @@ var _ = utils.SIGDescribe("Multi-AZ Cluster Volumes", func() {
 		// TODO: SkipUnlessDefaultScheduler() // Non-default schedulers might not spread
 	})
 	ginkgo.It("should schedule pods in the same zones as statically provisioned PVs", func() {
+		nodes, err := f.ClientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+			LabelSelector: "node-role.kubernetes.io/master",
+		})
+		framework.ExpectNoError(err)
+		if len(nodes.Items) == 5 {
+			e2eskipper.Skipf("This test is currently broken for 5 control plane replicas (https://bugzilla.redhat.com/show_bug.cgi?id=1988535)")
+		}
+
+		// Skip if there are 5 masters
 		PodsUseStaticPVsOrFail(f, (2*zoneCount)+1, image)
 	})
 
