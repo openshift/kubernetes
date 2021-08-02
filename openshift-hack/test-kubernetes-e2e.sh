@@ -76,6 +76,7 @@ SERVER="$( kubectl config view | grep server | head -n 1 | awk '{print $2}' )"
 ginkgo \
   -nodes "${NODES}" -noColor ${KUBE_E2E_TEST_ARGS} \
   "$( which k8s-e2e.test )" -- \
+  -provider "${PLATFORM}" \
   -report-dir "${test_report_dir}" \
   -host "${SERVER}" \
   -allowed-not-ready-nodes ${unschedulable} \
