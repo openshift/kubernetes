@@ -90,7 +90,7 @@ var expectedPolicy = &audit.Policy{
 }
 
 func TestParser(t *testing.T) {
-	for _, version := range []string{"v1", "v1alpha1", "v1beta1"} {
+	for _, version := range []string{"v1"} {
 		policyDef := strings.Replace(policyDefPattern, "{version}", version, 1)
 		f, err := writePolicy(t, policyDef)
 		require.NoError(t, err)
