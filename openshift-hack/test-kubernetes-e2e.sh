@@ -82,6 +82,7 @@ ginkgo \
   --flakeAttempts=3 \
   -nodes "${NODES}" -noColor ${KUBE_E2E_TEST_ARGS} \
   "$( which k8s-e2e.test )" -- \
+  -provider "${PLATFORM}" \
   -report-dir "${test_report_dir}" \
   -host "${SERVER}" \
   -allowed-not-ready-nodes ${unschedulable} \
