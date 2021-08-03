@@ -131,6 +131,11 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 			config, driverCleanup = driver.PrepareTest(f)
 			cleanupSteps = append(cleanupSteps, driverCleanup)
 
+			var snapshotResource *storageframework.SnapshotResource
+			cleanupSteps = append(cleanupSteps, func() {
+				framework.ExpectNoError(snapshotResource.CleanupResource(f.Timeouts))
+			})
+
 			var volumeResource *storageframework.VolumeResource
 			cleanupSteps = append(cleanupSteps, func() {
 				framework.ExpectNoError(volumeResource.CleanupResource())
