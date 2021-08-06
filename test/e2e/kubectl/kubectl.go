@@ -497,59 +497,52 @@ var _ = SIGDescribe("Kubectl client", func() {
 		})
 
 		ginkgo.Context("should return command exit codes", func() {
-			ginkgo.It("execing into a container with a successful command", func() {
-				_, err := framework.NewKubectlCommand(ns, "exec", "httpd", podRunningTimeoutArg, "--", "/bin/sh", "-c", "exit 0").Exec()
-				framework.ExpectNoError(err)
-			})
+			ginkgo.By("execing into a container with a successful command")
+			_, err := framework.NewKubectlCommand(ns, "exec", "httpd", podRunningTimeoutArg, "--", "/bin/sh", "-c", "exit 0").Exec()
+			framework.ExpectNoError(err)
 
-			ginkgo.It("execing into a container with a failing command", func() {
-				_, err := framework.NewKubectlCommand(ns, "exec", "httpd", podRunningTimeoutArg, "--", "/bin/sh", "-c", "exit 42").Exec()
-				ee, ok := err.(uexec.ExitError)
-				framework.ExpectEqual(ok, true)
-				framework.ExpectEqual(ee.ExitStatus(), 42)
-			})
+			ginkgo.By("execing into a container with a failing command")
+			_, err = framework.NewKubectlCommand(ns, "exec", "httpd", podRunningTimeoutArg, "--", "/bin/sh", "-c", "exit 42").Exec()
+			ee, ok := err.(uexec.ExitError)
+			framework.ExpectEqual(ok, true)
+			framework.ExpectEqual(ee.ExitStatus(), 42)
 
-			ginkgo.It("running a successful command", func() {
-				_, err := framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=Never", podRunningTimeoutArg, "success", "--", "/bin/sh", "-c", "exit 0").Exec()
-				framework.ExpectNoError(err)
-			})
+			ginkgo.By("running a successful command")
+			_, err = framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=Never", podRunningTimeoutArg, "success", "--", "/bin/sh", "-c", "exit 0").Exec()
+			framework.ExpectNoError(err)
 
-			ginkgo.It("running a failing command", func() {
-				_, err := framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=Never", podRunningTimeoutArg, "failure-1", "--", "/bin/sh", "-c", "exit 42").Exec()
-				ee, ok := err.(uexec.ExitError)
-				framework.ExpectEqual(ok, true)
-				framework.ExpectEqual(ee.ExitStatus(), 42)
-			})
+			ginkgo.By("running a failing command")
+			_, err = framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=Never", podRunningTimeoutArg, "failure-1", "--", "/bin/sh", "-c", "exit 42").Exec()
+			ee, ok = err.(uexec.ExitError)
+			framework.ExpectEqual(ok, true)
+			framework.ExpectEqual(ee.ExitStatus(), 42)
 
-			ginkgo.It("[Slow] running a failing command without --restart=Never", func() {
-				_, err := framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", podRunningTimeoutArg, "failure-2", "--", "/bin/sh", "-c", "cat && exit 42").
-					WithStdinData("abcd1234").
-					Exec()
-				ee, ok := err.(uexec.ExitError)
-				framework.ExpectEqual(ok, true)
-				if !strings.Contains(ee.String(), "timed out") {
-					framework.Failf("Missing expected 'timed out' error, got: %#v", ee)
-				}
-			})
+			ginkgo.By("running a failing command without --restart=Never")
+			_, err = framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", podRunningTimeoutArg, "failure-2", "--", "/bin/sh", "-c", "cat && exit 42").
+				WithStdinData("abcd1234").
+				Exec()
+			ee, ok = err.(uexec.ExitError)
+			framework.ExpectEqual(ok, true)
+			if !strings.Contains(ee.String(), "timed out") {
+				framework.Failf("Missing expected 'timed out' error, got: %#v", ee)
+			}
 
-			ginkgo.It("[Slow] running a failing command without --restart=Never, but with --rm", func() {
-				_, err := framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", "--rm", podRunningTimeoutArg, "failure-3", "--", "/bin/sh", "-c", "cat && exit 42").
-					WithStdinData("abcd1234").
-					Exec()
-				ee, ok := err.(uexec.ExitError)
-				framework.ExpectEqual(ok, true)
-				if !strings.Contains(ee.String(), "timed out") {
-					framework.Failf("Missing expected 'timed out' error, got: %#v", ee)
-				}
-				e2epod.WaitForPodToDisappear(f.ClientSet, ns, "failure-3", labels.Everything(), 2*time.Second, wait.ForeverTestTimeout)
-			})
+			ginkgo.By("running a failing command without --restart=Never, but with --rm")
+			_, err = framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=OnFailure", "--rm", podRunningTimeoutArg, "failure-3", "--", "/bin/sh", "-c", "cat && exit 42").
+				WithStdinData("abcd1234").
+				Exec()
+			ee, ok = err.(uexec.ExitError)
+			framework.ExpectEqual(ok, true)
+			if !strings.Contains(ee.String(), "timed out") {
+				framework.Failf("Missing expected 'timed out' error, got: %#v", ee)
+			}
+			e2epod.WaitForPodToDisappear(f.ClientSet, ns, "failure-3", labels.Everything(), 2*time.Second, wait.ForeverTestTimeout)
 
-			ginkgo.It("[Slow] running a failing command with --leave-stdin-open", func() {
-				_, err := framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=Never", podRunningTimeoutArg, "failure-4", "--leave-stdin-open", "--", "/bin/sh", "-c", "exit 42").
-					WithStdinData("abcd1234").
-					Exec()
-				framework.ExpectNoError(err)
-			})
+			ginkgo.By("running a failing command with --leave-stdin-open")
+			_, err = framework.NewKubectlCommand(ns, "run", "-i", "--image="+busyboxImage, "--restart=Never", podRunningTimeoutArg, "failure-4", "--leave-stdin-open", "--", "/bin/sh", "-c", "exit 42").
+				WithStdinData("abcd1234").
+				Exec()
+			framework.ExpectNoError(err)
 		})
 
 		ginkgo.It("should support inline execution and attach", func() {
