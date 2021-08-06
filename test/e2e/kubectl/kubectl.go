@@ -496,7 +496,7 @@ var _ = SIGDescribe("Kubectl client", func() {
 			}
 		})
 
-		ginkgo.Context("should return command exit codes", func() {
+		ginkgo.It("should return command exit codes", func() {
 			ginkgo.By("execing into a container with a successful command")
 			_, err := framework.NewKubectlCommand(ns, "exec", "httpd", podRunningTimeoutArg, "--", "/bin/sh", "-c", "exit 0").Exec()
 			framework.ExpectNoError(err)
