@@ -34,9 +34,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -46,7 +43,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"gopkg.in/gcfg.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -731,16 +727,14 @@ type awsCloudConfigProvider interface {
 }
 
 type awsSDKProvider struct {
-	creds *credentials.Credentials
-	cfg   awsCloudConfigProvider
+	cfg awsCloudConfigProvider
 
 	mutex          sync.Mutex
 	regionDelayers map[string]*CrossRequestRetryDelay
 }
 
-func newAWSSDKProvider(creds *credentials.Credentials, cfg *CloudConfig) *awsSDKProvider {
+func newAWSSDKProvider(cfg *CloudConfig) *awsSDKProvider {
 	return &awsSDKProvider{
-		creds:          creds,
 		cfg:            cfg,
 		regionDelayers: make(map[string]*CrossRequestRetryDelay),
 	}
@@ -816,8 +810,7 @@ func (c *Cloud) SetInformers(informerFactory informers.SharedInformerFactory) {
 
 func (p *awsSDKProvider) Compute(regionName string) (EC2, error) {
 	awsConfig := &aws.Config{
-		Region:      &regionName,
-		Credentials: p.creds,
+		Region: &regionName,
 	}
 	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
 		WithEndpointResolver(p.cfg.getResolver())
@@ -838,8 +831,7 @@ func (p *awsSDKProvider) Compute(regionName string) (EC2, error) {
 
 func (p *awsSDKProvider) LoadBalancing(regionName string) (ELB, error) {
 	awsConfig := &aws.Config{
-		Region:      &regionName,
-		Credentials: p.creds,
+		Region: &regionName,
 	}
 	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
 		WithEndpointResolver(p.cfg.getResolver())
@@ -856,8 +848,7 @@ func (p *awsSDKProvider) LoadBalancing(regionName string) (ELB, error) {
 
 func (p *awsSDKProvider) LoadBalancingV2(regionName string) (ELBV2, error) {
 	awsConfig := &aws.Config{
-		Region:      &regionName,
-		Credentials: p.creds,
+		Region: &regionName,
 	}
 	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
 		WithEndpointResolver(p.cfg.getResolver())
@@ -875,8 +866,7 @@ func (p *awsSDKProvider) LoadBalancingV2(regionName string) (ELBV2, error) {
 
 func (p *awsSDKProvider) Autoscaling(regionName string) (ASG, error) {
 	awsConfig := &aws.Config{
-		Region:      &regionName,
-		Credentials: p.creds,
+		Region: &regionName,
 	}
 	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
 		WithEndpointResolver(p.cfg.getResolver())
@@ -906,8 +896,7 @@ func (p *awsSDKProvider) Metadata() (EC2Metadata, error) {
 
 func (p *awsSDKProvider) KeyManagement(regionName string) (KMS, error) {
 	awsConfig := &aws.Config{
-		Region:      &regionName,
-		Credentials: p.creds,
+		Region: &regionName,
 	}
 	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
 		WithEndpointResolver(p.cfg.getResolver())
@@ -1170,32 +1159,7 @@ func init() {
 			return nil, fmt.Errorf("unable to validate custom endpoint overrides: %v", err)
 		}
 
-		sess, err := session.NewSession(&aws.Config{})
-		if err != nil {
-			return nil, fmt.Errorf("unable to initialize AWS session: %v", err)
-		}
-
-		var provider credentials.Provider
-		if cfg.Global.RoleARN == "" {
-			provider = &ec2rolecreds.EC2RoleProvider{
-				Client: ec2metadata.New(sess),
-			}
-		} else {
-			klog.Infof("Using AWS assumed role %v", cfg.Global.RoleARN)
-			provider = &stscreds.AssumeRoleProvider{
-				Client:  sts.New(sess),
-				RoleARN: cfg.Global.RoleARN,
-			}
-		}
-
-		creds := credentials.NewChainCredentials(
-			[]credentials.Provider{
-				&credentials.EnvProvider{},
-				provider,
-				&credentials.SharedCredentialsProvider{},
-			})
-
-		aws := newAWSSDKProvider(creds, cfg)
+		aws := newAWSSDKProvider(cfg)
 		return newAWSCloud(*cfg, aws)
 	})
 }
