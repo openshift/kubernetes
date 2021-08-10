@@ -602,6 +602,8 @@ type CloudConfig struct {
 
 		// RoleARN is the IAM role to assume when interaction with AWS APIs.
 		RoleARN string
+		// WebIdentityTokenFile is the path to the JWT when using OAuth and OIDC identity providers
+		WebIdentityTokenFile string
 
 		// KubernetesClusterTag is the legacy cluster id we'll use to identify our cluster resources
 		KubernetesClusterTag string
@@ -1175,25 +1177,25 @@ func init() {
 			return nil, fmt.Errorf("unable to initialize AWS session: %v", err)
 		}
 
-		var provider credentials.Provider
+		providers := []credentials.Provider{&credentials.EnvProvider{}}
 		if cfg.Global.RoleARN == "" {
-			provider = &ec2rolecreds.EC2RoleProvider{
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{
 				Client: ec2metadata.New(sess),
-			}
+			})
 		} else {
 			klog.Infof("Using AWS assumed role %v", cfg.Global.RoleARN)
-			provider = &stscreds.AssumeRoleProvider{
-				Client:  sts.New(sess),
+			stsClient := sts.New(sess)
+			providers = append(providers, &stscreds.AssumeRoleProvider{
+				Client:  stsClient,
 				RoleARN: cfg.Global.RoleARN,
+			})
+			if cfg.Global.WebIdentityTokenFile != "" {
+				providers = append(providers, stscreds.NewWebIdentityRoleProvider(stsClient, cfg.Global.RoleARN, "", cfg.Global.WebIdentityTokenFile))
 			}
 		}
+		providers = append(providers, &credentials.SharedCredentialsProvider{})
 
-		creds := credentials.NewChainCredentials(
-			[]credentials.Provider{
-				&credentials.EnvProvider{},
-				provider,
-				&credentials.SharedCredentialsProvider{},
-			})
+		creds := credentials.NewChainCredentials(providers)
 
 		aws := newAWSSDKProvider(creds, cfg)
 		return newAWSCloud(*cfg, aws)
