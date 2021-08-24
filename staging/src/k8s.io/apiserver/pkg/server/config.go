@@ -680,9 +680,9 @@ func (c *Config) DrainedNotify() <-chan struct{} {
 	return c.lifecycleSignals.InFlightRequestsDrained.Signaled()
 }
 
-// ShutdownInitiated returns a lifecycle signal of apiserver shutdown having been initiated.
-func (c *Config) ShutdownInitiatedNotify() <-chan struct{} {
-	return c.lifecycleSignals.ShutdownInitiated.Signaled()
+// HasBeenReadySignal exposes a server's lifecycle signal which is signaled when the readyz endpoint succeeds for the first time.
+func (c *Config) HasBeenReadySignal() <-chan struct{} {
+	return c.lifecycleSignals.HasBeenReady.Signaled()
 }
 
 // Complete fills in any fields not set that are required to have valid data and can be derived
