@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -26,18 +27,18 @@ import (
 	cgroupfs "github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	v1 "k8s.io/api/core/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	"k8s.io/klog/v2"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
-// applyPlatformSpecificContainerConfig applies platform specific configurations to runtimeapi.ContainerConfig.
-func (m *kubeGenericRuntimeManager) applyPlatformSpecificContainerConfig(config *runtimeapi.ContainerConfig, container *v1.Container, pod *v1.Pod, uid *int64, username string, nsTarget *kubecontainer.ContainerID) error {
+// applyPlatformSpecificContainerConfig applies platform specific configurations to internalapi.ContainerConfig.
+func (m *kubeGenericRuntimeManager) applyPlatformSpecificContainerConfig(config *internalapi.ContainerConfig, container *v1.Container, pod *v1.Pod, uid *int64, username string, nsTarget *kubecontainer.ContainerID) error {
 	enforceMemoryQoS := false
 	// Set memory.min and memory.high if MemoryQoS enabled with cgroups v2
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.MemoryQoS) &&
@@ -49,14 +50,14 @@ func (m *kubeGenericRuntimeManager) applyPlatformSpecificContainerConfig(config 
 }
 
 // generateLinuxContainerConfig generates linux container config for kubelet runtime v1.
-func (m *kubeGenericRuntimeManager) generateLinuxContainerConfig(container *v1.Container, pod *v1.Pod, uid *int64, username string, nsTarget *kubecontainer.ContainerID, enforceMemoryQoS bool) *runtimeapi.LinuxContainerConfig {
-	lc := &runtimeapi.LinuxContainerConfig{
-		Resources:       &runtimeapi.LinuxContainerResources{},
+func (m *kubeGenericRuntimeManager) generateLinuxContainerConfig(container *v1.Container, pod *v1.Pod, uid *int64, username string, nsTarget *kubecontainer.ContainerID, enforceMemoryQoS bool) *internalapi.LinuxContainerConfig {
+	lc := &internalapi.LinuxContainerConfig{
+		Resources:       &internalapi.LinuxContainerResources{},
 		SecurityContext: m.determineEffectiveSecurityContext(pod, container, uid, username),
 	}
 
-	if nsTarget != nil && lc.SecurityContext.NamespaceOptions.Pid == runtimeapi.NamespaceMode_CONTAINER {
-		lc.SecurityContext.NamespaceOptions.Pid = runtimeapi.NamespaceMode_TARGET
+	if nsTarget != nil && lc.SecurityContext.NamespaceOptions.Pid == internalapi.NamespaceMode_CONTAINER {
+		lc.SecurityContext.NamespaceOptions.Pid = internalapi.NamespaceMode_TARGET
 		lc.SecurityContext.NamespaceOptions.TargetId = nsTarget.ID
 	}
 
@@ -158,12 +159,12 @@ func (m *kubeGenericRuntimeManager) generateLinuxContainerConfig(container *v1.C
 }
 
 // GetHugepageLimitsFromResources returns limits of each hugepages from resources.
-func GetHugepageLimitsFromResources(resources v1.ResourceRequirements) []*runtimeapi.HugepageLimit {
-	var hugepageLimits []*runtimeapi.HugepageLimit
+func GetHugepageLimitsFromResources(resources v1.ResourceRequirements) []*internalapi.HugepageLimit {
+	var hugepageLimits []*internalapi.HugepageLimit
 
 	// For each page size, limit to 0.
 	for _, pageSize := range cgroupfs.HugePageSizes {
-		hugepageLimits = append(hugepageLimits, &runtimeapi.HugepageLimit{
+		hugepageLimits = append(hugepageLimits, &internalapi.HugepageLimit{
 			PageSize: pageSize,
 			Limit:    uint64(0),
 		})

@@ -25,8 +25,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	runtimetesting "k8s.io/cri-api/pkg/apis/testing"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	runtimetesting "k8s.io/kubernetes/pkg/kubelet/apis/cri/testing"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilpointer "k8s.io/utils/pointer"
 )
@@ -55,15 +55,15 @@ func TestStableKey(t *testing.T) {
 }
 
 func TestToKubeContainer(t *testing.T) {
-	c := &runtimeapi.Container{
+	c := &internalapi.Container{
 		Id: "test-id",
-		Metadata: &runtimeapi.ContainerMetadata{
+		Metadata: &internalapi.ContainerMetadata{
 			Name:    "test-name",
 			Attempt: 1,
 		},
-		Image:    &runtimeapi.ImageSpec{Image: "test-image"},
+		Image:    &internalapi.ImageSpec{Image: "test-image"},
 		ImageRef: "test-image-ref",
-		State:    runtimeapi.ContainerState_CONTAINER_RUNNING,
+		State:    internalapi.ContainerState_CONTAINER_RUNNING,
 		Annotations: map[string]string{
 			containerHashLabel: "1234",
 		},
@@ -93,7 +93,7 @@ func TestGetImageUser(t *testing.T) {
 
 	type image struct {
 		name     string
-		uid      *runtimeapi.Int64Value
+		uid      *internalapi.Int64Value
 		username string
 	}
 
@@ -114,7 +114,7 @@ func TestGetImageUser(t *testing.T) {
 			"image without username and uid should return (new(int64), \"\", nil)",
 			image{
 				name:     "test-image-ref1",
-				uid:      (*runtimeapi.Int64Value)(nil),
+				uid:      (*internalapi.Int64Value)(nil),
 				username: "",
 			},
 			imageUserValues{
@@ -127,7 +127,7 @@ func TestGetImageUser(t *testing.T) {
 			"image with username and no uid should return ((*int64)nil, imageStatus.Username, nil)",
 			image{
 				name:     "test-image-ref2",
-				uid:      (*runtimeapi.Int64Value)(nil),
+				uid:      (*internalapi.Int64Value)(nil),
 				username: "testUser",
 			},
 			imageUserValues{
@@ -140,7 +140,7 @@ func TestGetImageUser(t *testing.T) {
 			"image with uid should return (*int64, \"\", nil)",
 			image{
 				name: "test-image-ref3",
-				uid: &runtimeapi.Int64Value{
+				uid: &internalapi.Int64Value{
 					Value: 2,
 				},
 				username: "whatever",
@@ -666,12 +666,12 @@ func TestGetSeccompProfile(t *testing.T) {
 	_, _, m, err := createTestRuntimeManager()
 	require.NoError(t, err)
 
-	unconfinedProfile := &runtimeapi.SecurityProfile{
-		ProfileType: runtimeapi.SecurityProfile_Unconfined,
+	unconfinedProfile := &internalapi.SecurityProfile{
+		ProfileType: internalapi.SecurityProfile_Unconfined,
 	}
 
-	runtimeDefaultProfile := &runtimeapi.SecurityProfile{
-		ProfileType: runtimeapi.SecurityProfile_RuntimeDefault,
+	runtimeDefaultProfile := &internalapi.SecurityProfile{
+		ProfileType: internalapi.SecurityProfile_RuntimeDefault,
 	}
 
 	tests := []struct {
@@ -680,7 +680,7 @@ func TestGetSeccompProfile(t *testing.T) {
 		podSc           *v1.PodSecurityContext
 		containerSc     *v1.SecurityContext
 		containerName   string
-		expectedProfile *runtimeapi.SecurityProfile
+		expectedProfile *internalapi.SecurityProfile
 	}{
 		{
 			description:     "no seccomp should return unconfined",
@@ -709,8 +709,8 @@ func TestGetSeccompProfile(t *testing.T) {
 		{
 			description: "pod seccomp profile set to SeccompProfileTypeLocalhost returns 'localhost/' + LocalhostProfile",
 			podSc:       &v1.PodSecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("filename")}},
-			expectedProfile: &runtimeapi.SecurityProfile{
-				ProfileType:  runtimeapi.SecurityProfile_Localhost,
+			expectedProfile: &internalapi.SecurityProfile{
+				ProfileType:  internalapi.SecurityProfile_Localhost,
 				LocalhostRef: filepath.Join(fakeSeccompProfileRoot, "filename"),
 			},
 		},
@@ -727,8 +727,8 @@ func TestGetSeccompProfile(t *testing.T) {
 		{
 			description: "container seccomp profile set to SeccompProfileTypeLocalhost returns 'localhost/' + LocalhostProfile",
 			containerSc: &v1.SecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("filename2")}},
-			expectedProfile: &runtimeapi.SecurityProfile{
-				ProfileType:  runtimeapi.SecurityProfile_Localhost,
+			expectedProfile: &internalapi.SecurityProfile{
+				ProfileType:  internalapi.SecurityProfile_Localhost,
 				LocalhostRef: filepath.Join(fakeSeccompProfileRoot, "filename2"),
 			},
 		},
@@ -743,8 +743,8 @@ func TestGetSeccompProfile(t *testing.T) {
 			podSc:         &v1.PodSecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("field-pod-profile.json")}},
 			containerSc:   &v1.SecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("field-cont-profile.json")}},
 			containerName: "container1",
-			expectedProfile: &runtimeapi.SecurityProfile{
-				ProfileType:  runtimeapi.SecurityProfile_Localhost,
+			expectedProfile: &internalapi.SecurityProfile{
+				ProfileType:  internalapi.SecurityProfile_Localhost,
 				LocalhostRef: filepath.Join(fakeSeccompProfileRoot, "field-cont-profile.json"),
 			},
 		},
@@ -760,12 +760,12 @@ func TestGetSeccompProfileDefaultSeccomp(t *testing.T) {
 	_, _, m, err := createTestRuntimeManager()
 	require.NoError(t, err)
 
-	unconfinedProfile := &runtimeapi.SecurityProfile{
-		ProfileType: runtimeapi.SecurityProfile_Unconfined,
+	unconfinedProfile := &internalapi.SecurityProfile{
+		ProfileType: internalapi.SecurityProfile_Unconfined,
 	}
 
-	runtimeDefaultProfile := &runtimeapi.SecurityProfile{
-		ProfileType: runtimeapi.SecurityProfile_RuntimeDefault,
+	runtimeDefaultProfile := &internalapi.SecurityProfile{
+		ProfileType: internalapi.SecurityProfile_RuntimeDefault,
 	}
 
 	tests := []struct {
@@ -774,7 +774,7 @@ func TestGetSeccompProfileDefaultSeccomp(t *testing.T) {
 		podSc           *v1.PodSecurityContext
 		containerSc     *v1.SecurityContext
 		containerName   string
-		expectedProfile *runtimeapi.SecurityProfile
+		expectedProfile *internalapi.SecurityProfile
 	}{
 		{
 			description:     "no seccomp should return RuntimeDefault",
@@ -803,8 +803,8 @@ func TestGetSeccompProfileDefaultSeccomp(t *testing.T) {
 		{
 			description: "pod seccomp profile set to SeccompProfileTypeLocalhost returns 'localhost/' + LocalhostProfile",
 			podSc:       &v1.PodSecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("filename")}},
-			expectedProfile: &runtimeapi.SecurityProfile{
-				ProfileType:  runtimeapi.SecurityProfile_Localhost,
+			expectedProfile: &internalapi.SecurityProfile{
+				ProfileType:  internalapi.SecurityProfile_Localhost,
 				LocalhostRef: filepath.Join(fakeSeccompProfileRoot, "filename"),
 			},
 		},
@@ -821,8 +821,8 @@ func TestGetSeccompProfileDefaultSeccomp(t *testing.T) {
 		{
 			description: "container seccomp profile set to SeccompProfileTypeLocalhost returns 'localhost/' + LocalhostProfile",
 			containerSc: &v1.SecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("filename2")}},
-			expectedProfile: &runtimeapi.SecurityProfile{
-				ProfileType:  runtimeapi.SecurityProfile_Localhost,
+			expectedProfile: &internalapi.SecurityProfile{
+				ProfileType:  internalapi.SecurityProfile_Localhost,
 				LocalhostRef: filepath.Join(fakeSeccompProfileRoot, "filename2"),
 			},
 		},
@@ -837,8 +837,8 @@ func TestGetSeccompProfileDefaultSeccomp(t *testing.T) {
 			podSc:         &v1.PodSecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("field-pod-profile.json")}},
 			containerSc:   &v1.SecurityContext{SeccompProfile: &v1.SeccompProfile{Type: v1.SeccompProfileTypeLocalhost, LocalhostProfile: getLocal("field-cont-profile.json")}},
 			containerName: "container1",
-			expectedProfile: &runtimeapi.SecurityProfile{
-				ProfileType:  runtimeapi.SecurityProfile_Localhost,
+			expectedProfile: &internalapi.SecurityProfile{
+				ProfileType:  internalapi.SecurityProfile_Localhost,
 				LocalhostRef: filepath.Join(fakeSeccompProfileRoot, "field-cont-profile.json"),
 			},
 		},
@@ -857,22 +857,22 @@ func getLocal(v string) *string {
 func TestNamespacesForPod(t *testing.T) {
 	for desc, test := range map[string]struct {
 		input    *v1.Pod
-		expected *runtimeapi.NamespaceOption
+		expected *internalapi.NamespaceOption
 	}{
 		"nil pod -> default v1 namespaces": {
 			nil,
-			&runtimeapi.NamespaceOption{
-				Ipc:     runtimeapi.NamespaceMode_POD,
-				Network: runtimeapi.NamespaceMode_POD,
-				Pid:     runtimeapi.NamespaceMode_CONTAINER,
+			&internalapi.NamespaceOption{
+				Ipc:     internalapi.NamespaceMode_POD,
+				Network: internalapi.NamespaceMode_POD,
+				Pid:     internalapi.NamespaceMode_CONTAINER,
 			},
 		},
 		"v1.Pod default namespaces": {
 			&v1.Pod{},
-			&runtimeapi.NamespaceOption{
-				Ipc:     runtimeapi.NamespaceMode_POD,
-				Network: runtimeapi.NamespaceMode_POD,
-				Pid:     runtimeapi.NamespaceMode_CONTAINER,
+			&internalapi.NamespaceOption{
+				Ipc:     internalapi.NamespaceMode_POD,
+				Network: internalapi.NamespaceMode_POD,
+				Pid:     internalapi.NamespaceMode_CONTAINER,
 			},
 		},
 		"Host Namespaces": {
@@ -883,10 +883,10 @@ func TestNamespacesForPod(t *testing.T) {
 					HostPID:     true,
 				},
 			},
-			&runtimeapi.NamespaceOption{
-				Ipc:     runtimeapi.NamespaceMode_NODE,
-				Network: runtimeapi.NamespaceMode_NODE,
-				Pid:     runtimeapi.NamespaceMode_NODE,
+			&internalapi.NamespaceOption{
+				Ipc:     internalapi.NamespaceMode_NODE,
+				Network: internalapi.NamespaceMode_NODE,
+				Pid:     internalapi.NamespaceMode_NODE,
 			},
 		},
 		"Shared Process Namespace (feature enabled)": {
@@ -895,10 +895,10 @@ func TestNamespacesForPod(t *testing.T) {
 					ShareProcessNamespace: &[]bool{true}[0],
 				},
 			},
-			&runtimeapi.NamespaceOption{
-				Ipc:     runtimeapi.NamespaceMode_POD,
-				Network: runtimeapi.NamespaceMode_POD,
-				Pid:     runtimeapi.NamespaceMode_POD,
+			&internalapi.NamespaceOption{
+				Ipc:     internalapi.NamespaceMode_POD,
+				Network: internalapi.NamespaceMode_POD,
+				Pid:     internalapi.NamespaceMode_POD,
 			},
 		},
 		"Shared Process Namespace, redundant flag (feature enabled)": {
@@ -907,10 +907,10 @@ func TestNamespacesForPod(t *testing.T) {
 					ShareProcessNamespace: &[]bool{false}[0],
 				},
 			},
-			&runtimeapi.NamespaceOption{
-				Ipc:     runtimeapi.NamespaceMode_POD,
-				Network: runtimeapi.NamespaceMode_POD,
-				Pid:     runtimeapi.NamespaceMode_CONTAINER,
+			&internalapi.NamespaceOption{
+				Ipc:     internalapi.NamespaceMode_POD,
+				Network: internalapi.NamespaceMode_POD,
+				Pid:     internalapi.NamespaceMode_CONTAINER,
 			},
 		},
 	} {
