@@ -21,6 +21,7 @@ import (
 
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	criapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 )
 
 // ContainerRuntimeOptions defines options for the container runtime.
@@ -31,6 +32,8 @@ type ContainerRuntimeOptions struct {
 	ContainerRuntime string
 	// RuntimeCgroups that container runtime is expected to be isolated in.
 	RuntimeCgroups string
+	// CRIVersion specifies the Container Runtime Interface (CRI) version to be used.
+	CRIVersion string
 
 	// Docker-specific options.
 
@@ -90,6 +93,7 @@ func (s *ContainerRuntimeOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.RuntimeCgroups, "runtime-cgroups", s.RuntimeCgroups, "Optional absolute name of cgroups to create and run the runtime in.")
 	_ = fs.Bool("redirect-container-streaming", false, "[REMOVED]") // TODO: Delete in v1.22
 	fs.MarkDeprecated("redirect-container-streaming", "Container streaming redirection has been removed from the kubelet as of v1.20, and this flag will be removed in v1.22. For more details, see http://git.k8s.io/enhancements/keps/sig-node/20191205-container-streaming-requests.md")
+	fs.StringVar(&s.CRIVersion, "cri-version", s.CRIVersion, fmt.Sprintf("Specify the CRI version for the remote runtime and image endpoint to be used. Can be either empty (chosen automatically on connection) or forced to %q and %q (deprecated)", criapi.APIVersionV1, criapi.APIVersionV1alpha2))
 
 	// Docker-specific settings.
 	fs.StringVar(&s.DockershimRootDirectory, "experimental-dockershim-root-directory", s.DockershimRootDirectory, "Path to the dockershim root directory.")

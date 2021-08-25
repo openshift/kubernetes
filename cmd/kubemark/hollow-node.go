@@ -217,12 +217,12 @@ func run(config *hollowNodeConfig) {
 			klog.Fatalf("Failed to start fake runtime %v.", err)
 		}
 		defer fakeRemoteRuntime.Stop()
-		runtimeService, err := remote.NewRemoteRuntimeService(endpoint, 15*time.Second)
+		runtimeService, err := remote.NewRemoteRuntimeService(endpoint, 15*time.Second, "")
 		if err != nil {
 			klog.Fatalf("Failed to init runtime service %v.", err)
 		}
 
-		remoteImageService, err := remote.NewRemoteImageService(f.RemoteImageEndpoint, 15*time.Second)
+		remoteImageService, err := remote.NewRemoteImageService(f.RemoteImageEndpoint, 15*time.Second, "")
 		if err != nil {
 			klog.Fatalf("Failed to init image service %v.", err)
 		}

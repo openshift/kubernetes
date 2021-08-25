@@ -34,11 +34,11 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/util/flowcontrol"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
-	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	apitest "k8s.io/cri-api/pkg/apis/testing"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/features"
+	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	apitest "k8s.io/kubernetes/pkg/kubelet/apis/cri/testing"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
@@ -69,7 +69,7 @@ type sandboxTemplate struct {
 	pod       *v1.Pod
 	attempt   uint32
 	createdAt int64
-	state     runtimeapi.PodSandboxState
+	state     internalapi.PodSandboxState
 }
 
 // containerTemplate is a container template to create fake container.
@@ -79,7 +79,7 @@ type containerTemplate struct {
 	sandboxAttempt uint32
 	attempt        int
 	createdAt      int64
-	state          runtimeapi.ContainerState
+	state          internalapi.ContainerState
 }
 
 // makeAndSetFakePod is a helper function to create and set one fake sandbox for a pod and
@@ -89,7 +89,7 @@ func makeAndSetFakePod(t *testing.T, m *kubeGenericRuntimeManager, fakeRuntime *
 	sandbox := makeFakePodSandbox(t, m, sandboxTemplate{
 		pod:       pod,
 		createdAt: fakeCreatedAt,
-		state:     runtimeapi.PodSandboxState_SANDBOX_READY,
+		state:     internalapi.PodSandboxState_SANDBOX_READY,
 	})
 
 	var containers []*apitest.FakeContainer
@@ -98,7 +98,7 @@ func makeAndSetFakePod(t *testing.T, m *kubeGenericRuntimeManager, fakeRuntime *
 			pod:       pod,
 			container: c,
 			createdAt: fakeCreatedAt,
-			state:     runtimeapi.ContainerState_CONTAINER_RUNNING,
+			state:     internalapi.ContainerState_CONTAINER_RUNNING,
 		}
 	}
 	podutil.VisitContainers(&pod.Spec, podutil.AllFeatureEnabledContainers(), func(c *v1.Container, containerType podutil.ContainerType) bool {
@@ -118,12 +118,12 @@ func makeFakePodSandbox(t *testing.T, m *kubeGenericRuntimeManager, template san
 
 	podSandboxID := apitest.BuildSandboxName(config.Metadata)
 	podSandBoxStatus := &apitest.FakePodSandbox{
-		PodSandboxStatus: runtimeapi.PodSandboxStatus{
+		PodSandboxStatus: internalapi.PodSandboxStatus{
 			Id:        podSandboxID,
 			Metadata:  config.Metadata,
 			State:     template.state,
 			CreatedAt: template.createdAt,
-			Network: &runtimeapi.PodSandboxNetworkStatus{
+			Network: &internalapi.PodSandboxNetworkStatus{
 				Ip: apitest.FakePodSandboxIPs[0],
 			},
 			Labels: config.Labels,
@@ -131,9 +131,9 @@ func makeFakePodSandbox(t *testing.T, m *kubeGenericRuntimeManager, template san
 	}
 	// assign additional IPs
 	additionalIPs := apitest.FakePodSandboxIPs[1:]
-	additionalPodIPs := make([]*runtimeapi.PodIP, 0, len(additionalIPs))
+	additionalPodIPs := make([]*internalapi.PodIP, 0, len(additionalIPs))
 	for _, ip := range additionalIPs {
-		additionalPodIPs = append(additionalPodIPs, &runtimeapi.PodIP{
+		additionalPodIPs = append(additionalPodIPs, &internalapi.PodIP{
 			Ip: ip,
 		})
 	}
@@ -164,7 +164,7 @@ func makeFakeContainer(t *testing.T, m *kubeGenericRuntimeManager, template cont
 	containerID := apitest.BuildContainerName(containerConfig.Metadata, podSandboxID)
 	imageRef := containerConfig.Image.Image
 	return &apitest.FakeContainer{
-		ContainerStatus: runtimeapi.ContainerStatus{
+		ContainerStatus: internalapi.ContainerStatus{
 			Id:          containerID,
 			Metadata:    containerConfig.Metadata,
 			Image:       containerConfig.Image,
@@ -244,7 +244,7 @@ func verifyFakeContainerList(fakeRuntime *apitest.FakeRuntimeService, expected s
 type cRecord struct {
 	name    string
 	attempt uint32
-	state   runtimeapi.ContainerState
+	state   internalapi.ContainerState
 }
 
 type cRecordList []*cRecord
@@ -359,7 +359,7 @@ func TestGetPods(t *testing.T) {
 	containers := make([]*kubecontainer.Container, len(fakeContainers))
 	for i := range containers {
 		fakeContainer := fakeContainers[i]
-		c, err := m.toKubeContainer(&runtimeapi.Container{
+		c, err := m.toKubeContainer(&internalapi.Container{
 			Id:          fakeContainer.Id,
 			Metadata:    fakeContainer.Metadata,
 			State:       fakeContainer.State,
@@ -374,7 +374,7 @@ func TestGetPods(t *testing.T) {
 		containers[i] = c
 	}
 	// Convert fakeSandbox to kubecontainer.Container
-	sandbox, err := m.sandboxToKubeContainer(&runtimeapi.PodSandbox{
+	sandbox, err := m.sandboxToKubeContainer(&internalapi.PodSandbox{
 		Id:          fakeSandbox.Id,
 		Metadata:    fakeSandbox.Metadata,
 		State:       fakeSandbox.State,
@@ -446,7 +446,7 @@ func TestKillPod(t *testing.T) {
 	containers := make([]*kubecontainer.Container, len(fakeContainers))
 	for i := range containers {
 		fakeContainer := fakeContainers[i]
-		c, err := m.toKubeContainer(&runtimeapi.Container{
+		c, err := m.toKubeContainer(&internalapi.Container{
 			Id:       fakeContainer.Id,
 			Metadata: fakeContainer.Metadata,
 			State:    fakeContainer.State,
@@ -479,10 +479,10 @@ func TestKillPod(t *testing.T) {
 	assert.Equal(t, 3, len(fakeRuntime.Containers))
 	assert.Equal(t, 1, len(fakeRuntime.Sandboxes))
 	for _, sandbox := range fakeRuntime.Sandboxes {
-		assert.Equal(t, runtimeapi.PodSandboxState_SANDBOX_NOTREADY, sandbox.State)
+		assert.Equal(t, internalapi.PodSandboxState_SANDBOX_NOTREADY, sandbox.State)
 	}
 	for _, c := range fakeRuntime.Containers {
-		assert.Equal(t, runtimeapi.ContainerState_CONTAINER_EXITED, c.State)
+		assert.Equal(t, internalapi.ContainerState_CONTAINER_EXITED, c.State)
 	}
 }
 
@@ -520,10 +520,10 @@ func TestSyncPod(t *testing.T) {
 	assert.Equal(t, 2, len(fakeImage.Images))
 	assert.Equal(t, 1, len(fakeRuntime.Sandboxes))
 	for _, sandbox := range fakeRuntime.Sandboxes {
-		assert.Equal(t, runtimeapi.PodSandboxState_SANDBOX_READY, sandbox.State)
+		assert.Equal(t, internalapi.PodSandboxState_SANDBOX_READY, sandbox.State)
 	}
 	for _, c := range fakeRuntime.Containers {
-		assert.Equal(t, runtimeapi.ContainerState_CONTAINER_RUNNING, c.State)
+		assert.Equal(t, internalapi.ContainerState_CONTAINER_RUNNING, c.State)
 	}
 }
 
@@ -545,12 +545,12 @@ func TestPruneInitContainers(t *testing.T) {
 	}
 
 	templates := []containerTemplate{
-		{pod: pod, container: &init1, attempt: 3, createdAt: 3, state: runtimeapi.ContainerState_CONTAINER_EXITED},
-		{pod: pod, container: &init1, attempt: 2, createdAt: 2, state: runtimeapi.ContainerState_CONTAINER_EXITED},
-		{pod: pod, container: &init2, attempt: 1, createdAt: 1, state: runtimeapi.ContainerState_CONTAINER_EXITED},
-		{pod: pod, container: &init1, attempt: 1, createdAt: 1, state: runtimeapi.ContainerState_CONTAINER_UNKNOWN},
-		{pod: pod, container: &init2, attempt: 0, createdAt: 0, state: runtimeapi.ContainerState_CONTAINER_EXITED},
-		{pod: pod, container: &init1, attempt: 0, createdAt: 0, state: runtimeapi.ContainerState_CONTAINER_EXITED},
+		{pod: pod, container: &init1, attempt: 3, createdAt: 3, state: internalapi.ContainerState_CONTAINER_EXITED},
+		{pod: pod, container: &init1, attempt: 2, createdAt: 2, state: internalapi.ContainerState_CONTAINER_EXITED},
+		{pod: pod, container: &init2, attempt: 1, createdAt: 1, state: internalapi.ContainerState_CONTAINER_EXITED},
+		{pod: pod, container: &init1, attempt: 1, createdAt: 1, state: internalapi.ContainerState_CONTAINER_UNKNOWN},
+		{pod: pod, container: &init2, attempt: 0, createdAt: 0, state: internalapi.ContainerState_CONTAINER_EXITED},
+		{pod: pod, container: &init1, attempt: 0, createdAt: 0, state: internalapi.ContainerState_CONTAINER_EXITED},
 	}
 	fakes := makeFakeContainers(t, m, templates)
 	fakeRuntime.SetFakeContainers(fakes)
@@ -607,7 +607,7 @@ func TestSyncPodWithInitContainers(t *testing.T) {
 	result := m.SyncPod(pod, podStatus, []v1.Secret{}, backOff)
 	assert.NoError(t, result.Error())
 	expected := []*cRecord{
-		{name: initContainers[0].Name, attempt: 0, state: runtimeapi.ContainerState_CONTAINER_RUNNING},
+		{name: initContainers[0].Name, attempt: 0, state: internalapi.ContainerState_CONTAINER_RUNNING},
 	}
 	verifyContainerStatuses(t, fakeRuntime, expected, "start only the init container")
 
@@ -632,9 +632,9 @@ func TestSyncPodWithInitContainers(t *testing.T) {
 	result = m.SyncPod(pod, podStatus, []v1.Secret{}, backOff)
 	assert.NoError(t, result.Error())
 	expected = []*cRecord{
-		{name: initContainers[0].Name, attempt: 0, state: runtimeapi.ContainerState_CONTAINER_EXITED},
-		{name: containers[0].Name, attempt: 0, state: runtimeapi.ContainerState_CONTAINER_RUNNING},
-		{name: containers[1].Name, attempt: 0, state: runtimeapi.ContainerState_CONTAINER_RUNNING},
+		{name: initContainers[0].Name, attempt: 0, state: internalapi.ContainerState_CONTAINER_EXITED},
+		{name: containers[0].Name, attempt: 0, state: internalapi.ContainerState_CONTAINER_RUNNING},
+		{name: containers[1].Name, attempt: 0, state: internalapi.ContainerState_CONTAINER_RUNNING},
 	}
 	verifyContainerStatuses(t, fakeRuntime, expected, "init container completed; all app containers should be running")
 
@@ -649,10 +649,10 @@ func TestSyncPodWithInitContainers(t *testing.T) {
 	expected = []*cRecord{
 		// The first init container instance is purged and no longer visible.
 		// The second (attempt == 1) instance has been started and is running.
-		{name: initContainers[0].Name, attempt: 1, state: runtimeapi.ContainerState_CONTAINER_RUNNING},
+		{name: initContainers[0].Name, attempt: 1, state: internalapi.ContainerState_CONTAINER_RUNNING},
 		// All containers are killed.
-		{name: containers[0].Name, attempt: 0, state: runtimeapi.ContainerState_CONTAINER_EXITED},
-		{name: containers[1].Name, attempt: 0, state: runtimeapi.ContainerState_CONTAINER_EXITED},
+		{name: containers[0].Name, attempt: 0, state: internalapi.ContainerState_CONTAINER_EXITED},
+		{name: containers[1].Name, attempt: 0, state: internalapi.ContainerState_CONTAINER_EXITED},
 	}
 	verifyContainerStatuses(t, fakeRuntime, expected, "kill all app containers, purge the existing init container, and restart a new one")
 }
@@ -687,12 +687,12 @@ func makeBasePodAndStatus() (*v1.Pod, *kubecontainer.PodStatus) {
 		ID:        pod.UID,
 		Name:      pod.Name,
 		Namespace: pod.Namespace,
-		SandboxStatuses: []*runtimeapi.PodSandboxStatus{
+		SandboxStatuses: []*internalapi.PodSandboxStatus{
 			{
 				Id:       "sandboxID",
-				State:    runtimeapi.PodSandboxState_SANDBOX_READY,
-				Metadata: &runtimeapi.PodSandboxMetadata{Name: pod.Name, Namespace: pod.Namespace, Uid: "sandboxuid", Attempt: uint32(0)},
-				Network:  &runtimeapi.PodSandboxNetworkStatus{Ip: "10.0.0.1"},
+				State:    internalapi.PodSandboxState_SANDBOX_READY,
+				Metadata: &internalapi.PodSandboxMetadata{Name: pod.Name, Namespace: pod.Namespace, Uid: "sandboxuid", Attempt: uint32(0)},
+				Network:  &internalapi.PodSandboxNetworkStatus{Ip: "10.0.0.1"},
 			},
 		},
 		ContainerStatuses: []*kubecontainer.Status{
@@ -741,7 +741,7 @@ func TestComputePodActions(t *testing.T) {
 		"start pod sandbox and all containers for a new pod": {
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
 				// No container or sandbox exists.
-				status.SandboxStatuses = []*runtimeapi.PodSandboxStatus{}
+				status.SandboxStatuses = []*internalapi.PodSandboxStatus{}
 				status.ContainerStatuses = []*kubecontainer.Status{}
 			},
 			actions: podActions{
@@ -800,7 +800,7 @@ func TestComputePodActions(t *testing.T) {
 		"Kill pod and recreate everything if the pod sandbox is dead, and RestartPolicy == Always": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyAlways },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 			},
 			actions: podActions{
 				KillPod:           true,
@@ -814,7 +814,7 @@ func TestComputePodActions(t *testing.T) {
 		"Kill pod and recreate all containers (except for the succeeded one) if the pod sandbox is dead, and RestartPolicy == OnFailure": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.ContainerStatuses[1].State = kubecontainer.ContainerStateExited
 				status.ContainerStatuses[1].ExitCode = 0
 			},
@@ -891,7 +891,7 @@ func TestComputePodActions(t *testing.T) {
 			},
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
 				// no ready sandbox
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.SandboxStatuses[0].Metadata.Attempt = uint32(1)
 				// all containers exited
 				for i := range status.ContainerStatuses {
@@ -914,7 +914,7 @@ func TestComputePodActions(t *testing.T) {
 			},
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
 				// no ready sandbox
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.SandboxStatuses[0].Metadata.Attempt = uint32(1)
 				// all containers succeeded
 				for i := range status.ContainerStatuses {
@@ -937,7 +937,7 @@ func TestComputePodActions(t *testing.T) {
 			},
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
 				// no ready sandbox
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.SandboxStatuses[0].Metadata.Attempt = uint32(2)
 				// no visible containers
 				status.ContainerStatuses = []*kubecontainer.Status{}
@@ -1047,7 +1047,7 @@ func TestComputePodActionsWithInitContainers(t *testing.T) {
 		"Kill pod and restart the first init container if the pod sandbox is dead": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyAlways },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 			},
 			actions: podActions{
 				KillPod:                  true,
@@ -1134,7 +1134,7 @@ func TestComputePodActionsWithInitContainers(t *testing.T) {
 		"Pod sandbox not ready, init container failed, but RestartPolicy == Never; kill pod only": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyNever },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 			},
 			actions: podActions{
 				KillPod:           true,
@@ -1148,7 +1148,7 @@ func TestComputePodActionsWithInitContainers(t *testing.T) {
 		"Pod sandbox not ready, and RestartPolicy == Never, but no visible init containers;  create a new pod sandbox": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyNever },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.ContainerStatuses = []*kubecontainer.Status{}
 			},
 			actions: podActions{
@@ -1164,7 +1164,7 @@ func TestComputePodActionsWithInitContainers(t *testing.T) {
 		"Pod sandbox not ready, init container failed, and RestartPolicy == OnFailure; create a new pod sandbox": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.ContainerStatuses[2].ExitCode = 137
 			},
 			actions: podActions{
@@ -1305,7 +1305,7 @@ func TestComputePodActionsWithInitAndEphemeralContainers(t *testing.T) {
 		"Create a new pod sandbox if the pod sandbox is dead, init container failed and RestartPolicy == OnFailure": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 				status.ContainerStatuses = status.ContainerStatuses[3:]
 				status.ContainerStatuses[0].ExitCode = 137
 			},
@@ -1322,7 +1322,7 @@ func TestComputePodActionsWithInitAndEphemeralContainers(t *testing.T) {
 		"Kill pod and do not restart ephemeral container if the pod sandbox is dead": {
 			mutatePodFn: func(pod *v1.Pod) { pod.Spec.RestartPolicy = v1.RestartPolicyAlways },
 			mutateStatusFn: func(status *kubecontainer.PodStatus) {
-				status.SandboxStatuses[0].State = runtimeapi.PodSandboxState_SANDBOX_NOTREADY
+				status.SandboxStatuses[0].State = internalapi.PodSandboxState_SANDBOX_NOTREADY
 			},
 			actions: podActions{
 				KillPod:                  true,
