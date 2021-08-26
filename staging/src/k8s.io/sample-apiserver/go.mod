@@ -9,6 +9,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-openapi/spec v0.19.5
 	github.com/google/gofuzz v1.1.0
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	go.etcd.io/bbolt v1.3.5 // indirect
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
