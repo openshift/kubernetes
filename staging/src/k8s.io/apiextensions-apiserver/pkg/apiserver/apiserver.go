@@ -240,7 +240,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		// choose to not enable OpenAPI by having null openAPIConfig, and thus OpenAPIVersionedService
 		// and StaticOpenAPISpec are both null. In that case we don't run the CRD OpenAPI controller.
 		if s.GenericAPIServer.OpenAPIVersionedService != nil && s.GenericAPIServer.StaticOpenAPISpec != nil {
-			go openapiController.Run(s.GenericAPIServer.StaticOpenAPISpec, s.GenericAPIServer.OpenAPIVersionedService, context.StopCh)
+			openapiControllerSyncedCh := make(chan struct{})
+			go openapiController.Run(s.GenericAPIServer.StaticOpenAPISpec, s.GenericAPIServer.OpenAPIVersionedService, context.StopCh, openapiControllerSyncedCh)
+			select {
+			case <-context.StopCh:
+			case <-openapiControllerSyncedCh:
+			}
 		}
 
 		go namingController.Run(context.StopCh)
