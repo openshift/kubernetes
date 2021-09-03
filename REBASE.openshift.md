@@ -408,3 +408,110 @@ git log v1.21.1..v1.21.2 --ancestry-path --reverse --no-merges
 6. Update openshift dependencies and re-run `hack/update-vendor.sh`.
 7. Update kubernetes version in `openshift-hack/images/hyperkube/Dockerfile.rhel`.
 8. Run `make update` see [Updating generated files](#updating-generated-files).
+
+##  Z stream release
+
+1. Clone the official `kubernetes` repository in your system:
+
+```
+git clone https://github.com/kubernetes/kubernetes
+```
+
+2. Add the remote `openshift`:
+
+```
+git remote add openshift https://github.com/openshift/kubernetes
+```
+
+3. Fetch data from the remote `openshift`:
+
+```
+git fetch openshift
+```
+
+4. Checkout to release-Y.Z branch
+
+An example to checkout to release 4.9 branch:
+
+```
+git checkout openshift/release-4.9
+```
+
+5. For z stream release of Kubernetes `x.y`, select the highest patch version of `x.y` release from https://github.com/kubernetes/kubernetes/releases i.e. `vx.y.z` where z is the highest patch version.
+
+Merge the latest kubernetes version with the command:
+
+```
+git merge <version>
+```
+Example:
+
+```
+git merge v1.21.4
+````
+
+6. Create a commit **with the conflicts** using the following command:
+
+```
+git commit -m "UPSTREAM: <drop>: manually resolve conflicts"
+```
+
+7. Resolve the conflicts manually. In most cases, pick the latest version of dependencies.
+
+8. If `go.mod` file is modified in the previous step, then:
+- In the go.mod file, Update all `github.com/openshift/*` packages' version to the release branch
+Example: `github.com/openshift/api v0.0.0-20210817132244-67c28690af52` is changed to `github.com/openshift/api release-4.8` for `4.8` rebase
+- Run `go mod tidy`
+
+If `go.mod` file is not modified, then skip this step.
+
+9. Run the script `hack/update-vendor.sh`
+
+10. Create a commit with all the changes using the following command:
+
+```
+git commit -m "UPSTREAM: <drop>: hack/update-vendor.sh"
+```
+
+11. Update kubernetes version in `openshift-hack/images/hyperkube/Dockerfile.rhel`
+
+12. Run `podman run -it --rm -v $( pwd ):/go/k8s.io/kubernetes:Z --workdir=/go/k8s.io/kubernetes registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.16-openshift-4.8 make update OS_RUN_WITHOUT_DOCKER=yes
+`
+
+13. Create a commit with all the changes using the following command:
+
+```
+git commit -m "UPSTREAM: <drop>: make update"
+```
+
+14. Finally, push all the changes to the remote branch
+
+```
+git push <username> <current-branch>:<remote-branch>
+```
+
+### Pull Request Best Practices:
+
+1. The pull request will always be against a particular release. So, Ensure the pull request is against the specific release branch e.g. `release-4.9` branch of `openshift/kubernetes` repository.
+
+2. Put the changes from last release to current release in the pull request description:
+
+```
+git log <old-release>..<new-release> --ancestry-path --reverse --no-merges --oneline
+```
+
+Example to get changes from `v1.21.1` to `v1.21.4` use the following command:
+
+```
+git log v1.21.1..v1.21.4 --ancestry-path --reverse --no-merges --oneline
+```
+
+### How to pull images from registry.ci.openshift.org
+
+1. Navigate to this link https://oauth-openshift.apps.ci.l2s4.p1.openshiftapps.com/oauth/token/request
+
+2. Login with github credentials
+
+3. Once logged you'll see a token that you can use with podman
+
+4. Execute this command ```podman login --authfile ~/.docker/config.json -u <user> -p <token> https://registry.ci.openshift.org``` replacing <user> with your github user and <token> with the token from step 3
