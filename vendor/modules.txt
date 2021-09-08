@@ -650,7 +650,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/openshift/api v0.0.0-20210817132244-67c28690af52 => github.com/openshift/api v0.0.0-20210817132244-67c28690af52
+# github.com/openshift/api v0.0.0-20210817132244-67c28690af52 => github.com/openshift/api v0.0.0-20210908100721-bafd0c4041f3
 ## explicit
 github.com/openshift/api/apiserver/v1
 github.com/openshift/api/apps/v1
@@ -1433,7 +1433,7 @@ gopkg.in/warnings.v0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b => gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
-# k8s.io/api v0.22.0-rc.0 => k8s.io/api v0.22.0-rc.0
+# k8s.io/api v0.22.1 => k8s.io/api v0.22.0-rc.0
 ## explicit
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1525,7 +1525,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.22.0-rc.0 => k8s.io/apimachinery v0.22.0-rc.0
+# k8s.io/apimachinery v0.22.1 => k8s.io/apimachinery v0.22.0-rc.0
 ## explicit
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/apitesting/fuzzer
@@ -2088,7 +2088,7 @@ k8s.io/cluster-bootstrap/token/jws
 k8s.io/cluster-bootstrap/token/util
 k8s.io/cluster-bootstrap/util/secrets
 k8s.io/cluster-bootstrap/util/tokens
-# k8s.io/code-generator v0.22.0-rc.0 => k8s.io/code-generator v0.22.0-rc.0
+# k8s.io/code-generator v0.22.1 => k8s.io/code-generator v0.22.0-rc.0
 ## explicit
 k8s.io/code-generator/cmd/go-to-protobuf
 k8s.io/code-generator/cmd/go-to-protobuf/protobuf
@@ -2806,7 +2806,7 @@ sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.2
 # github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 # github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.8.2
-# github.com/openshift/api => github.com/openshift/api v0.0.0-20210817132244-67c28690af52
+# github.com/openshift/api => github.com/openshift/api v0.0.0-20210908100721-bafd0c4041f3
 # github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20210823130908-fb12da91a79d
 # github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 # github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210730113412-1811c1b3fc0e

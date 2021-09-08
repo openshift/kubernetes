@@ -109,15 +109,15 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.22.0-rc.0
+	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.0-rc.0
-	k8s.io/apimachinery v0.22.0-rc.0
+	k8s.io/apimachinery v0.22.1
 	k8s.io/apiserver v0.22.0-rc.0
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v0.22.0-rc.0
 	k8s.io/cloud-provider v0.0.0
 	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.22.0-rc.0
+	k8s.io/code-generator v0.22.1
 	k8s.io/component-base v0.22.0-rc.0
 	k8s.io/component-helpers v0.0.0
 	k8s.io/controller-manager v0.0.0
@@ -393,7 +393,7 @@ replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20210817132244-67c28690af52
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20210908100721-bafd0c4041f3
 	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20210823130908-fb12da91a79d
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210730113412-1811c1b3fc0e
