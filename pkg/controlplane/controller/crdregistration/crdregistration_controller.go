@@ -125,7 +125,7 @@ func (c *crdRegistrationController) Run(threadiness int, stopCh <-chan struct{})
 	} else {
 		for _, crd := range crds {
 			for _, version := range crd.Spec.Versions {
-				klog.V(4).Infof("CRD registration controller initial sync %s %s", crd.Spec.Group, version)
+				klog.Infof("CRD registration controller initial sync %s %s", crd.Spec.Group, version)
 				if err := c.syncHandler(schema.GroupVersion{Group: crd.Spec.Group, Version: version.Name}, true); err != nil {
 					utilruntime.HandleError(err)
 				}
