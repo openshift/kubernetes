@@ -47,14 +47,16 @@ func SetLogger(l grpclog.LoggerV2) {
 // etcdClientDebugLevel translates ETCD_CLIENT_DEBUG into zap log level.
 func etcdClientDebugLevel() zapcore.Level {
 	envLevel := os.Getenv("ETCD_CLIENT_DEBUG")
+	envLevel = "debug"
 	if envLevel == "" || envLevel == "true" {
 		return zapcore.InfoLevel
 	}
 	var l zapcore.Level
 	if err := l.Set(envLevel); err == nil {
 		log.Printf("Deprecated env ETCD_CLIENT_DEBUG value. Using default level: 'info'")
-		return zapcore.InfoLevel
+		 //return zapcore.InfoLevel
 	}
+	log.Printf("etcd log level set to %s", envLevel)
 	return l
 }
 
