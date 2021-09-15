@@ -152,7 +152,9 @@ func (c *autoRegisterController) Run(threadiness int, stopCh <-chan struct{}) {
 	// record APIService objects that existed when we started
 	if services, err := c.apiServiceLister.List(labels.Everything()); err == nil {
 		for _, service := range services {
-			c.apiServicesAtStart[service.Name] = true
+			if _, ok := c.apiServicesToSync[service.Name]; !ok {
+				c.apiServicesAtStart[service.Name] = true
+			}
 		}
 	}
 
