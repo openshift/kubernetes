@@ -14,10 +14,16 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 	k8s.io/gengo v0.0.0-20200428234225-8167cfdcfc14
-	k8s.io/klog/v2 v2.2.0
+	k8s.io/klog/v2 v2.3.0
 	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-replace k8s.io/code-generator => ../code-generator
+replace (
+	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.5.0-origin.1+incompatible
+	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
+	k8s.io/code-generator => ../code-generator
+	k8s.io/klog/v2 => k8s.io/klog/v2 v2.2.0
+)
