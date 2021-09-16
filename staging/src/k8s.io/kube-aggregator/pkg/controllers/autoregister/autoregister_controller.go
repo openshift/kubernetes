@@ -152,9 +152,7 @@ func (c *autoRegisterController) Run(threadiness int, stopCh <-chan struct{}) {
 	// record APIService objects that existed when we started
 	if services, err := c.apiServiceLister.List(labels.Everything()); err == nil {
 		for _, service := range services {
-			if _, ok := c.apiServicesToSync[service.Name]; !ok {
-				c.apiServicesAtStart[service.Name] = true
-			}
+			c.apiServicesAtStart[service.Name] = true
 		}
 	}
 
@@ -301,7 +299,22 @@ func (c *autoRegisterController) GetAPIServiceToSync(name string) *v1.APIService
 
 // AddAPIServiceToSyncOnStart registers an API service to sync only when the controller starts.
 func (c *autoRegisterController) AddAPIServiceToSyncOnStart(in *v1.APIService) {
-	c.addAPIServiceToSync(in, manageOnStart)
+	c.apiServicesToSyncLock.Lock()
+	defer c.apiServicesToSyncLock.Unlock()
+
+	apiService := in.DeepCopy()
+	if apiService.Labels == nil {
+		apiService.Labels = map[string]string{}
+	}
+	apiService.Labels[AutoRegisterManagedLabel] = manageOnStart
+
+	c.apiServicesToSync[apiService.Name] = apiService
+	if err := c.checkAPIService(apiService.Name); err != nil {
+		// in error cases, adding into queue to retry. In any case,
+		// if error is persistent, in second run queue will dequeue it.
+		klog.Warning("Unsuccessful check API Service operation for %q err: %v", apiService.Name, err)
+		c.queue.Add(apiService.Name)
+	}
 }
 
 // AddAPIServiceToSync registers an API service to sync continuously.
