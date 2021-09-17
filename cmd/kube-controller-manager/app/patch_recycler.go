@@ -23,7 +23,7 @@ func createPVRecyclerSA(openshiftConfig string, clientBuilder clientbuilder.Cont
 
 	// Create the namespace if we can't verify it exists.
 	// Tolerate errors, since we don't know whether this component has namespace creation permissions.
-	_, _ = coreClient.CoreV1().Namespaces().Create(context.TODO(), &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-infra"}}, metav1.CreateOptions{})
+	_, _ = coreClient.CoreV1().Namespaces().Create(context.TODO(), &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "openshift-infra", Annotations: map[string]string{"workload.openshift.io/allowed": "management"}}}, metav1.CreateOptions{})
 
 	// Create the service account
 	_, err = coreClient.CoreV1().ServiceAccounts("openshift-infra").Create(context.TODO(), &v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: "openshift-infra", Name: "pv-recycler-controller"}}, metav1.CreateOptions{})
