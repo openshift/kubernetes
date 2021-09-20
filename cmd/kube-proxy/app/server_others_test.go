@@ -256,7 +256,7 @@ func Test_detectNodeIP(t *testing.T) {
 		//	nodeInfo:    makeNodeWithAddresses("", "", ""),
 		//	hostname:    "fakeHost",
 		//	bindAddress: "0.0.0.0",
-		//	expectedIP:  net.ParseIP("127.0.0.1"),
+		//	expectedIP:  net.ParseIPSloppy("127.0.0.1"),
 		// },
 		{
 			name:        "Bind address 0.0.0.0 and node with IPv4 InternalIP set",
