@@ -86,10 +86,10 @@ func balancedResourceScorer(requested, allocable resourceToValueMap, includeVolu
 	// fractions might be greater than 1 because pods with no requests get minimum
 	// values.
 	if cpuFraction > 1 {
-		cpuFraction = 1
+		return 0
 	}
 	if memoryFraction > 1 {
-		memoryFraction = 1
+		return 0
 	}
 
 	if includeVolumes && utilfeature.DefaultFeatureGate.Enabled(features.BalanceAttachedNodeVolumes) && allocatableVolumes > 0 {
