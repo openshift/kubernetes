@@ -101,7 +101,7 @@ func balancedResourceScorer(requested, allocable resourceToValueMap) int64 {
 	for name, value := range requested {
 		fraction := float64(value) / float64(allocable[name])
 		if fraction > 1 {
-			fraction = 1
+			return 0
 		}
 		totalFraction += fraction
 		resourceToFractions = append(resourceToFractions, fraction)

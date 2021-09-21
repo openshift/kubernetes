@@ -116,9 +116,7 @@ func mostRequestedScore(requested, capacity int64) int64 {
 		return 0
 	}
 	if requested > capacity {
-		// `requested` might be greater than `capacity` because pods with no
-		// requests get minimum values.
-		requested = capacity
+		return 0
 	}
 
 	return (requested * framework.MaxNodeScore) / capacity
