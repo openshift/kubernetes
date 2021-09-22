@@ -372,6 +372,48 @@ func TestCreateBackoffManager(t *testing.T) {
 
 }
 
+func TestOverrideClient(t *testing.T) {
+	ts1 := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("server1"))
+	}))
+	ts1.StartTLS()
+	defer ts1.Close()
+	ts2 := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("server2"))
+	}))
+	ts2.StartTLS()
+	defer ts2.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	c := testRESTClient(t, ts1)
+
+	req1, err := c.Verb("GET").
+		Prefix("foo").
+		DoRaw(ctx)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if string(req1) != "server1" {
+		t.Fatalf("Expected %v to be equal to server1", string(req1))
+	}
+
+	c = testRESTClient(t, ts2)
+
+	req2, err := c.Verb("GET").
+		Prefix("foo").
+		DoRaw(ctx)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if string(req2) != "server2" {
+		t.Fatalf("Expected %v to be equal to server2", string(req2))
+	}
+
+}
+
 func testServerEnv(t *testing.T, statusCode int) (*httptest.Server, *utiltesting.FakeHandler, *metav1.Status) {
 	status := &metav1.Status{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Status"}, Status: fmt.Sprintf("%s", metav1.StatusSuccess)}
 	expectedBody, _ := runtime.Encode(scheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), status)

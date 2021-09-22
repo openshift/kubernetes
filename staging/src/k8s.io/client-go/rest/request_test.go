@@ -2275,15 +2275,17 @@ func TestStream(t *testing.T) {
 
 func testRESTClientWithConfig(t testing.TB, srv *httptest.Server, contentConfig ClientContentConfig) *RESTClient {
 	base, _ := url.Parse("http://localhost")
+	var c *http.Client
 	if srv != nil {
 		var err error
 		base, err = url.Parse(srv.URL)
 		if err != nil {
 			t.Fatalf("failed to parse test URL: %v", err)
 		}
+		c = srv.Client()
 	}
 	versionedAPIPath := defaultResourcePathWithPrefix("", "", "", "")
-	client, err := NewRESTClient(base, versionedAPIPath, contentConfig, nil, nil)
+	client, err := NewRESTClient(base, versionedAPIPath, contentConfig, nil, c)
 	if err != nil {
 		t.Fatalf("failed to create a client: %v", err)
 	}
