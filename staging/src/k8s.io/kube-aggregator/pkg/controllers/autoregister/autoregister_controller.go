@@ -33,7 +33,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	v1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 	informers "k8s.io/kube-aggregator/pkg/client/informers/externalversions/apiregistration/v1"
 	listers "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/v1"
@@ -299,22 +299,7 @@ func (c *autoRegisterController) GetAPIServiceToSync(name string) *v1.APIService
 
 // AddAPIServiceToSyncOnStart registers an API service to sync only when the controller starts.
 func (c *autoRegisterController) AddAPIServiceToSyncOnStart(in *v1.APIService) {
-	c.apiServicesToSyncLock.Lock()
-	defer c.apiServicesToSyncLock.Unlock()
-
-	apiService := in.DeepCopy()
-	if apiService.Labels == nil {
-		apiService.Labels = map[string]string{}
-	}
-	apiService.Labels[AutoRegisterManagedLabel] = manageOnStart
-
-	c.apiServicesToSync[apiService.Name] = apiService
-	if err := c.checkAPIService(apiService.Name); err != nil {
-		// in error cases, adding into queue to retry. In any case,
-		// if error is persistent, in second run queue will dequeue it.
-		klog.Warning("Unsuccessful check API Service operation for %q err: %v", apiService.Name, err)
-		c.queue.Add(apiService.Name)
-	}
+	c.addAPIServiceToSync(in, manageOnStart)
 }
 
 // AddAPIServiceToSync registers an API service to sync continuously.
