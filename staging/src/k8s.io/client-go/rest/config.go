@@ -134,6 +134,10 @@ type Config struct {
 	// Dial specifies the dial function for creating unencrypted TCP connections.
 	Dial func(ctx context.Context, network, address string) (net.Conn, error)
 
+	// Resolver optionally specifies an alternate resolver to use
+	// if no Dial function is specified.
+	Resolver *net.Resolver
+
 	// Proxy is the proxy func to be used for all requests made by this
 	// transport. If Proxy is nil, http.ProxyFromEnvironment is used. If Proxy
 	// returns a nil *URL, no proxy is used.

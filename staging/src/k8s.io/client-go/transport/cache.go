@@ -92,6 +92,7 @@ func (c *tlsTransportCache) get(config *Config) (http.RoundTripper, error) {
 		dial = (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
+			Resolver:  config.Resolver,
 		}).DialContext
 	}
 
