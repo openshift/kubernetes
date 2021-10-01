@@ -83,7 +83,7 @@ func WithPriorityAndFairness(
 		isWatchRequest := watchVerbs.Has(requestInfo.Verb)
 
 		// Skip tracking long running non-watch requests.
-		if longRunningRequestCheck != nil && longRunningRequestCheck(r, requestInfo) && !isWatchRequest {
+		if longRunningRequestCheck != nil && longRunningRequestCheck(r, requestInfo) {
 			klog.V(6).Infof("Serving RequestInfo=%#+v, user.Info=%#+v as longrunning\n", requestInfo, user)
 			handler.ServeHTTP(w, r)
 			return
