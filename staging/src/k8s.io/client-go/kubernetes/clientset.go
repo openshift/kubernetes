@@ -19,6 +19,7 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 
 	discovery "k8s.io/client-go/discovery"
@@ -65,6 +66,7 @@ import (
 	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 	storagev1alpha1 "k8s.io/client-go/kubernetes/typed/storage/v1alpha1"
 	storagev1beta1 "k8s.io/client-go/kubernetes/typed/storage/v1beta1"
+	resolver "k8s.io/client-go/resolver"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
 )
@@ -399,8 +401,13 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 		}
 		configShallowCopy.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(configShallowCopy.QPS, configShallowCopy.Burst)
 	}
+	// create an apiserver resolver
+	r, err := resolver.NewResolver(context.Background(), &configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
+	configShallowCopy.Resolver = r
 	var cs Clientset
-	var err error
 	cs.admissionregistrationV1, err = admissionregistrationv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
