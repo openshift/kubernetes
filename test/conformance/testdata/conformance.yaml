@@ -1271,8 +1271,9 @@
   description: The discovery.k8s.io API group MUST exist in the /apis discovery document.
     The discovery.k8s.io/v1 API group/version MUST exist in the /apis/discovery.k8s.io
     discovery document. The endpointslices resource MUST exist in the /apis/discovery.k8s.io/v1
-    discovery document. API Server should create self referential Endpoints and EndpointSlices
-    named "kubernetes" in the default namespace.
+    discovery document. The cluster MUST have a service named "kubernetes" on the
+    default namespace referencing the API servers. The "kubernetes.default" service
+    MUST have Endpoints and EndpointSlices pointing to each API server instance.
   release: v1.21
   file: test/e2e/network/endpointslice.go
 - testname: EndpointSlice API
@@ -1641,9 +1642,9 @@
     hook should execute poststart http hook properly [NodeConformance] [Conformance]'
   description: When a post start handler is specified in the container lifecycle using
     a HttpGet action, then the handler MUST be invoked after the start of the container.
-    A server pod is created that will serve http requests, create a second pod with
-    a container lifecycle specifying a post start that invokes the server pod to validate
-    that the post start is executed.
+    A server pod is created that will serve http requests, create a second pod on
+    the same node with a container lifecycle specifying a post start that invokes
+    the server pod to validate that the post start is executed.
   release: v1.9
   file: test/e2e/common/node/lifecycle_hook.go
 - testname: Pod Lifecycle, prestop exec hook
@@ -1661,9 +1662,9 @@
     hook should execute prestop http hook properly [NodeConformance] [Conformance]'
   description: When a pre-stop handler is specified in the container lifecycle using
     a 'HttpGet' action, then the handler MUST be invoked before the container is terminated.
-    A server pod is created that will serve http requests, create a second pod with
-    a container lifecycle specifying a pre-stop that invokes the server pod to validate
-    that the pre-stop is executed.
+    A server pod is created that will serve http requests, create a second pod on
+    the same node with a container lifecycle specifying a pre-stop that invokes the
+    server pod to validate that the pre-stop is executed.
   release: v1.9
   file: test/e2e/common/node/lifecycle_hook.go
 - testname: Container Runtime, TerminationMessage, from log output of succeeding container

@@ -20,7 +20,11 @@ spec:
       {{ disallow_privilege_escalation}}
       {{ capabilities }}
         {{ drop_capabilities }}
+<<<<<<< HEAD
     image: k8s.gcr.io/kas-network-proxy/proxy-server:v0.0.22
+=======
+    image: k8s.gcr.io/kas-network-proxy/proxy-server:v0.0.23
+>>>>>>> v1.23.0-alpha.3
     resources:
       requests:
         cpu: 25m

@@ -186,10 +186,6 @@ func makeMounts(pod *v1.Pod, podDir string, container *v1.Container, hostName, h
 
 		subPath := mount.SubPath
 		if mount.SubPathExpr != "" {
-			if !utilfeature.DefaultFeatureGate.Enabled(features.VolumeSubpath) {
-				return nil, cleanupAction, fmt.Errorf("volume subpaths are disabled")
-			}
-
 			subPath, err = kubecontainer.ExpandContainerVolumeMounts(mount, expandEnvs)
 
 			if err != nil {
@@ -198,10 +194,6 @@ func makeMounts(pod *v1.Pod, podDir string, container *v1.Container, hostName, h
 		}
 
 		if subPath != "" {
-			if !utilfeature.DefaultFeatureGate.Enabled(features.VolumeSubpath) {
-				return nil, cleanupAction, fmt.Errorf("volume subpaths are disabled")
-			}
-
 			if filepath.IsAbs(subPath) {
 				return nil, cleanupAction, fmt.Errorf("error SubPath `%s` must not be an absolute path", subPath)
 			}
@@ -979,6 +971,7 @@ func (kl *Kubelet) filterOutInactivePods(pods []*v1.Pod) []*v1.Pod {
 		// if a pod is fully terminated by UID, it should be excluded from the
 		// list of pods
 		if kl.podWorkers.IsPodKnownTerminated(p.UID) {
+<<<<<<< HEAD
 			continue
 		}
 
@@ -987,6 +980,16 @@ func (kl *Kubelet) filterOutInactivePods(pods []*v1.Pod) []*v1.Pod {
 			continue
 		}
 
+=======
+			continue
+		}
+
+		// terminal pods are considered inactive UNLESS they are actively terminating
+		if kl.isAdmittedPodTerminal(p) && !kl.podWorkers.IsPodTerminationRequested(p.UID) {
+			continue
+		}
+
+>>>>>>> v1.23.0-alpha.3
 		filteredPods = append(filteredPods, p)
 	}
 	return filteredPods
@@ -1098,12 +1101,16 @@ func (kl *Kubelet) HandlePodCleanups() error {
 	restartablePods := make(map[types.UID]sets.Empty)
 	for uid, sync := range workingPods {
 		switch sync {
-		case SyncPodWork:
+		case SyncPod:
 			runningPods[uid] = struct{}{}
 			possiblyRunningPods[uid] = struct{}{}
-		case TerminatingPodWork:
+		case TerminatingPod:
 			possiblyRunningPods[uid] = struct{}{}
+<<<<<<< HEAD
 		case TemporarilyTerminatedPodWork:
+=======
+		case TerminatedAndRecreatedPod:
+>>>>>>> v1.23.0-alpha.3
 			restartablePods[uid] = struct{}{}
 		}
 	}
@@ -1120,8 +1127,8 @@ func (kl *Kubelet) HandlePodCleanups() error {
 		return err
 	}
 	for _, runningPod := range runningRuntimePods {
-		switch workType, ok := workingPods[runningPod.ID]; {
-		case ok && workType == SyncPodWork, ok && workType == TerminatingPodWork:
+		switch workerState, ok := workingPods[runningPod.ID]; {
+		case ok && workerState == SyncPod, ok && workerState == TerminatingPod:
 			// if the pod worker is already in charge of this pod, we don't need to do anything
 			continue
 		default:
@@ -1516,7 +1523,7 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 			if kubecontainer.IsHostNetworkPod(pod) && s.PodIP == "" {
 				s.PodIP = hostIPs[0].String()
 				s.PodIPs = []v1.PodIP{{IP: s.PodIP}}
-				if utilfeature.DefaultFeatureGate.Enabled(features.IPv6DualStack) && len(hostIPs) == 2 {
+				if len(hostIPs) == 2 {
 					s.PodIPs = append(s.PodIPs, v1.PodIP{IP: hostIPs[1].String()})
 				}
 			}
@@ -1857,7 +1864,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 
 // ServeLogs returns logs of current machine.
 func (kl *Kubelet) ServeLogs(w http.ResponseWriter, req *http.Request) {
-	// TODO: whitelist logs we are willing to serve
+	// TODO: allowlist logs we are willing to serve
 	kl.logServer.ServeHTTP(w, req)
 }
 

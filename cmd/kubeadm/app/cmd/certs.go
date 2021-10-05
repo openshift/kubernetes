@@ -21,6 +21,13 @@ import (
 	"io"
 	"text/tabwriter"
 
+	"github.com/lithammer/dedent"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
+	"k8s.io/apimachinery/pkg/util/duration"
+
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
@@ -33,13 +40,6 @@ import (
 	kubeconfigphase "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubeconfig"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
-
-	"k8s.io/apimachinery/pkg/util/duration"
-
-	"github.com/lithammer/dedent"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
@@ -301,14 +301,6 @@ func addRenewFlags(cmd *cobra.Command, flags *renewFlags) {
 	options.AddConfigFlag(cmd.Flags(), &flags.cfgPath)
 	options.AddCertificateDirFlag(cmd.Flags(), &flags.cfg.CertificatesDir)
 	options.AddKubeConfigFlag(cmd.Flags(), &flags.kubeconfigPath)
-
-	// TODO: remove these flags in a future version:
-	// https://github.com/kubernetes/kubeadm/issues/2163
-	const deprecationMessage = "This flag will be removed in a future version. Please use 'kubeadm certs generate-csr' instead."
-	options.AddCSRFlag(cmd.Flags(), &flags.csrOnly)
-	cmd.Flags().MarkDeprecated(options.CSROnly, deprecationMessage)
-	options.AddCSRDirFlag(cmd.Flags(), &flags.csrPath)
-	cmd.Flags().MarkDeprecated(options.CSRDir, deprecationMessage)
 }
 
 func renewCert(flags *renewFlags, kdir string, internalcfg *kubeadmapi.InitConfiguration, handler *renewal.CertificateRenewHandler) error {

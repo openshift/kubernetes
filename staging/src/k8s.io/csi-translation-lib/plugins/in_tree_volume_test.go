@@ -680,7 +680,11 @@ func TestTranslateAllowedTopologies(t *testing.T) {
 		t.Logf("Running test: %v", tc.name)
 		gotTop, err := translateAllowedTopologies(tc.topology, GCEPDTopologyKey)
 		if err != nil {
+<<<<<<< HEAD
 			t.Errorf("Unexpected error: %w", err)
+=======
+			t.Errorf("Unexpected error: %v", err)
+>>>>>>> v1.23.0-alpha.3
 		}
 
 		if !reflect.DeepEqual(gotTop, tc.expectedToplogy) {

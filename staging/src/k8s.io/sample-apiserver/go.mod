@@ -7,6 +7,7 @@ go 1.16
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/google/gofuzz v1.1.0
+<<<<<<< HEAD
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.1.3
 	k8s.io/apimachinery v0.22.0-rc.0
@@ -16,6 +17,17 @@ require (
 	k8s.io/component-base v0.22.0-rc.0
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e
+=======
+	github.com/spf13/cobra v1.2.1
+	k8s.io/apimachinery v0.0.0
+	k8s.io/apiserver v0.0.0
+	k8s.io/client-go v0.0.0
+	k8s.io/code-generator v0.0.0
+	k8s.io/component-base v0.0.0
+	k8s.io/klog/v2 v2.20.0
+	k8s.io/kube-openapi v0.0.0-20210817084001-7fbd8d59e5b8
+	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
+>>>>>>> v1.23.0-alpha.3
 )
 
 replace (

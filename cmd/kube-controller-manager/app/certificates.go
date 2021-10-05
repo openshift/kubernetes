@@ -22,8 +22,8 @@ package app
 
 import (
 	"fmt"
-	"net/http"
 
+	"k8s.io/controller-manager/controller"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/openshift-kube-controller-manager/servicecacertpublisher"
 	"k8s.io/kubernetes/pkg/controller/certificates/approver"
@@ -33,7 +33,7 @@ import (
 	csrsigningconfig "k8s.io/kubernetes/pkg/controller/certificates/signer/config"
 )
 
-func startCSRSigningController(ctx ControllerContext) (http.Handler, bool, error) {
+func startCSRSigningController(ctx ControllerContext) (controller.Interface, bool, error) {
 	missingSingleSigningFile := ctx.ComponentConfig.CSRSigningController.ClusterSigningCertFile == "" || ctx.ComponentConfig.CSRSigningController.ClusterSigningKeyFile == ""
 	if missingSingleSigningFile && !anySpecificFilesSet(ctx.ComponentConfig.CSRSigningController) {
 		klog.V(2).Info("skipping CSR signer controller because no csr cert/key was specified")
@@ -148,7 +148,7 @@ func getLegacyUnknownSignerFiles(config csrsigningconfig.CSRSigningControllerCon
 	return config.ClusterSigningCertFile, config.ClusterSigningKeyFile
 }
 
-func startCSRApprovingController(ctx ControllerContext) (http.Handler, bool, error) {
+func startCSRApprovingController(ctx ControllerContext) (controller.Interface, bool, error) {
 	approver := approver.NewCSRApprovingController(
 		ctx.ClientBuilder.ClientOrDie("certificate-controller"),
 		ctx.InformerFactory.Certificates().V1().CertificateSigningRequests(),
@@ -158,7 +158,7 @@ func startCSRApprovingController(ctx ControllerContext) (http.Handler, bool, err
 	return nil, true, nil
 }
 
-func startCSRCleanerController(ctx ControllerContext) (http.Handler, bool, error) {
+func startCSRCleanerController(ctx ControllerContext) (controller.Interface, bool, error) {
 	cleaner := cleaner.NewCSRCleanerController(
 		ctx.ClientBuilder.ClientOrDie("certificate-controller").CertificatesV1().CertificateSigningRequests(),
 		ctx.InformerFactory.Certificates().V1().CertificateSigningRequests(),
@@ -167,7 +167,7 @@ func startCSRCleanerController(ctx ControllerContext) (http.Handler, bool, error
 	return nil, true, nil
 }
 
-func startRootCACertPublisher(ctx ControllerContext) (http.Handler, bool, error) {
+func startRootCACertPublisher(ctx ControllerContext) (controller.Interface, bool, error) {
 	var (
 		rootCA []byte
 		err    error

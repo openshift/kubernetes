@@ -6,11 +6,17 @@ go 1.16
 
 require (
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	gopkg.in/square/go-jose.v2 v2.2.2
+<<<<<<< HEAD
 	k8s.io/api v0.22.0-rc.0
 	k8s.io/apimachinery v0.22.0-rc.0
 	k8s.io/klog/v2 v2.9.0
+=======
+	k8s.io/api v0.0.0
+	k8s.io/apimachinery v0.0.0
+	k8s.io/klog/v2 v2.20.0
+>>>>>>> v1.23.0-alpha.3
 )
 
 replace (

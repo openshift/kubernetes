@@ -79,11 +79,20 @@ var (
 		},
 		[]string{"verb", "dry_run", "group", "version", "resource", "subresource", "scope", "component", "code", "system_client"},
 	)
-	longRunningRequestGauge = compbasemetrics.NewGaugeVec(
+	longRunningRequestsGauge = compbasemetrics.NewGaugeVec(
 		&compbasemetrics.GaugeOpts{
-			Name:           "apiserver_longrunning_gauge",
+			Name:           "apiserver_longrunning_requests",
 			Help:           "Gauge of all active long-running apiserver requests broken out by verb, group, version, resource, scope and component. Not all requests are tracked this way.",
 			StabilityLevel: compbasemetrics.ALPHA,
+		},
+		[]string{"verb", "group", "version", "resource", "subresource", "scope", "component"},
+	)
+	longRunningRequestGauge = compbasemetrics.NewGaugeVec(
+		&compbasemetrics.GaugeOpts{
+			Name:              "apiserver_longrunning_gauge",
+			Help:              "Gauge of all active long-running apiserver requests broken out by verb, group, version, resource, scope and component. Not all requests are tracked this way.",
+			StabilityLevel:    compbasemetrics.ALPHA,
+			DeprecatedVersion: "1.23.0",
 		},
 		[]string{"verb", "group", "version", "resource", "subresource", "scope", "component"},
 	)
@@ -130,9 +139,10 @@ var (
 	// RegisteredWatchers is a number of currently registered watchers splitted by resource.
 	RegisteredWatchers = compbasemetrics.NewGaugeVec(
 		&compbasemetrics.GaugeOpts{
-			Name:           "apiserver_registered_watchers",
-			Help:           "Number of currently registered watchers for a given resources",
-			StabilityLevel: compbasemetrics.ALPHA,
+			Name:              "apiserver_registered_watchers",
+			Help:              "Number of currently registered watchers for a given resources",
+			StabilityLevel:    compbasemetrics.ALPHA,
+			DeprecatedVersion: "1.23.0",
 		},
 		[]string{"group", "version", "kind"},
 	)
@@ -233,6 +243,7 @@ var (
 	metrics = []resettableCollector{
 		deprecatedRequestGauge,
 		requestCounter,
+		longRunningRequestsGauge,
 		longRunningRequestGauge,
 		requestLatencies,
 		responseSizes,
@@ -407,7 +418,7 @@ func RecordLongRunning(req *http.Request, requestInfo *request.RequestInfo, comp
 	if requestInfo == nil {
 		requestInfo = &request.RequestInfo{Verb: req.Method, Path: req.URL.Path}
 	}
-	var g compbasemetrics.GaugeMetric
+	var g, e compbasemetrics.GaugeMetric
 	scope := CleanScope(requestInfo)
 
 	// We don't use verb from <requestInfo>, as this may be propagated from
@@ -417,12 +428,18 @@ func RecordLongRunning(req *http.Request, requestInfo *request.RequestInfo, comp
 	reportedVerb := cleanVerb(CanonicalVerb(strings.ToUpper(req.Method), scope), "", req)
 
 	if requestInfo.IsResourceRequest {
+		e = longRunningRequestsGauge.WithContext(req.Context()).WithLabelValues(reportedVerb, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component)
 		g = longRunningRequestGauge.WithContext(req.Context()).WithLabelValues(reportedVerb, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component)
 	} else {
+		e = longRunningRequestsGauge.WithContext(req.Context()).WithLabelValues(reportedVerb, "", "", "", requestInfo.Path, scope, component)
 		g = longRunningRequestGauge.WithContext(req.Context()).WithLabelValues(reportedVerb, "", "", "", requestInfo.Path, scope, component)
 	}
+	e.Inc()
 	g.Inc()
-	defer g.Dec()
+	defer func() {
+		e.Dec()
+		g.Dec()
+	}()
 	fn()
 }
 

@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"testing"
 
-	flowcontrol "k8s.io/api/flowcontrol/v1beta1"
+	flowcontrol "k8s.io/api/flowcontrol/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -102,8 +102,8 @@ func TestLiterals(t *testing.T) {
 			Name:              "eman",
 			Parts:             []string{"goodrscs", "eman"},
 		},
-		User:  ui,
-		Width: fcrequest.Width{Seats: 1},
+		User:         ui,
+		WorkEstimate: fcrequest.WorkEstimate{InitialSeats: 1},
 	}
 	reqRU := RequestDigest{
 		RequestInfo: &request.RequestInfo{
@@ -118,8 +118,8 @@ func TestLiterals(t *testing.T) {
 			Name:              "eman",
 			Parts:             []string{"goodrscs", "eman"},
 		},
-		User:  ui,
-		Width: fcrequest.Width{Seats: 1},
+		User:         ui,
+		WorkEstimate: fcrequest.WorkEstimate{InitialSeats: 1},
 	}
 	reqN := RequestDigest{
 		RequestInfo: &request.RequestInfo{
@@ -127,8 +127,8 @@ func TestLiterals(t *testing.T) {
 			Path:              "/openapi/v2",
 			Verb:              "goodverb",
 		},
-		User:  ui,
-		Width: fcrequest.Width{Seats: 1},
+		User:         ui,
+		WorkEstimate: fcrequest.WorkEstimate{InitialSeats: 1},
 	}
 	checkRules(t, true, reqRN, []flowcontrol.PolicyRulesWithSubjects{{
 		Subjects: []flowcontrol.Subject{{Kind: flowcontrol.SubjectKindUser,

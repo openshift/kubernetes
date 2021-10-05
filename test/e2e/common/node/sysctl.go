@@ -114,10 +114,11 @@ var _ = SIGDescribe("Sysctls [LinuxOnly] [NodeConformance]", func() {
 
 	/*
 	  Release: v1.21
-	  Testname: Sysctl, allow specified unsafe sysctls
-	  Description: Pod is created with kernel.shm_rmid_forced. Should allow unsafe sysctls that are specified.
+	  Testname: Sysctls, reject invalid sysctls
+	  Description: Pod is created with one valid and two invalid sysctls. Pod should not apply invalid sysctls.
 	  [LinuxOnly]: This test is marked as LinuxOnly since Windows does not support sysctls
 	*/
+<<<<<<< HEAD
 	ginkgo.It("should support unsafe sysctls which are actually allowed [MinimumKubeletVersion:1.21]", func() {
 		pod := testPod()
 		pod.Spec.SecurityContext = &v1.PodSecurityContext{
@@ -164,6 +165,8 @@ var _ = SIGDescribe("Sysctls [LinuxOnly] [NodeConformance]", func() {
 		Description: Pod is created with one valid and two invalid sysctls. Pod should not apply invalid sysctls.
 		[LinuxOnly]: This test is marked as LinuxOnly since Windows does not support sysctls
 	*/
+=======
+>>>>>>> v1.23.0-alpha.3
 	framework.ConformanceIt("should reject invalid sysctls [MinimumKubeletVersion:1.21]", func() {
 		pod := testPod()
 		pod.Spec.SecurityContext = &v1.PodSecurityContext{
@@ -199,6 +202,7 @@ var _ = SIGDescribe("Sysctls [LinuxOnly] [NodeConformance]", func() {
 		gomega.Expect(err.Error()).NotTo(gomega.ContainSubstring("kernel.shmmax"))
 	})
 
+	// Pod is created with kernel.msgmax, an unsafe sysctl.
 	ginkgo.It("should not launch unsafe, but not explicitly enabled sysctls on the node [MinimumKubeletVersion:1.21]", func() {
 		pod := testPod()
 		pod.Spec.SecurityContext = &v1.PodSecurityContext{
@@ -213,15 +217,9 @@ var _ = SIGDescribe("Sysctls [LinuxOnly] [NodeConformance]", func() {
 		ginkgo.By("Creating a pod with an ignorelisted, but not allowlisted sysctl on the node")
 		pod = podClient.Create(pod)
 
-		ginkgo.By("Watching for error events or started pod")
-		// watch for events instead of termination of pod because the kubelet deletes
-		// failed pods without running containers. This would create a race as the pod
-		// might have already been deleted here.
-		ev, err := f.PodClient().WaitForErrorEventOrSuccess(pod)
+		ginkgo.By("Wait for pod failed reason")
+		// watch for pod failed reason instead of termination of pod
+		err := e2epod.WaitForPodFailedReason(f.ClientSet, pod, "SysctlForbidden", f.Timeouts.PodStart)
 		framework.ExpectNoError(err)
-
-		ginkgo.By("Checking that the pod was rejected")
-		gomega.Expect(ev).ToNot(gomega.BeNil())
-		framework.ExpectEqual(ev.Reason, "SysctlForbidden")
 	})
 })

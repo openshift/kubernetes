@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /*
@@ -25,7 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Microsoft/hcsshim/hcn"
 	v1 "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/healthcheck"
+	netutils "k8s.io/utils/net"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -73,9 +74,9 @@ func (hns fakeHNS) getEndpointByID(id string) (*endpointsInfo, error) {
 }
 
 func (hns fakeHNS) getEndpointByIpAddress(ip string, networkName string) (*endpointsInfo, error) {
-	_, ipNet, _ := net.ParseCIDR(destinationPrefix)
+	_, ipNet, _ := netutils.ParseCIDRSloppy(destinationPrefix)
 
-	if ipNet.Contains(net.ParseIP(ip)) {
+	if ipNet.Contains(netutils.ParseIPSloppy(ip)) {
 		return &endpointsInfo{
 			ip:         ip,
 			isLocal:    false,
@@ -144,7 +145,7 @@ func NewFakeProxier(syncPeriod time.Duration, minSyncPeriod time.Duration, clust
 
 func TestCreateServiceVip(t *testing.T) {
 	syncPeriod := 30 * time.Second
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), NETWORK_TYPE_OVERLAY)
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), NETWORK_TYPE_OVERLAY)
 	if proxier == nil {
 		t.Error()
 	}
@@ -199,7 +200,7 @@ func TestCreateServiceVip(t *testing.T) {
 
 func TestCreateRemoteEndpointOverlay(t *testing.T) {
 	syncPeriod := 30 * time.Second
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), NETWORK_TYPE_OVERLAY)
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), NETWORK_TYPE_OVERLAY)
 	if proxier == nil {
 		t.Error()
 	}
@@ -264,7 +265,7 @@ func TestCreateRemoteEndpointOverlay(t *testing.T) {
 
 func TestCreateRemoteEndpointL2Bridge(t *testing.T) {
 	syncPeriod := 30 * time.Second
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), "L2Bridge")
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), "L2Bridge")
 	if proxier == nil {
 		t.Error()
 	}
@@ -328,7 +329,7 @@ func TestCreateRemoteEndpointL2Bridge(t *testing.T) {
 func TestSharedRemoteEndpointDelete(t *testing.T) {
 	syncPeriod := 30 * time.Second
 	tcpProtocol := v1.ProtocolTCP
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), "L2Bridge")
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), "L2Bridge")
 	if proxier == nil {
 		t.Error()
 	}
@@ -470,7 +471,7 @@ func TestSharedRemoteEndpointDelete(t *testing.T) {
 }
 func TestSharedRemoteEndpointUpdate(t *testing.T) {
 	syncPeriod := 30 * time.Second
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), "L2Bridge")
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), "L2Bridge")
 	if proxier == nil {
 		t.Error()
 	}
@@ -645,7 +646,7 @@ func TestSharedRemoteEndpointUpdate(t *testing.T) {
 func TestCreateLoadBalancer(t *testing.T) {
 	syncPeriod := 30 * time.Second
 	tcpProtocol := v1.ProtocolTCP
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), NETWORK_TYPE_OVERLAY)
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), NETWORK_TYPE_OVERLAY)
 	if proxier == nil {
 		t.Error()
 	}
@@ -703,7 +704,7 @@ func TestCreateLoadBalancer(t *testing.T) {
 
 func TestCreateDsrLoadBalancer(t *testing.T) {
 	syncPeriod := 30 * time.Second
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), NETWORK_TYPE_OVERLAY)
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), NETWORK_TYPE_OVERLAY)
 	if proxier == nil {
 		t.Error()
 	}
@@ -765,7 +766,7 @@ func TestCreateDsrLoadBalancer(t *testing.T) {
 
 func TestEndpointSlice(t *testing.T) {
 	syncPeriod := 30 * time.Second
-	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", net.ParseIP("10.0.0.1"), NETWORK_TYPE_OVERLAY)
+	proxier := NewFakeProxier(syncPeriod, syncPeriod, clusterCIDR, "testhost", netutils.ParseIPSloppy("10.0.0.1"), NETWORK_TYPE_OVERLAY)
 	if proxier == nil {
 		t.Error()
 	}
@@ -928,55 +929,4 @@ func makeTestEndpointSlice(namespace, name string, sliceNum int, epsFunc func(*d
 	}
 	epsFunc(eps)
 	return eps
-}
-
-func Test_kernelSupportsDualstack(t *testing.T) {
-	tests := []struct {
-		currentVersion hcn.Version
-		name           string
-		want           bool
-	}{
-		{
-			hcn.Version{Major: 10, Minor: 10},
-			"Less than minimal should not be supported",
-			false,
-		},
-		{
-			hcn.Version{Major: 9, Minor: 11},
-			"Less than minimal should not be supported",
-			false,
-		},
-		{
-			hcn.Version{Major: 11, Minor: 1},
-			"Less than minimal should not be supported",
-			false,
-		},
-		{
-			hcn.Version{Major: 11, Minor: 10},
-			"Current version should be supported",
-			true,
-		},
-		{
-			hcn.Version{Major: 11, Minor: 11},
-			"Greater than minimal version should be supported",
-			true,
-		},
-		{
-			hcn.Version{Major: 12, Minor: 1},
-			"Greater than minimal version should be supported",
-			true,
-		},
-		{
-			hcn.Version{Major: 12, Minor: 12},
-			"Greater than minimal should be supported",
-			true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := kernelSupportsDualstack(tt.currentVersion); got != tt.want {
-				t.Errorf("kernelSupportsDualstack on version %v: got %v, want %v", tt.currentVersion, got, tt.want)
-			}
-		})
-	}
 }

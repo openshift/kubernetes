@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 /*
@@ -19,7 +20,6 @@ limitations under the License.
 package winkernel
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -31,14 +31,12 @@ import (
 
 	"github.com/Microsoft/hcsshim"
 	"github.com/Microsoft/hcsshim/hcn"
-	"github.com/davecgh/go-spew/spew"
 	v1 "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	apiutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/events"
@@ -52,7 +50,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/metaproxier"
 	"k8s.io/kubernetes/pkg/proxy/metrics"
 	"k8s.io/kubernetes/pkg/util/async"
-	utilnet "k8s.io/utils/net"
+	netutils "k8s.io/utils/net"
 )
 
 // KernelCompatTester tests whether the required kernel capabilities are
@@ -182,25 +180,22 @@ type StackCompatTester interface {
 type DualStackCompatTester struct{}
 
 func (t DualStackCompatTester) DualStackCompatible(networkName string) bool {
-	dualStackFeatureEnabled := utilfeature.DefaultFeatureGate.Enabled(kubefeatures.IPv6DualStack)
-	if !dualStackFeatureEnabled {
-		return false
-	}
-
-	globals, err := hcn.GetGlobals()
-	if err != nil {
-		klog.ErrorS(err, "Unable to determine networking stack version. Falling back to single-stack")
-		return false
-	}
-
-	if !kernelSupportsDualstack(globals.Version) {
-		klog.InfoS("This version of Windows does not support dual-stack. Falling back to single-stack")
+	// First tag of hcsshim that has a proper check for dual stack support is v0.8.22 due to a bug.
+	if err := hcn.IPv6DualStackSupported(); err != nil {
+		// Hcn *can* fail the query to grab the version of hcn itself (which this call will do internally before parsing
+		// to see if dual stack is supported), but the only time this can happen, at least that can be discerned, is if the host
+		// is pre-1803 and hcn didn't exist. hcsshim should truthfully return a known error if this happened that we can
+		// check against, and the case where 'err != this known error' would be the 'this feature isn't supported' case, as is being
+		// used here. For now, seeming as how nothing before ws2019 (1809) is listed as supported for k8s we can pretty much assume
+		// any error here isn't because the query failed, it's just that dualstack simply isn't supported on the host. With all
+		// that in mind, just log as info and not error to let the user know we're falling back.
+		klog.InfoS("This version of Windows does not support dual-stack. Falling back to single-stack", "err", err.Error())
 		return false
 	}
 
 	// check if network is using overlay
 	hns, _ := newHostNetworkService()
-	networkName, err = getNetworkName(networkName)
+	networkName, err := getNetworkName(networkName)
 	if err != nil {
 		klog.ErrorS(err, "unable to determine dual-stack status %v. Falling back to single-stack")
 		return false
@@ -218,36 +213,6 @@ func (t DualStackCompatTester) DualStackCompatible(networkName string) bool {
 	}
 
 	return true
-}
-
-// The hcsshim version logic has a bug that did not calculate the versioning of DualStack correctly.
-// DualStack is supported in WS 2004+ (10.0.19041+) where HCN component version is 11.10+
-// https://github.com/microsoft/hcsshim/pull/1003#issuecomment-827930358
-func kernelSupportsDualstack(currentVersion hcn.Version) bool {
-	hnsVersion := fmt.Sprintf("%d.%d.0", currentVersion.Major, currentVersion.Minor)
-	v, err := version.ParseSemantic(hnsVersion)
-	if err != nil {
-		return false
-	}
-
-	return v.AtLeast(version.MustParseSemantic("11.10.0"))
-}
-
-func Log(v interface{}, message string, level klog.Level) {
-	klog.V(level).InfoS("%s", message, "spewConfig", spewSdump(v))
-}
-
-func LogJson(interfaceName string, v interface{}, message string, level klog.Level) {
-	jsonString, err := json.Marshal(v)
-	if err == nil {
-		klog.V(level).InfoS("%s", message, interfaceName, string(jsonString))
-	}
-}
-
-func spewSdump(v interface{}) string {
-	scs := spew.NewDefaultConfig()
-	scs.DisableMethods = true
-	return scs.Sdump(v)
 }
 
 // internal struct for endpoints information
@@ -424,7 +389,7 @@ func (proxier *Proxier) newEndpointInfo(baseInfo *proxy.BaseEndpointInfo) proxy.
 		ip:         baseInfo.IP(),
 		port:       uint16(portNumber),
 		isLocal:    baseInfo.GetIsLocal(),
-		macAddress: conjureMac("02-11", net.ParseIP(baseInfo.IP())),
+		macAddress: conjureMac("02-11", netutils.ParseIPSloppy(baseInfo.IP())),
 		refCount:   new(uint16),
 		hnsID:      "",
 		hns:        proxier.hns,
@@ -453,7 +418,7 @@ func newSourceVIP(hns HostNetworkService, network string, ip string, mac string,
 }
 
 func (ep *endpointsInfo) Cleanup() {
-	Log(ep, "Endpoint Cleanup", 3)
+	klog.V(3).InfoS("Endpoint cleanup", "endpointsInfo", ep)
 	if !ep.GetIsLocal() && ep.refCount != nil {
 		*ep.refCount--
 
@@ -510,7 +475,7 @@ func (proxier *Proxier) newServiceInfo(port *v1.ServicePort, service *v1.Service
 	}
 
 	for _, ingress := range service.Status.LoadBalancer.Ingress {
-		if net.ParseIP(ingress.IP) != nil {
+		if netutils.ParseIPSloppy(ingress.IP) != nil {
 			info.loadBalancerIngressIPs = append(info.loadBalancerIngressIPs, &loadBalancerIngressInfo{ip: ingress.IP})
 		}
 	}
@@ -520,11 +485,11 @@ func (proxier *Proxier) newServiceInfo(port *v1.ServicePort, service *v1.Service
 func (network hnsNetworkInfo) findRemoteSubnetProviderAddress(ip string) string {
 	var providerAddress string
 	for _, rs := range network.remoteSubnets {
-		_, ipNet, err := net.ParseCIDR(rs.destinationPrefix)
+		_, ipNet, err := netutils.ParseCIDRSloppy(rs.destinationPrefix)
 		if err != nil {
 			klog.ErrorS(err, "Failed to parse CIDR")
 		}
-		if ipNet.Contains(net.ParseIP(ip)) {
+		if ipNet.Contains(netutils.ParseIPSloppy(ip)) {
 			providerAddress = rs.providerAddress
 		}
 		if ip == rs.providerAddress {
@@ -634,14 +599,14 @@ func NewProxier(
 
 	if nodeIP == nil {
 		klog.InfoS("invalid nodeIP, initializing kube-proxy with 127.0.0.1 as nodeIP")
-		nodeIP = net.ParseIP("127.0.0.1")
+		nodeIP = netutils.ParseIPSloppy("127.0.0.1")
 	}
 
 	if len(clusterCIDR) == 0 {
 		klog.InfoS("clusterCIDR not specified, unable to distinguish between internal and external traffic")
 	}
 
-	serviceHealthServer := healthcheck.NewServiceHealthServer(hostname, recorder)
+	serviceHealthServer := healthcheck.NewServiceHealthServer(hostname, recorder, []string{} /* windows listen to all node addresses */)
 	hns, supportedFeatures := newHostNetworkService()
 	hnsNetworkName, err := getNetworkName(config.NetworkName)
 	if err != nil {
@@ -663,7 +628,7 @@ func NewProxier(
 		time.Sleep(10 * time.Second)
 		hnsNetworkInfo, err = hns.getNetworkByName(hnsNetworkName)
 		if err != nil {
-			return nil, fmt.Errorf("Could not find HNS network %s", hnsNetworkName)
+			return nil, fmt.Errorf("could not find HNS network %s", hnsNetworkName)
 		}
 	}
 
@@ -705,7 +670,7 @@ func NewProxier(
 		for _, inter := range interfaces {
 			addresses, _ := inter.Addrs()
 			for _, addr := range addresses {
-				addrIP, _, _ := net.ParseCIDR(addr.String())
+				addrIP, _, _ := netutils.ParseCIDRSloppy(addr.String())
 				if addrIP.String() == nodeIP.String() {
 					klog.V(2).InfoS("record Host MAC address", "addr", inter.HardwareAddr.String())
 					hostMac = inter.HardwareAddr.String()
@@ -713,11 +678,11 @@ func NewProxier(
 			}
 		}
 		if len(hostMac) == 0 {
-			return nil, fmt.Errorf("Could not find host mac address for %s", nodeIP)
+			return nil, fmt.Errorf("could not find host mac address for %s", nodeIP)
 		}
 	}
 
-	isIPv6 := utilnet.IsIPv6(nodeIP)
+	isIPv6 := netutils.IsIPv6(nodeIP)
 	proxier := &Proxier{
 		endPointsRefCount:   make(endPointsReferenceCountMap),
 		serviceMap:          make(proxy.ServiceMap),
@@ -798,7 +763,7 @@ func CleanupLeftovers() (encounteredError bool) {
 }
 
 func (svcInfo *serviceInfo) cleanupAllPolicies(endpoints []proxy.Endpoint) {
-	Log(svcInfo, "Service Cleanup", 3)
+	klog.V(3).InfoS("Service cleanup", "serviceInfo", svcInfo)
 	// Skip the svcInfo.policyApplied check to remove all the policies
 	svcInfo.deleteAllHnsLoadBalancerPolicy()
 	// Cleanup Endpoints references
@@ -840,7 +805,7 @@ func deleteAllHnsLoadBalancerPolicy() {
 		return
 	}
 	for _, plist := range plists {
-		LogJson("policyList", plist, "Remove Policy", 3)
+		klog.V(3).InfoS("Remove policy", "policies", plist)
 		_, err = plist.Delete()
 		if err != nil {
 			klog.ErrorS(err, "Failed to delete policy list")
@@ -940,25 +905,6 @@ func shouldSkipService(svcName types.NamespacedName, service *v1.Service) bool {
 	}
 	return false
 }
-
-// The following methods exist to implement the proxier interface, however
-// winkernel proxier only uses EndpointSlice, so the following are noops.
-
-// OnEndpointsAdd is called whenever creation of new endpoints object
-// is observed.
-func (proxier *Proxier) OnEndpointsAdd(endpoints *v1.Endpoints) {}
-
-// OnEndpointsUpdate is called whenever modification of an existing
-// endpoints object is observed.
-func (proxier *Proxier) OnEndpointsUpdate(oldEndpoints, endpoints *v1.Endpoints) {}
-
-// OnEndpointsDelete is called whenever deletion of an existing endpoints
-// object is observed.
-func (proxier *Proxier) OnEndpointsDelete(endpoints *v1.Endpoints) {}
-
-// OnEndpointsSynced is called once all the initial event handlers were
-// called and the state is fully propagated to local cache.
-func (proxier *Proxier) OnEndpointsSynced() {}
 
 // OnEndpointSliceAdd is called whenever creation of a new endpoint slice object
 // is observed.
@@ -1088,7 +1034,7 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 
 		if svcInfo.policyApplied {
-			klog.V(4).InfoS("Policy already applied", "spewConfig", spewSdump(svcInfo))
+			klog.V(4).InfoS("Policy already applied", "serviceInfo", svcInfo)
 			continue
 		}
 
@@ -1179,13 +1125,13 @@ func (proxier *Proxier) syncProxyRules() {
 					hnsEndpoint := &endpointsInfo{
 						ip:              ep.ip,
 						isLocal:         false,
-						macAddress:      conjureMac("02-11", net.ParseIP(ep.ip)),
+						macAddress:      conjureMac("02-11", netutils.ParseIPSloppy(ep.ip)),
 						providerAddress: providerAddress,
 					}
 
 					newHnsEndpoint, err = hns.createEndpoint(hnsEndpoint, hnsNetworkName)
 					if err != nil {
-						klog.ErrorS(err, "Remote endpoint creation failed", "spewConfig", spewSdump(hnsEndpoint))
+						klog.ErrorS(err, "Remote endpoint creation failed", "endpointsInfo", hnsEndpoint)
 						continue
 					}
 				} else {
@@ -1227,7 +1173,8 @@ func (proxier *Proxier) syncProxyRules() {
 			}
 
 			// Save the hnsId for reference
-			LogJson("endpointInfo", newHnsEndpoint, "Hns Endpoint resource", 1)
+			klog.V(1).InfoS("Hns endpoint resource", "endpointsInfo", newHnsEndpoint)
+
 			hnsEndpoints = append(hnsEndpoints, *newHnsEndpoint)
 			if newHnsEndpoint.GetIsLocal() {
 				hnsLocalEndpoints = append(hnsLocalEndpoints, *newHnsEndpoint)
@@ -1239,10 +1186,10 @@ func (proxier *Proxier) syncProxyRules() {
 
 			ep.hnsID = newHnsEndpoint.hnsID
 
-			Log(ep, "Endpoint resource found", 3)
+			klog.V(3).InfoS("Endpoint resource found", "endpointsInfo", ep)
 		}
 
-		klog.V(3).InfoS("Associated endpoints for service", "spewConfig", spewSdump(hnsEndpoints), "svcName", svcName.String())
+		klog.V(3).InfoS("Associated endpoints for service", "endpointsInfo", hnsEndpoints, "svcName", svcName.String())
 
 		if len(svcInfo.hnsID) > 0 {
 			// This should not happen
@@ -1254,7 +1201,7 @@ func (proxier *Proxier) syncProxyRules() {
 			continue
 		}
 
-		klog.V(4).Infof("Trying to Apply Policies for service", "spewConfig", spewSdump(svcInfo))
+		klog.V(4).Infof("Trying to apply Policies for service", "serviceInfo", svcInfo)
 		var hnsLoadBalancer *loadBalancerInfo
 		var sourceVip = proxier.sourceVip
 		if containsPublicIP || containsNodeIP {
@@ -1357,7 +1304,7 @@ func (proxier *Proxier) syncProxyRules() {
 			klog.V(3).InfoS("Hns LoadBalancer resource created for loadBalancer Ingress resources", "lbIngressIP", lbIngressIP)
 		}
 		svcInfo.policyApplied = true
-		Log(svcInfo, "+++Policy Successfully applied for service +++", 2)
+		klog.V(2).InfoS("Policy successfully applied for service", "serviceInfo", svcInfo)
 	}
 
 	if proxier.healthzServer != nil {

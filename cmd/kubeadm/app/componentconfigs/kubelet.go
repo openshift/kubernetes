@@ -19,17 +19,17 @@ package componentconfigs
 import (
 	"path/filepath"
 
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmapiv1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
-	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
-	"k8s.io/kubernetes/cmd/kubeadm/app/features"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/initsystem"
-
 	"k8s.io/apimachinery/pkg/util/version"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 	utilpointer "k8s.io/utils/pointer"
+
+	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	kubeadmapiv1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
+	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/kubernetes/cmd/kubeadm/app/features"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/initsystem"
 )
 
 const (
@@ -209,11 +209,11 @@ func (kc *kubeletConfig) Default(cfg *kubeadmapi.ClusterConfiguration, _ *kubead
 		klog.Warningf("cannot determine if systemd-resolved is active: %v", err)
 	}
 	if ok {
-		if kc.config.ResolverConfig == "" {
-			kc.config.ResolverConfig = kubeletSystemdResolverConfig
+		if kc.config.ResolverConfig == nil {
+			kc.config.ResolverConfig = utilpointer.String(kubeletSystemdResolverConfig)
 		} else {
-			if kc.config.ResolverConfig != kubeletSystemdResolverConfig {
-				warnDefaultComponentConfigValue(kind, "resolvConf", kubeletSystemdResolverConfig, kc.config.ResolverConfig)
+			if kc.config.ResolverConfig != utilpointer.String(kubeletSystemdResolverConfig) {
+				warnDefaultComponentConfigValue(kind, "resolvConf", kubeletSystemdResolverConfig, *kc.config.ResolverConfig)
 			}
 		}
 	}

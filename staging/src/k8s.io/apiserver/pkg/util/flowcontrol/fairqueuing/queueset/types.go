@@ -44,18 +44,23 @@ type request struct {
 	// startTime is the real time when the request began executing
 	startTime time.Time
 
-	// width of the request
-	width fcrequest.Width
+	// estimated amount of work of the request
+	workEstimate fcrequest.WorkEstimate
 
 	// decision gets set to a `requestDecision` indicating what to do
 	// with this request.  It gets set exactly once, when the request
 	// is removed from its queue.  The value will be decisionReject,
-	// decisionCancel, or decisionExecute; decisionTryAnother never
-	// appears here.
-	decision promise.LockingWriteOnce
+	// decisionCancel, or decisionExecute.
+	//
+	// decision.Set is called with the queueSet locked.
+	// decision.Get is called without the queueSet locked.
+	decision promise.WriteOnce
 
 	// arrivalTime is the real time when the request entered this system
 	arrivalTime time.Time
+
+	// arrivalR is R(arrivalTime).  R is, confusingly, also called "virtual time".
+	arrivalR float64
 
 	// descr1 and descr2 are not used in any logic but they appear in
 	// log messages
@@ -74,14 +79,14 @@ type request struct {
 // queue is an array of requests with additional metadata required for
 // the FQScheduler
 type queue struct {
-	// The requests are stored in a FIFO list.
+	// The requests not yet executing in the real world are stored in a FIFO list.
 	requests fifo
 
-	// virtualStart is the virtual time (virtual seconds since process
-	// startup) when the oldest request in the queue (if there is any)
-	// started virtually executing
+	// virtualStart is the "virtual time" (R progress meter reading) at
+	// which the next request will be dispatched in the virtual world.
 	virtualStart float64
 
+	// requestsExecuting is the count in the real world
 	requestsExecuting int
 	index             int
 

@@ -29,7 +29,7 @@ import (
 	"testing"
 	"time"
 
-	flowcontrol "k8s.io/api/flowcontrol/v1beta1"
+	flowcontrol "k8s.io/api/flowcontrol/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,7 +70,9 @@ const (
 	decisionSkipFilter
 )
 
-var defaultRequestWidthEstimator = func(*http.Request) fcrequest.Width { return fcrequest.Width{Seats: 1} }
+var defaultRequestWorkEstimator = func(*http.Request) fcrequest.WorkEstimate {
+	return fcrequest.WorkEstimate{InitialSeats: 1}
+}
 
 type fakeApfFilter struct {
 	mockDecision mockDecision
@@ -85,14 +87,14 @@ func (t fakeApfFilter) MaintainObservations(stopCh <-chan struct{}) {
 
 func (t fakeApfFilter) Handle(ctx context.Context,
 	requestDigest utilflowcontrol.RequestDigest,
-	noteFn func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration),
+	noteFn func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string),
 	queueNoteFn fq.QueueNoteFn,
 	execFn func(),
 ) {
 	if t.mockDecision == decisionSkipFilter {
 		panic("Handle should not be invoked")
 	}
-	noteFn(bootstrap.SuggestedFlowSchemaGlobalDefault, bootstrap.SuggestedPriorityLevelConfigurationGlobalDefault)
+	noteFn(bootstrap.SuggestedFlowSchemaGlobalDefault, bootstrap.SuggestedPriorityLevelConfigurationGlobalDefault, requestDigest.User.GetName())
 	switch t.mockDecision {
 	case decisionNoQueuingExecute:
 		execFn()
@@ -165,7 +167,7 @@ func newApfHandlerWithFilter(t *testing.T, flowControlFilter utilflowcontrol.Int
 
 	apfHandler := WithPriorityAndFairness(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		onExecute()
-	}), longRunningRequestCheck, flowControlFilter, defaultRequestWidthEstimator)
+	}), longRunningRequestCheck, flowControlFilter, defaultRequestWorkEstimator)
 
 	handler := apifilters.WithRequestInfo(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r = r.WithContext(apirequest.WithUser(r.Context(), &user.DefaultInfo{
@@ -388,7 +390,7 @@ func newFakeWatchApfFilter(capacity int) *fakeWatchApfFilter {
 
 func (f *fakeWatchApfFilter) Handle(ctx context.Context,
 	requestDigest utilflowcontrol.RequestDigest,
-	_ func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration),
+	_ func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string),
 	_ fq.QueueNoteFn,
 	execFn func(),
 ) {
@@ -474,9 +476,7 @@ func TestApfExecuteWatchRequestsWithInitializationSignal(t *testing.T) {
 
 	onExecuteFunc := func() {
 		firstRunning.Done()
-		firstRunning.Wait()
 
-		sendSignals()
 		fakeFilter.wait()
 
 		allRunning.Done()
@@ -500,9 +500,10 @@ func TestApfExecuteWatchRequestsWithInitializationSignal(t *testing.T) {
 	}
 
 	firstRunning.Wait()
+	sendSignals()
 	fakeFilter.wait()
-
 	firstRunning.Add(concurrentRequests)
+
 	for i := 0; i < concurrentRequests; i++ {
 		go func() {
 			defer wg.Done()
@@ -511,6 +512,8 @@ func TestApfExecuteWatchRequestsWithInitializationSignal(t *testing.T) {
 			}
 		}()
 	}
+	firstRunning.Wait()
+	sendSignals()
 	wg.Wait()
 }
 
@@ -636,7 +639,7 @@ type fakeFilterRequestDigest struct {
 
 func (f *fakeFilterRequestDigest) Handle(ctx context.Context,
 	requestDigest utilflowcontrol.RequestDigest,
-	_ func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration),
+	_ func(fs *flowcontrol.FlowSchema, pl *flowcontrol.PriorityLevelConfiguration, flowDistinguisher string),
 	_ fq.QueueNoteFn, _ func(),
 ) {
 	f.requestDigestGot = &requestDigest
@@ -649,15 +652,15 @@ func TestApfWithRequestDigest(t *testing.T) {
 	reqDigestExpected := &utilflowcontrol.RequestDigest{
 		RequestInfo: &apirequest.RequestInfo{Verb: "get"},
 		User:        &user.DefaultInfo{Name: "foo"},
-		Width: fcrequest.Width{
-			Seats: 5,
+		WorkEstimate: fcrequest.WorkEstimate{
+			InitialSeats: 5,
 		},
 	}
 
 	handler := WithPriorityAndFairness(http.HandlerFunc(func(_ http.ResponseWriter, req *http.Request) {}),
 		longRunningFunc,
 		fakeFilter,
-		func(_ *http.Request) fcrequest.Width { return reqDigestExpected.Width },
+		func(_ *http.Request) fcrequest.WorkEstimate { return reqDigestExpected.WorkEstimate },
 	)
 
 	w := httptest.NewRecorder()
@@ -1077,7 +1080,7 @@ func startAPFController(t *testing.T, stopCh <-chan struct{}, apfConfiguration [
 	clientset := newClientset(t, apfConfiguration...)
 	// this test does not rely on resync, so resync period is set to zero
 	factory := informers.NewSharedInformerFactory(clientset, 0)
-	controller := utilflowcontrol.New(factory, clientset.FlowcontrolV1beta1(), serverConcurrency, requestWaitLimit)
+	controller := utilflowcontrol.New(factory, clientset.FlowcontrolV1beta2(), serverConcurrency, requestWaitLimit)
 
 	factory.Start(stopCh)
 
@@ -1171,7 +1174,7 @@ func newHandlerChain(t *testing.T, handler http.Handler, filter utilflowcontrol.
 	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("apis", "api"), GrouplessAPIPrefixes: sets.NewString("api")}
 	longRunningRequestCheck := BasicLongRunningRequestCheck(sets.NewString("watch"), sets.NewString("proxy"))
 
-	apfHandler := WithPriorityAndFairness(handler, longRunningRequestCheck, filter, defaultRequestWidthEstimator)
+	apfHandler := WithPriorityAndFairness(handler, longRunningRequestCheck, filter, defaultRequestWorkEstimator)
 
 	// add the handler in the chain that adds the specified user to the request context
 	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

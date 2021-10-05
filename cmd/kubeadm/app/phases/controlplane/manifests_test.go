@@ -26,6 +26,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lithammer/dedent"
+
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
@@ -33,10 +37,6 @@ import (
 	pkiutiltesting "k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil/testing"
 	staticpodutil "k8s.io/kubernetes/cmd/kubeadm/app/util/staticpod"
 	testutil "k8s.io/kubernetes/cmd/kubeadm/test"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/lithammer/dedent"
 )
 
 const (
@@ -550,7 +550,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -576,7 +575,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -601,7 +599,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -633,7 +630,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -665,7 +661,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -698,7 +693,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -733,7 +727,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -766,7 +759,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -801,7 +793,6 @@ func TestGetControllerManagerCommand(t *testing.T) {
 			},
 			expected: []string{
 				"kube-controller-manager",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -855,7 +846,6 @@ func TestGetControllerManagerCommandExternalCA(t *testing.T) {
 			expectedArgFunc: func(tmpdir string) []string {
 				return []string{
 					"kube-controller-manager",
-					"--port=0",
 					"--bind-address=127.0.0.1",
 					"--leader-elect=true",
 					"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -885,7 +875,6 @@ func TestGetControllerManagerCommandExternalCA(t *testing.T) {
 			expectedArgFunc: func(tmpdir string) []string {
 				return []string{
 					"kube-controller-manager",
-					"--port=0",
 					"--bind-address=127.0.0.1",
 					"--leader-elect=true",
 					"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/controller-manager.conf",
@@ -949,7 +938,6 @@ func TestGetSchedulerCommand(t *testing.T) {
 			cfg:  &kubeadmapi.ClusterConfiguration{},
 			expected: []string{
 				"kube-scheduler",
-				"--port=0",
 				"--bind-address=127.0.0.1",
 				"--leader-elect=true",
 				"--kubeconfig=" + kubeadmconstants.KubernetesDir + "/scheduler.conf",

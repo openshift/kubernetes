@@ -50,9 +50,8 @@ import (
 	ipvstest "k8s.io/kubernetes/pkg/util/ipvs/testing"
 	"k8s.io/utils/exec"
 	fakeexec "k8s.io/utils/exec/testing"
+	netutils "k8s.io/utils/net"
 	utilpointer "k8s.io/utils/pointer"
-
-	utilnet "k8s.io/utils/net"
 )
 
 const testHostname = "test-hostname"
@@ -72,12 +71,12 @@ func (f *fakeIPGetter) BindedIPs() (sets.String, error) {
 
 // fakePortOpener implements portOpener.
 type fakePortOpener struct {
-	openPorts []*utilnet.LocalPort
+	openPorts []*netutils.LocalPort
 }
 
 // OpenLocalPort fakes out the listen() and bind() used by syncProxyRules
 // to lock a local port.
-func (f *fakePortOpener) OpenLocalPort(lp *utilnet.LocalPort) (utilnet.Closeable, error) {
+func (f *fakePortOpener) OpenLocalPort(lp *netutils.LocalPort) (netutils.Closeable, error) {
 	f.openPorts = append(f.openPorts, lp)
 	return nil, nil
 }
@@ -113,7 +112,7 @@ func NewFakeProxier(ipt utiliptables.Interface, ipvs utilipvs.Interface, ipset u
 	// filter node IPs by proxier ipfamily
 	idx := 0
 	for _, nodeIP := range nodeIPs {
-		if (ipFamily == v1.IPv6Protocol) == utilnet.IsIPv6(nodeIP) {
+		if (ipFamily == v1.IPv6Protocol) == netutils.IsIPv6(nodeIP) {
 			nodeIPs[idx] = nodeIP
 			idx++
 		}
@@ -153,8 +152,8 @@ func NewFakeProxier(ipt utiliptables.Interface, ipvs utilipvs.Interface, ipset u
 		strictARP:             false,
 		localDetector:         proxyutiliptables.NewNoOpLocalDetector(),
 		hostname:              testHostname,
-		portsMap:              make(map[utilnet.LocalPort]utilnet.Closeable),
-		portMapper:            &fakePortOpener{[]*utilnet.LocalPort{}},
+		portsMap:              make(map[netutils.LocalPort]netutils.Closeable),
+		portMapper:            &fakePortOpener{[]*netutils.LocalPort{}},
 		serviceHealthServer:   healthcheck.NewFakeServiceHealthServer(),
 		ipvsScheduler:         DefaultScheduler,
 		ipGetter:              &fakeIPGetter{nodeIPs: nodeIPs},
@@ -513,8 +512,8 @@ func TestNodePortIPv4(t *testing.T) {
 				}),
 			},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
-				net.ParseIP("2001:db8::1:1"),
+				netutils.ParseIPSloppy("100.101.102.103"),
+				netutils.ParseIPSloppy("2001:db8::1:1"),
 			},
 			nodePortAddresses: []string{},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -524,7 +523,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("10.20.30.41"),
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -534,7 +533,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     3001,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("100.101.102.103"),
+						Address:   netutils.ParseIPSloppy("100.101.102.103"),
 						Protocol:  "TCP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -547,7 +546,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "TCP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -558,7 +557,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "TCP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -594,7 +593,7 @@ func TestNodePortIPv4(t *testing.T) {
 				}),
 			},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
+				netutils.ParseIPSloppy("100.101.102.103"),
 			},
 			nodePortAddresses: []string{"0.0.0.0/0"},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -604,7 +603,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     80,
 						Protocol: "UDP",
 					}: {
-						Address:   net.ParseIP("10.20.30.41"),
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
 						Protocol:  "UDP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -614,7 +613,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     3001,
 						Protocol: "UDP",
 					}: {
-						Address:   net.ParseIP("100.101.102.103"),
+						Address:   netutils.ParseIPSloppy("100.101.102.103"),
 						Protocol:  "UDP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -627,7 +626,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "UDP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -638,7 +637,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "UDP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -655,9 +654,15 @@ func TestNodePortIPv4(t *testing.T) {
 			expectedIptablesChains: netlinktest.ExpectedIptablesChain{
 				string(KubeNodePortChain): {{
 					JumpChain: string(KubeMarkMasqChain), MatchSet: kubeNodePortSetUDP,
+				}, {
+					JumpChain: "ACCEPT", MatchSet: kubeHealthCheckNodePortSet,
 				}},
 				string(kubeServicesChain): {{
+					JumpChain: string(KubeMarkMasqChain), MatchSet: kubeClusterIPSet,
+				}, {
 					JumpChain: string(KubeNodePortChain), MatchSet: "",
+				}, {
+					JumpChain: "ACCEPT", MatchSet: kubeClusterIPSet,
 				}},
 			},
 		},
@@ -677,7 +682,7 @@ func TestNodePortIPv4(t *testing.T) {
 			},
 			endpoints: []*discovery.EndpointSlice{},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
+				netutils.ParseIPSloppy("100.101.102.103"),
 			},
 			nodePortAddresses: []string{},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -687,7 +692,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("10.20.30.41"),
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -697,7 +702,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     3001,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("100.101.102.103"),
+						Address:   netutils.ParseIPSloppy("100.101.102.103"),
 						Protocol:  "TCP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -745,12 +750,12 @@ func TestNodePortIPv4(t *testing.T) {
 				}),
 			},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
-				net.ParseIP("100.101.102.104"),
-				net.ParseIP("100.101.102.105"),
-				net.ParseIP("2001:db8::1:1"),
-				net.ParseIP("2001:db8::1:2"),
-				net.ParseIP("2001:db8::1:3"),
+				netutils.ParseIPSloppy("100.101.102.103"),
+				netutils.ParseIPSloppy("100.101.102.104"),
+				netutils.ParseIPSloppy("100.101.102.105"),
+				netutils.ParseIPSloppy("2001:db8::1:1"),
+				netutils.ParseIPSloppy("2001:db8::1:2"),
+				netutils.ParseIPSloppy("2001:db8::1:3"),
 			},
 			nodePortAddresses: []string{},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -760,7 +765,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     80,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("10.20.30.41"),
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
 						Protocol:  "SCTP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -770,7 +775,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     3001,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("100.101.102.103"),
+						Address:   netutils.ParseIPSloppy("100.101.102.103"),
 						Protocol:  "SCTP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -780,7 +785,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     3001,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("100.101.102.104"),
+						Address:   netutils.ParseIPSloppy("100.101.102.104"),
 						Protocol:  "SCTP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -790,7 +795,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Port:     3001,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("100.101.102.105"),
+						Address:   netutils.ParseIPSloppy("100.101.102.105"),
 						Protocol:  "SCTP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -803,7 +808,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -814,7 +819,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -825,7 +830,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -836,7 +841,7 @@ func TestNodePortIPv4(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -864,6 +869,123 @@ func TestNodePortIPv4(t *testing.T) {
 						SetType:  utilipset.HashIPPort,
 					},
 				},
+			},
+		},
+		{
+			name: "node port service with protocol sctp and externalTrafficPolicy local",
+			services: []*v1.Service{
+				makeTestService("ns1", "svc1", func(svc *v1.Service) {
+					svc.Spec.Type = "NodePort"
+					svc.Spec.ClusterIP = "10.20.30.41"
+					svc.Spec.Ports = []v1.ServicePort{{
+						Name:     "p80",
+						Port:     int32(80),
+						Protocol: v1.ProtocolSCTP,
+						NodePort: int32(3001),
+					}}
+					svc.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeLocal
+				}),
+			},
+			endpoints: []*discovery.EndpointSlice{
+				makeTestEndpointSlice("ns1", "svc1", 1, func(eps *discovery.EndpointSlice) {
+					eps.AddressType = discovery.AddressTypeIPv4
+					eps.Endpoints = []discovery.Endpoint{{
+						Addresses: []string{"10.180.0.1"},
+						NodeName:  utilpointer.StringPtr(testHostname),
+					}, {
+						Addresses: []string{"10.180.1.1"},
+						NodeName:  utilpointer.StringPtr("otherHost"),
+					}}
+					eps.Ports = []discovery.EndpointPort{{
+						Name:     utilpointer.String("p80"),
+						Port:     utilpointer.Int32(80),
+						Protocol: &sctpProtocol,
+					}}
+				}),
+			},
+			nodeIPs: []net.IP{
+				netutils.ParseIPSloppy("100.101.102.103"),
+			},
+			nodePortAddresses: []string{},
+			expectedIPVS: &ipvstest.FakeIPVS{
+				Services: map[ipvstest.ServiceKey]*utilipvs.VirtualServer{
+					{
+						IP:       "10.20.30.41",
+						Port:     80,
+						Protocol: "SCTP",
+					}: {
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
+						Protocol:  "SCTP",
+						Port:      uint16(80),
+						Scheduler: "rr",
+					},
+					{
+						IP:       "100.101.102.103",
+						Port:     3001,
+						Protocol: "SCTP",
+					}: {
+						Address:   netutils.ParseIPSloppy("100.101.102.103"),
+						Protocol:  "SCTP",
+						Port:      uint16(3001),
+						Scheduler: "rr",
+					},
+				},
+				Destinations: map[ipvstest.ServiceKey][]*utilipvs.RealServer{
+					{
+						IP:       "10.20.30.41",
+						Port:     80,
+						Protocol: "SCTP",
+					}: {
+						{
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
+							Port:    uint16(80),
+							Weight:  1,
+						},
+						{
+							Address: netutils.ParseIPSloppy("10.180.1.1"),
+							Port:    uint16(80),
+							Weight:  1,
+						},
+					},
+					{
+						IP:       "100.101.102.103",
+						Port:     3001,
+						Protocol: "SCTP",
+					}: {
+						{
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
+							Port:    uint16(80),
+							Weight:  1,
+						},
+					},
+				},
+			},
+			expectedIPSets: netlinktest.ExpectedIPSet{
+				kubeNodePortSetSCTP: {
+					{
+						IP:       "100.101.102.103",
+						Port:     3001,
+						Protocol: strings.ToLower(string(v1.ProtocolSCTP)),
+						SetType:  utilipset.HashIPPort,
+					},
+				},
+				kubeNodePortLocalSetSCTP: {
+					{
+						IP:       "100.101.102.103",
+						Port:     3001,
+						Protocol: strings.ToLower(string(v1.ProtocolSCTP)),
+						SetType:  utilipset.HashIPPort,
+					},
+				},
+			},
+			expectedIptablesChains: netlinktest.ExpectedIptablesChain{
+				string(KubeNodePortChain): {{
+					JumpChain: "RETURN", MatchSet: kubeNodePortLocalSetSCTP,
+				}, {
+					JumpChain: string(KubeMarkMasqChain), MatchSet: kubeNodePortSetSCTP,
+				}, {
+					JumpChain: "ACCEPT", MatchSet: kubeHealthCheckNodePortSet,
+				}},
 			},
 		},
 	}
@@ -951,8 +1073,8 @@ func TestNodePortIPv6(t *testing.T) {
 				}),
 			},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
-				net.ParseIP("2001:db8::1:1"),
+				netutils.ParseIPSloppy("100.101.102.103"),
+				netutils.ParseIPSloppy("2001:db8::1:1"),
 			},
 			nodePortAddresses: []string{},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -962,7 +1084,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     3001,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("2001:db8::1:1"),
+						Address:   netutils.ParseIPSloppy("2001:db8::1:1"),
 						Protocol:  "TCP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -972,7 +1094,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("2020::1"),
+						Address:   netutils.ParseIPSloppy("2020::1"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -985,7 +1107,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Protocol: "TCP",
 					}: {
 						{
-							Address: net.ParseIP("1002:ab8::2:10"),
+							Address: netutils.ParseIPSloppy("1002:ab8::2:10"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -997,7 +1119,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Protocol: "TCP",
 					}: {
 						{
-							Address: net.ParseIP("1002:ab8::2:10"),
+							Address: netutils.ParseIPSloppy("1002:ab8::2:10"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -1034,7 +1156,7 @@ func TestNodePortIPv6(t *testing.T) {
 				}),
 			},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
+				netutils.ParseIPSloppy("100.101.102.103"),
 			},
 			nodePortAddresses: []string{"0.0.0.0/0"},
 			/*since this is a node with only IPv4, proxier should not do anything */
@@ -1062,8 +1184,8 @@ func TestNodePortIPv6(t *testing.T) {
 			},
 			endpoints: []*discovery.EndpointSlice{},
 			nodeIPs: []net.IP{
-				net.ParseIP("100.101.102.103"),
-				net.ParseIP("2001:db8::1:1"),
+				netutils.ParseIPSloppy("100.101.102.103"),
+				netutils.ParseIPSloppy("2001:db8::1:1"),
 			},
 			nodePortAddresses: []string{},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -1073,7 +1195,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     3001,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("2001:db8::1:1"),
+						Address:   netutils.ParseIPSloppy("2001:db8::1:1"),
 						Protocol:  "TCP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -1083,7 +1205,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("2020::1"),
+						Address:   netutils.ParseIPSloppy("2020::1"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -1132,8 +1254,8 @@ func TestNodePortIPv6(t *testing.T) {
 				}),
 			},
 			nodeIPs: []net.IP{
-				net.ParseIP("2001:db8::1:1"),
-				net.ParseIP("2001:db8::1:2"),
+				netutils.ParseIPSloppy("2001:db8::1:1"),
+				netutils.ParseIPSloppy("2001:db8::1:2"),
 			},
 			nodePortAddresses: []string{},
 			expectedIPVS: &ipvstest.FakeIPVS{
@@ -1143,7 +1265,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     3001,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("2001:db8::1:1"),
+						Address:   netutils.ParseIPSloppy("2001:db8::1:1"),
 						Protocol:  "SCTP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -1153,7 +1275,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     3001,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("2001:db8::1:2"),
+						Address:   netutils.ParseIPSloppy("2001:db8::1:2"),
 						Protocol:  "SCTP",
 						Port:      uint16(3001),
 						Scheduler: "rr",
@@ -1163,7 +1285,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Port:     80,
 						Protocol: "SCTP",
 					}: {
-						Address:   net.ParseIP("2020::1"),
+						Address:   netutils.ParseIPSloppy("2020::1"),
 						Protocol:  "SCTP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -1176,7 +1298,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("2001::1"),
+							Address: netutils.ParseIPSloppy("2001::1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -1187,7 +1309,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("2001::1"),
+							Address: netutils.ParseIPSloppy("2001::1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -1198,7 +1320,7 @@ func TestNodePortIPv6(t *testing.T) {
 						Protocol: "SCTP",
 					}: {
 						{
-							Address: net.ParseIP("2001::1"),
+							Address: netutils.ParseIPSloppy("2001::1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -1313,7 +1435,7 @@ func TestIPv4Proxier(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("10.20.30.41"),
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -1326,7 +1448,7 @@ func TestIPv4Proxier(t *testing.T) {
 						Protocol: "TCP",
 					}: {
 						{
-							Address: net.ParseIP("10.180.0.1"),
+							Address: netutils.ParseIPSloppy("10.180.0.1"),
 							Port:    uint16(80),
 							Weight:  1,
 						},
@@ -1354,7 +1476,7 @@ func TestIPv4Proxier(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("10.20.30.41"),
+						Address:   netutils.ParseIPSloppy("10.20.30.41"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -1451,7 +1573,7 @@ func TestIPv6Proxier(t *testing.T) {
 						Port:     8080,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("1002:ab8::2:1"),
+						Address:   netutils.ParseIPSloppy("1002:ab8::2:1"),
 						Protocol:  "TCP",
 						Port:      uint16(8080),
 						Scheduler: "rr",
@@ -1464,7 +1586,7 @@ func TestIPv6Proxier(t *testing.T) {
 						Protocol: "TCP",
 					}: {
 						{
-							Address: net.ParseIP("1009:ab8::5:6"),
+							Address: netutils.ParseIPSloppy("1009:ab8::5:6"),
 							Port:    uint16(8080),
 							Weight:  1,
 						},
@@ -1492,7 +1614,7 @@ func TestIPv6Proxier(t *testing.T) {
 						Port:     80,
 						Protocol: "TCP",
 					}: {
-						Address:   net.ParseIP("2001::1"),
+						Address:   netutils.ParseIPSloppy("2001::1"),
 						Protocol:  "TCP",
 						Port:      uint16(80),
 						Scheduler: "rr",
@@ -1823,6 +1945,14 @@ func TestLoadBalancer(t *testing.T) {
 	epIpt := netlinktest.ExpectedIptablesChain{
 		string(kubeServicesChain): {{
 			JumpChain: string(KubeLoadBalancerChain), MatchSet: kubeLoadBalancerSet,
+		}, {
+			JumpChain: string(KubeMarkMasqChain), MatchSet: kubeClusterIPSet,
+		}, {
+			JumpChain: string(KubeNodePortChain), MatchSet: "",
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeClusterIPSet,
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeLoadBalancerSet,
 		}},
 		string(kubeLoadBalancerSet): {{
 			JumpChain: string(KubeMarkMasqChain), MatchSet: "",
@@ -1832,7 +1962,7 @@ func TestLoadBalancer(t *testing.T) {
 }
 
 func TestOnlyLocalNodePorts(t *testing.T) {
-	nodeIP := net.ParseIP("100.101.102.103")
+	nodeIP := netutils.ParseIPSloppy("100.101.102.103")
 	ipt, fp := buildFakeProxier()
 
 	svcIP := "10.20.30.41"
@@ -1882,9 +2012,9 @@ func TestOnlyLocalNodePorts(t *testing.T) {
 	)
 
 	itf := net.Interface{Index: 0, MTU: 0, Name: "eth0", HardwareAddr: nil, Flags: 0}
-	addrs := []net.Addr{&net.IPNet{IP: net.ParseIP("100.101.102.103"), Mask: net.CIDRMask(24, 32)}}
+	addrs := []net.Addr{&net.IPNet{IP: netutils.ParseIPSloppy("100.101.102.103"), Mask: net.CIDRMask(24, 32)}}
 	itf1 := net.Interface{Index: 1, MTU: 0, Name: "eth1", HardwareAddr: nil, Flags: 0}
-	addrs1 := []net.Addr{&net.IPNet{IP: net.ParseIP("2001:db8::"), Mask: net.CIDRMask(64, 128)}}
+	addrs1 := []net.Addr{&net.IPNet{IP: netutils.ParseIPSloppy("2001:db8::"), Mask: net.CIDRMask(64, 128)}}
 	fp.networkInterfacer.(*proxyutiltest.FakeNetwork).AddInterfaceAddr(&itf, addrs)
 	fp.networkInterfacer.(*proxyutiltest.FakeNetwork).AddInterfaceAddr(&itf1, addrs1)
 	fp.nodePortAddresses = []string{"100.101.102.0/24", "2001:db8::0/64"}
@@ -1914,12 +2044,18 @@ func TestOnlyLocalNodePorts(t *testing.T) {
 	// Check iptables chain and rules
 	epIpt := netlinktest.ExpectedIptablesChain{
 		string(kubeServicesChain): {{
+			JumpChain: string(KubeMarkMasqChain), MatchSet: kubeClusterIPSet,
+		}, {
 			JumpChain: string(KubeNodePortChain), MatchSet: "",
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeClusterIPSet,
 		}},
 		string(KubeNodePortChain): {{
 			JumpChain: "RETURN", MatchSet: kubeNodePortLocalSetTCP,
 		}, {
 			JumpChain: string(KubeMarkMasqChain), MatchSet: kubeNodePortSetTCP,
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeHealthCheckNodePortSet,
 		}},
 	}
 	checkIptables(t, ipt, epIpt)
@@ -1962,9 +2098,9 @@ func TestHealthCheckNodePort(t *testing.T) {
 	)
 
 	itf := net.Interface{Index: 0, MTU: 0, Name: "eth0", HardwareAddr: nil, Flags: 0}
-	addrs := []net.Addr{&net.IPNet{IP: net.ParseIP("100.101.102.103"), Mask: net.CIDRMask(24, 32)}}
+	addrs := []net.Addr{&net.IPNet{IP: netutils.ParseIPSloppy("100.101.102.103"), Mask: net.CIDRMask(24, 32)}}
 	itf1 := net.Interface{Index: 1, MTU: 0, Name: "eth1", HardwareAddr: nil, Flags: 0}
-	addrs1 := []net.Addr{&net.IPNet{IP: net.ParseIP("2001:db8::"), Mask: net.CIDRMask(64, 128)}}
+	addrs1 := []net.Addr{&net.IPNet{IP: netutils.ParseIPSloppy("2001:db8::"), Mask: net.CIDRMask(64, 128)}}
 	fp.networkInterfacer.(*proxyutiltest.FakeNetwork).AddInterfaceAddr(&itf, addrs)
 	fp.networkInterfacer.(*proxyutiltest.FakeNetwork).AddInterfaceAddr(&itf1, addrs1)
 	fp.nodePortAddresses = []string{"100.101.102.0/24", "2001:db8::0/64"}
@@ -1988,6 +2124,10 @@ func TestHealthCheckNodePort(t *testing.T) {
 	// Check iptables chain and rules
 	epIpt := netlinktest.ExpectedIptablesChain{
 		string(KubeNodePortChain): {{
+			JumpChain: "RETURN", MatchSet: kubeNodePortLocalSetTCP,
+		}, {
+			JumpChain: string(KubeMarkMasqChain), MatchSet: kubeNodePortSetTCP,
+		}, {
 			JumpChain: "ACCEPT", MatchSet: kubeHealthCheckNodePortSet,
 		}},
 	}
@@ -2077,6 +2217,14 @@ func TestLoadBalanceSourceRanges(t *testing.T) {
 	epIpt := netlinktest.ExpectedIptablesChain{
 		string(kubeServicesChain): {{
 			JumpChain: string(KubeLoadBalancerChain), MatchSet: kubeLoadBalancerSet,
+		}, {
+			JumpChain: string(KubeMarkMasqChain), MatchSet: kubeClusterIPSet,
+		}, {
+			JumpChain: string(KubeNodePortChain), MatchSet: "",
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeClusterIPSet,
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeLoadBalancerSet,
 		}},
 		string(KubeLoadBalancerChain): {{
 			JumpChain: string(KubeFireWallChain), MatchSet: kubeLoadbalancerFWSet,
@@ -2149,9 +2297,14 @@ func TestAcceptIPVSTraffic(t *testing.T) {
 	// Check iptables chain and rules
 	epIpt := netlinktest.ExpectedIptablesChain{
 		string(kubeServicesChain): {
+			{JumpChain: string(KubeLoadBalancerChain), MatchSet: kubeLoadBalancerSet},
+			{JumpChain: string(KubeMarkMasqChain), MatchSet: kubeClusterIPSet},
+			{JumpChain: string(KubeMarkMasqChain), MatchSet: kubeExternalIPSet},
+			{JumpChain: "ACCEPT", MatchSet: kubeExternalIPSet}, // With externalTrafficOnlyArgs
+			{JumpChain: "ACCEPT", MatchSet: kubeExternalIPSet}, // With dstLocalOnlyArgs
+			{JumpChain: string(KubeNodePortChain), MatchSet: ""},
 			{JumpChain: "ACCEPT", MatchSet: kubeClusterIPSet},
 			{JumpChain: "ACCEPT", MatchSet: kubeLoadBalancerSet},
-			{JumpChain: "ACCEPT", MatchSet: kubeExternalIPSet},
 		},
 	}
 	checkIptables(t, ipt, epIpt)
@@ -2243,6 +2396,14 @@ func TestOnlyLocalLoadBalancing(t *testing.T) {
 	epIpt := netlinktest.ExpectedIptablesChain{
 		string(kubeServicesChain): {{
 			JumpChain: string(KubeLoadBalancerChain), MatchSet: kubeLoadBalancerSet,
+		}, {
+			JumpChain: string(KubeMarkMasqChain), MatchSet: kubeClusterIPSet,
+		}, {
+			JumpChain: string(KubeNodePortChain), MatchSet: "",
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeClusterIPSet,
+		}, {
+			JumpChain: "ACCEPT", MatchSet: kubeLoadBalancerSet,
 		}},
 		string(KubeLoadBalancerChain): {{
 			JumpChain: "RETURN", MatchSet: kubeLoadBalancerLocalSet,
@@ -2528,7 +2689,7 @@ func TestSessionAffinity(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	ipvs := ipvstest.NewFake()
 	ipset := ipsettest.NewFake(testIPSetVersion)
-	nodeIP := net.ParseIP("100.101.102.103")
+	nodeIP := netutils.ParseIPSloppy("100.101.102.103")
 	fp := NewFakeProxier(ipt, ipvs, ipset, []net.IP{nodeIP}, nil, v1.IPv4Protocol)
 	svcIP := "10.20.30.41"
 	svcPort := 80
@@ -3432,7 +3593,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 0, old virtual server is same as new virtual server
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolTCP),
 				Port:      80,
 				Scheduler: "rr",
@@ -3440,7 +3601,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "foo",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolTCP),
 				Port:      80,
 				Scheduler: "rr",
@@ -3452,7 +3613,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 1, old virtual server is different from new virtual server
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolTCP),
 				Port:      8080,
 				Scheduler: "rr",
@@ -3460,7 +3621,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "bar",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolTCP),
 				Port:      8080,
 				Scheduler: "rr",
@@ -3472,7 +3633,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 2, old virtual server is different from new virtual server
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolTCP),
 				Port:      8080,
 				Scheduler: "rr",
@@ -3480,7 +3641,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "bar",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolTCP),
 				Port:      8080,
 				Scheduler: "wlc",
@@ -3494,7 +3655,7 @@ func Test_syncService(t *testing.T) {
 			oldVirtualServer: nil,
 			svcName:          "baz",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolUDP),
 				Port:      53,
 				Scheduler: "rr",
@@ -3506,7 +3667,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 4, SCTP, old virtual server is same as new virtual server
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      80,
 				Scheduler: "rr",
@@ -3514,7 +3675,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "foo",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      80,
 				Scheduler: "rr",
@@ -3526,7 +3687,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 5, old virtual server is different from new virtual server
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      8080,
 				Scheduler: "rr",
@@ -3534,7 +3695,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "bar",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      8080,
 				Scheduler: "rr",
@@ -3546,7 +3707,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 6, old virtual server is different from new virtual server
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      8080,
 				Scheduler: "rr",
@@ -3554,7 +3715,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "bar",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      8080,
 				Scheduler: "wlc",
@@ -3568,7 +3729,7 @@ func Test_syncService(t *testing.T) {
 			oldVirtualServer: nil,
 			svcName:          "baz",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      53,
 				Scheduler: "rr",
@@ -3580,7 +3741,7 @@ func Test_syncService(t *testing.T) {
 		{
 			// case 8, virtual server address already binded, skip sync
 			oldVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      53,
 				Scheduler: "rr",
@@ -3588,7 +3749,7 @@ func Test_syncService(t *testing.T) {
 			},
 			svcName: "baz",
 			newVirtualServer: &utilipvs.VirtualServer{
-				Address:   net.ParseIP("1.2.3.4"),
+				Address:   netutils.ParseIPSloppy("1.2.3.4"),
 				Protocol:  string(v1.ProtocolSCTP),
 				Port:      53,
 				Scheduler: "rr",
@@ -3659,13 +3820,19 @@ func hasMasqRandomFully(rules []iptablestest.Rule) bool {
 	return false
 }
 
-// checkIptabless to check expected iptables chain and rules
+// checkIptables to check expected iptables chain and rules. The got rules must have same number and order as the
+// expected rules.
 func checkIptables(t *testing.T, ipt *iptablestest.FakeIPTables, epIpt netlinktest.ExpectedIptablesChain) {
 	for epChain, epRules := range epIpt {
 		rules := ipt.GetRules(epChain)
-		for _, epRule := range epRules {
-			if !hasJump(rules, epRule.JumpChain, epRule.MatchSet) {
-				t.Errorf("Didn't find jump from chain %v match set %v to %v", epChain, epRule.MatchSet, epRule.JumpChain)
+		if len(rules) != len(epRules) {
+			t.Errorf("Expected %d iptables rule in chain %s, got %d", len(epRules), epChain, len(rules))
+			continue
+		}
+		for i, epRule := range epRules {
+			rule := rules[i]
+			if rule[iptablestest.Jump] != epRule.JumpChain || !strings.Contains(rule[iptablestest.MatchSet], epRule.MatchSet) {
+				t.Errorf("Expected MatchSet=%s JumpChain=%s, got MatchSet=%s JumpChain=%s", epRule.MatchSet, epRule.JumpChain, rule[iptablestest.MatchSet], rule[iptablestest.Jump])
 			}
 		}
 	}
@@ -3720,7 +3887,7 @@ func TestCleanLegacyService(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	ipvs := ipvstest.NewFake()
 	ipset := ipsettest.NewFake(testIPSetVersion)
-	excludeCIDRs, _ := utilnet.ParseCIDRs([]string{"3.3.3.0/24", "4.4.4.0/24"})
+	excludeCIDRs, _ := netutils.ParseCIDRs([]string{"3.3.3.0/24", "4.4.4.0/24"})
 	fp := NewFakeProxier(ipt, ipvs, ipset, nil, excludeCIDRs, v1.IPv4Protocol)
 
 	// All ipvs services that were processed in the latest sync loop.
@@ -3729,7 +3896,7 @@ func TestCleanLegacyService(t *testing.T) {
 	currentServices := map[string]*utilipvs.VirtualServer{
 		// Created by kube-proxy.
 		"ipvs0": {
-			Address:   net.ParseIP("1.1.1.1"),
+			Address:   netutils.ParseIPSloppy("1.1.1.1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      53,
 			Scheduler: "rr",
@@ -3737,7 +3904,7 @@ func TestCleanLegacyService(t *testing.T) {
 		},
 		// Created by kube-proxy.
 		"ipvs1": {
-			Address:   net.ParseIP("2.2.2.2"),
+			Address:   netutils.ParseIPSloppy("2.2.2.2"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      54,
 			Scheduler: "rr",
@@ -3745,7 +3912,7 @@ func TestCleanLegacyService(t *testing.T) {
 		},
 		// Created by an external party.
 		"ipvs2": {
-			Address:   net.ParseIP("3.3.3.3"),
+			Address:   netutils.ParseIPSloppy("3.3.3.3"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      55,
 			Scheduler: "rr",
@@ -3753,7 +3920,7 @@ func TestCleanLegacyService(t *testing.T) {
 		},
 		// Created by an external party.
 		"ipvs3": {
-			Address:   net.ParseIP("4.4.4.4"),
+			Address:   netutils.ParseIPSloppy("4.4.4.4"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      56,
 			Scheduler: "rr",
@@ -3761,7 +3928,7 @@ func TestCleanLegacyService(t *testing.T) {
 		},
 		// Created by an external party.
 		"ipvs4": {
-			Address:   net.ParseIP("5.5.5.5"),
+			Address:   netutils.ParseIPSloppy("5.5.5.5"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      57,
 			Scheduler: "rr",
@@ -3769,7 +3936,7 @@ func TestCleanLegacyService(t *testing.T) {
 		},
 		// Created by kube-proxy, but now stale.
 		"ipvs5": {
-			Address:   net.ParseIP("6.6.6.6"),
+			Address:   netutils.ParseIPSloppy("6.6.6.6"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      58,
 			Scheduler: "rr",
@@ -3812,7 +3979,7 @@ func TestCleanLegacyService(t *testing.T) {
 	// check that address "1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4" are bound, ignore ipv6 addresses
 	remainingAddrsMap := make(map[string]bool)
 	for _, a := range remainingAddrs {
-		if net.ParseIP(a).To4() == nil {
+		if netutils.ParseIPSloppy(a).To4() == nil {
 			continue
 		}
 		remainingAddrsMap[a] = true
@@ -3834,21 +4001,21 @@ func TestCleanLegacyServiceWithRealServers(t *testing.T) {
 	// All ipvs services in the system.
 	currentServices := map[string]*utilipvs.VirtualServer{
 		"ipvs0": { // deleted with real servers
-			Address:   net.ParseIP("1.1.1.1"),
+			Address:   netutils.ParseIPSloppy("1.1.1.1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      53,
 			Scheduler: "rr",
 			Flags:     utilipvs.FlagHashed,
 		},
 		"ipvs1": { // deleted no real server
-			Address:   net.ParseIP("2.2.2.2"),
+			Address:   netutils.ParseIPSloppy("2.2.2.2"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      54,
 			Scheduler: "rr",
 			Flags:     utilipvs.FlagHashed,
 		},
 		"ipvs2": { // not deleted
-			Address:   net.ParseIP("3.3.3.3"),
+			Address:   netutils.ParseIPSloppy("3.3.3.3"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      54,
 			Scheduler: "rr",
@@ -3859,13 +4026,13 @@ func TestCleanLegacyServiceWithRealServers(t *testing.T) {
 	// "ipvs0" has a real server, but it should still be deleted since the Service is deleted
 	realServers := map[*utilipvs.VirtualServer]*utilipvs.RealServer{
 		{
-			Address:   net.ParseIP("1.1.1.1"),
+			Address:   netutils.ParseIPSloppy("1.1.1.1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      53,
 			Scheduler: "rr",
 			Flags:     utilipvs.FlagHashed,
 		}: {
-			Address: net.ParseIP("10.180.0.1"),
+			Address: netutils.ParseIPSloppy("10.180.0.1"),
 			Port:    uint16(53),
 			Weight:  1,
 		},
@@ -3905,7 +4072,7 @@ func TestCleanLegacyServiceWithRealServers(t *testing.T) {
 	// check that address is "3.3.3.3"
 	remainingAddrsMap := make(map[string]bool)
 	for _, a := range remainingAddrs {
-		if net.ParseIP(a).To4() == nil {
+		if netutils.ParseIPSloppy(a).To4() == nil {
 			continue
 		}
 		remainingAddrsMap[a] = true
@@ -3921,12 +4088,12 @@ func TestCleanLegacyRealServersExcludeCIDRs(t *testing.T) {
 	ipvs := ipvstest.NewFake()
 	ipset := ipsettest.NewFake(testIPSetVersion)
 	gtm := NewGracefulTerminationManager(ipvs)
-	excludeCIDRs, _ := utilnet.ParseCIDRs([]string{"4.4.4.4/32"})
+	excludeCIDRs, _ := netutils.ParseCIDRs([]string{"4.4.4.4/32"})
 	fp := NewFakeProxier(ipt, ipvs, ipset, nil, excludeCIDRs, v1.IPv4Protocol)
 	fp.gracefuldeleteManager = gtm
 
 	vs := &utilipvs.VirtualServer{
-		Address:   net.ParseIP("4.4.4.4"),
+		Address:   netutils.ParseIPSloppy("4.4.4.4"),
 		Protocol:  string(v1.ProtocolUDP),
 		Port:      56,
 		Scheduler: "rr",
@@ -3937,13 +4104,13 @@ func TestCleanLegacyRealServersExcludeCIDRs(t *testing.T) {
 
 	rss := []*utilipvs.RealServer{
 		{
-			Address:      net.ParseIP("10.10.10.10"),
+			Address:      netutils.ParseIPSloppy("10.10.10.10"),
 			Port:         56,
 			ActiveConn:   0,
 			InactiveConn: 0,
 		},
 		{
-			Address:      net.ParseIP("11.11.11.11"),
+			Address:      netutils.ParseIPSloppy("11.11.11.11"),
 			Port:         56,
 			ActiveConn:   0,
 			InactiveConn: 0,
@@ -3976,9 +4143,9 @@ func TestCleanLegacyService6(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	ipvs := ipvstest.NewFake()
 	ipset := ipsettest.NewFake(testIPSetVersion)
-	excludeCIDRs, _ := utilnet.ParseCIDRs([]string{"3000::/64", "4000::/64"})
+	excludeCIDRs, _ := netutils.ParseCIDRs([]string{"3000::/64", "4000::/64"})
 	fp := NewFakeProxier(ipt, ipvs, ipset, nil, excludeCIDRs, v1.IPv4Protocol)
-	fp.nodeIP = net.ParseIP("::1")
+	fp.nodeIP = netutils.ParseIPSloppy("::1")
 
 	// All ipvs services that were processed in the latest sync loop.
 	activeServices := map[string]bool{"ipvs0": true, "ipvs1": true}
@@ -3986,7 +4153,7 @@ func TestCleanLegacyService6(t *testing.T) {
 	currentServices := map[string]*utilipvs.VirtualServer{
 		// Created by kube-proxy.
 		"ipvs0": {
-			Address:   net.ParseIP("1000::1"),
+			Address:   netutils.ParseIPSloppy("1000::1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      53,
 			Scheduler: "rr",
@@ -3994,7 +4161,7 @@ func TestCleanLegacyService6(t *testing.T) {
 		},
 		// Created by kube-proxy.
 		"ipvs1": {
-			Address:   net.ParseIP("1000::2"),
+			Address:   netutils.ParseIPSloppy("1000::2"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      54,
 			Scheduler: "rr",
@@ -4002,7 +4169,7 @@ func TestCleanLegacyService6(t *testing.T) {
 		},
 		// Created by an external party.
 		"ipvs2": {
-			Address:   net.ParseIP("3000::1"),
+			Address:   netutils.ParseIPSloppy("3000::1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      55,
 			Scheduler: "rr",
@@ -4010,7 +4177,7 @@ func TestCleanLegacyService6(t *testing.T) {
 		},
 		// Created by an external party.
 		"ipvs3": {
-			Address:   net.ParseIP("4000::1"),
+			Address:   netutils.ParseIPSloppy("4000::1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      56,
 			Scheduler: "rr",
@@ -4018,7 +4185,7 @@ func TestCleanLegacyService6(t *testing.T) {
 		},
 		// Created by an external party.
 		"ipvs4": {
-			Address:   net.ParseIP("5000::1"),
+			Address:   netutils.ParseIPSloppy("5000::1"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      57,
 			Scheduler: "rr",
@@ -4026,7 +4193,7 @@ func TestCleanLegacyService6(t *testing.T) {
 		},
 		// Created by kube-proxy, but now stale.
 		"ipvs5": {
-			Address:   net.ParseIP("1000::6"),
+			Address:   netutils.ParseIPSloppy("1000::6"),
 			Protocol:  string(v1.ProtocolUDP),
 			Port:      58,
 			Scheduler: "rr",
@@ -4069,7 +4236,7 @@ func TestCleanLegacyService6(t *testing.T) {
 	// check that address "1000::1", "1000::2", "3000::1", "4000::1" are still bound, ignore ipv4 addresses
 	remainingAddrsMap := make(map[string]bool)
 	for _, a := range remainingAddrs {
-		if net.ParseIP(a).To4() != nil {
+		if netutils.ParseIPSloppy(a).To4() != nil {
 			continue
 		}
 		remainingAddrsMap[a] = true

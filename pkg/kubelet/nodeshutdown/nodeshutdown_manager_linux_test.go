@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -29,13 +30,17 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/clock"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/client-go/tools/record"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	pkgfeatures "k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/nodeshutdown/systemd"
+	testingclock "k8s.io/utils/clock/testing"
 )
+
+// lock is to prevent systemDbus from being modified in the case of concurrency.
+var lock sync.Mutex
 
 type fakeDbus struct {
 	currentInhibitDelay        time.Duration
@@ -224,15 +229,22 @@ func TestManager(t *testing.T) {
 
 			fakeShutdownChan := make(chan bool)
 			fakeDbus := &fakeDbus{currentInhibitDelay: tc.systemInhibitDelay, shutdownChan: fakeShutdownChan, overrideSystemInhibitDelay: tc.overrideSystemInhibitDelay}
+
+			lock.Lock()
 			systemDbus = func() (dbusInhibiter, error) {
 				return fakeDbus, nil
 			}
 			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, pkgfeatures.GracefulNodeShutdown, true)()
 
-			manager, _ := NewManager(activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, tc.shutdownGracePeriodCriticalPods)
-			manager.clock = clock.NewFakeClock(time.Now())
+			fakeRecorder := &record.FakeRecorder{}
+			nodeRef := &v1.ObjectReference{Kind: "Node", Name: "test", UID: types.UID("test"), Namespace: ""}
+
+			manager, _ := NewManager(fakeRecorder, nodeRef, activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, tc.shutdownGracePeriodCriticalPods)
+			manager.clock = testingclock.NewFakeClock(time.Now())
 
 			err := manager.Start()
+			lock.Unlock()
+
 			if tc.expectedError != nil {
 				if !strings.Contains(err.Error(), tc.expectedError.Error()) {
 					t.Errorf("unexpected error message. Got: %s want %s", err.Error(), tc.expectedError.Error())
@@ -303,8 +315,11 @@ func TestFeatureEnabled(t *testing.T) {
 			}
 			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, pkgfeatures.GracefulNodeShutdown, tc.featureGateEnabled)()
 
-			manager, _ := NewManager(activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, 0 /*shutdownGracePeriodCriticalPods*/)
-			manager.clock = clock.NewFakeClock(time.Now())
+			fakeRecorder := &record.FakeRecorder{}
+			nodeRef := &v1.ObjectReference{Kind: "Node", Name: "test", UID: types.UID("test"), Namespace: ""}
+
+			manager, _ := NewManager(fakeRecorder, nodeRef, activePodsFunc, killPodsFunc, func() {}, tc.shutdownGracePeriodRequested, 0 /*shutdownGracePeriodCriticalPods*/)
+			manager.clock = testingclock.NewFakeClock(time.Now())
 
 			assert.Equal(t, tc.expectEnabled, manager.isFeatureEnabled())
 		})
@@ -333,6 +348,7 @@ func TestRestart(t *testing.T) {
 	var shutdownChanMut sync.Mutex
 	var connChan = make(chan struct{}, 1)
 
+	lock.Lock()
 	systemDbus = func() (dbusInhibiter, error) {
 		defer func() {
 			connChan <- struct{}{}
@@ -345,8 +361,12 @@ func TestRestart(t *testing.T) {
 		return dbus, nil
 	}
 
-	manager, _ := NewManager(activePodsFunc, killPodsFunc, syncNodeStatus, shutdownGracePeriodRequested, shutdownGracePeriodCriticalPods)
+	fakeRecorder := &record.FakeRecorder{}
+	nodeRef := &v1.ObjectReference{Kind: "Node", Name: "test", UID: types.UID("test"), Namespace: ""}
+	manager, _ := NewManager(fakeRecorder, nodeRef, activePodsFunc, killPodsFunc, syncNodeStatus, shutdownGracePeriodRequested, shutdownGracePeriodCriticalPods)
 	err := manager.Start()
+	lock.Unlock()
+
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

@@ -22,10 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmapiv1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
-	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
-	"k8s.io/kubernetes/cmd/kubeadm/app/features"
+	"github.com/lithammer/dedent"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +31,10 @@ import (
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 	utilpointer "k8s.io/utils/pointer"
 
-	"github.com/lithammer/dedent"
+	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
+	kubeadmapiv1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta3"
+	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 )
 
 func testKubeletConfigMap(contents string) *v1.ConfigMap {
@@ -50,10 +50,10 @@ func testKubeletConfigMap(contents string) *v1.ConfigMap {
 }
 
 func TestKubeletDefault(t *testing.T) {
-	var resolverConfig string
+	var resolverConfig *string
 	if isSystemdResolvedActive, _ := isServiceActive("systemd-resolved"); isSystemdResolvedActive {
 		// If systemd-resolved is active, we need to set the default resolver config
-		resolverConfig = kubeletSystemdResolverConfig
+		resolverConfig = utilpointer.String(kubeletSystemdResolverConfig)
 	}
 
 	tests := []struct {

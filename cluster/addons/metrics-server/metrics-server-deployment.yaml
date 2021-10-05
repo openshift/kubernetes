@@ -23,23 +23,39 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+<<<<<<< HEAD
   name: metrics-server-v0.5.0
+=======
+  name: metrics-server-v0.5.1
+>>>>>>> v1.23.0-alpha.3
   namespace: kube-system
   labels:
     k8s-app: metrics-server
     addonmanager.kubernetes.io/mode: Reconcile
+<<<<<<< HEAD
     version: v0.5.0
+=======
+    version: v0.5.1
+>>>>>>> v1.23.0-alpha.3
 spec:
   selector:
     matchLabels:
       k8s-app: metrics-server
+<<<<<<< HEAD
       version: v0.5.0
+=======
+      version: v0.5.1
+>>>>>>> v1.23.0-alpha.3
   template:
     metadata:
       name: metrics-server
       labels:
         k8s-app: metrics-server
+<<<<<<< HEAD
         version: v0.5.0
+=======
+        version: v0.5.1
+>>>>>>> v1.23.0-alpha.3
     spec:
       securityContext:
         seccompProfile:
@@ -50,7 +66,11 @@ spec:
         kubernetes.io/os: linux
       containers:
       - name: metrics-server
+<<<<<<< HEAD
         image: k8s.gcr.io/metrics-server/metrics-server:v0.5.0
+=======
+        image: k8s.gcr.io/metrics-server/metrics-server:v0.5.1
+>>>>>>> v1.23.0-alpha.3
         command:
         - /metrics-server
         - --metric-resolution=30s
@@ -109,7 +129,11 @@ spec:
           - --memory={{ base_metrics_server_memory }}
           - --extra-memory={{ metrics_server_memory_per_node }}Mi
           - --threshold=5
+<<<<<<< HEAD
           - --deployment=metrics-server-v0.5.0
+=======
+          - --deployment=metrics-server-v0.5.1
+>>>>>>> v1.23.0-alpha.3
           - --container=metrics-server
           - --poll-period=30000
           - --estimator=exponential

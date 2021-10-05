@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+<<<<<<< HEAD
 FROM golang:1.16.7 AS builder
+=======
+FROM golang:1.17.1 AS builder
+>>>>>>> v1.23.0-alpha.3
 COPY elasticsearch_logging_discovery.go go.mod go.sum /
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -ldflags "-w" -o /elasticsearch_logging_discovery /elasticsearch_logging_discovery.go
 

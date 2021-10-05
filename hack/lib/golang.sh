@@ -111,7 +111,7 @@ kube::golang::conformance_image_targets() {
   local targets=(
     vendor/github.com/onsi/ginkgo/ginkgo
     test/e2e/e2e.test
-    cluster/images/conformance/go-runner
+    test/conformance/image/go-runner
     cmd/kubectl
   )
   echo "${targets[@]}"
@@ -273,7 +273,7 @@ kube::golang::test_targets() {
     cmd/linkcheck
     vendor/github.com/onsi/ginkgo/ginkgo
     test/e2e/e2e.test
-    cluster/images/conformance/go-runner
+    test/conformance/image/go-runner
   )
   echo "${targets[@]}"
 }
@@ -475,7 +475,7 @@ EOF
   local go_version
   IFS=" " read -ra go_version <<< "$(GOFLAGS='' go version)"
   local minimum_go_version
-  minimum_go_version=go1.16.0
+  minimum_go_version=go1.17.0
   if [[ "${minimum_go_version}" != $(echo -e "${minimum_go_version}\n${go_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) && "${go_version[2]}" != "devel" ]]; then
     kube::log::usage_from_stdin <<EOF
 Detected go version: ${go_version[*]}.
@@ -713,6 +713,7 @@ kube::golang::build_binaries_for_platform() {
       -ldflags "${goldflags:-}"
       -tags "${gotags:-}"
     )
+    V=1 kube::log::info "> static build CGO_ENABLED=0: ${statics[*]}"
     CGO_ENABLED=0 kube::golang::build_some_binaries "${statics[@]}"
   fi
 
@@ -724,6 +725,7 @@ kube::golang::build_binaries_for_platform() {
       -ldflags "${goldflags:-}"
       -tags "${gotags:-}"
     )
+    V=1 kube::log::info "> non-static build: ${nonstatics[*]}"
     kube::golang::build_some_binaries "${nonstatics[@]}"
   fi
 

@@ -57,8 +57,8 @@ $GCE_METADATA_SERVER = "169.254.169.254"
 # exist until an initial HNS network has been created on the Windows node - see
 # Add_InitialHnsNetwork().
 $MGMT_ADAPTER_NAME = "vEthernet (Ethernet*"
-$CRICTL_VERSION = 'v1.21.0'
-$CRICTL_SHA256 = '437d5301f6f5b9848ef057cee98474ce11a6679c91b4d4e83677a8c1f2415143'
+$CRICTL_VERSION = 'v1.22.0'
+$CRICTL_SHA256 = '8f32d09d56716ab47ede3410c0aa91921668510a457b878f4442edcd2ef7bc10'
 
 Import-Module -Force C:\common.psm1
 
@@ -229,6 +229,13 @@ function Fetch-KubeEnv {
   # The type of kube_env is a powershell String.
   $kube_env = Get-InstanceMetadataAttribute 'kube-env'
   $kube_env_table = ConvertFrom_Yaml_KubeEnv ${kube_env}
+
+  Log-Output "Logging kube-env key-value pairs except CERT and KEY values"
+  foreach ($entry in $kube_env_table.GetEnumerator()) {
+    if ((-not ($entry.Name.contains("CERT"))) -and (-not ($entry.Name.contains("KEY")))) {
+      Log-Output "$($entry.Name): $($entry.Value)"
+    }
+  }
   return ${kube_env_table}
 }
 
@@ -1279,6 +1286,12 @@ function Start-WorkerServices {
   Log-Output "Kubernetes components started successfully"
 }
 
+# Stop and unregister both kubelet & kube-proxy services.
+function Unregister-WorkerServices {
+  & sc.exe delete kube-proxy
+  & sc.exe delete kubelet
+}
+
 # Wait for kubelet and kube-proxy to be ready within 10s.
 function WaitFor_KubeletAndKubeProxyReady {
   $waited = 0
@@ -1585,7 +1598,7 @@ function Install_Containerd {
   New-Item $tmp_dir -ItemType 'directory' -Force | Out-Null
 
   # TODO(ibrahimab) Change this to a gcs bucket with CI maintained and accessible by community.
-  $version = '1.4.4'
+  $version = '1.5.4'
   $tar_url = ("https://github.com/containerd/containerd/releases/download/v${version}/" +
               "cri-containerd-cni-${version}-windows-amd64.tar.gz")
   $sha_url = $tar_url + ".sha256sum"

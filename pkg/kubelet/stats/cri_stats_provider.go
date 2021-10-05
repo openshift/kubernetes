@@ -161,7 +161,7 @@ func (p *criStatsProvider) listPodStats(updateCPUNanoCoreUsage bool) ([]statsapi
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cadvisor stats: %v", err)
 	}
-	caInfos := getCRICadvisorStats(allInfos)
+	caInfos, allInfos := getCRICadvisorStats(allInfos)
 
 	// get network stats for containers.
 	// This is only used on Windows. For other platforms, (nil, nil) should be returned.
@@ -255,7 +255,7 @@ func (p *criStatsProvider) ListPodCPUAndMemoryStats() ([]statsapi.PodStats, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cadvisor stats: %v", err)
 	}
-	caInfos := getCRICadvisorStats(allInfos)
+	caInfos, allInfos := getCRICadvisorStats(allInfos)
 
 	for _, stats := range resp {
 		containerID := stats.Attributes.Id
@@ -811,10 +811,10 @@ func (p *criStatsProvider) addCadvisorContainerCPUAndMemoryStats(
 	}
 }
 
-func getCRICadvisorStats(infos map[string]cadvisorapiv2.ContainerInfo) map[string]cadvisorapiv2.ContainerInfo {
+func getCRICadvisorStats(infos map[string]cadvisorapiv2.ContainerInfo) (map[string]cadvisorapiv2.ContainerInfo, map[string]cadvisorapiv2.ContainerInfo) {
 	stats := make(map[string]cadvisorapiv2.ContainerInfo)
-	infos = removeTerminatedContainerInfo(infos)
-	for key, info := range infos {
+	filteredInfos, cinfosByPodCgroupKey := filterTerminatedContainerInfoAndAssembleByPodCgroupKey(infos)
+	for key, info := range filteredInfos {
 		// On systemd using devicemapper each mount into the container has an
 		// associated cgroup. We ignore them to ensure we do not get duplicate
 		// entries in our summary. For details on .mount units:
@@ -826,7 +826,24 @@ func getCRICadvisorStats(infos map[string]cadvisorapiv2.ContainerInfo) map[strin
 		if !isPodManagedContainer(&info) {
 			continue
 		}
-		stats[path.Base(key)] = info
+		stats[extractIDFromCgroupPath(key)] = info
 	}
-	return stats
+	return stats, cinfosByPodCgroupKey
+}
+
+func extractIDFromCgroupPath(cgroupPath string) string {
+	// case0 == cgroupfs: "/kubepods/burstable/pod2fc932ce-fdcc-454b-97bd-aadfdeb4c340/9be25294016e2dc0340dd605ce1f57b492039b267a6a618a7ad2a7a58a740f32"
+	id := path.Base(cgroupPath)
+
+	// case1 == systemd: "/kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod2fc932ce_fdcc_454b_97bd_aadfdeb4c340.slice/cri-containerd-aaefb9d8feed2d453b543f6d928cede7a4dbefa6a0ae7c9b990dd234c56e93b9.scope"
+	// trim anything before the final '-' and suffix .scope
+	systemdSuffix := ".scope"
+	if strings.HasSuffix(id, systemdSuffix) {
+		id = strings.TrimSuffix(id, systemdSuffix)
+		components := strings.Split(id, "-")
+		if len(components) > 1 {
+			id = components[len(components)-1]
+		}
+	}
+	return id
 }
