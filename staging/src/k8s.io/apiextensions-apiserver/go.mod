@@ -11,7 +11,7 @@ require (
 	github.com/google/gofuzz v1.1.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.5
-	github.com/openshift/api v0.0.0-20210817132244-67c28690af52
+	github.com/openshift/api v0.0.0-20210901140736-d8ed1449662d
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
@@ -37,6 +37,10 @@ replace (
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20210817132244-67c28690af52
+	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20210823130908-fb12da91a79d
+	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210730113412-1811c1b3fc0e
+	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20210826214843-cc316ba4331b
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
