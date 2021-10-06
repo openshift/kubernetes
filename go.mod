@@ -139,7 +139,10 @@ require (
 	k8s.io/sample-apiserver v0.0.0
 	k8s.io/system-validators v1.5.0
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
+<<<<<<< HEAD
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.22 // indirect
+=======
+>>>>>>> v1.22.2
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2
 	sigs.k8s.io/yaml v1.2.0
 )
