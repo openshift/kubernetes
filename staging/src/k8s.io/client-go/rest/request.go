@@ -94,6 +94,9 @@ type Request struct {
 	backoff     BackoffManager
 	timeout     time.Duration
 
+	// base is the root URL for the request
+	base url.URL
+
 	// generic components accessible via method setters
 	verb       string
 	pathPrefix string
@@ -124,12 +127,8 @@ func NewRequest(c *RESTClient) *Request {
 		backoff = noBackoff
 	}
 
-	var pathPrefix string
-	if c.base != nil {
-		pathPrefix = path.Join("/", c.base.Path, c.versionedAPIPath)
-	} else {
-		pathPrefix = path.Join("/", c.versionedAPIPath)
-	}
+	base := c.baseURL()
+	pathPrefix := path.Join("/", base.Path, c.versionedAPIPath)
 
 	var timeout time.Duration
 	if c.Client != nil {
@@ -138,6 +137,7 @@ func NewRequest(c *RESTClient) *Request {
 
 	r := &Request{
 		c:              c,
+		base:           base,
 		rateLimiter:    c.rateLimiter,
 		backoff:        backoff,
 		timeout:        timeout,
@@ -308,8 +308,9 @@ func (r *Request) AbsPath(segments ...string) *Request {
 	if r.err != nil {
 		return r
 	}
-	r.pathPrefix = path.Join(r.c.base.Path, path.Join(segments...))
-	if len(segments) == 1 && (len(r.c.base.Path) > 1 || len(segments[0]) > 1) && strings.HasSuffix(segments[0], "/") {
+
+	r.pathPrefix = path.Join(r.base.Path, path.Join(segments...))
+	if len(segments) == 1 && (len(r.base.Path) > 1 || len(segments[0]) > 1) && strings.HasSuffix(segments[0], "/") {
 		// preserve any trailing slashes for legacy behavior
 		r.pathPrefix += "/"
 	}
@@ -475,10 +476,7 @@ func (r *Request) URL() *url.URL {
 		p = path.Join(p, r.resourceName, r.subresource, r.subpath)
 	}
 
-	finalURL := &url.URL{}
-	if r.c.base != nil {
-		*finalURL = *r.c.base
-	}
+	finalURL := r.base
 	finalURL.Path = p
 
 	query := url.Values{}
@@ -493,7 +491,7 @@ func (r *Request) URL() *url.URL {
 		query.Set("timeout", r.timeout.String())
 	}
 	finalURL.RawQuery = query.Encode()
-	return finalURL
+	return &finalURL
 }
 
 // finalURLTemplate is similar to URL(), but will make all specific parameter values equal
@@ -513,14 +511,14 @@ func (r Request) finalURLTemplate() url.URL {
 	groupIndex := 0
 	index := 0
 	trimmedBasePath := ""
-	if url != nil && r.c.base != nil && strings.Contains(url.Path, r.c.base.Path) {
-		p := strings.TrimPrefix(url.Path, r.c.base.Path)
+	if url != nil && len(r.base.Path) > 0 && strings.Contains(url.Path, r.base.Path) {
+		p := strings.TrimPrefix(url.Path, r.base.Path)
 		if !strings.HasPrefix(p, "/") {
 			p = "/" + p
 		}
 		// store the base path that we have trimmed so we can append it
 		// before returning the URL
-		trimmedBasePath = r.c.base.Path
+		trimmedBasePath = r.base.Path
 		segments = strings.Split(p, "/")
 		groupIndex = 1
 	}
@@ -709,11 +707,11 @@ func (r *Request) Watch(ctx context.Context) (watch.Interface, error) {
 
 		resp, err := client.Do(req)
 		updateURLMetrics(ctx, r, resp, err)
-		if r.c.base != nil {
+		if len(r.base.Host) > 0 {
 			if err != nil {
-				r.backoff.UpdateBackoff(r.c.base, err, 0)
+				r.backoff.UpdateBackoff(&r.base, err, 0)
 			} else {
-				r.backoff.UpdateBackoff(r.c.base, err, resp.StatusCode)
+				r.backoff.UpdateBackoff(&r.base, err, resp.StatusCode)
 			}
 		}
 		if err == nil && resp.StatusCode == http.StatusOK {
@@ -840,7 +838,7 @@ func (r *Request) Stream(ctx context.Context) (io.ReadCloser, error) {
 
 		resp, err := client.Do(req)
 		updateURLMetrics(ctx, r, resp, err)
-		if r.c.base != nil {
+		if len(r.URL().Host) > 0 {
 			if err != nil {
 				r.backoff.UpdateBackoff(r.URL(), err, 0)
 			} else {

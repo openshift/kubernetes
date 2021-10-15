@@ -153,6 +153,13 @@ func readExpBackoffConfig() BackoffManager {
 			time.Duration(backoffDurationInt)*time.Second)}
 }
 
+func (c *RESTClient) baseURL() url.URL {
+	if c.base != nil {
+		return *c.base
+	}
+	return url.URL{}
+}
+
 // Verb begins a request with a verb (GET, POST, PUT, DELETE).
 //
 // Example usage of RESTClient's request building interface:
