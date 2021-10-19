@@ -554,6 +554,8 @@ func clusterRoles() []rbacv1.ClusterRole {
 		// Needed to check API access. These creates are non-mutating
 		rbacv1helpers.NewRule("create").Groups(authenticationGroup).Resources("tokenreviews").RuleOrDie(),
 		rbacv1helpers.NewRule("create").Groups(authorizationGroup).Resources("subjectaccessreviews").RuleOrDie(),
+		// Needed for delegated authentication
+		rbacv1helpers.NewRule("get", "list", "watch").Groups(legacyGroup).Resources("configmaps").RuleOrDie(),
 		// Needed for volume limits
 		rbacv1helpers.NewRule(Read...).Groups(storageGroup).Resources("csinodes").RuleOrDie(),
 		// Needed for namespaceSelector feature in pod affinity
