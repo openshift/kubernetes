@@ -243,6 +243,9 @@ func TestConfigToExecClusterRoundtrip(t *testing.T) {
 		func(h *WarningHandler, f fuzz.Continue) {
 			*h = &fakeWarningHandler{}
 		},
+		func(s *AltSvcHandler, f fuzz.Continue) {
+			*s = &NoAltSvcs{}
+		},
 		// Authentication does not require fuzzer
 		func(r *AuthProviderConfigPersister, f fuzz.Continue) {},
 		func(r *clientcmdapi.AuthProviderConfig, f fuzz.Continue) {
@@ -290,6 +293,7 @@ func TestConfigToExecClusterRoundtrip(t *testing.T) {
 		expected.Burst = 0
 		expected.RateLimiter = nil
 		expected.WarningHandler = nil
+		expected.AltSvcHandler = nil
 		expected.Timeout = 0
 		expected.Dial = nil
 

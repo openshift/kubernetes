@@ -128,6 +128,9 @@ type Config struct {
 	// See documentation for SetDefaultWarningHandler() for details.
 	WarningHandler WarningHandler
 
+	// AltSvcHandler handles alternative services.
+	AltSvcHandler AltSvcHandler
+
 	// The maximum length of time to wait before giving up on a server request. A value of zero means no timeout.
 	Timeout time.Duration
 
@@ -374,8 +377,15 @@ func RESTClientForConfigAndClient(config *Config, httpClient *http.Client) (*RES
 	}
 
 	restClient, err := NewRESTClient(baseURL, versionedAPIPath, clientContent, rateLimiter, httpClient)
-	if err == nil && config.WarningHandler != nil {
+	if err != nil {
+		return nil, err
+	}
+
+	if config.WarningHandler != nil {
 		restClient.warningHandler = config.WarningHandler
+	}
+	if config.AltSvcHandler != nil {
+		restClient.altSvcHandler = config.AltSvcHandler
 	}
 	return restClient, err
 }
@@ -441,8 +451,15 @@ func UnversionedRESTClientForConfigAndClient(config *Config, httpClient *http.Cl
 	}
 
 	restClient, err := NewRESTClient(baseURL, versionedAPIPath, clientContent, rateLimiter, httpClient)
-	if err == nil && config.WarningHandler != nil {
+	if err != nil {
+		return nil, err
+	}
+
+	if config.WarningHandler != nil {
 		restClient.warningHandler = config.WarningHandler
+	}
+	if config.AltSvcHandler != nil {
+		restClient.altSvcHandler = config.AltSvcHandler
 	}
 	return restClient, err
 }
@@ -614,6 +631,7 @@ func AnonymousClientConfig(config *Config) *Config {
 		},
 		RateLimiter:        config.RateLimiter,
 		WarningHandler:     config.WarningHandler,
+		AltSvcHandler:      config.AltSvcHandler,
 		UserAgent:          config.UserAgent,
 		DisableCompression: config.DisableCompression,
 		QPS:                config.QPS,
@@ -661,6 +679,7 @@ func CopyConfig(config *Config) *Config {
 		Burst:              config.Burst,
 		RateLimiter:        config.RateLimiter,
 		WarningHandler:     config.WarningHandler,
+		AltSvcHandler:      config.AltSvcHandler,
 		Timeout:            config.Timeout,
 		Dial:               config.Dial,
 		Proxy:              config.Proxy,

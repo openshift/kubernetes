@@ -89,6 +89,7 @@ type Request struct {
 	c *RESTClient
 
 	warningHandler WarningHandler
+	altSvcHandler  AltSvcHandler
 
 	rateLimiter flowcontrol.RateLimiter
 	backoff     BackoffManager
@@ -144,6 +145,7 @@ func NewRequest(c *RESTClient) *Request {
 		pathPrefix:     pathPrefix,
 		retry:          &withRetry{maxRetries: 10},
 		warningHandler: c.warningHandler,
+		altSvcHandler:  c.altSvcHandler,
 	}
 
 	switch {
@@ -916,6 +918,9 @@ func (r *Request) newHTTPRequest(ctx context.Context) (*http.Request, error) {
 	}
 	req = req.WithContext(ctx)
 	req.Header = r.headers
+	// keep the original host to avoid certificate issues connecting to the
+	// alternative services
+	req.Host = r.base.Host
 	return req, nil
 }
 
@@ -1051,6 +1056,9 @@ func (r *Request) DoRaw(ctx context.Context) ([]byte, error) {
 		if resp.StatusCode < http.StatusOK || resp.StatusCode > http.StatusPartialContent {
 			result.err = r.transformUnstructuredResponseError(resp, req, result.body)
 		}
+		if r.altSvcHandler != nil {
+			r.altSvcHandler.HandleAltSvcHeader(resp.Header.Get("Alt-Svc"), r.base.Host)
+		}
 	})
 	if err != nil {
 		return nil, err
@@ -1093,6 +1101,7 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 	// verify the content type is accurate
 	var decoder runtime.Decoder
 	contentType := resp.Header.Get("Content-Type")
+
 	if len(contentType) == 0 {
 		contentType = r.c.content.ContentType
 	}
@@ -1118,6 +1127,10 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 				warnings:    handleWarnings(resp.Header, r.warningHandler),
 			}
 		}
+	}
+
+	if r.altSvcHandler != nil {
+		r.altSvcHandler.HandleAltSvcHeader(resp.Header.Get("Alt-Svc"), r.base.Host)
 	}
 
 	switch {

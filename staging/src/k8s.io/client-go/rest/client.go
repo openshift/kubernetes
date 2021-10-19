@@ -98,6 +98,9 @@ type RESTClient struct {
 	// If not set, defaultWarningHandler is used.
 	warningHandler WarningHandler
 
+	// altSvcHandler is shared among all requests created by this client
+	altSvcHandler AltSvcHandler
+
 	// Set specific behavior of the client.  If not set http.DefaultClient will be used.
 	Client *http.Client
 }
@@ -122,6 +125,7 @@ func NewRESTClient(baseURL *url.URL, versionedAPIPath string, config ClientConte
 		content:          config,
 		createBackoffMgr: readExpBackoffConfig,
 		rateLimiter:      rateLimiter,
+		altSvcHandler:    &AlternateServices{},
 
 		Client: client,
 	}, nil
@@ -154,6 +158,12 @@ func readExpBackoffConfig() BackoffManager {
 }
 
 func (c *RESTClient) baseURL() url.URL {
+	if c.altSvcHandler != nil {
+		uri := c.altSvcHandler.BaseURL()
+		if uri != (url.URL{}) {
+			return uri
+		}
+	}
 	if c.base != nil {
 		return *c.base
 	}
