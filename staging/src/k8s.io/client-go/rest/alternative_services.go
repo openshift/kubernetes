@@ -158,10 +158,13 @@ func (c *cache) GetLowLatency() url.URL {
 	}
 	var latencies []kv
 	for k, v := range c.storage {
+		klog.Infof("DEBUG getowlatency entries %s %v", v.uri.String(), v.ready)
+
 		if v.ready {
 			latencies = append(latencies, kv{k: k, v: v.latency})
 		}
 	}
+	klog.Infof("DEBUG getowlatency %v", latencies)
 	sort.Slice(latencies, func(i, j int) bool {
 		return latencies[i].v < latencies[j].v
 	})
@@ -186,11 +189,12 @@ func (c *cache) Refresh(client *http.Client, host string) {
 		}
 		// check if url is ready (cached)
 		if v.ready {
-			continue
+			//continue
 		}
 		// if not ready query the url directly
 		v.ready, v.latency = getReadyz(v.uri, client, host)
-		klog.Infof("DEBUG refres %s ready %v latency %v", k, v.ready, v.latency)
+		klog.Infof("DEBUG refresh %s ready %v latency %v", k, v.ready, v.latency)
+		c.storage[k] = v
 
 	}
 
