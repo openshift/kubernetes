@@ -172,7 +172,7 @@ func (c *cache) GetLowLatency() url.URL {
 	return url.URL{}
 }
 
-func (c *cache) Refresh(client http.Client) {
+func (c *cache) Refresh(client *http.Client, host string) {
 	c.Lock()
 	defer c.Unlock()
 	t := time.Now()
@@ -186,17 +186,20 @@ func (c *cache) Refresh(client http.Client) {
 		}
 		// check if url is ready (cached)
 		if v.ready {
-			// continue
+			continue
 		}
 		// if not ready query the url directly
-		v.ready, v.latency = getReadyz(v.uri, client)
+		v.ready, v.latency = getReadyz(v.uri, client, host)
+		klog.Infof("DEBUG refres %s ready %v latency %v", k, v.ready, v.latency)
+
 	}
 
 }
 
 type AlternateServices struct {
-	client http.Client
+	client *http.Client
 	cache  cache // keyed by url
+	host   string
 }
 
 var _ AltSvcHandler = &AlternateServices{}
@@ -235,6 +238,7 @@ func (a *AlternateServices) HandleAltSvcHeader(altSvcString, host string) {
 			continue
 		}
 		a.cache.Add(*uri, alt)
+		klog.Infof("DEBUG adding %s to the cache", uri.String())
 	}
 
 }
@@ -247,15 +251,19 @@ func (a *AlternateServices) BaseURL() url.URL {
 	// round robin
 	// ...
 
-	a.cache.Refresh(a.client)
+	a.cache.Refresh(a.client, a.host)
 	if u := a.cache.GetLocal(); u != (url.URL{}) {
 		return u
 	}
 
-	return a.cache.GetLowLatency()
+	u := a.cache.GetLowLatency()
+	return u
 }
 
-func getReadyz(u url.URL, c http.Client) (bool, time.Duration) {
+func getReadyz(u url.URL, c *http.Client, host string) (bool, time.Duration) {
+	if c == nil {
+		c = http.DefaultClient
+	}
 	now := time.Now()
 	var elapsed time.Duration
 	u.Path = "/readyz"
@@ -272,6 +280,7 @@ func getReadyz(u url.URL, c http.Client) (bool, time.Duration) {
 	if err != nil {
 		return false, elapsed
 	}
+	req.Host = host
 
 	result, err := c.Do(req)
 	if err != nil {

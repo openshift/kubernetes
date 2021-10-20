@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -125,7 +126,10 @@ func NewRESTClient(baseURL *url.URL, versionedAPIPath string, config ClientConte
 		content:          config,
 		createBackoffMgr: readExpBackoffConfig,
 		rateLimiter:      rateLimiter,
-		altSvcHandler:    &AlternateServices{},
+		altSvcHandler: &AlternateServices{
+			client: client,
+			host:   baseURL.Host,
+		},
 
 		Client: client,
 	}, nil
@@ -161,10 +165,13 @@ func (c *RESTClient) baseURL() url.URL {
 	if c.altSvcHandler != nil {
 		uri := c.altSvcHandler.BaseURL()
 		if uri != (url.URL{}) {
+			klog.Infof("DEBUG connect from AltSvc Handler to %s", uri.String())
+
 			return uri
 		}
 	}
 	if c.base != nil {
+		klog.Infof("DEBUG connect from client Base to %s", c.base.String())
 		return *c.base
 	}
 	return url.URL{}

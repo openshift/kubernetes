@@ -912,6 +912,7 @@ func (r *Request) requestPreflightCheck() error {
 
 func (r *Request) newHTTPRequest(ctx context.Context) (*http.Request, error) {
 	url := r.URL().String()
+	klog.Infof("DEBUG NewHTTPRequest %s", url)
 	req, err := http.NewRequest(r.verb, url, r.body)
 	if err != nil {
 		return nil, err
