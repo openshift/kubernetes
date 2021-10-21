@@ -273,11 +273,17 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 	//         get items until a BOOKMARK event is seen
 	//         then prime the underlying store and goto case 3
 	//
+	// case 1.1: the store has some data and the resourceVersion!=0
+	//           establish a WATCH (to get a consisted dataset from the server)
+	//           get items until a BOOKMARK event is seen
+	//           replace data in the underlying store and goto case 3
+	//
+	//
 	//
 	//        bootstrap issue: the watch cache uses reflector to prime itself
 	//                         at least for now it should use the old behaviour (case 2)
 	//                         in the future we could add the same functionality to the etcd store implementation
-	if r.FetchStream && options.ResourceVersion == "0" {
+	if r.FetchStream {
 		if err := func() error {
 			initialWatchTrace := trace.New("Reflector WatchStream", trace.Field{"name", r.name})
 			defer initialWatchTrace.LogIfLong(10 * time.Second)
@@ -299,8 +305,10 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 
 				// TODO: for now, we don't set a timeout so that slow clients can download a large dataset
 				//       in the future we could set a timeout and allow for continuation
-				//       to resume clients would have to pass an index and the server would have to preserve the dataset for some time ([]*watchCacheEvent)
-				options = metav1.ListOptions{ResourceVersion: options.ResourceVersion, AllowWatchBookmarks: true, ConsistentWatchCache: true}
+				//       to resume, clients would have to pass an index and the server would have to preserve the dataset for some time ([]*watchCacheEvent)
+				//
+				// TODO: maybe a timer with inactivity time?
+				options = metav1.ListOptions{ResourceVersion: "0", AllowWatchBookmarks: true, ConsistentWatchCache: true}
 				var w watch.Interface
 				w, err = r.listerWatcher.Watch(options)
 				if err != nil {
