@@ -255,7 +255,7 @@ func newETCD3Storage(c storagebackend.Config, newFunc func() runtime.Object) (st
 		return nil, nil, err
 	}
 
-	client, err := newETCD3Client(c.Transport)
+	client, err := etcdCache.get(c.Transport)
 	if err != nil {
 		stopCompactor()
 		return nil, nil, err
