@@ -23,6 +23,7 @@ import (
 	"io"
 	"math/rand"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -99,6 +100,14 @@ type Reflector struct {
 	WatchListPageSize int64
 	// Called whenever the ListAndWatch drops the connection with an error.
 	watchErrorHandler WatchErrorHandler
+
+	// FetchStream setting this value makes the reflector to ask for a stream of data from the APIServer.
+	// Streaming has the primary advantage of using fewer server's resources to fetch all data.
+	//
+	// The old behaviour establishes a LIST request which gets data in chunks.
+	// Paginated list is less efficient and depending on the actual size of objects
+	// might result in an increased memory consumption of the APIServer.
+	FetchStream bool
 }
 
 // ResourceVersionUpdater is an interface that allows store implementation to
@@ -257,6 +266,135 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 
 	options := metav1.ListOptions{ResourceVersion: r.relistResourceVersion()}
 
+	// TODO: version skew: how do we know it is safe to establish a watch-list with the server ?
+	// case 1: the store is empty and the resourceVersion=0
+	//         establish a WATCH
+	//         get items until a BOOKMARK event is seen
+	//         then prime the underlying store and goto case 3
+	//
+	//
+	//        bootstrap issue: the watch cache uses reflector to prime itself
+	//                         at least for now it should use the old behaviour (case 2)
+	//                         in the future we could add the same functionality to the etcd store implementation
+	if r.FetchStream && options.ResourceVersion == "0" {
+		if err := func() error {
+			initialWatchTrace := trace.New("Reflector WatchStream", trace.Field{"name", r.name})
+			defer initialWatchTrace.LogIfLong(10 * time.Second)
+			// TODO: this could be a func passes to the reflector
+			temporaryStore := NewIndexer(DeletionHandlingMetaNamespaceKeyFunc, Indexers{})
+			initialWatchCompletedCh := make(chan struct{}, 1)
+			initialWatchPanicCh := make(chan interface{}, 1)
+			var err error
+
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						initialWatchPanicCh <- r
+					}
+				}()
+				defer func() {
+					close(initialWatchCompletedCh)
+				}()
+
+				// TODO: for now, we don't set a timeout so that slow clients can download a large dataset
+				//       in the future we could set a timeout and allow for continuation
+				//       to resume clients would have to pass an index and the server would have to preserve the dataset for some time ([]*watchCacheEvent)
+				options = metav1.ListOptions{ResourceVersion: options.ResourceVersion, AllowWatchBookmarks: true, ConsistentWatchCache: true}
+				var w watch.Interface
+				w, err = r.listerWatcher.Watch(options)
+				if err != nil {
+					return
+				}
+				defer w.Stop()
+
+				for {
+					select {
+					case <-stopCh:
+						err = fmt.Errorf("stop requested")
+						return
+					case event, ok := <-w.ResultChan():
+						if !ok {
+							err = fmt.Errorf("chan closed")
+							return
+						}
+						if event.Type == watch.Error {
+							err = apierrors.FromObject(event.Object)
+							return
+						}
+						if r.expectedType != nil {
+							if e, a := r.expectedType, reflect.TypeOf(event.Object); e != a {
+								utilruntime.HandleError(fmt.Errorf("%s: expected type %v, but watch event object had type %v", r.name, e, a))
+								continue
+							}
+						}
+						if r.expectedGVK != nil {
+							if e, a := *r.expectedGVK, event.Object.GetObjectKind().GroupVersionKind(); e != a {
+								utilruntime.HandleError(fmt.Errorf("%s: expected gvk %v, but watch event object had gvk %v", r.name, e, a))
+								continue
+							}
+						}
+						var objMeta metav1.Object
+						objMeta, err = meta.Accessor(event.Object)
+						if err != nil {
+							utilruntime.HandleError(fmt.Errorf("%s: unable to understand watch event %#v", r.name, event))
+							continue
+						}
+						newResourceVersion := objMeta.GetResourceVersion()
+						switch event.Type {
+						case watch.Added:
+							if err = temporaryStore.Add(event.Object); err != nil {
+								return
+							}
+						case watch.Modified:
+							if err = temporaryStore.Update(event.Object); err != nil {
+								return
+							}
+						case watch.Deleted:
+							if err = temporaryStore.Delete(event.Object); err != nil {
+								return
+							}
+						case watch.Bookmark:
+							resourceVersion = newResourceVersion
+							return
+						default:
+							utilruntime.HandleError(fmt.Errorf("%s: unable to understand watch event %#v", r.name, event))
+						}
+					}
+				}
+			}()
+
+			select {
+			case <-stopCh:
+				return nil
+			case r := <-initialWatchPanicCh:
+				panic(r)
+			case <-initialWatchCompletedCh:
+			}
+
+			if err != nil {
+				// TODO: translate an error from the api server properly
+				if strings.Contains(err.Error(), "the server does not allow this method on the requested resource") {
+					r.FetchStream = false
+					// TODO: find a way to requeue immediately
+					return fmt.Errorf("the server doesn't support stream watch for this resource %v: %v. Disabling streaming - will use LIST/WATCH semantics", r.expectedTypeName, err)
+				}
+				return fmt.Errorf("failed to stream watch %v: %v", r.expectedTypeName, err)
+			}
+
+			initialWatchItems := make([]runtime.Object, len(temporaryStore.List()))
+			for index, rawObj := range temporaryStore.List() {
+				initialWatchItems[index] = rawObj.(runtime.Object)
+			}
+
+			if err := r.syncWith(initialWatchItems, resourceVersion); err != nil {
+				return fmt.Errorf("unable to sync stream watch result: %v", err)
+			}
+			r.setLastSyncResourceVersion(resourceVersion)
+			return nil
+		}(); err != nil {
+			return err
+		}
+	} else { // case 2: old behaviour use LIST
 	if err := func() error {
 		initTrace := trace.New("Reflector ListAndWatch", trace.Field{"name", r.name})
 		defer initTrace.LogIfLong(10 * time.Second)
@@ -361,6 +499,7 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 	}(); err != nil {
 		return err
 	}
+	}
 
 	resyncerrc := make(chan error, 1)
 	cancelCh := make(chan struct{})
@@ -390,6 +529,14 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 		}
 	}()
 
+	// case 3: establish a WATCH from the resourceVersion
+	//
+	//        if we go here from the case 1 then the store has been populated the resourceVersion > 0
+	//           if the current resourceVersion < oldest-1 then the watch cache will return a 410 rsp
+	//           in that case we will set RV to 0 and reestablish initial WATCH (case 1)
+	//           we need to handle ADD, UPDATE, DELETE and BOOKMARK as usual
+	//
+	//        if we go from the case 2: nothing changes
 	for {
 		// give the stopCh a chance to stop the loop, even in case of continue statements further down on errors
 		select {
@@ -429,10 +576,14 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 		if err := r.watchHandler(start, w, &resourceVersion, resyncerrc, stopCh); err != nil {
 			if err != errorStopRequested {
 				switch {
-				case isExpiredError(err):
+				case isExpiredError(err) || isTooLargeResourceVersionError(err):
 					// Don't set LastSyncResourceVersionUnavailable - LIST call with ResourceVersion=RV already
 					// has a semantic that it returns data at least as fresh as provided RV.
 					// So first try to LIST with setting RV to resource version of last observed object.
+
+					if r.FetchStream {
+						r.lastSyncResourceVersion = ""
+					}
 					klog.V(4).Infof("%s: watch of %v closed with: %v", r.name, r.expectedTypeName, err)
 				case apierrors.IsTooManyRequests(err):
 					klog.V(2).Infof("%s: watch of %v returned 429 - backing off", r.name, r.expectedTypeName)
