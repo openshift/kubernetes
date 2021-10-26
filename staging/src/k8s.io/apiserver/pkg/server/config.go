@@ -62,6 +62,7 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	"k8s.io/apiserver/pkg/server/egressselector"
+	"k8s.io/apiserver/pkg/server/filters"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/apiserver/pkg/server/routes"
@@ -262,6 +263,9 @@ type Config struct {
 
 	// APIServerID is the ID of this API server
 	APIServerID string
+
+	// AlternativeServices gets the endpoints host:port of the registers API servers
+	AlternativeServices *filters.AlternativeServicesInfo
 
 	// StorageVersionManager holds the storage versions of the API resources installed by this server.
 	StorageVersionManager storageversion.Manager
@@ -571,6 +575,8 @@ func (c *Config) Complete(informers informers.SharedInformerFactory) CompletedCo
 			})
 		}
 	}
+
+	c.AlternativeServices = filters.NewAlternativeServerInfo(informers)
 
 	return CompletedConfig{&completedConfig{c, informers}}
 }
@@ -889,6 +895,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericapifilters.WithRequestReceivedTimestamp(handler)
 	handler = genericfilters.WithPanicRecovery(handler, c.RequestInfoResolver)
 	handler = genericapifilters.WithAuditID(handler)
+	handler = genericfilters.WithAternativeServices(handler, c.AlternativeServices)
 	return handler
 }
 
