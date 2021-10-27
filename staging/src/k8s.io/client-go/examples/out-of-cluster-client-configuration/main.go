@@ -21,14 +21,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"path/filepath"
 	"time"
+
+	clienttr "k8s.io/client-go/transport"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/klog/v2"
 	//
 	// Uncomment to load all auth plugins
 	// _ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -41,6 +45,9 @@ import (
 )
 
 func main() {
+	klog.InitFlags(nil)
+	defer klog.Flush()
+
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -55,6 +62,11 @@ func main() {
 		panic(err.Error())
 	}
 
+	fn := func(rt http.RoundTripper) http.RoundTripper {
+		return clienttr.NewAlternativeServiceRoundTripperWithAlternativeServices(rt, []string{"172.18.0.4:6443", "172.18.0.5:6443"})
+	}
+	config.Wrap(fn)
+	config.Host = "invalidhost"
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {

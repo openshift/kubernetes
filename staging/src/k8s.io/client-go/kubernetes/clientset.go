@@ -67,6 +67,7 @@ import (
 	storagev1alpha1 "k8s.io/client-go/kubernetes/typed/storage/v1alpha1"
 	storagev1beta1 "k8s.io/client-go/kubernetes/typed/storage/v1beta1"
 	rest "k8s.io/client-go/rest"
+	clienttransport "k8s.io/client-go/transport"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
 )
 
@@ -396,6 +397,10 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 // where httpClient was generated with rest.HTTPClientFor(c).
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
+
+	// Create a wrapped transport for client load balancing using alternative services
+	// only if there is not custom ServerName or the target is localhost
+	configShallowCopy.Wrap(clienttransport.NewAlternativeServiceRoundTripper)
 
 	// share the transport between all clients
 	httpClient, err := rest.HTTPClientFor(&configShallowCopy)
