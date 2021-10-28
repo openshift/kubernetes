@@ -34,14 +34,14 @@ require (
 )
 
 replace (
+	cloud.google.com/go => cloud.google.com/go v0.54.0
+	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	golang.org/x/net => golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go
 	k8s.io/component-base => ../component-base
 )
-
-replace github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.1-0.20211024130314-8afb1687d291
-
-replace github.com/prometheus/common => github.com/prometheus/common v0.29.0

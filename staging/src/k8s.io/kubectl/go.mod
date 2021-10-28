@@ -45,10 +45,17 @@ require (
 )
 
 replace (
-	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.33.2-0.20210825140152-3e7875ab2744
+	cloud.google.com/go => cloud.google.com/go v0.54.0
+	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
+	github.com/containerd/containerd => github.com/containerd/containerd v1.4.4
+	github.com/containerd/typeurl => github.com/containerd/typeurl v1.0.1
+	github.com/docker/docker => github.com/docker/docker v20.10.2+incompatible
+	github.com/google/cadvisor => github.com/bwplotka/cadvisor v0.42.1-0.20211024204407-cd50a343c965
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	golang.org/x/net => golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

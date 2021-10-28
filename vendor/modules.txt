@@ -1,7 +1,7 @@
 # bitbucket.org/bertimus9/systemstat v0.0.0-20180207000608-0eeff89b0690 => bitbucket.org/bertimus9/systemstat v0.0.0-20180207000608-0eeff89b0690
 ## explicit
 bitbucket.org/bertimus9/systemstat
-# cloud.google.com/go v0.54.0 => cloud.google.com/go v0.54.0
+# cloud.google.com/go v0.65.0 => cloud.google.com/go v0.54.0
 cloud.google.com/go/compute/metadata
 # github.com/Azure/azure-sdk-for-go v55.0.0+incompatible => github.com/Azure/azure-sdk-for-go v55.0.0+incompatible
 ## explicit
@@ -147,7 +147,7 @@ github.com/bits-and-blooms/bitset
 # github.com/blang/semver v3.5.1+incompatible => github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
-# github.com/cespare/xxhash/v2 v2.1.1 => github.com/cespare/xxhash/v2 v2.1.1
+# github.com/cespare/xxhash/v2 v2.1.2 => github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
 # github.com/chai2010/gettext-go v0.0.0-20160711120539-c6fed771bfd5 => github.com/chai2010/gettext-go v0.0.0-20160711120539-c6fed771bfd5
 github.com/chai2010/gettext-go/gettext
@@ -174,7 +174,7 @@ github.com/container-storage-interface/spec/lib/go/csi
 github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.2 => github.com/containerd/console v1.0.2
 github.com/containerd/console
-# github.com/containerd/containerd v1.4.4 => github.com/containerd/containerd v1.4.4
+# github.com/containerd/containerd v1.4.11 => github.com/containerd/containerd v1.4.4
 github.com/containerd/containerd/api/services/containers/v1
 github.com/containerd/containerd/api/services/tasks/v1
 github.com/containerd/containerd/api/services/version/v1
@@ -233,7 +233,7 @@ github.com/daviddengcn/go-colortext
 github.com/docker/distribution/digestset
 github.com/docker/distribution/reference
 github.com/docker/distribution/registry/api/errcode
-# github.com/docker/docker v20.10.2+incompatible => github.com/docker/docker v20.10.2+incompatible
+# github.com/docker/docker v20.10.7+incompatible => github.com/docker/docker v20.10.2+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -359,7 +359,7 @@ github.com/golang/protobuf/ptypes/wrappers
 ## explicit
 # github.com/google/btree v1.0.1 => github.com/google/btree v1.0.1
 github.com/google/btree
-# github.com/google/cadvisor v0.39.2 => github.com/openshift/google-cadvisor v0.33.2-0.20210825140152-3e7875ab2744
+# github.com/google/cadvisor v0.42.1-0.20211024204407-cd50a343c965 => github.com/bwplotka/cadvisor v0.42.1-0.20211024204407-cd50a343c965
 ## explicit
 github.com/google/cadvisor/accelerators
 github.com/google/cadvisor/cache/memory
@@ -835,7 +835,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021 => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
-# github.com/prometheus/client_golang v1.11.0 => github.com/prometheus/client_golang v1.11.0
+# github.com/prometheus/client_golang v1.11.1-0.20211024130314-8afb1687d291 => github.com/prometheus/client_golang v1.11.1-0.20211024130314-8afb1687d291
 ## explicit
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
@@ -845,7 +845,7 @@ github.com/prometheus/client_golang/prometheus/testutil/promlint
 # github.com/prometheus/client_model v0.2.0 => github.com/prometheus/client_model v0.2.0
 ## explicit
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.26.0 => github.com/prometheus/common v0.26.0
+# github.com/prometheus/common v0.29.0 => github.com/prometheus/common v0.29.0
 ## explicit
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
@@ -903,6 +903,7 @@ github.com/tmc/grpc-websocket-proxy/wsproxy
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae => github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
+## explicit
 github.com/vishvananda/netns
 # github.com/vmware/govmomi v0.20.3 => github.com/vmware/govmomi v0.20.3
 ## explicit
@@ -1156,7 +1157,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/mod v0.4.2 => golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210520170846-37e1c6afe023 => golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+# golang.org/x/net v0.0.0-20210525063256-abc453219eb5 => golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1173,7 +1174,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d => golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+# golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c => golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/google
@@ -2702,7 +2703,7 @@ sigs.k8s.io/yaml
 # github.com/gonum/lapack => github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9
 # github.com/gonum/matrix => github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9
 # github.com/google/btree => github.com/google/btree v1.0.1
-# github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.33.2-0.20210825140152-3e7875ab2744
+# github.com/google/cadvisor => github.com/bwplotka/cadvisor v0.42.1-0.20211024204407-cd50a343c965
 # github.com/google/go-cmp => github.com/google/go-cmp v0.5.5
 # github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
 # github.com/google/martian => github.com/google/martian v2.1.0+incompatible
@@ -2819,9 +2820,9 @@ sigs.k8s.io/yaml
 # github.com/pmezard/go-difflib => github.com/pmezard/go-difflib v1.0.0
 # github.com/posener/complete => github.com/posener/complete v1.1.1
 # github.com/pquerna/cachecontrol => github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021
-# github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
+# github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.1-0.20211024130314-8afb1687d291
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.2.0
-# github.com/prometheus/common => github.com/prometheus/common v0.26.0
+# github.com/prometheus/common => github.com/prometheus/common v0.29.0
 # github.com/prometheus/procfs => github.com/prometheus/procfs v0.6.0
 # github.com/quobyte/api => github.com/quobyte/api v0.1.8
 # github.com/remyoudompheng/bigfft => github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446

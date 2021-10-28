@@ -263,14 +263,14 @@ type FsInfo struct {
 }
 
 type RequestOptions struct {
-	// Type of container identifier specified - "name", "dockerid", dockeralias"
+	// Type of container identifier specified - TypeName (default) or TypeDocker
 	IdType string `json:"type"`
 	// Number of stats to return
 	Count int `json:"count"`
 	// Whether to include stats for child subcontainers.
 	Recursive bool `json:"recursive"`
 	// Update stats if they are older than MaxAge
-	// nil indicates no update, and 0 will always trigger an update.
+	// nil and 0 indicates always update.
 	MaxAge *time.Duration `json:"max_age"`
 }
 
