@@ -89,3 +89,5 @@ func (rt *preferredHostRT) CancelRequest(req *http.Request) {
 		rtCanceller.CancelRequest(req)
 	}
 }
+
+func (rt *preferredHostRT) WrappedRoundTripper() http.RoundTripper { return rt.baseRT }
