@@ -164,3 +164,5 @@ func (rt *rejectIfNotReadyHeaderRT) RoundTrip(r *http.Request) (*http.Response, 
 	}
 	return rt.baseRT.RoundTrip(r)
 }
+
+func (rt *rejectIfNotReadyHeaderRT) WrappedRoundTripper() http.RoundTripper { return rt.baseRT }
