@@ -20,10 +20,13 @@ function os::build::rpm::get_nvra_vars() {
 	# we can extract the package version from the build version
 	os::build::version::get_vars
 	if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
-		OS_RPM_VERSION="${BASH_REMATCH[1]}"
 		metadata="${BASH_REMATCH[3]}"
 	else
 		os::log::fatal "Malformed \$OS_GIT_VERSION: ${OS_GIT_VERSION}"
+	fi
+
+	if [[ "$(grep "io\.openshift\.build\.versions" openshift-hack/images/hyperkube/Dockerfile.rhel)" =~ (1\.[0-9]+\.[0-9]+) ]]; then
+		OS_RPM_VERSION="${BASH_REMATCH[1]}"
 	fi
 
 	# we can generate the package release from the git version metadata
