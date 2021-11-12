@@ -1003,6 +1003,8 @@ items:
     resources:
     - secrets
     verbs:
+    - create
+    - delete
     - get
   - apiGroups:
     - ""
