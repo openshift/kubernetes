@@ -70,9 +70,9 @@ require (
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
 	github.com/openshift/api v0.0.0-20210910062324-a41d3573a3ba
-	github.com/openshift/apiserver-library-go v0.0.0-20211111022136-bfb62ec0e419
+	github.com/openshift/apiserver-library-go v0.0.0-20211116020226-339bb71f9a26
 	github.com/openshift/client-go v0.0.0-20210521082421-73d9475a9142
-	github.com/openshift/library-go v0.0.0-20210825122301-7f0bf922c345
+	github.com/openshift/library-go v0.0.0-20211109160828-8c48fafbad15
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_model v0.2.0
@@ -121,7 +121,7 @@ require (
 	k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
 	k8s.io/heapster v1.2.0-beta.1
 	k8s.io/klog/v2 v2.9.0
-	k8s.io/kube-aggregator v0.0.0
+	k8s.io/kube-aggregator v0.21.0-rc.0
 	k8s.io/kube-controller-manager v0.0.0
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
 	k8s.io/kube-proxy v0.0.0
@@ -525,8 +525,9 @@ replace (
 	k8s.io/csi-translation-lib => ./staging/src/k8s.io/csi-translation-lib
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
 	k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
+	k8s.io/klog => k8s.io/klog v1.0.0
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
-	k8s.io/kube-aggregator => ./staging/src/k8s.io/kube-aggregator
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.0-rc.0
 	k8s.io/kube-controller-manager => ./staging/src/k8s.io/kube-controller-manager
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
 	k8s.io/kube-proxy => ./staging/src/k8s.io/kube-proxy

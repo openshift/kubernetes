@@ -949,7 +949,7 @@ github.com/openshift/api/security
 github.com/openshift/api/security/v1
 github.com/openshift/api/template/v1
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20211111022136-bfb62ec0e419 => github.com/openshift/apiserver-library-go v0.0.0-20211111022136-bfb62ec0e419
+# github.com/openshift/apiserver-library-go v0.0.0-20211116020226-339bb71f9a26 => github.com/openshift/apiserver-library-go v0.0.0-20211111022136-bfb62ec0e419
 ## explicit
 # github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20211111022136-bfb62ec0e419
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
@@ -1080,7 +1080,7 @@ github.com/openshift/client-go/user/informers/externalversions/internalinterface
 github.com/openshift/client-go/user/informers/externalversions/user
 github.com/openshift/client-go/user/informers/externalversions/user/v1
 github.com/openshift/client-go/user/listers/user/v1
-# github.com/openshift/library-go v0.0.0-20210825122301-7f0bf922c345 => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
+# github.com/openshift/library-go v0.0.0-20211109160828-8c48fafbad15 => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
 ## explicit
 # github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
 github.com/openshift/library-go/pkg/apiserver/admission/admissionregistrationtesting
@@ -2514,11 +2514,12 @@ k8s.io/gengo/types
 ## explicit
 # k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
 k8s.io/heapster/metrics/api/v1/types
+# k8s.io/klog => k8s.io/klog v1.0.0
 # k8s.io/klog/v2 v2.9.0 => k8s.io/klog/v2 v2.9.0
 ## explicit
 k8s.io/klog/v2
 # k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
-# k8s.io/kube-aggregator v0.0.0 => ./staging/src/k8s.io/kube-aggregator
+# k8s.io/kube-aggregator v0.21.0-rc.0 => k8s.io/kube-aggregator v0.21.0-rc.0
 ## explicit
 # k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.0-rc.0
 k8s.io/kube-aggregator/pkg/apis/apiregistration

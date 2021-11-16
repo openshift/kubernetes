@@ -16,7 +16,7 @@ require (
 	k8s.io/component-base v0.21.0-rc.0
 	k8s.io/controller-manager v0.0.0
 	k8s.io/klog/v2 v2.9.0
-	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+	k8s.io/utils v0.0.0-20210521133846-da695404a2bc
 )
 
 replace (
@@ -26,6 +26,7 @@ replace (
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
 	github.com/openshift/api => github.com/openshift/api v0.0.0-20210713130143-be21c6cb1bea
+	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20211111022136-bfb62ec0e419
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210422153130-25c8450d1535
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427
