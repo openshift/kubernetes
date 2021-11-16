@@ -2514,20 +2514,11 @@ k8s.io/gengo/types
 ## explicit
 # k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
 k8s.io/heapster/metrics/api/v1/types
-<<<<<<< HEAD
-# k8s.io/klog => k8s.io/klog v1.0.0
-# k8s.io/klog/v2 v2.8.0 => k8s.io/klog/v2 v2.8.0
-## explicit
-k8s.io/klog/v2
-# k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
-# k8s.io/kube-aggregator v0.21.0-rc.0 => k8s.io/kube-aggregator v0.21.0-rc.0
-=======
 # k8s.io/klog/v2 v2.9.0 => k8s.io/klog/v2 v2.9.0
 ## explicit
 k8s.io/klog/v2
 # k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
 # k8s.io/kube-aggregator v0.0.0 => ./staging/src/k8s.io/kube-aggregator
->>>>>>> v1.21.6
 ## explicit
 # k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.0-rc.0
 k8s.io/kube-aggregator/pkg/apis/apiregistration
