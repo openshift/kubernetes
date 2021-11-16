@@ -9,8 +9,13 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/stretchr/testify v1.6.1
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+<<<<<<< HEAD
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/utils v0.0.0-20210521133846-da695404a2bc
+=======
+	k8s.io/klog/v2 v2.9.0
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
+>>>>>>> v1.21.6
 )
 
 replace k8s.io/mount-utils => ../mount-utils

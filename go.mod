@@ -120,8 +120,13 @@ require (
 	k8s.io/csi-translation-lib v0.0.0
 	k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
 	k8s.io/heapster v1.2.0-beta.1
+<<<<<<< HEAD
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-aggregator v0.21.0-rc.0
+=======
+	k8s.io/klog/v2 v2.9.0
+	k8s.io/kube-aggregator v0.0.0
+>>>>>>> v1.21.6
 	k8s.io/kube-controller-manager v0.0.0
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
 	k8s.io/kube-proxy v0.0.0
@@ -476,7 +481,7 @@ replace (
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
 	golang.org/x/term => golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
-	golang.org/x/text => golang.org/x/text v0.3.4
+	golang.org/x/text => golang.org/x/text v0.3.6
 	golang.org/x/time => golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	golang.org/x/tools => golang.org/x/tools v0.1.0
 	golang.org/x/xerrors => golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
@@ -525,9 +530,14 @@ replace (
 	k8s.io/csi-translation-lib => ./staging/src/k8s.io/csi-translation-lib
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20201214224949-b6c5ce23f027
 	k8s.io/heapster => k8s.io/heapster v1.2.0-beta.1
+<<<<<<< HEAD
 	k8s.io/klog => k8s.io/klog v1.0.0
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.0-rc.0
+=======
+	k8s.io/klog/v2 => k8s.io/klog/v2 v2.9.0
+	k8s.io/kube-aggregator => ./staging/src/k8s.io/kube-aggregator
+>>>>>>> v1.21.6
 	k8s.io/kube-controller-manager => ./staging/src/k8s.io/kube-controller-manager
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
 	k8s.io/kube-proxy => ./staging/src/k8s.io/kube-proxy

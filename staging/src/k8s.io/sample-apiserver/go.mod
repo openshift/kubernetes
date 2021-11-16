@@ -11,6 +11,7 @@ require (
 	github.com/google/gofuzz v1.1.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.1.1
+<<<<<<< HEAD
 	go.etcd.io/bbolt v1.3.5 // indirect
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
 	k8s.io/apimachinery v0.21.1
@@ -19,6 +20,14 @@ require (
 	k8s.io/code-generator v0.21.1
 	k8s.io/component-base v0.21.0-rc.0
 	k8s.io/klog/v2 v2.8.0
+=======
+	k8s.io/apimachinery v0.0.0
+	k8s.io/apiserver v0.0.0
+	k8s.io/client-go v0.0.0
+	k8s.io/code-generator v0.0.0
+	k8s.io/component-base v0.0.0
+	k8s.io/klog/v2 v2.9.0
+>>>>>>> v1.21.6
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
 )
 
