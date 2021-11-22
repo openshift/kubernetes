@@ -504,7 +504,7 @@ github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359/go.mo
 github.com/openshift/client-go v0.0.0-20210422153130-25c8450d1535/go.mod h1:v5/AYttPCjfqMGC1Ed/vutuDpuXmgWc5O+W9nwQ7EtE=
 github.com/openshift/ginkgo v4.7.0-origin.0+incompatible h1:2qD1n/RAnycWMPjYS6MEAUzRmVoF0ql7ozk1ANv8dcM=
 github.com/openshift/ginkgo v4.7.0-origin.0+incompatible/go.mod h1:8METQ1gDhl0KW+pGH4c0DIJYEN/ksVCL6hOuHPmXGnk=
-github.com/openshift/google-cadvisor v0.33.2-0.20210610135131-57b941c7657a/go.mod h1:kN93gpdevu+bpS227TyHVZyCU5bbqCzTj5T9drl34MI=
+github.com/openshift/google-cadvisor v0.33.2-0.20211111141403-f81b61d24fd4/go.mod h1:kN93gpdevu+bpS227TyHVZyCU5bbqCzTj5T9drl34MI=
 github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427 h1:/6Xf107BJIzdfRe9xfuU4xnx7TUHQ7vzDMWiNYPmxfM=
 github.com/openshift/library-go v0.0.0-20210407092538-7021fda6f427/go.mod h1:pnz961veImKsbn7pQcuFbcVpCQosYiC1fUOjzEDeOLU=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
