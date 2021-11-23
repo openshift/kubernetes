@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path"
 	"reflect"
 	"strings"
@@ -876,7 +877,7 @@ func (s *store) watch(ctx context.Context, key string, opts storage.ListOptions,
 		// however the resource this storage deals with does not - the resource is not served from the watch cache.
 		// usually that means the server doesn't support caching or caching has been deliberately disabled form this particular resource.
 		// in that case we return a well known error to instruct the reflector/informer to fall back to the previous mode
-		return nil, apierrors.NewMethodNotSupported(s.groupResource, "do not set consistentWatchCache query option")
+		return nil, apierrors.NewMethodNotSupported(schema.GroupResource{Resource: key}, "do not set consistentWatchCache query option")
 	}
 	rev, err := s.versioner.ParseResourceVersion(opts.ResourceVersion)
 	if err != nil {
