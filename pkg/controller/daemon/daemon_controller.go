@@ -294,7 +294,7 @@ func (dsc *DaemonSetsController) Run(ctx context.Context, workers int) {
 		return
 	}
 	if dsc.namespaceStoreSynced != nil {
-		if !cache.WaitForNamedCacheSync("daemon sets", stopCh, dsc.namespaceStoreSynced) {
+		if !cache.WaitForNamedCacheSync("daemon sets", ctx.Done(), dsc.namespaceStoreSynced) {
 			return
 		}
 	}
