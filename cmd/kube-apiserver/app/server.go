@@ -313,8 +313,6 @@ func CreateKubeAPIServerConfig(s completedServerRunOptions, stopCh <-chan struct
 	s.Metrics.Apply()
 	serviceaccount.RegisterMetrics()
 
-	s.Logs.Apply()
-
 	var eventStorage *eventstorage.REST
 	eventStorage, err = eventstorage.NewREST(genericConfig.RESTOptionsGetter, uint64(s.EventTTL.Seconds()))
 	if err != nil {
