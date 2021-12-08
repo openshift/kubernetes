@@ -533,4 +533,9 @@ replace (
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.0
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.1.2
 	sigs.k8s.io/yaml => sigs.k8s.io/yaml v1.2.0
+
+  github.com/openshift/api => github.com/damemi/api 88f7870d41bafc3029b11152a92ac7ad72dd524b
+  github.com/openshift/client-go => github.com/damemi/client-go abf88261d56d6b7ed2ae8fb98d65b78166a02d3e
+  github.com/openshift/library-go => github.com/damemi/library-go 5d931a4a072def31412f16123eb1468709a6cf3d
+  github.com/openshift/apiserver-library-go => github.com/damemi/apiserver-library-go 9392a4ada16fb8132427e39c5c96682c3f492ac7
 )
