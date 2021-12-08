@@ -103,7 +103,7 @@ func WithLogging(handler http.Handler, pred StacktracePred, isTerminatingFn func
 	}, isTerminatingFn)
 }
 
-func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogRequest ShouldLogRequestPred) http.Handler {
+func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogRequest ShouldLogRequestPred, isTerminatingFn func() bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if !shouldLogRequest() {
 			handler.ServeHTTP(w, req)
@@ -123,7 +123,7 @@ func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogR
 		if isTerminatingFn != nil {
 			isTerminating = isTerminatingFn()
 		}
-		rl := newLoggedWithStartTime(req, w, startTime).StacktraceWhen(pred).IsTerminating(isTerminating)
+		rl := newLoggedWithStartTime(req, w, startTime).StacktraceWhen(stackTracePred).IsTerminating(isTerminating)
 		req = req.WithContext(context.WithValue(ctx, respLoggerContextKey, rl))
 
 		if klog.V(3).Enabled() || (rl.isTerminating && klog.V(1).Enabled()) {
