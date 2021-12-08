@@ -21,7 +21,7 @@ require (
 	github.com/lithammer/dedent v1.1.0
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/moby/term v0.0.0-20210610120745-9d4ed1856297
-	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
+	github.com/onsi/ginkgo v1.14.1-0.20210831090728-b44d806b01b6
 	github.com/onsi/gomega v1.10.1
 	github.com/russross/blackfriday v1.5.2
 	github.com/spf13/cobra v1.1.3
@@ -48,7 +48,7 @@ replace (
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.33.2-0.20211111141403-f81b61d24fd4
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
-	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v1.14.1-0.20210831090728-b44d806b01b6
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

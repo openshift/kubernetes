@@ -32,6 +32,10 @@ func (suite *Suite) Iterator(config config.GinkgoConfigType) spec_iterator.SpecI
 
 func (suite *Suite) WalkTests(fn func(testName, parentName string, test types.TestNode)) {
 	suite.topLevelContainer.BackPropagateProgrammaticFocus()
+	suite.expandTopLevelNodes = true
+	for _, deferredNode := range suite.deferredContainerNodes {
+		suite.PushContainerNode(deferredNode.text, deferredNode.body, deferredNode.flag, deferredNode.codeLocation)
+	}
 	for _, collatedNodes := range suite.topLevelContainer.Collate() {
 		itNode, ok := collatedNodes.Subject.(*leafnodes.ItNode)
 		if !ok {

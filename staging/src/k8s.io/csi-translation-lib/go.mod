@@ -12,7 +12,7 @@ require (
 )
 
 replace (
-	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v1.14.1-0.20210831090728-b44d806b01b6
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/csi-translation-lib => ../csi-translation-lib

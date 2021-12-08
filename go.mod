@@ -53,7 +53,6 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.5
 	github.com/heketi/heketi v10.3.0+incompatible
-	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/ishidawataru/sctp v0.0.0-20190723014705-7c296d48a2b5
 	github.com/json-iterator/go v1.1.11
 	github.com/libopenstorage/openstorage v1.0.0
@@ -62,7 +61,7 @@ require (
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/mvdan/xurls v1.1.0
-	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible
+	github.com/onsi/ginkgo v1.14.1-0.20210831090728-b44d806b01b6
 	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.2
@@ -102,11 +101,9 @@ require (
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
-	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/gcfg.v1 v1.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/square/go-jose.v2 v2.2.2
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.22.1
@@ -385,7 +382,7 @@ replace (
 	github.com/niemeyer/pretty => github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
 	github.com/nxadm/tail => github.com/nxadm/tail v1.4.4
 	github.com/olekukonko/tablewriter => github.com/olekukonko/tablewriter v0.0.4
-	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	github.com/onsi/ginkgo => github.com/openshift/onsi-ginkgo v1.14.1-0.20210831090728-b44d806b01b6
 	github.com/onsi/gomega => github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest => github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.1
