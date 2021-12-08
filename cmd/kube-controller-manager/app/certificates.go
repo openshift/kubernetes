@@ -194,15 +194,15 @@ func startRootCACertPublisher(ctx context.Context, controllerContext ControllerC
 	return nil, true, nil
 }
 
-func startServiceCACertPublisher(ctx ControllerContext) (http.Handler, bool, error) {
+func startServiceCACertPublisher(ctx context.Context, controllerContext ControllerContext) (controller.Interface, bool, error) {
 	sac, err := servicecacertpublisher.NewPublisher(
-		ctx.InformerFactory.Core().V1().ConfigMaps(),
-		ctx.InformerFactory.Core().V1().Namespaces(),
-		ctx.ClientBuilder.ClientOrDie("service-ca-cert-publisher"),
+		controllerContext.InformerFactory.Core().V1().ConfigMaps(),
+		controllerContext.InformerFactory.Core().V1().Namespaces(),
+		controllerContext.ClientBuilder.ClientOrDie("service-ca-cert-publisher"),
 	)
 	if err != nil {
 		return nil, true, fmt.Errorf("error creating service CA certificate publisher: %v", err)
 	}
-	go sac.Run(1, ctx.Stop)
+	go sac.Run(1, ctx.Done())
 	return nil, true, nil
 }
