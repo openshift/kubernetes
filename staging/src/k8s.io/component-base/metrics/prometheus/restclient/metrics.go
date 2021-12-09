@@ -40,6 +40,16 @@ var (
 		[]string{"verb", "url"},
 	)
 
+	requestSize = k8smetrics.NewHistogramVec(
+		&k8smetrics.HistogramOpts{
+			Name: "rest_client_request_size_bytes",
+			Help: "Request size in bytes. Broken down by verb and URL.",
+			// Use buckets ranging from 1000 bytes (1KB) to 10^9 bytes (1GB).
+			Buckets: k8smetrics.ExponentialBuckets(1000, 10.0, 7),
+		},
+		[]string{"verb", "url"},
+	)
+
 	rateLimiterLatency = k8smetrics.NewHistogramVec(
 		&k8smetrics.HistogramOpts{
 			Name:    "rest_client_rate_limiter_duration_seconds",
@@ -121,6 +131,7 @@ var (
 func init() {
 
 	legacyregistry.MustRegister(requestLatency)
+	legacyregistry.MustRegister(requestSize)
 	legacyregistry.MustRegister(rateLimiterLatency)
 	legacyregistry.MustRegister(requestResult)
 	legacyregistry.RawMustRegister(execPluginCertTTL)
@@ -129,6 +140,7 @@ func init() {
 		ClientCertExpiry:      execPluginCertTTLAdapter,
 		ClientCertRotationAge: &rotationAdapter{m: execPluginCertRotation},
 		RequestLatency:        &latencyAdapter{m: requestLatency},
+		RequestSize:           &sizeAdapter{m: requestSize},
 		RateLimiterLatency:    &latencyAdapter{m: rateLimiterLatency},
 		RequestResult:         &resultAdapter{requestResult},
 		ExecPluginCalls:       &callsAdapter{m: execPluginCalls},
@@ -141,6 +153,14 @@ type latencyAdapter struct {
 
 func (l *latencyAdapter) Observe(ctx context.Context, verb string, u url.URL, latency time.Duration) {
 	l.m.WithContext(ctx).WithLabelValues(verb, u.String()).Observe(latency.Seconds())
+}
+
+type sizeAdapter struct {
+	m *k8smetrics.HistogramVec
+}
+
+func (s *sizeAdapter) Observe(ctx context.Context, verb string, u url.URL, size float64) {
+	s.m.WithContext(ctx).WithLabelValues(verb, u.String()).Observe(size)
 }
 
 type resultAdapter struct {

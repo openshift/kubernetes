@@ -1038,6 +1038,7 @@ func (r *Request) Do(ctx context.Context) Result {
 		return Result{err: err}
 	}
 	metrics.RequestLatency.Observe(ctx, r.verb, r.finalURLTemplate(), time.Since(start))
+	metrics.RequestSize.Observe(ctx, r.verb, r.finalURLTemplate(), float64(len(result.body)))
 	return result
 }
 
@@ -1057,6 +1058,7 @@ func (r *Request) DoRaw(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	metrics.RequestLatency.Observe(ctx, r.verb, r.finalURLTemplate(), time.Since(start))
+	metrics.RequestSize.Observe(ctx, r.verb, r.finalURLTemplate(), float64(len(result.body)))
 	return result.body, result.err
 }
 
