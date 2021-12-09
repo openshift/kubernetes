@@ -35,7 +35,7 @@ var (
 		&k8smetrics.HistogramOpts{
 			Name:    "rest_client_request_duration_seconds",
 			Help:    "Request latency in seconds. Broken down by verb and URL.",
-			Buckets: k8smetrics.ExponentialBuckets(0.001, 2, 10),
+			Buckets: k8smetrics.DefBuckets,
 		},
 		[]string{"verb", "url"},
 	)
@@ -44,7 +44,7 @@ var (
 		&k8smetrics.HistogramOpts{
 			Name:    "rest_client_rate_limiter_duration_seconds",
 			Help:    "Client side rate limiter latency in seconds. Broken down by verb and URL.",
-			Buckets: k8smetrics.ExponentialBuckets(0.001, 2, 10),
+			Buckets: k8smetrics.DefBuckets,
 		},
 		[]string{"verb", "url"},
 	)
