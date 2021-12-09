@@ -926,12 +926,6 @@ func (r *Request) newHTTPRequest(ctx context.Context) (*http.Request, error) {
 // fn at most once. It will return an error if a problem occurred prior to connecting to the
 // server - the provided function is responsible for handling server errors.
 func (r *Request) request(ctx context.Context, fn func(*http.Request, *http.Response)) error {
-	//Metrics for total request latency
-	start := time.Now()
-	defer func() {
-		metrics.RequestLatency.Observe(ctx, r.verb, r.finalURLTemplate(), time.Since(start))
-	}()
-
 	if r.err != nil {
 		klog.V(4).Infof("Error in request: %v", r.err)
 		return r.err
@@ -1035,18 +1029,23 @@ func (r *Request) request(ctx context.Context, fn func(*http.Request, *http.Resp
 //  * http.Client.Do errors are returned directly.
 func (r *Request) Do(ctx context.Context) Result {
 	var result Result
+	// Metrics for total request latency
+	start := time.Now()
 	err := r.request(ctx, func(req *http.Request, resp *http.Response) {
 		result = r.transformResponse(resp, req)
 	})
 	if err != nil {
 		return Result{err: err}
 	}
+	metrics.RequestLatency.Observe(ctx, r.verb, r.finalURLTemplate(), time.Since(start))
 	return result
 }
 
 // DoRaw executes the request but does not process the response body.
 func (r *Request) DoRaw(ctx context.Context) ([]byte, error) {
 	var result Result
+	// Metrics for total request latency
+	start := time.Now()
 	err := r.request(ctx, func(req *http.Request, resp *http.Response) {
 		result.body, result.err = ioutil.ReadAll(resp.Body)
 		glogBody("Response Body", result.body)
@@ -1057,6 +1056,7 @@ func (r *Request) DoRaw(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	metrics.RequestLatency.Observe(ctx, r.verb, r.finalURLTemplate(), time.Since(start))
 	return result.body, result.err
 }
 
