@@ -200,7 +200,20 @@ func (s *Serializer) doEncode(obj runtime.Object, w io.Writer) error {
 		// the more efficient Size and MarshalToSizedBuffer methods
 		encodedSize := uint64(t.Size())
 		estimatedSize := prefixSize + estimateUnknownSize(&unk, encodedSize)
-		data := make([]byte, estimatedSize)
+
+		type Allocator interface {
+			Allocate(n uint64) []byte
+			Trim(n uint64)
+		}
+
+		var data []byte
+		wAlloc, isAlloc := w.(Allocator)
+		if isAlloc {
+			data = wAlloc.Allocate(estimatedSize)
+
+		} else {
+			data = make([]byte, estimatedSize)
+		}
 
 		i, err := unk.NestedMarshalTo(data[prefixSize:], t, encodedSize)
 		if err != nil {
@@ -209,6 +222,10 @@ func (s *Serializer) doEncode(obj runtime.Object, w io.Writer) error {
 
 		copy(data, s.prefix)
 
+		if isAlloc {
+			wAlloc.Trim(prefixSize+uint64((i)))
+			return nil
+		}
 		_, err = w.Write(data[:prefixSize+uint64(i)])
 		return err
 
@@ -407,11 +424,28 @@ func (s *RawSerializer) doEncode(obj runtime.Object, w io.Writer) error {
 		// this path performs a single allocation during write but requires the caller to implement
 		// the more efficient Size and MarshalToSizedBuffer methods
 		encodedSize := uint64(t.Size())
-		data := make([]byte, encodedSize)
+		type Allocator interface {
+			Allocate(n uint64) []byte
+			Trim(n uint64)
+		}
+
+		var data []byte
+		wAlloc, isAlloc := w.(Allocator)
+		if isAlloc {
+			data = wAlloc.Allocate(encodedSize)
+
+		} else {
+			data = make([]byte, encodedSize)
+		}
+
 
 		n, err := t.MarshalToSizedBuffer(data)
 		if err != nil {
 			return err
+		}
+		if isAlloc {
+			wAlloc.Trim(uint64(n))
+			return nil
 		}
 		_, err = w.Write(data[:n])
 		return err
@@ -420,11 +454,28 @@ func (s *RawSerializer) doEncode(obj runtime.Object, w io.Writer) error {
 		// this path performs a single allocation during write but requires the caller to implement
 		// the more efficient Size and MarshalTo methods
 		encodedSize := uint64(t.Size())
-		data := make([]byte, encodedSize)
+		type Allocator interface {
+			Allocate(n uint64) []byte
+			Trim(n uint64)
+		}
+
+		var data []byte
+		wAlloc, isAlloc := w.(Allocator)
+		if isAlloc {
+			data = wAlloc.Allocate(encodedSize)
+
+		} else {
+			data = make([]byte, encodedSize)
+		}
 
 		n, err := t.MarshalTo(data)
 		if err != nil {
 			return err
+		}
+
+		if isAlloc {
+			wAlloc.Trim(uint64(n))
+			return nil
 		}
 		_, err = w.Write(data[:n])
 		return err

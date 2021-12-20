@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/apiserver/pkg/util/wsstream"
 
 	"golang.org/x/net/websocket"
+	"k8s.io/klog/v2"
 )
 
 // nothing will ever be sent down this channel
@@ -187,7 +189,8 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		s.Scope.err(errors.NewBadRequest(err.Error()), w, req)
 		return
 	}
-	e := streaming.NewEncoder(framer, s.Encoder)
+	var e streaming.Encoder
+	e = streaming.NewEncoder(framer, s.Encoder)
 
 	// ensure the connection times out
 	timeoutCh, cleanup := s.TimeoutFactory.TimeoutCh()
@@ -199,12 +202,29 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
 
+	debugBufer := false
+	if req.URL != nil && strings.Contains(req.URL.String(), "consistentWatchCache") {
+		debugBufer = true
+		e = streaming.NewOptimizedEncoder(framer, s.Encoder)
+	}
+
 	var unknown runtime.Unknown
 	internalEvent := &metav1.InternalEvent{}
 	outEvent := &metav1.WatchEvent{}
-	buf := &bytes.Buffer{}
+	buf := &sBuffer{debug: debugBufer}
 	ch := s.Watching.ResultChan()
 	done := req.Context().Done()
+
+	defer func() {
+		if buf.debug {
+			urlStrt := ""
+			if req.URL != nil {
+				urlStrt = req.URL.String()
+			}
+			eB := e.(*streaming.EncoderOpt)
+			klog.Infof("stats: allocations = %v, writeMethodCalls = %v, url = %v", buf.allocations + eB.Buf.Allocations, buf.writeMethodCalls + eB.Buf.WriteMethodCalls, urlStrt)
+		}
+	}()
 
 	for {
 		select {
@@ -228,7 +248,7 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			// ContentType is not required here because we are defaulting to the serializer
 			// type
-			unknown.Raw = buf.Bytes()
+			unknown.Raw = buf.buf
 			event.Object = &unknown
 			metrics.WatchEventsSizes.WithContext(req.Context()).WithLabelValues(kind.Group, kind.Version, kind.Kind).Observe(float64(len(unknown.Raw)))
 
@@ -253,7 +273,7 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				flusher.Flush()
 			}
 
-			buf.Reset()
+			//buf.Reset()
 		}
 	}
 }
@@ -316,6 +336,7 @@ func (s *WatchServer) HandleWS(ws *websocket.Conn) {
 				utilruntime.HandleError(fmt.Errorf("unable to encode event: %v", err))
 				return
 			}
+
 			if s.UseTextFraming {
 				if err := websocket.Message.Send(ws, streamBuf.String()); err != nil {
 					// Client disconnect.
@@ -330,5 +351,45 @@ func (s *WatchServer) HandleWS(ws *websocket.Conn) {
 			buf.Reset()
 			streamBuf.Reset()
 		}
+	}
+}
+
+type sBuffer struct {
+	buf []byte
+	debug bool
+	allocations int
+	writeMethodCalls int
+}
+
+func (s *sBuffer) Allocate(n uint64) []byte {
+	if uint64(cap(s.buf)) >= n {
+		s.buf = s.buf[:n]
+		s.reset()
+		return s.buf
+	}
+	if s.debug {
+		s.allocations++
+	}
+	s.buf = make([]byte, n, n)
+	return s.buf
+}
+
+func (s *sBuffer) Write(b []byte) (n int, err error) {
+	//return 0, fmt.Errorf("Write is NOT SUPPORTED, use Allocate")
+	if s.debug {
+		s.writeMethodCalls++
+	}
+	buf := s.Allocate(uint64(len(b)))
+	copy(buf, b)
+	return len(buf), nil
+}
+
+func (s *sBuffer) Trim(n uint64) {
+	s.buf = s.buf[:n]
+}
+
+func (s *sBuffer) reset() {
+	for i:=0; i<len(s.buf); i++ {
+		s.buf[i] = 0
 	}
 }

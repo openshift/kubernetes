@@ -134,3 +134,72 @@ func (e *encoder) Encode(obj runtime.Object) error {
 	e.buf.Reset()
 	return err
 }
+
+type EncoderOpt struct {
+	writer  io.Writer
+	encoder runtime.Encoder
+	Buf     *SBuffer
+}
+
+// NewEncoder returns a new streaming encoder.
+func NewOptimizedEncoder(w io.Writer, e runtime.Encoder) *EncoderOpt {
+	return &EncoderOpt{
+		writer:  w,
+		encoder: e,
+		Buf:     &SBuffer{debug: true},
+	}
+}
+
+
+// Encode writes the provided object to the nested writer.
+func (e *EncoderOpt) Encode(obj runtime.Object) error {
+	if err := e.encoder.Encode(obj, e.Buf); err != nil {
+		return err
+	}
+	_, err := e.writer.Write(e.Buf.buf)
+	//e.buf.Reset()
+	if e.Buf.debug {
+
+	}
+	return err
+}
+
+type SBuffer struct {
+	buf []byte
+	debug bool
+	Allocations int
+	WriteMethodCalls int
+}
+
+func (s *SBuffer) Allocate(n uint64) []byte {
+	if uint64(cap(s.buf)) >= n {
+		s.buf = s.buf[:n]
+		s.reset()
+		return s.buf
+	}
+	if s.debug {
+		s.Allocations++
+	}
+	s.buf = make([]byte, n, n)
+	return s.buf
+}
+
+func (s *SBuffer) Write(b []byte) (n int, err error) {
+	//return 0, fmt.Errorf("Write is NOT SUPPORTED, use Allocate")
+	if s.debug {
+		s.WriteMethodCalls++
+	}
+	buf := s.Allocate(uint64(len(b)))
+	copy(buf, b)
+	return len(buf), nil
+}
+
+func (s *SBuffer) Trim(n uint64) {
+	s.buf = s.buf[:n]
+}
+
+func (s *SBuffer) reset() {
+	for i:=0; i<len(s.buf); i++ {
+		s.buf[i] = 0
+	}
+}
