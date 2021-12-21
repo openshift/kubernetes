@@ -111,7 +111,7 @@ func NewController(p ControllerParameters) (*PersistentVolumeController, error) 
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    func(obj interface{}) { controller.enqueueWork(controller.volumeQueue, obj) },
 			UpdateFunc: func(oldObj, newObj interface{}) { controller.enqueueWork(controller.volumeQueue, newObj) },
-			DeleteFunc: func(obj interface{}) { controller.enqueueWorkAfter(controller.volumeQueue, obj, 21*time.Second) },
+			DeleteFunc: func(obj interface{}) { controller.enqueueWork(controller.volumeQueue, obj) },
 		},
 	)
 	controller.volumeLister = p.VolumeInformer.Lister()
