@@ -910,7 +910,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	PodSecurity:                                    {Default: false, PreRelease: featuregate.Alpha},
 	ReadWriteOncePod:                               {Default: false, PreRelease: featuregate.Alpha},
 	CSRDuration:                                    {Default: true, PreRelease: featuregate.Beta},
-	DelegateFSGroupToCSIDriver:                     {Default: false, PreRelease: featuregate.Alpha},
+	DelegateFSGroupToCSIDriver:                     {Default: true, PreRelease: featuregate.Alpha},
 	KubeletInUserNamespace:                         {Default: false, PreRelease: featuregate.Alpha},
 	MemoryQoS:                                      {Default: false, PreRelease: featuregate.Alpha},
 	CPUManagerPolicyOptions:                        {Default: false, PreRelease: featuregate.Alpha},
