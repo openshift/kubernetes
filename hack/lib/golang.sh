@@ -76,9 +76,9 @@ kube::golang::server_targets() {
     cmd/kubelet
     cmd/kubeadm
     cmd/kube-scheduler
-    vendor/k8s.io/component-base/logs/kube-log-runner
-    vendor/k8s.io/kube-aggregator
-    vendor/k8s.io/apiextensions-apiserver
+    staging/src/k8s.io/component-base/logs/kube-log-runner
+    staging/src/k8s.io/kube-aggregator
+    staging/src/k8s.io/apiextensions-apiserver
     cluster/gce/gci/mounter
     cmd/watch-termination
     openshift-hack/cmd/k8s-tests
@@ -128,7 +128,7 @@ kube::golang::node_targets() {
     cmd/kube-proxy
     cmd/kubeadm
     cmd/kubelet
-    vendor/k8s.io/component-base/logs/kube-log-runner
+    staging/src/k8s.io/component-base/logs/kube-log-runner
   )
   echo "${targets[@]}"
 }
@@ -386,7 +386,8 @@ kube::golang::binaries_from_targets() {
     fi
 
     if [[ "${target}" =~ ^vendor/ ]]; then
-      # Strip vendor/ prefix, since we're building in gomodule mode.
+      # Strip vendor/ prefix, since we're building in gomodule mode.  This is
+      # for backwards compatibility.
       echo "${target#"vendor/"}"
       continue
     fi
@@ -765,7 +766,7 @@ kube::golang::build_some_binaries() {
 
         go test -c -o "$(kube::golang::outfile_for_binary "${package}" "${platform}")" \
           -covermode count \
-          -coverpkg k8s.io/...,k8s.io/kubernetes/vendor/k8s.io/... \
+          -coverpkg k8s.io/... \
           "${build_args[@]}" \
           -tags coverage \
           "${package}"
