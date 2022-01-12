@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # See the OWNERS docs at https://go.k8s.io/owners
 
 filters:
@@ -28,3 +29,23 @@ filters:
     labels:
     - "vendor-update"
 component: kube-apiserver
+=======
+reviewers:
+  - abhat
+  - alexanderConstantinescu
+  - danwinship
+  - dcbw
+  - JacobTanenbaum
+  - squeed
+  - tssurya
+approvers:
+  - abhat
+  - danwinship
+  - dcbw
+  - knobunc
+  - squeed
+
+# Bugzilla info
+component: Networking
+subcomponent: openshift-sdn
+>>>>>>> bump-kube-1.23
