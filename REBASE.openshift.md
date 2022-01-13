@@ -232,8 +232,10 @@ kubernetes.
 
 To be able to use the latest kubelet from a pull request, in this repository
 we build [machine-os-content image](openshift-hack/images/os/Dockerfile).
-Make sure that both `FROM` and `curl` operation in `RUN` command use appropriate
-OCP version which corresponds with what we have in the [hyperkube image](openshift-hack/images/hyperkube/Dockerfile.rhel).
+Make sure that `FROM` line in that [image](openshift-hack/images/os/Dockerfile)
+and `curl` repository  operation in [install.sh](openshift-hack/images/os/install.sh)
+use appropriate OCP version which corresponds with what we have in the
+[hyperkube image](openshift-hack/images/hyperkube/Dockerfile.rhel).
 
 Similarly, update `FROM` in [test image](openshift-hack/images/tests/Dockerfile.rhel)
 to match the one from [hyperkube image](openshift-hack/images/hyperkube/Dockerfile.rhel).
