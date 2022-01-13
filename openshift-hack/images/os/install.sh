@@ -10,7 +10,7 @@ mkdir /tmp/working && cd /tmp/working
 rpm-ostree db list --repo /srv/repo $commit > /tmp/packages
 
 PACKAGES=(openshift-hyperkube)
-yumdownloader -y --disablerepo=* --enablerepo=built --destdir=/tmp/rpms "${PACKAGES[@]}"
+yumdownloader -y --disablerepo=* --enablerepo=rhel-8* --destdir=/tmp/rpms "${PACKAGES[@]}"
 if ! grep -q cri-o /tmp/packages; then
   yumdownloader -y --disablerepo=* --enablerepo=rhel-8* --destdir=/tmp/rpms cri-o cri-tools
 fi
