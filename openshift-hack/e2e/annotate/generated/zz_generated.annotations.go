@@ -735,6 +735,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-instrumentation] Stackdriver Monitoring should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent]": "should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent] [Disabled:Unimplemented] [Suite:k8s]",
 
+	"[Top Level] [sig-network] CVE-2021-29923 IPv4 Service Type ClusterIP with leading zeros should work interpreted as decimal": "IPv4 Service Type ClusterIP with leading zeros should work interpreted as decimal [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[Top Level] [sig-network] ClusterDns [Feature:Example] should create pod that uses dns": "should create pod that uses dns [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": "should be able to preserve UDP traffic when initial unready endpoints get ready [Disabled:Broken] [Suite:k8s]",
