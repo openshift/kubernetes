@@ -114,6 +114,8 @@ func (e *listWorkEstimator) estimate(r *http.Request, flowSchemaName, priorityLe
 	if seats > maximumSeats {
 		seats = maximumSeats
 	}
+	// patch to see if this added to our latency
+	seats = 1
 	return WorkEstimate{InitialSeats: seats}
 }
 
