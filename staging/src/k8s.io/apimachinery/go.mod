@@ -37,11 +37,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65
 	k8s.io/utils v0.0.0-20211208161948-7d6a63dca704
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6
-<<<<<<< HEAD
-	sigs.k8s.io/structured-merge-diff/v4 v4.2.0
-=======
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1
->>>>>>> v1.23.2
 	sigs.k8s.io/yaml v1.2.0
 )
 
