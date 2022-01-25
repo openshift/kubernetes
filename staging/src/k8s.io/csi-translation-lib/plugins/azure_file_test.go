@@ -297,6 +297,89 @@ func TestTranslateAzureFileInTreePVToCSI(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "get secret namespace from ClaimRef when it's missing in pv spec source",
+			volume: &corev1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "file.csi.azure.com-sharename",
+					Annotations: map[string]string{resourceGroupAnnotation: "rg"},
+				},
+				Spec: corev1.PersistentVolumeSpec{
+					PersistentVolumeSource: corev1.PersistentVolumeSource{
+						AzureFile: &corev1.AzureFilePersistentVolumeSource{
+							ShareName:  "sharename",
+							SecretName: "secretname",
+							//SecretNamespace: &secretNamespace,
+							ReadOnly: true,
+						},
+					},
+					ClaimRef: &corev1.ObjectReference{
+						Namespace: secretNamespace,
+					},
+				},
+			},
+			expVol: &corev1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "file.csi.azure.com-sharename",
+					Annotations: map[string]string{resourceGroupAnnotation: "rg"},
+				},
+				Spec: corev1.PersistentVolumeSpec{
+					PersistentVolumeSource: corev1.PersistentVolumeSource{
+						CSI: &corev1.CSIPersistentVolumeSource{
+							Driver:   "file.csi.azure.com",
+							ReadOnly: true,
+							NodeStageSecretRef: &corev1.SecretReference{
+								Name:      "secretname",
+								Namespace: secretNamespace,
+							},
+							VolumeAttributes: map[string]string{shareNameField: "sharename"},
+							VolumeHandle:     "rg#secretname#sharename#",
+						},
+					},
+					ClaimRef: &corev1.ObjectReference{
+						Namespace: secretNamespace,
+					},
+				},
+			},
+		},
+		{
+			name: "use default secret namespace if all other options fail",
+			volume: &corev1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "file.csi.azure.com-sharename",
+					Annotations: map[string]string{resourceGroupAnnotation: "rg"},
+				},
+				Spec: corev1.PersistentVolumeSpec{
+					PersistentVolumeSource: corev1.PersistentVolumeSource{
+						AzureFile: &corev1.AzureFilePersistentVolumeSource{
+							ShareName:  "sharename",
+							SecretName: "secretname",
+							ReadOnly:   true,
+						},
+					},
+				},
+			},
+			expVol: &corev1.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "file.csi.azure.com-sharename",
+					Annotations: map[string]string{resourceGroupAnnotation: "rg"},
+				},
+				Spec: corev1.PersistentVolumeSpec{
+					PersistentVolumeSource: corev1.PersistentVolumeSource{
+						CSI: &corev1.CSIPersistentVolumeSource{
+							Driver:   "file.csi.azure.com",
+							ReadOnly: true,
+							NodeStageSecretRef: &corev1.SecretReference{
+								Name:      "secretname",
+								Namespace: defaultSecretNamespace,
+							},
+							VolumeAttributes: map[string]string{shareNameField: "sharename"},
+							VolumeHandle:     "rg#secretname#sharename#",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
