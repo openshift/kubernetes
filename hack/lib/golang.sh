@@ -440,7 +440,7 @@ kube::golang::set_platform_envs() {
 
   # if CC is defined for platform then always enable it
   ccenv=$(echo "$platform" | awk -F/ '{print "KUBE_" toupper($1) "_" toupper($2) "_CC"}')
-  if [ -n "${!ccenv-}" ]; then 
+  if [ -n "${!ccenv-}" ]; then
     export CGO_ENABLED=1
     export CC="${!ccenv}"
   fi
@@ -719,7 +719,7 @@ kube::golang::build_binaries_for_platform() {
       -ldflags "${goldflags:-}"
       -tags "${gotags:-}"
     )
-    V=1 kube::log::info "> static build CGO_ENABLED=0: ${statics[*]}"
+    V=1 kube::log::info "> static build CGO_ENABLED=0: ${statics[*]} ${build_args[*]}"
     CGO_ENABLED=0 kube::golang::build_some_binaries "${statics[@]}"
   fi
 
@@ -731,7 +731,7 @@ kube::golang::build_binaries_for_platform() {
       -ldflags "${goldflags:-}"
       -tags "${gotags:-}"
     )
-    V=1 kube::log::info "> non-static build: ${nonstatics[*]}"
+    V=1 kube::log::info "> non-static build: ${nonstatics[*]} ${build_args[*]}"
     kube::golang::build_some_binaries "${nonstatics[@]}"
   fi
 
