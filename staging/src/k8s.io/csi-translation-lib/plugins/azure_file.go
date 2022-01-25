@@ -136,8 +136,7 @@ func (t *azureFileCSITranslator) TranslateInTreePVToCSI(pv *v1.PersistentVolume)
 		csiSource = &v1.CSIPersistentVolumeSource{
 			Driver: AzureFileDriverName,
 			NodeStageSecretRef: &v1.SecretReference{
-				Name:      azureSource.SecretName,
-				Namespace: defaultSecretNamespace,
+				Name: azureSource.SecretName,
 			},
 			ReadOnly:         azureSource.ReadOnly,
 			VolumeAttributes: map[string]string{shareNameField: azureSource.ShareName},
@@ -147,6 +146,8 @@ func (t *azureFileCSITranslator) TranslateInTreePVToCSI(pv *v1.PersistentVolume)
 
 	if azureSource.SecretNamespace != nil {
 		csiSource.NodeStageSecretRef.Namespace = *azureSource.SecretNamespace
+	} else {
+		csiSource.NodeStageSecretRef.Namespace = defaultSecretNamespace
 	}
 
 	pv.Spec.PersistentVolumeSource.AzureFile = nil
