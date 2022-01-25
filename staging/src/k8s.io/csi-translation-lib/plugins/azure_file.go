@@ -144,10 +144,18 @@ func (t *azureFileCSITranslator) TranslateInTreePVToCSI(pv *v1.PersistentVolume)
 		}
 	)
 
+	// Secret is required when mounting a volume but pod presence cannot be assumed - we should not try to read pod now.
+	// First - try to read SecretNamespace from source pv.
 	if azureSource.SecretNamespace != nil {
 		csiSource.NodeStageSecretRef.Namespace = *azureSource.SecretNamespace
 	} else {
-		csiSource.NodeStageSecretRef.Namespace = defaultSecretNamespace
+		// Second - try to read namespace from ClaimRef which should be always present.
+		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace != "" {
+			csiSource.NodeStageSecretRef.Namespace = pv.Spec.ClaimRef.Namespace
+		} else {
+			// Third - default namespace, this should never happen.
+			csiSource.NodeStageSecretRef.Namespace = defaultSecretNamespace
+		}
 	}
 
 	pv.Spec.PersistentVolumeSource.AzureFile = nil
