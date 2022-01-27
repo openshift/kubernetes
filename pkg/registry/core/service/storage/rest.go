@@ -37,6 +37,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/dryrun"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/apiserver/pkg/warning"
 	"k8s.io/klog/v2"
 	apiservice "k8s.io/kubernetes/pkg/api/service"
 	api "k8s.io/kubernetes/pkg/apis/core"
@@ -207,6 +208,9 @@ func (rs *REST) Create(ctx context.Context, obj runtime.Object, createValidation
 				service.Name, toReleaseClusterIPs, released, err)
 		}
 	}()
+
+	// OpenShift 4.8 and 4.9 only - BZ 2045576
+	warnDualStackIPFamilyPolicy(ctx, service)
 
 	// try set ip families (for missing ip families)
 	// we do it here, since we want this to be visible
@@ -462,6 +466,9 @@ func (rs *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObj
 
 	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts, dryrun.IsDryRun(options.DryRun))
 	defer nodePortOp.Finish()
+
+	// OpenShift 4.8 and 4.9 only - BZ 2045576
+	warnDualStackIPFamilyPolicy(ctx, service)
 
 	// try set ip families (for missing ip families)
 	if err := rs.tryDefaultValidateServiceClusterIPFields(oldService, service); err != nil {
@@ -1293,4 +1300,25 @@ func collectServiceNodePorts(service *api.Service) []int {
 		}
 	}
 	return servicePorts
+}
+
+// OpenShift 4.8 and 4.9 only - BZ 2045576
+// In kube 1.21 and 1.22 (OCP 4.8 and 4.9), the apiserver would default the value of `ipFamilyPolicy` to `RequireDualStack`
+// if you created a Service with two `ipFamilies` or two `clusterIPs` but no explicitly-specified `ipFamilyPolicy`.
+// In 1.23 / 4.10, you MUST explicitly specify either "ipFamilyPolicy: PreferDualStack" or "ipFamilyPolicy: RequireDualStack"
+// for the service to be valid.
+// Emit a warning in 4.8 and 4.9 if such services are created or updated.
+// Unfortunately, this cannot be done with a mutating or validating admission controller webhook because
+// tryDefaultValidateServiceClusterIPFields will set service.Spec.IPFamilyPolicy before the webhooks have a chance to inspect
+// it. Therefore, we implement this downstream only warning message in OpenShift's kube-apiserver.
+// Carry this change forward only in 4.8 and 4.9 and drop this for all other versions.
+func warnDualStackIPFamilyPolicy(ctx context.Context, service *api.Service) {
+	if service.Spec.IPFamilyPolicy == nil && (len(service.Spec.IPFamilies) == 2 || len(service.Spec.ClusterIPs) == 2) {
+		msg := "Setting DualStack Service.Spec.IPFamilies or DualStack Service.Spec.ClusterIPs " +
+			"without explicitly setting Service.Spec.IPFamilyPolicy is deprecated. " +
+			"This operation will fail starting with Red Hat OpenShift Platform 4.10. " +
+			"Make sure to set IPFamilyPolicy to PreferDualStack or RequireDualStack when configuring DualStack services."
+		klog.Warningf(msg)
+		warning.AddWarning(ctx, "", msg)
+	}
 }
