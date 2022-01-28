@@ -788,13 +788,13 @@ func (cm *containerManagerImpl) SystemCgroupsLimit() v1.ResourceList {
 
 func buildContainerMapFromRuntime(runtimeService internalapi.RuntimeService) (containermap.ContainerMap, error) {
 	podSandboxMap := make(map[string]string)
-	podSandboxList, _ := runtimeService.ListPodSandbox(nil)
+	podSandboxList, _ := runtimeService.ListPodSandbox(context.Background(), nil)
 	for _, p := range podSandboxList {
 		podSandboxMap[p.Id] = p.Metadata.Uid
 	}
 
 	containerMap := containermap.NewContainerMap()
-	containerList, _ := runtimeService.ListContainers(nil)
+	containerList, _ := runtimeService.ListContainers(context.Background(), nil)
 	for _, c := range containerList {
 		if _, exists := podSandboxMap[c.PodSandboxId]; !exists {
 			return nil, fmt.Errorf("no PodsandBox found with Id '%s'", c.PodSandboxId)

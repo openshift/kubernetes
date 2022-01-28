@@ -1335,7 +1335,7 @@ func (kl *Kubelet) setupDataDirs() error {
 func (kl *Kubelet) StartGarbageCollection() {
 	loggedContainerGCFailure := false
 	go wait.Until(func() {
-		if err := kl.containerGC.GarbageCollect(); err != nil {
+		if err := kl.containerGC.GarbageCollect(context.Background()); err != nil {
 			klog.ErrorS(err, "Container garbage collection failed")
 			kl.recorder.Eventf(kl.nodeRef, v1.EventTypeWarning, events.ContainerGCFailed, err.Error())
 			loggedContainerGCFailure = true
@@ -1358,7 +1358,7 @@ func (kl *Kubelet) StartGarbageCollection() {
 
 	prevImageGCFailed := false
 	go wait.Until(func() {
-		if err := kl.imageManager.GarbageCollect(); err != nil {
+		if err := kl.imageManager.GarbageCollect(context.Background()); err != nil {
 			if prevImageGCFailed {
 				klog.ErrorS(err, "Image garbage collection failed multiple times in a row")
 				// Only create an event for repeated failures
@@ -2354,7 +2354,7 @@ func (kl *Kubelet) updateRuntimeUp() {
 	kl.updateRuntimeMux.Lock()
 	defer kl.updateRuntimeMux.Unlock()
 
-	s, err := kl.containerRuntime.Status()
+	s, err := kl.containerRuntime.Status(context.Background())
 	if err != nil {
 		klog.ErrorS(err, "Container runtime sanity check failed")
 		return

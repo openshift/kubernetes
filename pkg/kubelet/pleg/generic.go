@@ -17,6 +17,7 @@ limitations under the License.
 package pleg
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -128,7 +129,7 @@ func (g *GenericPLEG) Watch() chan *PodLifecycleEvent {
 
 // Start spawns a goroutine to relist periodically.
 func (g *GenericPLEG) Start() {
-	go wait.Until(g.relist, g.relistPeriod, wait.NeverStop)
+	go wait.UntilWithContext(context.Background(), g.relist, g.relistPeriod)
 }
 
 // Healthy check if PLEG work properly.
@@ -404,7 +405,7 @@ func (g *GenericPLEG) updateCache(pod *kubecontainer.Pod, pid types.UID) error {
 	// TODO: Consider adding a new runtime method
 	// GetPodStatus(pod *kubecontainer.Pod) so that Docker can avoid listing
 	// all containers again.
-	status, err := g.runtime.GetPodStatus(pod.ID, pod.Name, pod.Namespace)
+	status, err := g.runtime.GetPodStatus(context.Background(), pod.ID, pod.Name, pod.Namespace)
 	if klog.V(6).Enabled() {
 		klog.V(6).ErrorS(err, "PLEG: Write status", "pod", klog.KRef(pod.Namespace, pod.Name), "podStatus", status)
 	} else {
