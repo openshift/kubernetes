@@ -1242,23 +1242,23 @@ type Kubelet struct {
 }
 
 // ListPodStats is delegated to StatsProvider, which implements stats.Provider interface
-func (kl *Kubelet) ListPodStats() ([]statsapi.PodStats, error) {
-	return kl.StatsProvider.ListPodStats()
+func (kl *Kubelet) ListPodStats(ctx context.Context) ([]statsapi.PodStats, error) {
+	return kl.StatsProvider.ListPodStats(ctx)
 }
 
 // ListPodCPUAndMemoryStats is delegated to StatsProvider, which implements stats.Provider interface
-func (kl *Kubelet) ListPodCPUAndMemoryStats() ([]statsapi.PodStats, error) {
-	return kl.StatsProvider.ListPodCPUAndMemoryStats()
+func (kl *Kubelet) ListPodCPUAndMemoryStats(ctx context.Context) ([]statsapi.PodStats, error) {
+	return kl.StatsProvider.ListPodCPUAndMemoryStats(ctx)
 }
 
 // ListPodStatsAndUpdateCPUNanoCoreUsage is delegated to StatsProvider, which implements stats.Provider interface
-func (kl *Kubelet) ListPodStatsAndUpdateCPUNanoCoreUsage() ([]statsapi.PodStats, error) {
-	return kl.StatsProvider.ListPodStatsAndUpdateCPUNanoCoreUsage()
+func (kl *Kubelet) ListPodStatsAndUpdateCPUNanoCoreUsage(ctx context.Context) ([]statsapi.PodStats, error) {
+	return kl.StatsProvider.ListPodStatsAndUpdateCPUNanoCoreUsage(ctx)
 }
 
 // ImageFsStats is delegated to StatsProvider, which implements stats.Provider interface
-func (kl *Kubelet) ImageFsStats() (*statsapi.FsStats, error) {
-	return kl.StatsProvider.ImageFsStats()
+func (kl *Kubelet) ImageFsStats(ctx context.Context) (*statsapi.FsStats, error) {
+	return kl.StatsProvider.ImageFsStats(ctx)
 }
 
 // GetCgroupStats is delegated to StatsProvider, which implements stats.Provider interface
@@ -1638,7 +1638,7 @@ func (kl *Kubelet) syncPod(ctx context.Context, updateType kubetypes.SyncPodType
 		klog.V(2).InfoS("Pod is not runnable and must have running containers stopped", "pod", klog.KObj(pod), "podUID", pod.UID, "message", runnable.Message)
 		var syncErr error
 		p := kubecontainer.ConvertPodStatusToRunningPod(kl.getRuntime().Type(), podStatus)
-		if err := kl.killPod(pod, p, nil); err != nil {
+		if err := kl.killPod(ctx, pod, p, nil); err != nil {
 			kl.recorder.Eventf(pod, v1.EventTypeWarning, events.FailedToKillPod, "error killing pod: %v", err)
 			syncErr = fmt.Errorf("error killing pod: %v", err)
 			utilruntime.HandleError(syncErr)
@@ -1680,7 +1680,7 @@ func (kl *Kubelet) syncPod(ctx context.Context, updateType kubetypes.SyncPodType
 		podKilled := false
 		if !pcm.Exists(pod) && !firstSync {
 			p := kubecontainer.ConvertPodStatusToRunningPod(kl.getRuntime().Type(), podStatus)
-			if err := kl.killPod(pod, p, nil); err == nil {
+			if err := kl.killPod(ctx, pod, p, nil); err == nil {
 				podKilled = true
 			} else {
 				klog.ErrorS(err, "KillPod failed", "pod", klog.KObj(pod), "podStatus", podStatus)
@@ -1748,7 +1748,7 @@ func (kl *Kubelet) syncPod(ctx context.Context, updateType kubetypes.SyncPodType
 	// TODO: once context cancellation is added this check can be removed
 	if !kl.podWorkers.IsPodTerminationRequested(pod.UID) {
 		// Wait for volumes to attach/mount
-		if err := kl.volumeManager.WaitForAttachAndMount(pod); err != nil {
+		if err := kl.volumeManager.WaitForAttachAndMount(ctx, pod); err != nil {
 			kl.recorder.Eventf(pod, v1.EventTypeWarning, events.FailedMountVolume, "Unable to attach or mount volumes: %v", err)
 			klog.ErrorS(err, "Unable to attach or mount volumes for pod; skipping pod", "pod", klog.KObj(pod))
 			return err
@@ -1759,7 +1759,7 @@ func (kl *Kubelet) syncPod(ctx context.Context, updateType kubetypes.SyncPodType
 	pullSecrets := kl.getPullSecretsForPod(pod)
 
 	// Call the container runtime's SyncPod callback
-	result := kl.containerRuntime.SyncPod(pod, podStatus, pullSecrets, kl.backOff)
+	result := kl.containerRuntime.SyncPod(ctx, pod, podStatus, pullSecrets, kl.backOff)
 	kl.reasonCache.Update(pod.UID, result)
 	if err := result.Error(); err != nil {
 		// Do not return error if the only failures were pods in backoff
@@ -1794,7 +1794,7 @@ func (kl *Kubelet) syncTerminatingPod(ctx context.Context, pod *v1.Pod, podStatu
 		} else {
 			klog.V(4).InfoS("Pod terminating with grace period", "pod", klog.KObj(pod), "podUID", pod.UID, "gracePeriod", nil)
 		}
-		if err := kl.killPod(pod, *runningPod, gracePeriod); err != nil {
+		if err := kl.killPod(ctx, pod, *runningPod, gracePeriod); err != nil {
 			kl.recorder.Eventf(pod, v1.EventTypeWarning, events.FailedToKillPod, "error killing pod: %v", err)
 			// there was an error killing the pod, so we return that error directly
 			utilruntime.HandleError(err)
@@ -1816,7 +1816,7 @@ func (kl *Kubelet) syncTerminatingPod(ctx context.Context, pod *v1.Pod, podStatu
 		klog.V(4).InfoS("Pod terminating with grace period", "pod", klog.KObj(pod), "podUID", pod.UID, "gracePeriod", nil)
 	}
 	p := kubecontainer.ConvertPodStatusToRunningPod(kl.getRuntime().Type(), podStatus)
-	if err := kl.killPod(pod, p, gracePeriod); err != nil {
+	if err := kl.killPod(ctx, pod, p, gracePeriod); err != nil {
 		kl.recorder.Eventf(pod, v1.EventTypeWarning, events.FailedToKillPod, "error killing pod: %v", err)
 		// there was an error killing the pod, so we return that error directly
 		utilruntime.HandleError(err)
@@ -1828,7 +1828,7 @@ func (kl *Kubelet) syncTerminatingPod(ctx context.Context, pod *v1.Pod, podStatu
 	// catch race conditions introduced by callers updating pod status out of order.
 	// TODO: have KillPod return the terminal status of stopped containers and write that into the
 	//  cache immediately
-	podStatus, err := kl.containerRuntime.GetPodStatus(pod.UID, pod.Name, pod.Namespace)
+	podStatus, err := kl.containerRuntime.GetPodStatus(ctx, pod.UID, pod.Name, pod.Namespace)
 	if err != nil {
 		klog.ErrorS(err, "Unable to read pod status prior to final pod termination", "pod", klog.KObj(pod), "podUID", pod.UID)
 		return err
@@ -1870,7 +1870,7 @@ func (kl *Kubelet) syncTerminatedPod(ctx context.Context, pod *v1.Pod, podStatus
 
 	// volumes are unmounted after the pod worker reports ShouldPodRuntimeBeRemoved (which is satisfied
 	// before syncTerminatedPod is invoked)
-	if err := kl.volumeManager.WaitForUnmount(pod); err != nil {
+	if err := kl.volumeManager.WaitForUnmount(ctx, pod); err != nil {
 		return err
 	}
 	klog.V(4).InfoS("Pod termination unmounted volumes", "pod", klog.KObj(pod), "podUID", pod.UID)

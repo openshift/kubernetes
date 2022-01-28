@@ -17,6 +17,7 @@ limitations under the License.
 package volumemanager
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -392,7 +393,7 @@ func (vm *volumeManager) MarkVolumesAsReportedInUse(
 	vm.desiredStateOfWorld.MarkVolumesReportedInUse(volumesReportedAsInUse)
 }
 
-func (vm *volumeManager) WaitForAttachAndMount(pod *v1.Pod) error {
+func (vm *volumeManager) WaitForAttachAndMount(ctx context.Context, pod *v1.Pod) error {
 	if pod == nil {
 		return nil
 	}
@@ -438,7 +439,7 @@ func (vm *volumeManager) WaitForAttachAndMount(pod *v1.Pod) error {
 	return nil
 }
 
-func (vm *volumeManager) WaitForUnmount(pod *v1.Pod) error {
+func (vm *volumeManager) WaitForUnmount(ctx context.Context, pod *v1.Pod) error {
 	if pod == nil {
 		return nil
 	}
