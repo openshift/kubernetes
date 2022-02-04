@@ -33,29 +33,30 @@ import (
 
 // This const block defines the metric names for the kubelet metrics.
 const (
-	KubeletSubsystem             = "kubelet"
-	NodeNameKey                  = "node_name"
-	NodeLabelKey                 = "node"
-	PodWorkerDurationKey         = "pod_worker_duration_seconds"
-	PodStartDurationKey          = "pod_start_duration_seconds"
-	CgroupManagerOperationsKey   = "cgroup_manager_duration_seconds"
-	PodWorkerStartDurationKey    = "pod_worker_start_duration_seconds"
-	PodStatusSyncDurationKey     = "pod_status_sync_duration_seconds"
-	PLEGRelistDurationKey        = "pleg_relist_duration_seconds"
-	PLEGDiscardEventsKey         = "pleg_discard_events"
-	PLEGRelistIntervalKey        = "pleg_relist_interval_seconds"
-	PLEGLastSeenKey              = "pleg_last_seen_seconds"
-	EvictionsKey                 = "evictions"
-	EvictionStatsAgeKey          = "eviction_stats_age_seconds"
-	PreemptionsKey               = "preemptions"
-	VolumeStatsCapacityBytesKey  = "volume_stats_capacity_bytes"
-	VolumeStatsAvailableBytesKey = "volume_stats_available_bytes"
-	VolumeStatsUsedBytesKey      = "volume_stats_used_bytes"
-	VolumeStatsInodesKey         = "volume_stats_inodes"
-	VolumeStatsInodesFreeKey     = "volume_stats_inodes_free"
-	VolumeStatsInodesUsedKey     = "volume_stats_inodes_used"
-	RunningPodsKey               = "running_pods"
-	RunningContainersKey         = "running_containers"
+	KubeletSubsystem                 = "kubelet"
+	NodeNameKey                      = "node_name"
+	NodeLabelKey                     = "node"
+	PodWorkerDurationKey             = "pod_worker_duration_seconds"
+	PodStartDurationKey              = "pod_start_duration_seconds"
+	CgroupManagerOperationsKey       = "cgroup_manager_duration_seconds"
+	PodWorkerStartDurationKey        = "pod_worker_start_duration_seconds"
+	PodStatusSyncDurationKey         = "pod_status_sync_duration_seconds"
+	PodStatusPrioritySyncDurationKey = "pod_status_priority_sync_duration_seconds"
+	PLEGRelistDurationKey            = "pleg_relist_duration_seconds"
+	PLEGDiscardEventsKey             = "pleg_discard_events"
+	PLEGRelistIntervalKey            = "pleg_relist_interval_seconds"
+	PLEGLastSeenKey                  = "pleg_last_seen_seconds"
+	EvictionsKey                     = "evictions"
+	EvictionStatsAgeKey              = "eviction_stats_age_seconds"
+	PreemptionsKey                   = "preemptions"
+	VolumeStatsCapacityBytesKey      = "volume_stats_capacity_bytes"
+	VolumeStatsAvailableBytesKey     = "volume_stats_available_bytes"
+	VolumeStatsUsedBytesKey          = "volume_stats_used_bytes"
+	VolumeStatsInodesKey             = "volume_stats_inodes"
+	VolumeStatsInodesFreeKey         = "volume_stats_inodes_free"
+	VolumeStatsInodesUsedKey         = "volume_stats_inodes_used"
+	RunningPodsKey                   = "running_pods"
+	RunningContainersKey             = "running_containers"
 	// Metrics keys of remote runtime operations
 	RuntimeOperationsKey         = "runtime_operations_total"
 	RuntimeOperationsDurationKey = "runtime_operations_duration_seconds"
@@ -176,6 +177,20 @@ var (
 			Subsystem:      KubeletSubsystem,
 			Name:           PodStatusSyncDurationKey,
 			Help:           "Duration in seconds to sync a pod status update. Measures time from detection to write.",
+			Buckets:        []float64{0.010, 0.050, 0.100, 0.500, 1, 5, 10, 20, 30, 45, 60},
+			StabilityLevel: metrics.ALPHA,
+		},
+		[]string{"priority"},
+	)
+	// PodStatusPrioritySyncDuration is a Histogram that tracks the duration (in seconds) in takes from the time a pod
+	// status at a specific priority level is generated to the time it is synced with the apiserver. This time will be
+	// shorter than PodStatusSyncDurationKey for a pod that has its priority upgraded and indicates "how long a pod
+	// status update waits for sync at a given priority level" .
+	PodStatusPrioritySyncDuration = metrics.NewHistogramVec(
+		&metrics.HistogramOpts{
+			Subsystem:      KubeletSubsystem,
+			Name:           PodStatusPrioritySyncDurationKey,
+			Help:           "Duration in seconds to sync a pod status update. Measures time from detection at a specific priority level to write.",
 			Buckets:        []float64{0.010, 0.050, 0.100, 0.500, 1, 5, 10, 20, 30, 45, 60},
 			StabilityLevel: metrics.ALPHA,
 		},
@@ -548,6 +563,7 @@ func Register(collectors ...metrics.StableCollector) {
 		legacyregistry.MustRegister(CgroupManagerDuration)
 		legacyregistry.MustRegister(PodWorkerStartDuration)
 		legacyregistry.MustRegister(PodStatusSyncDuration)
+		legacyregistry.MustRegister(PodStatusPrioritySyncDuration)
 		legacyregistry.MustRegister(ContainersPerPodCount)
 		legacyregistry.MustRegister(PLEGRelistDuration)
 		legacyregistry.MustRegister(PLEGDiscardEvents)

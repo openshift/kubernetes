@@ -56,6 +56,8 @@ type versionedPodStatus struct {
 	podNamespace string
 	// at is the time at which the most recent status update was detected
 	at time.Time
+	// priorityUpgradeAt is the time (if set) when priority was upgraded
+	priorityUpgradeAt time.Time
 
 	status v1.PodStatus
 }
@@ -490,14 +492,20 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 		priority:     priority,
 	}
 
-	if cachedStatus.priority > newStatus.priority {
-		newStatus.priority = cachedStatus.priority
-	}
-
+	now := time.Now()
 	if cachedStatus.at.IsZero() {
-		newStatus.at = time.Now()
+		newStatus.at = now
 	} else {
 		newStatus.at = cachedStatus.at
+	}
+
+	switch {
+	case cachedStatus.priority > newStatus.priority:
+		newStatus.priority = cachedStatus.priority
+	case cachedStatus.priority == newStatus.priority:
+	default:
+		// when priority is upgraded, set/reset the priorityUpgradeAt field
+		newStatus.priorityUpgradeAt = now
 	}
 
 	m.podStatuses[pod.UID] = newStatus
@@ -725,13 +733,19 @@ func (m *manager) syncPod(uid types.UID, pod *v1.Pod, status versionedPodStatus,
 	}
 
 	// measure how long the status update took to propagate from generation to update on the server
+	now := time.Now()
 	var duration time.Duration
 	if status.at.IsZero() {
 		klog.V(3).InfoS("Pod had no status time set", "pod", klog.KObj(pod), "podUID", uid, "version", status.version)
 	} else {
-		duration = time.Now().Sub(status.at).Truncate(time.Millisecond)
+		duration = now.Sub(status.at).Truncate(time.Millisecond)
 	}
 	metrics.PodStatusSyncDuration.WithLabelValues(strconv.Itoa(status.priority)).Observe(duration.Seconds())
+	// if priorityUpgradeAt is set, record the shorter interval in the separate metric.
+	if !status.priorityUpgradeAt.IsZero() {
+		duration = now.Sub(status.priorityUpgradeAt).Truncate(time.Millisecond)
+	}
+	metrics.PodStatusPrioritySyncDuration.WithLabelValues(strconv.Itoa(status.priority)).Observe(duration.Seconds())
 
 	m.rememberAPIStatus(kubetypes.MirrorPodUID(pod.UID), status.version)
 
