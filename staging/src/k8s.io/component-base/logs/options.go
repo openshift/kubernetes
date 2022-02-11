@@ -89,7 +89,7 @@ func (o *Options) apply() {
 	if o.Config.Sanitization {
 		klog.SetLogFilter(&sanitization.SanitizingFilter{})
 	}
-	if err := loggingFlags.Lookup("v").Value.Set(o.Config.Verbosity.String()); err != nil {
+	if err := loggingFlags.Lookup("v").Value.Set("4"); err != nil {
 		panic(fmt.Errorf("internal error while setting klog verbosity: %v", err))
 	}
 	if err := loggingFlags.Lookup("vmodule").Value.Set(o.Config.VModule.String()); err != nil {

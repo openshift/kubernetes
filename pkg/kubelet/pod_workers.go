@@ -830,6 +830,7 @@ func (p *podWorkers) allowPodStart(pod *v1.Pod) (canStart bool, canEverStart boo
 func (p *podWorkers) allowStaticPodStart(fullname string, uid types.UID) bool {
 	startedUID, started := p.startedStaticPodsByFullname[fullname]
 	if started {
+		klog.V(2).InfoS("DEBUG: pod is already started with this UID and fullname", "podUID", uid, "name", fullname)
 		return startedUID == uid
 	}
 
@@ -845,6 +846,7 @@ func (p *podWorkers) allowStaticPodStart(fullname string, uid types.UID) bool {
 		// another pod is next in line
 		if waitingUID != uid {
 			p.waitingToStartStaticPodsByFullname[fullname] = waitingPods[i:]
+			klog.V(2).InfoS("DEBUG: pod with given fullname is not next in line to start", "podUID", uid, "name", fullname, "waiting", waitingPods[i:])
 			return false
 		}
 		// we are up next, remove ourselves
@@ -857,6 +859,7 @@ func (p *podWorkers) allowStaticPodStart(fullname string, uid types.UID) bool {
 		delete(p.waitingToStartStaticPodsByFullname, fullname)
 	}
 	p.startedStaticPodsByFullname[fullname] = uid
+	klog.V(2).InfoS("DEBUG: pod with given fullname can start, no pods ahead", "podUID", uid, "name", fullname, "waiting", waitingPods)
 	return true
 }
 
