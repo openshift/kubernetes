@@ -1017,9 +1017,16 @@ func (as *availabilitySet) EnsureBackendPoolDeleted(service *v1.Service, backend
 		if err != nil {
 			return fmt.Errorf("EnsureBackendPoolDeleted: failed to parse the VMAS ID %s: %v", vmasID, err)
 		}
-		klog.V(2).Infof("EnsureBackendPoolDeleted: node %s, vmasName=%s,  vmSetName=%s", nodeName, vmasName, vmSetName)
-		// Only remove nodes belonging to specified vmSet to basic LB backends.
-		if !strings.EqualFold(vmasName, vmSetName) {
+
+		useStandardLoadBalancer := as.useStandardLoadBalancer()
+		klog.V(2).Infof("EnsureBackendPoolDeleted: node %s, useStandardLoadBalancer=%v, vmasName=%s,  vmSetName=%s", nodeName, useStandardLoadBalancer, vmasName, vmSetName)
+		if useStandardLoadBalancer {
+			// if we are using the standard load balancer, then the availability set will not necessarily match.  We should
+			// honor the node's request to be removed from any load balancer it is attached to.
+
+		} else if !strings.EqualFold(vmasName, vmSetName) {
+			// if we are not using the the standard load balancer, then check to be sure the ndoe belongs to the expected availability set
+			// Only remove nodes belonging to specified vmSet to basic LB backends.
 			klog.V(2).Infof("EnsureBackendPoolDeleted: skipping the node %s belonging to another vm set %s", nodeName, vmasName)
 			continue
 		}
