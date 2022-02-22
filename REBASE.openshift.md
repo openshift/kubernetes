@@ -228,6 +228,8 @@ This value, among other things, is used by ART to inject appropriate version of
 kubernetes during build process, so it always has to reflect correct level of
 kubernetes.
 
+TODO: Due to lack of understanding of release controller, we have to push kubernetes upstream tags in order to keep CI builds reporting correct version.
+
 ## Update base-os and test images
 
 To be able to use the latest kubelet from a pull request, in this repository
