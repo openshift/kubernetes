@@ -1446,14 +1446,10 @@ func (c *cacheWatcher) processEvents(ctx context.Context, initEvents []*watchCac
 	for _, event := range initEvents {
 		c.sendWatchCacheEvent(event)
 	}
-<<<<<<< HEAD
-
-=======
 	if c.bookmarkAfterResourceVersion > 0 {
 		initialized := int32(1)
 		atomic.StoreInt32(&c.initialized, initialized)
 	}
->>>>>>> cef7032f259 (cacher: an ugly optimization for not polluting the input channel)
 	objType := c.objectType.String()
 	if len(initEvents) > 0 {
 		initCounter.WithLabelValues(objType).Add(float64(len(initEvents)))
