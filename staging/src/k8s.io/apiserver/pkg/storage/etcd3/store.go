@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path"
 	"reflect"
 	"strings"
