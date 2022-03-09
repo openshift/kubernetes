@@ -936,6 +936,8 @@ func (os *OpenStack) volumeService(forceVersion string) (volumeService, error) {
 		if sClient, err := os.NewBlockStorageV3(); err == nil {
 			klog.V(3).Info("Using Blockstorage API V3")
 			return &VolumesV3{sClient, os.bsOpts}, nil
+		} else {
+			klog.ErrorS(err, "BlockStorage API V3 not available")
 		}
 
 		if sClient, err := os.NewBlockStorageV2(); err == nil {

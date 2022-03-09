@@ -202,6 +202,8 @@ func (l *persistentVolumeLabel) findVolumeLabels(volume *api.PersistentVolume) (
 		region, regionOK = existingLabels[v1.LabelFailureDomainBetaRegion]
 	}
 
+	klog.InfoS("Admitting PV", "region", region, "domain", domain, "regionOK", regionOK, "domainOK", domainOK)
+
 	isDynamicallyProvisioned := metav1.HasAnnotation(volume.ObjectMeta, persistentvolume.AnnDynamicallyProvisioned)
 	if isDynamicallyProvisioned && domainOK && regionOK {
 		// PV already has all the labels and we can trust the dynamic provisioning that it provided correct values.
