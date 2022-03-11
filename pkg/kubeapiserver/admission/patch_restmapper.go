@@ -62,6 +62,11 @@ var defaultRESTMappings = []meta.RESTMapping{
 		Scope:            meta.RESTScopeNamespace,
 		Resource:         schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "statefulsets"},
 	},
+	{
+		GroupVersionKind: schema.GroupVersionKind{Group: "batch", Version: "v1", Kind: "Job"},
+		Scope:            meta.RESTScopeNamespace,
+		Resource:         schema.GroupVersionResource{Group: "batch", Version: "v1", Resource: "jobs"},
+	},
 }
 
 func NewAdmissionRESTMapper(delegate meta.RESTMapper) meta.RESTMapper {
