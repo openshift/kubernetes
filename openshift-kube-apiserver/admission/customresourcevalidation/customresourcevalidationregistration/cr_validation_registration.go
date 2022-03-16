@@ -2,7 +2,6 @@ package customresourcevalidationregistration
 
 import (
 	"k8s.io/apiserver/pkg/admission"
-
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/apiserver"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/authentication"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/clusterresourcequota"
@@ -11,6 +10,7 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/dns"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/features"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/image"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/ingress"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/kubecontrollermanager"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/network"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/oauth"
@@ -28,6 +28,7 @@ var AllCustomResourceValidators = []string{
 	console.PluginName,
 	dns.PluginName,
 	image.PluginName,
+	ingress.PluginName,
 	oauth.PluginName,
 	project.PluginName,
 	config.PluginName,
@@ -51,6 +52,7 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	console.Register(plugins)
 	dns.Register(plugins)
 	image.Register(plugins)
+	ingress.Register(plugins)
 	oauth.Register(plugins)
 	project.Register(plugins)
 	config.Register(plugins)
