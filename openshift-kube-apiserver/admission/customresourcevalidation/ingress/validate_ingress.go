@@ -145,6 +145,94 @@ func (ingressV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj run
 
 	// TODO validate the obj.  remember that status validation should *never* fail on spec validation errors.
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
+	errs = append(errs, validateIngressStatusUpdate(obj.Status, oldObj.Status)...)
 
 	return errs
+}
+
+func validateIngressStatusUpdate(status, oldStatus configv1.IngressStatus) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	// on update, if the componentroute.currentHostnames has is adding a new name, we use the tightest validation.
+	// if the componentroute.currentHostnames has invalid entries that previously existed, we do not enforce new validation.
+	// empty hostnames always produce an error.  See unit test.
+	for i, currRoute := range status.ComponentRoutes {
+		for j, hostname := range currRoute.CurrentHostnames {
+			currFieldPath := field.NewPath("status.componentRoutes").Index(i).Child("currentHostnames").Index(j)
+			currRouteHostnameErrors := routeapihelpers.ValidateHost(
+				string(hostname),
+				"",
+				currFieldPath,
+			)
+			if len(currRouteHostnameErrors) == 0 {
+				continue
+			}
+			if len(hostname) == 0 {
+				allErrs = append(allErrs, currRouteHostnameErrors...)
+				continue
+			}
+
+			previousRouteHostNameExists := false
+			for _, oldRoute := range oldStatus.ComponentRoutes {
+				oldRouteMatchesNewRoute := oldRoute.Name == currRoute.Name && oldRoute.Namespace == currRoute.Namespace
+				if !oldRouteMatchesNewRoute {
+					continue
+				}
+
+				for _, oldHostname := range oldRoute.CurrentHostnames {
+					if oldHostname == hostname {
+						previousRouteHostNameExists = true
+						break
+					}
+				}
+				if previousRouteHostNameExists {
+					break
+				}
+			}
+			// we don't enforce new validation rules if the hostname has not changed
+			if previousRouteHostNameExists {
+				continue
+			}
+
+			// if the hostname has changed, then the new route must pass new validation.
+			allErrs = append(allErrs, currRouteHostnameErrors...)
+		}
+	}
+
+	// on update, if the componentroute.defaultHostname has is adding a new name, we use the tightest validation.
+	// if the componentroute.defaultHostname has invalid entries that previously existed, we do not enforce new validation.
+	// empty hostnames always produce an error.  See unit test.
+	for i, currRoute := range status.ComponentRoutes {
+		hostname := currRoute.DefaultHostname
+		currFieldPath := field.NewPath("status.componentRoutes").Index(i).Child("defaultHostname")
+		currRouteHostnameErrors := routeapihelpers.ValidateHost(
+			string(hostname),
+			"",
+			currFieldPath,
+		)
+		if len(currRouteHostnameErrors) == 0 {
+			continue
+		}
+		if len(hostname) == 0 {
+			allErrs = append(allErrs, currRouteHostnameErrors...)
+			continue
+		}
+
+		defaultHostnameDidNotChange := false
+		for _, oldRoute := range oldStatus.ComponentRoutes {
+			if oldRoute.Name == currRoute.Name && oldRoute.Namespace == currRoute.Namespace {
+				defaultHostnameDidNotChange = oldRoute.DefaultHostname == hostname
+				break
+			}
+		}
+		// we don't enforce new validation rules if the hostname has not changed
+		if defaultHostnameDidNotChange {
+			continue
+		}
+
+		// if the hostname has changed, then the new route must pass new validation.
+		allErrs = append(allErrs, currRouteHostnameErrors...)
+	}
+
+	return allErrs
 }
