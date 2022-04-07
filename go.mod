@@ -65,7 +65,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api v0.0.0-20211209173311-a19f3b9052a6
+	github.com/openshift/api v0.0.0-20220405123350-1dd60aff6993
 	github.com/openshift/apiserver-library-go v0.0.0-20220329105944-e64b3328dd17
 	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
 	github.com/openshift/library-go v0.0.0-20220315122757-21a67f25d837
@@ -393,7 +393,7 @@ replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20211209173311-a19f3b9052a6
+	github.com/openshift/api => github.com/josefkarasek/api-1 v0.0.0-20220405123350-1dd60aff6993
 	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20220329105944-e64b3328dd17
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3

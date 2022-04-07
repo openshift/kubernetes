@@ -20,3 +20,5 @@ replace (
 )
 
 replace sigs.k8s.io/json => github.com/liggitt/json v0.0.0-20211020163728-48258682683b
+
+replace github.com/openshift/api => github.com/josefkarasek/api-1 v0.0.0-20220405123350-1dd60aff6993

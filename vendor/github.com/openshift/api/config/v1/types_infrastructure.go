@@ -124,7 +124,7 @@ const (
 )
 
 // PlatformType is a specific supported infrastructure provider.
-// +kubebuilder:validation:Enum="";AWS;Azure;BareMetal;GCP;Libvirt;OpenStack;None;VSphere;oVirt;IBMCloud;KubeVirt;EquinixMetal;PowerVS;AlibabaCloud
+// +kubebuilder:validation:Enum="";AWS;Azure;BareMetal;GCP;Libvirt;OpenStack;None;VSphere;oVirt;IBMCloud;KubeVirt;EquinixMetal;PowerVS;AlibabaCloud;Nutanix
 type PlatformType string
 
 const (
@@ -169,6 +169,9 @@ const (
 
 	// AlibabaCloudPlatformType represents Alibaba Cloud infrastructure.
 	AlibabaCloudPlatformType PlatformType = "AlibabaCloud"
+
+	// NutanixPlatformType represents Nutanix infrastructure.
+	NutanixPlatformType PlatformType = "Nutanix"
 )
 
 // IBMCloudProviderType is a specific supported IBM Cloud provider cluster type
@@ -196,7 +199,7 @@ type PlatformSpec struct {
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
 	// "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS",
-	// "AlibabaCloud" and "None". Individual components may not support all platforms,
+	// "AlibabaCloud", "Nutanix" and "None". Individual components may not support all platforms,
 	// and must handle unrecognized platforms as None if they do not support that platform.
 	//
 	// +unionDiscriminator
@@ -249,6 +252,10 @@ type PlatformSpec struct {
 	// AlibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
 	// +optional
 	AlibabaCloud *AlibabaCloudPlatformSpec `json:"alibabaCloud,omitempty"`
+
+	// Nutanix contains settings specific to the Nutanix infrastructure provider.
+	// +optional
+	Nutanix *NutanixPlatformSpec `json:"nutanix,omitempty"`
 }
 
 // PlatformStatus holds the current status specific to the underlying infrastructure provider
@@ -260,7 +267,7 @@ type PlatformStatus struct {
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
-	// "OpenStack", "VSphere", "oVirt", "EquinixMetal", "PowerVS", "AlibabaCloud" and "None".
+	// "OpenStack", "VSphere", "oVirt", "EquinixMetal", "PowerVS", "AlibabaCloud", "Nutanix" and "None".
 	// Individual components may not support all platforms, and must handle
 	// unrecognized platforms as None if they do not support that platform.
 	//
@@ -315,6 +322,10 @@ type PlatformStatus struct {
 	// AlibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
 	// +optional
 	AlibabaCloud *AlibabaCloudPlatformStatus `json:"alibabaCloud,omitempty"`
+
+	// Nutanix contains settings specific to the Nutanix infrastructure provider.
+	// +optional
+	Nutanix *NutanixPlatformStatus `json:"nutanix,omitempty"`
 }
 
 // AWSServiceEndpoint store the configuration of a custom url to
@@ -343,6 +354,40 @@ type AWSPlatformSpec struct {
 	// There must be only one ServiceEndpoint for a service.
 	// +optional
 	ServiceEndpoints []AWSServiceEndpoint `json:"serviceEndpoints,omitempty"`
+
+	// ResourceTags is a list of additional tags to apply to AWS resources created for the cluster.
+	// See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for information on tagging AWS resources.
+	// AWS supports a minimum of 10 tags per resource. OpenShift reserves 5 tags for its use, leaving 5 tags
+	// available for the user.
+	// ResourceTags field is mutable and items can be removed.
+	// When a tag is removed from this list, management of the tag is stopped.
+	// The tag will remain in an unmanaged state on any existing resource.
+	// +kubebuilder:validation:MaxItems=5
+	// +optional
+	ResourceTags []AWSResourceTagSpec `json:"resourceTags,omitempty"`
+}
+
+// AWSResourceTagSpec is a tag to apply to AWS resources created for the cluster.
+type AWSResourceTagSpec struct {
+	// key is the key of the AWS tag. The value must consist only of alphanumeric and certain special characters(_.:/=+-@\\).
+	// key should not start with "openshift.io" or "kubernetes.io". Both of these prefixes are reserved for use by the platform.
+	// key must be no more than 128 characters in length.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.:/=+-@]+$`
+	// +required
+	Key string `json:"key"`
+	// value is the value of the AWS tag. The value must consist only of alphanumeric and certain special characters(_.:/=+-@\\).
+	// value must be no more than 256 characters in length.
+	// Some AWS service do not support empty values. Since tags are added to resources in many services, the
+	// length of the tag value must meet the requirements of all services.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.:/=+-@]+$`
+	// +required
+	Value string `json:"value"`
 }
 
 // AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.
@@ -356,11 +401,14 @@ type AWSPlatformStatus struct {
 	// +optional
 	ServiceEndpoints []AWSServiceEndpoint `json:"serviceEndpoints,omitempty"`
 
-	// resourceTags is a list of additional tags to apply to AWS resources created for the cluster.
+	// ResourceTags is a list of additional tags to apply to AWS resources created for the cluster.
 	// See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for information on tagging AWS resources.
-	// AWS supports a maximum of 50 tags per resource. OpenShift reserves 25 tags for its use, leaving 25 tags
+	// In previous versions, OpenShift reserved 25 tags for its use, leaving 25 tags
 	// available for the user.
+	// ResourceTags field is immutable.
+	// To update the list of tags, contact support.
 	// +kubebuilder:validation:MaxItems=25
+	// +kubebuilder:deprecatedversion:warning=""
 	// +optional
 	ResourceTags []AWSResourceTag `json:"resourceTags,omitempty"`
 }
@@ -665,10 +713,9 @@ type AlibabaCloudPlatformStatus struct {
 	// +required
 	Region string `json:"region"`
 	// resourceGroupID is the ID of the resource group for the cluster.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Pattern=`^rg-[0-9A-Za-z]+$`
-	// +required
-	ResourceGroupID string `json:"resourceGroupID"`
+	// +kubebuilder:validation:Pattern=`^(rg-[0-9A-Za-z]+)?$`
+	// +optional
+	ResourceGroupID string `json:"resourceGroupID,omitempty"`
 	// resourceTags is a list of additional tags to apply to Alibaba Cloud resources created for the cluster.
 	// +kubebuilder:validation:MaxItems=20
 	// +listType=map
@@ -691,6 +738,66 @@ type AlibabaCloudResourceTag struct {
 	// +kubebuilder:validation:MaxLength=128
 	// +required
 	Value string `json:"value"`
+}
+
+// NutanixPlatformSpec holds the desired state of the Nutanix infrastructure provider.
+// This only includes fields that can be modified in the cluster.
+type NutanixPlatformSpec struct {
+	// prismCentral holds the endpoint address and port to access the Nutanix Prism Central.
+	// When a cluster-wide proxy is installed, this endpoint will not be accessed via the proxy.
+	// +kubebuilder:validation:Required
+	PrismCentral NutanixPrismEndpoint `json:"prismCentral"`
+
+	// prismElements holds one or more endpoint address and port data to access the Nutanix
+	// Prism Elements (clusters) of the Nutanix Prism Central. Currently we only support one
+	// Prism Element (cluster) for an OpenShift cluster, where all the Nutanix resources (VMs, subnets, volumes, etc.)
+	// used in the OpenShift cluster are located. In the future, we may support Nutanix resources (VMs, etc.)
+	// spread over multiple Prism Elements (clusters) of the Prism Central.
+	// +kubebuilder:validation:Required
+	// +listType=map
+	// +listMapKey=name
+	PrismElements []NutanixPrismElementEndpoint `json:"prismElements"`
+}
+
+// NutanixPrismEndpoint holds the endpoint address and port to access the Nutanix Prism Central or Element (cluster)
+type NutanixPrismEndpoint struct {
+	// address is the endpoint address (DNS name or IP address) of the Nutanix Prism Central or Element (cluster)
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MaxLength=256
+	Address string `json:"address"`
+
+	// port is the port number to access the Nutanix Prism Central or Element (cluster)
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port"`
+}
+
+// NutanixPrismElementEndpoint holds the name and endpoint data for a Prism Element (cluster)
+type NutanixPrismElementEndpoint struct {
+	// name is the name of the Prism Element (cluster). This value will correspond with
+	// the cluster field configured on other resources (eg Machines, PVCs, etc).
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MaxLength=256
+	Name string `json:"name"`
+
+	// endpoint holds the endpoint address and port data of the Prism Element (cluster).
+	// When a cluster-wide proxy is installed, this endpoint will not be accessed via the proxy.
+	// +kubebuilder:validation:Required
+	Endpoint NutanixPrismEndpoint `json:"endpoint"`
+}
+
+// NutanixPlatformStatus holds the current status of the Nutanix infrastructure provider.
+type NutanixPlatformStatus struct {
+	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
+	// by components inside the cluster, like kubelets using the infrastructure rather
+	// than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI
+	// points to. It is the IP for a self-hosted load balancer in front of the API servers.
+	APIServerInternalIP string `json:"apiServerInternalIP,omitempty"`
+
+	// ingressIP is an external IP which routes to the default ingress controller.
+	// The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+	IngressIP string `json:"ingressIP,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
