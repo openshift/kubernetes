@@ -24,8 +24,8 @@ package framework
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -250,6 +250,9 @@ func (f *Framework) BeforeEach() {
 			ginkgo.By("Waiting for a default service account to be provisioned in namespace")
 			err = WaitForDefaultServiceAccountInNamespace(f.ClientSet, namespace.Name)
 			ExpectNoError(err)
+			ginkgo.By("Waiting for kube-root-ca.crt to be provisioned in namespace")
+			err = WaitForKubeRootCAInNamespace(f.ClientSet, namespace.Name)
+			ExpectNoError(err)
 		} else {
 			Logf("Skipping waiting for service account")
 		}
@@ -327,7 +330,7 @@ func printSummaries(summaries []TestDataSummary, testBaseName string) {
 			} else {
 				// TODO: learn to extract test name and append it to the kind instead of timestamp.
 				filePath := path.Join(TestContext.ReportDir, summaries[i].SummaryKind()+"_"+testBaseName+"_"+now.Format(time.RFC3339)+".txt")
-				if err := ioutil.WriteFile(filePath, []byte(summaries[i].PrintHumanReadable()), 0644); err != nil {
+				if err := os.WriteFile(filePath, []byte(summaries[i].PrintHumanReadable()), 0644); err != nil {
 					Logf("Failed to write file %v with test performance data: %v", filePath, err)
 				}
 			}
@@ -344,7 +347,7 @@ func printSummaries(summaries []TestDataSummary, testBaseName string) {
 				// TODO: learn to extract test name and append it to the kind instead of timestamp.
 				filePath := path.Join(TestContext.ReportDir, summaries[i].SummaryKind()+"_"+testBaseName+"_"+now.Format(time.RFC3339)+".json")
 				Logf("Writing to %s", filePath)
-				if err := ioutil.WriteFile(filePath, []byte(summaries[i].PrintJSON()), 0644); err != nil {
+				if err := os.WriteFile(filePath, []byte(summaries[i].PrintJSON()), 0644); err != nil {
 					Logf("Failed to write file %v with test performance data: %v", filePath, err)
 				}
 			}
@@ -536,6 +539,9 @@ func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (
 		enforceLevel = f.NamespacePodSecurityEnforceLevel
 	}
 	labels[admissionapi.EnforceLevelLabel] = string(enforceLevel)
+	// turn off the OpenShift label syncer so that it does not attempt to sync
+	// the PodSecurity admission labels
+	labels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
 
 	ns, err := createTestingNS(baseName, f.ClientSet, labels)
 	// check ns instead of err to see if it's nil as we may

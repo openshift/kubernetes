@@ -23,12 +23,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/kubectl/pkg/util/podutils"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -41,11 +44,13 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	testutils "k8s.io/kubernetes/test/utils"
 )
 
 var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShutdown] [NodeFeature:GracefulNodeShutdownBasedOnPodPriority]", func() {
 	f := framework.NewDefaultFramework("graceful-node-shutdown")
+	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 	ginkgo.Context("when gracefully shutting down", func() {
 
 		const (
@@ -66,6 +71,10 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 		})
 
 		ginkgo.BeforeEach(func() {
+			if err := lookEmitSignalCommand(); err != nil {
+				e2eskipper.Skipf("skipping test because: %v", err)
+				return
+			}
 			ginkgo.By("Wait for the node to be ready")
 			waitForNodeReady()
 		})
@@ -227,8 +236,9 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 	ginkgo.Context("when gracefully shutting down with Pod priority", func() {
 
 		const (
-			pollInterval           = 1 * time.Second
-			podStatusUpdateTimeout = 10 * time.Second
+			pollInterval                 = 1 * time.Second
+			podStatusUpdateTimeout       = 10 * time.Second
+			priorityClassesCreateTimeout = 10 * time.Second
 		)
 
 		var (
@@ -268,13 +278,29 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 		})
 
 		ginkgo.BeforeEach(func() {
+			if err := lookEmitSignalCommand(); err != nil {
+				e2eskipper.Skipf("skipping test because: %v", err)
+				return
+			}
+
 			ginkgo.By("Wait for the node to be ready")
 			waitForNodeReady()
-
-			for _, customClass := range []*schedulingv1.PriorityClass{customClassA, customClassB, customClassC} {
+			customClasses := []*schedulingv1.PriorityClass{customClassA, customClassB, customClassC}
+			for _, customClass := range customClasses {
 				_, err := f.ClientSet.SchedulingV1().PriorityClasses().Create(context.Background(), customClass, metav1.CreateOptions{})
-				framework.ExpectNoError(err)
+				if err != nil && !apierrors.IsAlreadyExists(err) {
+					framework.ExpectNoError(err)
+				}
 			}
+			gomega.Eventually(func() error {
+				for _, customClass := range customClasses {
+					_, err := f.ClientSet.SchedulingV1().PriorityClasses().Get(context.Background(), customClass.Name, metav1.GetOptions{})
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			}, priorityClassesCreateTimeout, pollInterval).Should(gomega.BeNil())
 		})
 
 		ginkgo.AfterEach(func() {
@@ -384,6 +410,11 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 					return nil
 				}, podStatusUpdateTimeout, pollInterval).Should(gomega.BeNil())
 			}
+
+			ginkgo.By("should have state file")
+			stateFile := "/var/lib/kubelet/graceful_node_shutdown_state"
+			_, err = os.Stat(stateFile)
+			framework.ExpectNoError(err)
 		})
 	})
 })
@@ -447,6 +478,11 @@ while true; do sleep 5; done
 func emitSignalPrepareForShutdown(b bool) error {
 	cmd := "dbus-send --system /org/freedesktop/login1 org.freedesktop.login1.Manager.PrepareForShutdown boolean:" + strconv.FormatBool(b)
 	_, err := runCommand("sh", "-c", cmd)
+	return err
+}
+
+func lookEmitSignalCommand() error {
+	_, err := exec.LookPath("dbus-send")
 	return err
 }
 
