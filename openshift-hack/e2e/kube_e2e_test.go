@@ -1,6 +1,6 @@
 package e2e
 
-//go:generate go run -mod vendor ./annotate/cmd -- ./annotate/generated/zz_generated.annotations.go
+//go:generate go run -mod vendor ./annotate/cmd ./annotate/generated/zz_generated.annotations.go
 
 // This file duplicates most of test/e2e/e2e_test.go but limits the included
 // tests (via include.go) to tests that are relevant to openshift.
