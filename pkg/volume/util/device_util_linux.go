@@ -202,10 +202,22 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 				portal := strings.TrimSpace(string(addr)) + ":" +
 					strings.TrimSpace(string(port))
 				portalHostMap[portal] = hostNumber
+				// For IPv6 addresses add an entry with IP address enclosed in []
+				if strings.Contains(string(addr), ":") {
+					ipv6Portal := "[" + strings.TrimSpace(string(addr)) + "]:" +
+						strings.TrimSpace(string(port))
+					portalHostMap[ipv6Portal] = hostNumber
+				}
 
 				persistentPortal := strings.TrimSpace(string(persistentAddr)) + ":" +
 					strings.TrimSpace(string(persistentPort))
 				portalHostMap[persistentPortal] = hostNumber
+				// For IPv6 addresses add an entry with IP address enclosed in []
+				if strings.Contains(string(persistentAddr), ":") {
+					persistentIPv6Portal := "[" + strings.TrimSpace(string(persistentAddr)) + "]:" +
+						strings.TrimSpace(string(persistentPort))
+					portalHostMap[persistentIPv6Portal] = hostNumber
+				}
 			}
 		}
 	}
