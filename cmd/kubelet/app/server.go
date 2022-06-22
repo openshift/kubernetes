@@ -32,6 +32,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/kubensmnt"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -149,7 +150,19 @@ HTTP endpoint: HTTP endpoint passed as a parameter on the command line. This end
 is checked every 20 seconds (also configurable with a flag).
 
 HTTP server: The kubelet can also listen for HTTP and respond to a simple API
-(underspec'd currently) to submit a new manifest.`,
+(underspec'd currently) to submit a new manifest.
+
+In order to place all Kubernetes mount points in a separate mount
+namespace, you may bind a mount namespace to a file, and pass that file
+path to kubelet via the $KUBENSMNT environment variable. If the file does
+not exist or is not bound to a mount namespace, kubelet will log a warning
+message but continue to run in the default namespace.
+
+This mount namespace must be a slave to the parent namespace for pods to
+have access to host OS filesystems, and must be recursively-shared inside
+to allow pod-to-pod mointpoint sharing such as in CSI. You must also
+ensure your container runtime is in same mount namespace, or pods will not
+see kubelet-mounted volumes like secrets or configmaps.`,
 		// The Kubelet has special flag parsing requirements to enforce flag precedence rules,
 		// so we do all our parsing manually in Run, below.
 		// DisableFlagParsing=true provides the full set of flags passed to the kubelet in the
@@ -178,6 +191,16 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 
 			// short-circuit on verflag
 			verflag.PrintAndExitIfRequested()
+
+			// Check if we joined a mount namespace
+			nsname, err := kubensmnt.Status()
+			if nsname != "" {
+				if err != nil {
+					klog.InfoS("%v", err)
+				} else {
+					klog.InfoS("Joined mount namespace %q", nsname)
+				}
+			}
 
 			// set feature gates from initial flags-based config
 			if err := utilfeature.DefaultMutableFeatureGate.SetFromMap(kubeletConfig.FeatureGates); err != nil {
