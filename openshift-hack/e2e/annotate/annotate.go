@@ -173,7 +173,6 @@ func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.T
 	originalName := name
 	combinedName := combineNames(parentName, name)
 
-	labels := ""
 	for {
 		count := 0
 		for _, label := range r.allLabels {
@@ -185,26 +184,25 @@ func (r *ginkgoTestRenamer) generateRename(name, parentName string, node types.T
 				continue
 			}
 
-			var hasLabel bool
+			var mayNeedLabel bool
 			for _, segment := range r.stringMatches[label] {
-				hasLabel = strings.Contains(combinedName, segment)
+				mayNeedLabel = strings.Contains(combinedName, segment)
 				if hasLabel {
 					break
 				}
 			}
-			if !hasLabel {
+			if !mayNeedLabel {
 				if re := r.matches[label]; re != nil {
-					hasLabel = r.matches[label].MatchString(combinedName)
+					mayNeedLabel = r.matches[label].MatchString(combinedName)
 				}
 			}
 
-			if hasLabel {
+			if mayNeedLabel {
 				// TODO: remove when we no longer need it
 				if re, ok := r.excludes[label]; ok && re.MatchString(combinedName) {
 					continue
 				}
 				count++
-				labels += " " + label
 				combinedName += " " + label
 				name += " " + label
 			}
