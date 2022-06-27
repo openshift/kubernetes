@@ -336,7 +336,9 @@ func TestTimeoutWithLogging(t *testing.T) {
 					},
 				),
 			),
-		),
+			func() bool {
+				return false
+			}),
 	)
 	defer ts.Close()
 
