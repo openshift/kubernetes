@@ -45,9 +45,6 @@ var (
 			`Advanced Audit should audit API calls`, // expects to be able to call /logs
 
 			`Firewall rule should have correct firewall rules for e2e cluster`, // Upstream-install specific
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2079958
-			`\[sig-network\] \[Feature:Topology Hints\] should distribute endpoints evenly`,
 		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
@@ -108,8 +105,6 @@ var (
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should support a 'default-deny-ingress' policy`,
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy based on Ports`,
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
-
-			`Topology Hints should distribute endpoints evenly`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {

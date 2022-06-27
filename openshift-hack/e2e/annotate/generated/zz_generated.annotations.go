@@ -1253,7 +1253,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] [Feature:PerformanceDNS][Serial] Should answer DNS query for maximum number of services per cluster": "Should answer DNS query for maximum number of services per cluster [Slow] [Suite:k8s]",
 
-	"[Top Level] [sig-network] [Feature:Topology Hints] should distribute endpoints evenly": "should distribute endpoints evenly [Disabled:SpecialConfig] [Suite:k8s]",
+	"[Top Level] [sig-network] [Feature:Topology Hints] should distribute endpoints evenly": "should distribute endpoints evenly [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [sig-node] AppArmor load AppArmor profiles can disable an AppArmor profile, using unconfined": "can disable an AppArmor profile, using unconfined [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
