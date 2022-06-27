@@ -67,7 +67,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api v0.0.0-20211028023115-7224b732cc14
+	github.com/openshift/api v0.0.0-20220502162600-a191b4bb80cc
 	github.com/openshift/apiserver-library-go v0.0.0-20211105091019-06e87e7030eb
 	github.com/openshift/client-go v0.0.0-20210831095141-e19a065e79f7
 	github.com/openshift/library-go v0.0.0-20220405121559-e304504b7d6f
