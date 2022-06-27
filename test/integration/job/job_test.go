@@ -822,11 +822,7 @@ func TestSuspendJobControllerRestart(t *testing.T) {
 	}
 	validateJobPodsStatus(ctx, t, clientSet, job, podsByStatus{
 		Active: 0,
-<<<<<<< HEAD
-	}, feature.DefaultFeatureGate.Enabled(features.JobTrackingWithFinalizers))
-=======
 	}, trackingWithFinalizers)
->>>>>>> v1.23.8
 
 	// Disable feature gate and restart controller to test that pods get created.
 	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.SuspendJob, false)()
@@ -838,11 +834,7 @@ func TestSuspendJobControllerRestart(t *testing.T) {
 	}
 	validateJobPodsStatus(ctx, t, clientSet, job, podsByStatus{
 		Active: 2,
-<<<<<<< HEAD
-	}, feature.DefaultFeatureGate.Enabled(features.JobTrackingWithFinalizers))
-=======
 	}, trackingWithFinalizers)
->>>>>>> v1.23.8
 }
 
 func TestNodeSelectorUpdate(t *testing.T) {
