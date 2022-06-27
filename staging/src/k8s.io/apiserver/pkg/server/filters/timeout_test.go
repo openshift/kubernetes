@@ -337,7 +337,9 @@ func TestTimeoutWithLogging(t *testing.T) {
 					},
 				),
 			), httplog.DefaultStacktracePred,
-		),
+			func() bool {
+				return false
+			}),
 	)
 	defer ts.Close()
 
