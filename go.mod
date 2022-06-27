@@ -65,10 +65,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api v0.0.0-20220124143425-d74727069f6f
+	github.com/openshift/api v0.0.0-20220414050251-a83e6f8f1d50
 	github.com/openshift/apiserver-library-go v0.0.0-20211209162547-8c11dbc46b6e
 	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
-	github.com/openshift/library-go v0.0.0-20220331194700-379bd5d96d88
+	github.com/openshift/library-go v0.0.0-20220502105925-109ae411def1
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.11.0

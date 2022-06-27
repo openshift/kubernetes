@@ -26,7 +26,9 @@ replace (
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20220124143425-d74727069f6f
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
+	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20220331194700-379bd5d96d88
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
