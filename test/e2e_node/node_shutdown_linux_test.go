@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -27,12 +28,9 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
-<<<<<<< HEAD
-=======
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
->>>>>>> v1.22.11
 	"k8s.io/kubectl/pkg/util/podutils"
 
 	"github.com/onsi/ginkgo"

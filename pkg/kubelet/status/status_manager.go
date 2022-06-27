@@ -856,11 +856,7 @@ func mergePodStatus(oldPodStatus, newPodStatus v1.PodStatus, couldHaveRunningCon
 	// the Kubelet exclusively owns must be released prior to a pod being reported terminal,
 	// while resources that have participanting components above the API use the pod's
 	// transition to a terminal phase (or full deletion) to release those resources.
-<<<<<<< HEAD
-	if !isPhaseTerminal(oldPodStatus.Phase) && isPhaseTerminal(newPodStatus.Phase) {
-=======
 	if !podutil.IsPodPhaseTerminal(oldPodStatus.Phase) && podutil.IsPodPhaseTerminal(newPodStatus.Phase) {
->>>>>>> v1.22.11
 		if couldHaveRunningContainers {
 			newPodStatus.Phase = oldPodStatus.Phase
 			newPodStatus.Reason = oldPodStatus.Reason
@@ -868,8 +864,6 @@ func mergePodStatus(oldPodStatus, newPodStatus v1.PodStatus, couldHaveRunningCon
 		}
 	}
 
-<<<<<<< HEAD
-=======
 	// If the new phase is terminal, explicitly set the ready condition to false for v1.PodReady and v1.ContainersReady.
 	// It may take some time for kubelet to reconcile the ready condition, so explicitly set ready conditions to false if the phase is terminal.
 	// This is done to ensure kubelet does not report a status update with terminal pod phase and ready=true.
@@ -884,7 +878,6 @@ func mergePodStatus(oldPodStatus, newPodStatus v1.PodStatus, couldHaveRunningCon
 		}
 	}
 
->>>>>>> v1.22.11
 	return newPodStatus
 }
 
