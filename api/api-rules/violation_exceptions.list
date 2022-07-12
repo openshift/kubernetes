@@ -364,6 +364,13 @@ API rule violation: list_type_missing,k8s.io/kubelet/config/v1beta1,KubeletConfi
 API rule violation: list_type_missing,k8s.io/kubelet/config/v1beta1,KubeletConfiguration,ReservedMemory
 API rule violation: list_type_missing,k8s.io/kubelet/config/v1beta1,KubeletConfiguration,ShutdownGracePeriodByPodPriority
 API rule violation: list_type_missing,k8s.io/kubelet/config/v1beta1,KubeletConfiguration,TLSCipherSuites
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,ImageContentSourcePolicySpec,RepositoryDigestMirrors
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,NodeStatus,LastFailedDeploymentErrors
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,OperatorStatus,Conditions
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,RepositoryDigestMirrors,Mirrors
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,StaticPodOperatorStatus,NodeStatuses
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,VersionAvailability,Errors
+API rule violation: list_type_missing,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,VersionAvailability,Generations
 API rule violation: list_type_missing,k8s.io/metrics/pkg/apis/metrics/v1alpha1,PodMetrics,Containers
 API rule violation: list_type_missing,k8s.io/metrics/pkg/apis/metrics/v1beta1,PodMetrics,Containers
 API rule violation: names_match,k8s.io/api/authorization/v1beta1,SubjectAccessReviewSpec,Groups
@@ -592,5 +599,7 @@ API rule violation: names_match,k8s.io/kube-proxy/config/v1alpha1,KubeProxyConfi
 API rule violation: names_match,k8s.io/kubelet/config/v1beta1,KubeletConfiguration,IPTablesDropBit
 API rule violation: names_match,k8s.io/kubelet/config/v1beta1,KubeletConfiguration,IPTablesMasqueradeBit
 API rule violation: names_match,k8s.io/kubelet/config/v1beta1,KubeletConfiguration,ResolverConfig
+API rule violation: names_match,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,OperatorStatus,CurrentAvailability
+API rule violation: names_match,k8s.io/kubernetes/openshift-kube-apiserver/operator/apis/imagecontentsourcepolicy/v1alpha1,OperatorStatus,TargetAvailability
 API rule violation: names_match,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,MetricValue,WindowSeconds
 API rule violation: names_match,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,ExternalMetricValue,WindowSeconds
