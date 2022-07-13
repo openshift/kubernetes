@@ -1,8 +1,8 @@
 FROM fedora:29 AS build
 
-COPY --from=registry.svc.ci.openshift.org/openshift/origin-v4.0:machine-os-content /srv/ /srv/
+COPY --from=registry.svc.openshift.org/openshift/origin-v4.0:machine-os-content /srv/ /srv/
 RUN set -x && yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted && \
-    curl http://base-4-3-rhel8.ocp.svc > /etc/yum.repos.d/rhel8.repo && \
+    curl http://base-4-9-rhel8.ocp.svc > /etc/yum.repos.d/rhel8.repo && \
     commit=$( find /srv -name *.commit | sed -Ee 's|.*objects/(.+)/(.+)\.commit|\1\2|' | head -1 ) && \
     mkdir /tmp/working && cd /tmp/working && \
     rpm-ostree db list --repo /srv/repo $commit > /tmp/packages && \
