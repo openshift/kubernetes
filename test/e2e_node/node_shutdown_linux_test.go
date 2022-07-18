@@ -28,6 +28,12 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
+<<<<<<< HEAD
+=======
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
+>>>>>>> v1.23.9
 	"k8s.io/kubectl/pkg/util/podutils"
 
 	"github.com/onsi/ginkgo"
@@ -38,6 +44,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/features"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -98,6 +105,34 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 			})
 			framework.ExpectNoError(err)
 			framework.ExpectEqual(len(list.Items), len(pods), "the number of pods is not as expected")
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go func() {
+				defer ginkgo.GinkgoRecover()
+				w := &cache.ListWatch{
+					WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+						return f.ClientSet.CoreV1().Pods(f.Namespace.Name).Watch(context.TODO(), options)
+					},
+				}
+
+				// Setup watch to continuously monitor any pod events and detect invalid pod status updates
+				_, err = watchtools.Until(ctx, list.ResourceVersion, w, func(event watch.Event) (bool, error) {
+					if pod, ok := event.Object.(*v1.Pod); ok {
+						if isPodStatusAffectedByIssue108594(pod) {
+							return false, fmt.Errorf("failing test due to detecting invalid pod status")
+						}
+						// Watch will never terminate (only when the test ends due to context cancellation)
+						return false, nil
+					}
+					return false, nil
+				})
+
+				// Ignore timeout error since the context will be explicitly cancelled and the watch will never return true
+				if err != nil && err != wait.ErrWaitTimeout {
+					framework.Failf("watch for invalid pod status failed: %v", err.Error())
+				}
+			}()
 
 			ginkgo.By("Verifying batch pods are running")
 			for _, pod := range list.Items {
@@ -168,6 +203,7 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 				// Critical pod starts shutdown after (nodeShutdownGracePeriod-nodeShutdownGracePeriodCriticalPods)
 				podStatusUpdateTimeout+(nodeShutdownGracePeriod-nodeShutdownGracePeriodCriticalPods),
 				pollInterval).Should(gomega.BeNil())
+
 		})
 
 		ginkgo.It("should be able to handle a cancelled shutdown", func() {
