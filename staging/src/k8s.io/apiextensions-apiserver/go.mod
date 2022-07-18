@@ -12,7 +12,7 @@ require (
 	github.com/google/gofuzz v1.1.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.5
-	github.com/openshift/api v0.0.0-20220124143425-d74727069f6f
+	github.com/openshift/api v0.0.0-20220414050251-a83e6f8f1d50
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
@@ -37,12 +37,10 @@ require (
 )
 
 replace (
-	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.33.2-0.20220117214446-bb33a1245805
 	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
-	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
