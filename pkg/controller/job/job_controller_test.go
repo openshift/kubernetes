@@ -58,11 +58,11 @@ import (
 
 var alwaysReady = func() bool { return true }
 
-func newJob(parallelism, completions, backoffLimit int32, completionMode batch.CompletionMode) *batch.Job {
+func newJobWithName(name string, parallelism, completions, backoffLimit int32, completionMode batch.CompletionMode) *batch.Job {
 	j := &batch.Job{
 		TypeMeta: metav1.TypeMeta{Kind: "Job"},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foobar",
+			Name:      name,
 			UID:       uuid.NewUUID(),
 			Namespace: metav1.NamespaceDefault,
 		},
@@ -102,6 +102,10 @@ func newJob(parallelism, completions, backoffLimit int32, completionMode batch.C
 	j.Spec.BackoffLimit = &backoffLimit
 
 	return j
+}
+
+func newJob(parallelism, completions, backoffLimit int32, completionMode batch.CompletionMode) *batch.Job {
+	return newJobWithName("foobar", parallelism, completions, backoffLimit, completionMode)
 }
 
 func newControllerFromClient(kubeClient clientset.Interface, resyncPeriod controller.ResyncPeriodFunc) (*Controller, informers.SharedInformerFactory) {
@@ -195,6 +199,9 @@ func TestControllerSyncJob(t *testing.T) {
 		completionMode batch.CompletionMode
 		wasSuspended   bool
 		suspend        bool
+
+		// If set, it means that the case is exclusive to tracking with/without finalizers.
+		wFinalizersExclusive *bool
 
 		// pod setup
 		podControllerError        error
@@ -480,6 +487,16 @@ func TestControllerSyncJob(t *testing.T) {
 			expectedConditionReason: "BackoffLimitExceeded",
 			expectedPodPatches:      1,
 		},
+		"job failures, unsatisfied expectations": {
+			wFinalizersExclusive:      pointer.Bool(true),
+			parallelism:               2,
+			completions:               5,
+			deleting:                  true,
+			failedPods:                1,
+			fakeExpectationAtCreation: 1,
+			expectedFailed:            1,
+			expectedPodPatches:        1,
+		},
 		"indexed job start": {
 			parallelism:            2,
 			completions:            5,
@@ -705,6 +722,9 @@ func TestControllerSyncJob(t *testing.T) {
 			t.Run(fmt.Sprintf("%s, finalizers=%t", name, wFinalizers), func(t *testing.T) {
 				if wFinalizers && tc.podControllerError != nil {
 					t.Skip("Can't track status if finalizers can't be removed")
+				}
+				if tc.wFinalizersExclusive != nil && *tc.wFinalizersExclusive != wFinalizers {
+					t.Skipf("Test is exclusive for wFinalizers=%t", *tc.wFinalizersExclusive)
 				}
 				defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobReadyPods, tc.jobReadyPodsEnabled)()
 				defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobTrackingWithFinalizers, wFinalizers)()
@@ -1811,40 +1831,67 @@ func hasTrueCondition(job *batch.Job) *batch.JobConditionType {
 }
 
 func TestSyncPastDeadlineJobFinished(t *testing.T) {
-	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: "", ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}})
+	clientset := fake.NewSimpleClientset()
 	manager, sharedInformerFactory := newControllerFromClient(clientset, controller.NoResyncPeriodFunc)
-	fakePodControl := controller.FakePodControl{}
-	manager.podControl = &fakePodControl
 	manager.podStoreSynced = alwaysReady
 	manager.jobStoreSynced = alwaysReady
-	var actual *batch.Job
-	manager.updateStatusHandler = func(ctx context.Context, job *batch.Job) (*batch.Job, error) {
-		actual = job
-		return job, nil
-	}
 
-	job := newJob(1, 1, 6, batch.NonIndexedCompletion)
-	activeDeadlineSeconds := int64(10)
-	job.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
-	start := metav1.Unix(metav1.Now().Time.Unix()-15, 0)
-	job.Status.StartTime = &start
-	job.Status.Conditions = append(job.Status.Conditions, *newCondition(batch.JobFailed, v1.ConditionTrue, "DeadlineExceeded", "Job was active longer than specified deadline"))
-	sharedInformerFactory.Batch().V1().Jobs().Informer().GetIndexer().Add(job)
-	forget, err := manager.syncJob(context.TODO(), testutil.GetKey(job, t))
-	if err != nil {
-		t.Errorf("Unexpected error when syncing jobs %v", err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	sharedInformerFactory.Start(ctx.Done())
+	sharedInformerFactory.WaitForCacheSync(ctx.Done())
+
+	go manager.Run(ctx, 1)
+
+	tests := []struct {
+		name         string
+		setStartTime bool
+		jobName      string
+	}{
+		{
+			name:         "New job created without start time being set",
+			setStartTime: false,
+			jobName:      "job1",
+		},
+		{
+			name:         "New job created with start time being set",
+			setStartTime: true,
+			jobName:      "job2",
+		},
 	}
-	if !forget {
-		t.Errorf("Unexpected forget value. Expected %v, saw %v\n", true, forget)
-	}
-	if len(fakePodControl.Templates) != 0 {
-		t.Errorf("Unexpected number of creates.  Expected %d, saw %d\n", 0, len(fakePodControl.Templates))
-	}
-	if len(fakePodControl.DeletePodName) != 0 {
-		t.Errorf("Unexpected number of deletes.  Expected %d, saw %d\n", 0, len(fakePodControl.DeletePodName))
-	}
-	if actual != nil {
-		t.Error("Unexpected job modification")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			job := newJobWithName(tc.jobName, 1, 1, 6, batch.NonIndexedCompletion)
+			activeDeadlineSeconds := int64(1)
+			job.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+			if tc.setStartTime {
+				start := metav1.Unix(metav1.Now().Time.Unix()-1, 0)
+				job.Status.StartTime = &start
+			}
+
+			_, err := clientset.BatchV1().Jobs(job.GetNamespace()).Create(ctx, job, metav1.CreateOptions{})
+			if err != nil {
+				t.Errorf("Could not create Job: %v", err)
+			}
+
+			if err := sharedInformerFactory.Batch().V1().Jobs().Informer().GetIndexer().Add(job); err != nil {
+				t.Fatalf("Failed to insert job in index: %v", err)
+			}
+			var j *batch.Job
+			err = wait.Poll(200*time.Millisecond, 3*time.Second, func() (done bool, err error) {
+				j, err = clientset.BatchV1().Jobs(metav1.NamespaceDefault).Get(ctx, job.GetName(), metav1.GetOptions{})
+				if err != nil {
+					return false, nil
+				}
+				if len(j.Status.Conditions) == 1 && j.Status.Conditions[0].Reason == "DeadlineExceeded" {
+					return true, nil
+				}
+				return false, nil
+			})
+			if err != nil {
+				t.Errorf("Job failed to enforce activeDeadlineSeconds configuration. Expected condition with Reason 'DeadlineExceeded' was not found in %v", j.Status)
+			}
+		})
 	}
 }
 
@@ -1916,11 +1963,13 @@ func TestSyncJobUpdateRequeue(t *testing.T) {
 			wantRequeue: true,
 		},
 		"conflict error": {
-			updateErr: apierrors.NewConflict(schema.GroupResource{}, "", nil),
+			updateErr:   apierrors.NewConflict(schema.GroupResource{}, "", nil),
+			wantRequeue: true,
 		},
 		"conflict error, with finalizers": {
 			withFinalizers: true,
 			updateErr:      apierrors.NewConflict(schema.GroupResource{}, "", nil),
+			wantRequeue:    true,
 		},
 	}
 	for name, tc := range cases {
@@ -2575,37 +2624,65 @@ func TestWatchOrphanPods(t *testing.T) {
 	manager.podStoreSynced = alwaysReady
 	manager.jobStoreSynced = alwaysReady
 
-	jobSynced := false
-	manager.syncHandler = func(ctx context.Context, jobKey string) (bool, error) {
-		jobSynced = true
-		return true, nil
-	}
-
-	// Create job but don't add it to the store.
-	testJob := newJob(2, 2, 6, batch.NonIndexedCompletion)
-
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go sharedInformers.Core().V1().Pods().Informer().Run(stopCh)
+	podInformer := sharedInformers.Core().V1().Pods().Informer()
+	go podInformer.Run(stopCh)
+	cache.WaitForCacheSync(stopCh, podInformer.HasSynced)
 	go manager.Run(context.TODO(), 1)
 
-	orphanPod := buildPod().name("a").job(testJob).deletionTimestamp().trackingFinalizer().Pod
-	orphanPod, err := clientset.CoreV1().Pods("default").Create(context.Background(), orphanPod, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("Creating orphan pod: %v", err)
+	// Create job but don't add it to the store.
+	cases := map[string]struct {
+		job     *batch.Job
+		inCache bool
+	}{
+		"job_does_not_exist": {
+			job: newJob(2, 2, 6, batch.NonIndexedCompletion),
+		},
+		"orphan": {},
+		"job_finished": {
+			job: func() *batch.Job {
+				j := newJob(2, 2, 6, batch.NonIndexedCompletion)
+				j.Status.Conditions = append(j.Status.Conditions, batch.JobCondition{
+					Type:   batch.JobComplete,
+					Status: v1.ConditionTrue,
+				})
+				return j
+			}(),
+			inCache: true,
+		},
 	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			if tc.inCache {
+				if err := sharedInformers.Batch().V1().Jobs().Informer().GetIndexer().Add(tc.job); err != nil {
+					t.Fatalf("Failed to insert job in index: %v", err)
+				}
+				t.Cleanup(func() {
+					sharedInformers.Batch().V1().Jobs().Informer().GetIndexer().Delete(tc.job)
+				})
+			}
 
-	if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
-		p, err := clientset.CoreV1().Pods(orphanPod.Namespace).Get(context.Background(), orphanPod.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		return !hasJobTrackingFinalizer(p), nil
-	}); err != nil {
-		t.Errorf("Waiting for Pod to get the finalizer removed: %v", err)
-	}
-	if jobSynced {
-		t.Error("Tried to sync deleted job")
+			podBuilder := buildPod().name(name).deletionTimestamp().trackingFinalizer()
+			if tc.job != nil {
+				podBuilder = podBuilder.job(tc.job)
+			}
+			orphanPod := podBuilder.Pod
+			orphanPod, err := clientset.CoreV1().Pods("default").Create(context.Background(), orphanPod, metav1.CreateOptions{})
+			if err != nil {
+				t.Fatalf("Creating orphan pod: %v", err)
+			}
+
+			if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
+				p, err := clientset.CoreV1().Pods(orphanPod.Namespace).Get(context.Background(), orphanPod.Name, metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+				return !hasJobTrackingFinalizer(p), nil
+			}); err != nil {
+				t.Errorf("Waiting for Pod to get the finalizer removed: %v", err)
+			}
+		})
 	}
 }
 

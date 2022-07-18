@@ -384,7 +384,8 @@ func (jm *Controller) deletePod(obj interface{}, final bool) {
 		return
 	}
 	job := jm.resolveControllerRef(pod.Namespace, controllerRef)
-	if job == nil {
+	if job == nil || IsJobFinished(job) {
+		// syncJob will not remove this finalizer.
 		if hasFinalizer {
 			jm.enqueueOrphanPod(pod)
 		}
@@ -530,12 +531,7 @@ func (jm *Controller) processNextWorkItem(ctx context.Context) bool {
 	}
 
 	utilruntime.HandleError(fmt.Errorf("syncing job: %w", err))
-	if !apierrors.IsConflict(err) {
-		// If this was a conflict error, we expect a Job or Pod update event, which
-		// will add the job back to the queue. Avoiding the rate limited requeue
-		// saves an unnecessary sync.
-		jm.queue.AddRateLimited(key)
-	}
+	jm.queue.AddRateLimited(key)
 
 	return true
 }
@@ -585,7 +581,7 @@ func (jm Controller) syncOrphanPod(ctx context.Context, key string) error {
 	// Make sure the pod is still orphaned.
 	if controllerRef := metav1.GetControllerOf(sharedPod); controllerRef != nil {
 		job := jm.resolveControllerRef(sharedPod.Namespace, controllerRef)
-		if job != nil {
+		if job != nil && !IsJobFinished(job) {
 			// The pod was adopted. Do not remove finalizer.
 			return nil
 		}
@@ -725,7 +721,7 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 	// Check the expectations of the job before counting active pods, otherwise a new pod can sneak in
 	// and update the expectations after we've retrieved active pods from the store. If a new pod enters
 	// the store after we've checked the expectation, the job sync is just deferred till the next relist.
-	jobNeedsSync := jm.expectations.SatisfiedExpectations(key)
+	satisfiedExpectations := jm.expectations.SatisfiedExpectations(key)
 
 	pods, err := jm.getPodsForJob(ctx, &job, uncounted != nil)
 	if err != nil {
@@ -739,17 +735,11 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 	if feature.DefaultFeatureGate.Enabled(features.JobReadyPods) {
 		ready = pointer.Int32(countReadyPods(activePods))
 	}
-	// Job first start. Set StartTime and start the ActiveDeadlineSeconds timer
-	// only if the job is not in the suspended state.
+
+	// Job first start. Set StartTime only if the job is not in the suspended state.
 	if job.Status.StartTime == nil && !jobSuspended(&job) {
 		now := metav1.Now()
 		job.Status.StartTime = &now
-		// enqueue a sync to check if job past ActiveDeadlineSeconds
-		if job.Spec.ActiveDeadlineSeconds != nil {
-			klog.V(4).Infof("Job %s has ActiveDeadlineSeconds will sync after %d seconds",
-				key, *job.Spec.ActiveDeadlineSeconds)
-			jm.queue.AddAfter(key, time.Duration(*job.Spec.ActiveDeadlineSeconds)*time.Second)
-		}
 	}
 
 	var manageJobErr error
@@ -768,6 +758,10 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 		finishedCondition = newCondition(batch.JobFailed, v1.ConditionTrue, "BackoffLimitExceeded", "Job has reached the specified backoff limit")
 	} else if pastActiveDeadline(&job) {
 		finishedCondition = newCondition(batch.JobFailed, v1.ConditionTrue, "DeadlineExceeded", "Job was active longer than specified deadline")
+	} else if job.Spec.ActiveDeadlineSeconds != nil && !jobSuspended(&job) {
+		syncDuration := time.Duration(*job.Spec.ActiveDeadlineSeconds)*time.Second - time.Since(job.Status.StartTime.Time)
+		klog.V(2).InfoS("Job has activeDeadlineSeconds configuration. Will sync this job again", "job", key, "nextSyncIn", syncDuration)
+		jm.queue.AddAfter(key, syncDuration)
 	}
 
 	var prevSucceededIndexes, succeededIndexes orderedIntervals
@@ -782,9 +776,9 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 		if uncounted == nil {
 			// Legacy behavior: pretend all active pods were successfully removed.
 			deleted = active
-		} else if deleted != active {
+		} else if deleted != active || !satisfiedExpectations {
 			// Can't declare the Job as finished yet, as there might be remaining
-			// pod finalizers.
+			// pod finalizers or pods that are not in the informer's cache yet.
 			finishedCondition = nil
 		}
 		active -= deleted
@@ -792,7 +786,7 @@ func (jm *Controller) syncJob(ctx context.Context, key string) (forget bool, rEr
 		manageJobErr = err
 	} else {
 		manageJobCalled := false
-		if jobNeedsSync && job.DeletionTimestamp == nil {
+		if satisfiedExpectations && job.DeletionTimestamp == nil {
 			active, action, manageJobErr = jm.manageJob(ctx, &job, activePods, succeeded, succeededIndexes)
 			manageJobCalled = true
 		}
