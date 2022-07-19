@@ -89,12 +89,8 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vmware/govmomi v0.20.3
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
-<<<<<<< HEAD
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
-=======
 	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 	golang.org/x/exp v0.0.0-20210220032938-85be41e4509f // indirect
->>>>>>> v1.21.14
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
