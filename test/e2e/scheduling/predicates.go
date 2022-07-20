@@ -819,6 +819,9 @@ func printAllPodsOnNode(c clientset.Interface, nodeName string) {
 
 func initPausePod(f *framework.Framework, conf pausePodConfig) *v1.Pod {
 	var gracePeriod = int64(1)
+	var runAsNonRoot = true
+	var allowPrivilegeEscalation = false
+	var nonrootUserUID = int64(65534)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            conf.Name,
@@ -828,6 +831,13 @@ func initPausePod(f *framework.Framework, conf pausePodConfig) *v1.Pod {
 			OwnerReferences: conf.OwnerReferences,
 		},
 		Spec: v1.PodSpec{
+			SecurityContext: &v1.PodSecurityContext{
+				RunAsNonRoot: &runAsNonRoot,
+				RunAsUser:    &nonrootUserUID,
+				SeccompProfile: &v1.SeccompProfile{
+					Type: v1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
 			NodeSelector:              conf.NodeSelector,
 			Affinity:                  conf.Affinity,
 			TopologySpreadConstraints: conf.TopologySpreadConstraints,
@@ -837,6 +847,12 @@ func initPausePod(f *framework.Framework, conf pausePodConfig) *v1.Pod {
 					Name:  conf.Name,
 					Image: imageutils.GetPauseImageName(),
 					Ports: conf.Ports,
+					SecurityContext: &v1.SecurityContext{
+						AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+						Capabilities: &v1.Capabilities{
+							Drop: []v1.Capability{"ALL"},
+						},
+					},
 				},
 			},
 			Tolerations:                   conf.Tolerations,
