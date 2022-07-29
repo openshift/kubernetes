@@ -28,6 +28,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/logs/json/register" // for JSON log format registration
@@ -52,7 +53,7 @@ func run(command *cobra.Command) int {
 	rand.Seed(time.Now().UnixNano())
 
 	command.SetGlobalNormalizationFunc(cliflag.WordSepNormalizeFunc)
-	if err := command.Execute(); err != nil {
+	if err := command.ExecuteContext(genericapiserver.SetupSignalContext()); err != nil {
 		return 1
 	}
 	return 0

@@ -48,7 +48,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	clientset "k8s.io/client-go/kubernetes"
@@ -252,8 +251,6 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 			if err := checkPermissions(); err != nil {
 				klog.ErrorS(err, "kubelet running with insufficient permissions")
 			}
-			// set up signal context here in order to be reused by kubelet and docker shim
-			ctx := genericapiserver.SetupSignalContext()
 
 			// make the kubelet's config safe for logging
 			config := kubeletServer.KubeletConfiguration.DeepCopy()
@@ -264,7 +261,7 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 			klog.V(5).InfoS("KubeletConfiguration", "configuration", config)
 
 			// run the kubelet
-			return Run(ctx, kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate)
+			return Run(cmd.Context(), kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate)
 		},
 	}
 

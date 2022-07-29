@@ -24,6 +24,7 @@ import (
 	"os"
 	_ "time/tzdata" // for CronJob Time Zone support
 
+	"k8s.io/apiserver/pkg/server"
 	"k8s.io/component-base/cli"
 	_ "k8s.io/component-base/logs/json/register"          // for JSON log format registration
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugin
@@ -33,6 +34,6 @@ import (
 
 func main() {
 	command := app.NewControllerManagerCommand()
-	code := cli.Run(command)
+	code := cli.RunContext(server.SetupSignalContext(), command)
 	os.Exit(code)
 }

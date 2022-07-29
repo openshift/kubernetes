@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericfeatures "k8s.io/apiserver/pkg/features"
-	"k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/apiserver/pkg/server/mux"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -146,8 +145,7 @@ controller, and serviceaccounts controller.`,
 				os.Exit(1)
 			}
 
-			stopCh := server.SetupSignalHandler()
-			if err := Run(c.Complete(), stopCh); err != nil {
+			if err := Run(c.Complete(), cmd.Context().Done()); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
