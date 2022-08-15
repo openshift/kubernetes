@@ -98,6 +98,9 @@ type Config struct {
 	// SecureServing is required to serve https
 	SecureServing *SecureServingInfo
 
+	// ReadyOnlySecureServing is like SecureServing, but until the server has been ready at least once this returns a 503
+	ReadyOnlySecureServing *SecureServingInfo
+
 	// Authentication is the configuration for authentication
 	Authentication AuthenticationInfo
 
@@ -690,11 +693,12 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 
 		listedPathProvider: apiServerHandler,
 
-		minRequestTimeout:     time.Duration(c.MinRequestTimeout) * time.Second,
-		ShutdownTimeout:       c.RequestTimeout,
-		ShutdownDelayDuration: c.ShutdownDelayDuration,
-		SecureServingInfo:     c.SecureServing,
-		ExternalAddress:       c.ExternalAddress,
+		minRequestTimeout:          time.Duration(c.MinRequestTimeout) * time.Second,
+		ShutdownTimeout:            c.RequestTimeout,
+		ShutdownDelayDuration:      c.ShutdownDelayDuration,
+		SecureServingInfo:          c.SecureServing,
+		ReadyOnlySecureServingInfo: c.ReadyOnlySecureServing,
+		ExternalAddress:            c.ExternalAddress,
 
 		openAPIConfig:           c.OpenAPIConfig,
 		openAPIV3Config:         c.OpenAPIV3Config,
