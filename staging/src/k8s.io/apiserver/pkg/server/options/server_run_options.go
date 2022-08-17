@@ -1,3 +1,4 @@
+
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -114,6 +115,18 @@ type ServerRunOptions struct {
 	// EnableEndpointLoadMetrics enables reporting Open Request Cost Aggregation (ORCA)
 	// endpoint load metrics via HTTP response headers when negotiated by the load balancer.
 	EnableEndpointLoadMetrics bool
+
+	// SendRetryAfterWhileNotReadyOnce, if enabled, the apiserver will
+	// reject all incoming requests with a 503 status code and a
+	// 'Retry-After' response header until the apiserver has fully
+	// initialized, except for requests from a designated debugger group.
+	// This option ensures that the system stays consistent even when
+	// requests are received before the server has been initialized.
+	// In particular, it prevents child deletion in case of GC or/and
+	// orphaned content in case of the namespaces controller.
+	// NOTE: this option is applicable to Microshift only,
+	//  this should never be enabled for OCP.
+	SendRetryAfterWhileNotReadyOnce bool
 }
 
 func NewServerRunOptions() *ServerRunOptions {
@@ -143,6 +156,7 @@ func NewServerRunOptionsForComponent(componentName string, componentGlobalsRegis
 		EnableEndpointLoadMetrics:           false,
 		ComponentName:                       componentName,
 		ComponentGlobalsRegistry:            componentGlobalsRegistry,
+		SendRetryAfterWhileNotReadyOnce:     false,
 	}
 }
 
@@ -171,6 +185,7 @@ func (s *ServerRunOptions) ApplyTo(c *server.Config) error {
 	c.FeatureGate = s.ComponentGlobalsRegistry.FeatureGateFor(s.ComponentName)
 	c.EmulationForwardCompatible = s.EmulationForwardCompatible
 	c.RuntimeConfigEmulationForwardCompatible = s.RuntimeConfigEmulationForwardCompatible
+	c.SendRetryAfterWhileNotReadyOnce = s.SendRetryAfterWhileNotReadyOnce
 	featureGate := c.FeatureGate
 	if featureGate == nil {
 		featureGate = utilfeature.DefaultFeatureGate
@@ -415,6 +430,13 @@ func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&s.ShutdownWatchTerminationGracePeriod, "shutdown-watch-termination-grace-period", s.ShutdownWatchTerminationGracePeriod, ""+
 		"This option, if set, represents the maximum amount of grace period the apiserver will wait "+
 		"for active watch request(s) to drain during the graceful server shutdown window.")
+
+	// NOTE: this option is applicable to Microshift only, this should never be enabled for OCP.
+	fs.BoolVar(&s.SendRetryAfterWhileNotReadyOnce, "send-retry-after-while-not-ready-once", s.SendRetryAfterWhileNotReadyOnce, ""+
+		"If true, incoming request(s) will be rejected with a '503' status code and a 'Retry-After' response header "+
+		"until the apiserver has initialized, except for requests from a certain group. This option ensures that the system stays "+
+		"consistent even when requests arrive at the server before it has been initialized. "+
+		"This option is applicable to Microshift only, this should never be enabled for OCP")
 
 	s.ComponentGlobalsRegistry.AddFlags(fs)
 	fs.BoolVar(&s.EmulationForwardCompatible, "emulation-forward-compatible", s.EmulationForwardCompatible, ""+
