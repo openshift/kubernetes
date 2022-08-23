@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -36,20 +37,26 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/util/feature"
+	cacheddiscovery "k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	typedv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
+	"k8s.io/client-go/metadata"
+	"k8s.io/client-go/metadata/metadatainformer"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/util/retry"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	"k8s.io/controller-manager/pkg/informerfactory"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
+	"k8s.io/kubernetes/pkg/controller/garbagecollector"
 	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/test/integration/framework"
 	"k8s.io/utils/pointer"
 )
 
-const waitInterval = 500 * time.Millisecond
+const waitInterval = time.Second
 
 // TestNonParallelJob tests that a Job that only executes one Pod. The test
 // recreates the Job controller at some points to make sure a new controller
@@ -61,7 +68,7 @@ func TestNonParallelJob(t *testing.T) {
 
 			closeFn, restConfig, clientSet, ns := setup(t, "simple")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer func() {
 				cancel()
 			}()
@@ -79,10 +86,10 @@ func TestNonParallelJob(t *testing.T) {
 
 			// Restarting controller.
 			cancel()
-			ctx, cancel = startJobController(restConfig, clientSet)
+			ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 
 			// Failed Pod is replaced.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 1); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 1); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pod: %v", v1.PodFailed, err)
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
@@ -92,10 +99,10 @@ func TestNonParallelJob(t *testing.T) {
 
 			// Restarting controller.
 			cancel()
-			ctx, cancel = startJobController(restConfig, clientSet)
+			ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 
 			// No more Pods are created after the Pod succeeds.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pod: %v", v1.PodSucceeded, err)
 			}
 			validateJobSucceeded(ctx, t, clientSet, jobObj)
@@ -132,7 +139,7 @@ func TestParallelJob(t *testing.T) {
 
 			closeFn, restConfig, clientSet, ns := setup(t, "parallel")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer cancel()
 
 			jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
@@ -150,7 +157,7 @@ func TestParallelJob(t *testing.T) {
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 
 			// Tracks ready pods, if enabled.
-			if err := setJobPodsReady(ctx, clientSet, jobObj, 2); err != nil {
+			if err, _ := setJobPodsReady(ctx, clientSet, jobObj, 2); err != nil {
 				t.Fatalf("Failed Marking Pods as ready: %v", err)
 			}
 			if tc.enableReadyPods {
@@ -159,7 +166,7 @@ func TestParallelJob(t *testing.T) {
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 
 			// Failed Pods are replaced.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 2); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 2); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pods: %v", v1.PodFailed, err)
 			}
 			want = podsByStatus{
@@ -171,7 +178,7 @@ func TestParallelJob(t *testing.T) {
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 			// Once one Pod succeeds, no more Pods are created, even if some fail.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pod: %v", v1.PodSucceeded, err)
 			}
 			want = podsByStatus{
@@ -183,7 +190,7 @@ func TestParallelJob(t *testing.T) {
 				want.Ready = pointer.Int32(0)
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 2); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 2); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pods: %v", v1.PodFailed, err)
 			}
 			want = podsByStatus{
@@ -196,7 +203,7 @@ func TestParallelJob(t *testing.T) {
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 			// No more Pods are created after remaining Pods succeed.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 2); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 2); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pods: %v", v1.PodSucceeded, err)
 			}
 			validateJobSucceeded(ctx, t, clientSet, jobObj)
@@ -220,7 +227,7 @@ func TestParallelJobParallelism(t *testing.T) {
 
 			closeFn, restConfig, clientSet, ns := setup(t, "parallel")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer cancel()
 
 			jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
@@ -257,7 +264,7 @@ func TestParallelJobParallelism(t *testing.T) {
 			}, wFinalizers)
 
 			// Succeed Job
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 4); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 4); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pods: %v", v1.PodFailed, err)
 			}
 			validateJobSucceeded(ctx, t, clientSet, jobObj)
@@ -296,7 +303,7 @@ func TestParallelJobWithCompletions(t *testing.T) {
 			defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobReadyPods, tc.enableReadyPods)()
 			closeFn, restConfig, clientSet, ns := setup(t, "completions")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer cancel()
 
 			jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
@@ -318,7 +325,7 @@ func TestParallelJobWithCompletions(t *testing.T) {
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 
 			// Tracks ready pods, if enabled.
-			if err := setJobPodsReady(ctx, clientSet, jobObj, 52); err != nil {
+			if err, _ := setJobPodsReady(ctx, clientSet, jobObj, 52); err != nil {
 				t.Fatalf("Failed Marking Pods as ready: %v", err)
 			}
 			if tc.enableReadyPods {
@@ -327,7 +334,7 @@ func TestParallelJobWithCompletions(t *testing.T) {
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 
 			// Failed Pods are replaced.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 2); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 2); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pods: %v", v1.PodFailed, err)
 			}
 			want = podsByStatus{
@@ -339,7 +346,7 @@ func TestParallelJobWithCompletions(t *testing.T) {
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 			// Pods are created until the number of succeeded Pods equals completions.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 53); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 53); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pod: %v", v1.PodSucceeded, err)
 			}
 			want = podsByStatus{
@@ -352,7 +359,7 @@ func TestParallelJobWithCompletions(t *testing.T) {
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, want, tc.trackWithFinalizers)
 			// No more Pods are created after the Job completes.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 3); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 3); err != nil {
 				t.Fatalf("Failed setting phase %s on Job Pods: %v", v1.PodSucceeded, err)
 			}
 			validateJobSucceeded(ctx, t, clientSet, jobObj)
@@ -377,7 +384,7 @@ func TestIndexedJob(t *testing.T) {
 
 			closeFn, restConfig, clientSet, ns := setup(t, "indexed")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer func() {
 				cancel()
 			}()
@@ -414,7 +421,7 @@ func TestIndexedJob(t *testing.T) {
 			// Disable feature gate and restart controller.
 			defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.IndexedJob, false)()
 			cancel()
-			ctx, cancel = startJobController(restConfig, clientSet)
+			ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 			events, err := clientSet.EventsV1().Events(ns.Name).Watch(ctx, metav1.ListOptions{})
 			if err != nil {
 				t.Fatal(err)
@@ -433,7 +440,7 @@ func TestIndexedJob(t *testing.T) {
 			// Re-enable feature gate and restart controller. Failed Pod should be recreated now.
 			defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.IndexedJob, true)()
 			cancel()
-			ctx, cancel = startJobController(restConfig, clientSet)
+			ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
 				Active:    3,
@@ -443,7 +450,7 @@ func TestIndexedJob(t *testing.T) {
 			validateIndexedJobPods(ctx, t, clientSet, jobObj, sets.NewInt(0, 2, 3), "1")
 
 			// Remaining Pods succeed.
-			if err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 3); err != nil {
+			if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 3); err != nil {
 				t.Fatal("Failed trying to succeed remaining pods")
 			}
 			validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
@@ -468,7 +475,7 @@ func TestDisableJobTrackingWithFinalizers(t *testing.T) {
 
 	closeFn, restConfig, clientSet, ns := setup(t, "simple")
 	defer closeFn()
-	ctx, cancel := startJobController(restConfig, clientSet)
+	ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 	defer func() {
 		cancel()
 	}()
@@ -493,12 +500,12 @@ func TestDisableJobTrackingWithFinalizers(t *testing.T) {
 	cancel()
 
 	// Fail a pod while Job controller is stopped.
-	if err := setJobPodsPhase(context.Background(), clientSet, jobObj, v1.PodFailed, 1); err != nil {
+	if err, _ := setJobPodsPhase(context.Background(), clientSet, jobObj, v1.PodFailed, 1); err != nil {
 		t.Fatalf("Failed setting phase %s on Job Pod: %v", v1.PodFailed, err)
 	}
 
 	// Restart controller.
-	ctx, cancel = startJobController(restConfig, clientSet)
+	ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 
 	// Ensure Job continues to be tracked and finalizers are removed.
 	validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
@@ -519,12 +526,12 @@ func TestDisableJobTrackingWithFinalizers(t *testing.T) {
 	cancel()
 
 	// Succeed a pod while Job controller is stopped.
-	if err := setJobPodsPhase(context.Background(), clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
+	if err, _ := setJobPodsPhase(context.Background(), clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
 		t.Fatalf("Failed setting phase %s on Job Pod: %v", v1.PodFailed, err)
 	}
 
 	// Restart controller.
-	ctx, cancel = startJobController(restConfig, clientSet)
+	ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 
 	// Ensure Job continues to be tracked and finalizers are removed.
 	validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
@@ -534,13 +541,174 @@ func TestDisableJobTrackingWithFinalizers(t *testing.T) {
 	}, false)
 }
 
-func TestOrphanPodsFinalizersCleared(t *testing.T) {
+func TestOrphanPodsFinalizersClearedWithGC(t *testing.T) {
+	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobTrackingWithFinalizers, true)()
+	for _, policy := range []metav1.DeletionPropagation{metav1.DeletePropagationOrphan, metav1.DeletePropagationBackground, metav1.DeletePropagationForeground} {
+		t.Run(string(policy), func(t *testing.T) {
+			closeFn, restConfig, clientSet, ns := setup(t, "simple")
+			defer closeFn()
+			informerSet := informers.NewSharedInformerFactory(clientset.NewForConfigOrDie(restclient.AddUserAgent(restConfig, "controller-informers")), 0)
+			// Make the job controller significantly slower to trigger race condition.
+			restConfig.QPS = 1
+			restConfig.Burst = 1
+			jc, ctx, cancel := createJobControllerWithSharedInformers(restConfig, informerSet)
+			defer cancel()
+			restConfig.QPS = 200
+			restConfig.Burst = 200
+			runGC := createGC(ctx, t, restConfig, informerSet)
+			informerSet.Start(ctx.Done())
+			go jc.Run(ctx, 1)
+			runGC()
+
+			jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
+				Spec: batchv1.JobSpec{
+					Parallelism: pointer.Int32Ptr(2),
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create Job: %v", err)
+			}
+			if !hasJobTrackingAnnotation(jobObj) {
+				t.Error("apiserver didn't add the tracking annotation")
+			}
+			validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
+				Active: 2,
+			}, true)
+
+			// Delete Job. The GC should delete the pods in cascade.
+			err = clientSet.BatchV1().Jobs(jobObj.Namespace).Delete(ctx, jobObj.Name, metav1.DeleteOptions{
+				PropagationPolicy: &policy,
+			})
+			if err != nil {
+				t.Fatalf("Failed to delete job: %v", err)
+			}
+			validateNoOrphanPodsWithFinalizers(ctx, t, clientSet, jobObj)
+		})
+	}
+}
+
+func TestFinalizersClearedWhenBackoffLimitExceeded(t *testing.T) {
+	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobTrackingWithFinalizers, true)()
+
+	closeFn, restConfig, clientSet, ns := setup(t, "simple")
+	defer closeFn()
+	ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
+	defer func() {
+		cancel()
+	}()
+
+	// Job tracking with finalizers requires less calls in Indexed mode,
+	// so it's more likely to process all finalizers before all the pods
+	// are visible.
+	mode := batchv1.IndexedCompletion
+	jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
+		Spec: batchv1.JobSpec{
+			CompletionMode: &mode,
+			Completions:    pointer.Int32(500),
+			Parallelism:    pointer.Int32(500),
+			BackoffLimit:   pointer.Int32(0),
+		},
+	})
+	if err != nil {
+		t.Fatalf("Could not create job: %v", err)
+	}
+
+	// Fail a pod ASAP.
+	err = wait.PollImmediate(time.Millisecond, wait.ForeverTestTimeout, func() (done bool, err error) {
+		if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 1); err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		t.Fatalf("Could not fail pod: %v", err)
+	}
+
+	validateJobFailed(ctx, t, clientSet, jobObj)
+
+	validateNoOrphanPodsWithFinalizers(ctx, t, clientSet, jobObj)
+}
+
+// TestJobFailedWithInterrupts tests that a job were one pod fails and the rest
+// succeed is marked as Failed, even if the controller fails in the middle.
+func TestJobFailedWithInterrupts(t *testing.T) {
+	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobTrackingWithFinalizers, true)()
+
+	closeFn, restConfig, clientSet, ns := setup(t, "simple")
+	defer closeFn()
+	ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
+	defer func() {
+		cancel()
+	}()
+	jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
+		Spec: batchv1.JobSpec{
+			Completions:  pointer.Int32(10),
+			Parallelism:  pointer.Int32(10),
+			BackoffLimit: pointer.Int32(0),
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					NodeName: "foo", // Scheduled pods are not deleted immediately.
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Could not create job: %v", err)
+	}
+	validateJobPodsStatus(ctx, t, clientSet, jobObj, podsByStatus{
+		Active: 10,
+	}, true)
+	t.Log("Finishing pods")
+	if err, _ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodFailed, 1); err != nil {
+		t.Fatalf("Could not fail a pod: %v", err)
+	}
+	remaining := 9
+	if err := wait.PollImmediate(5*time.Millisecond, wait.ForeverTestTimeout, func() (done bool, err error) {
+		if err, succ := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, remaining); err != nil {
+			remaining -= succ
+			t.Logf("Transient failure succeeding pods: %v", err)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		t.Fatalf("Could not succeed the remaining %d pods: %v", remaining, err)
+	}
+	t.Log("Recreating job controller")
+	cancel()
+	ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
+	validateJobCondition(ctx, t, clientSet, jobObj, batchv1.JobFailed)
+}
+
+func validateNoOrphanPodsWithFinalizers(ctx context.Context, t *testing.T, clientSet clientset.Interface, jobObj *batchv1.Job) {
+	t.Helper()
+	orphanPods := 0
+	if err := wait.Poll(waitInterval, wait.ForeverTestTimeout, func() (done bool, err error) {
+		pods, err := clientSet.CoreV1().Pods(jobObj.Namespace).List(ctx, metav1.ListOptions{
+			LabelSelector: metav1.FormatLabelSelector(jobObj.Spec.Selector),
+		})
+		if err != nil {
+			return false, err
+		}
+		orphanPods = 0
+		for _, pod := range pods.Items {
+			if hasJobTrackingFinalizer(&pod) {
+				orphanPods++
+			}
+		}
+		return orphanPods == 0, nil
+	}); err != nil {
+		t.Errorf("Failed waiting for pods to be freed from finalizer: %v", err)
+		t.Logf("Last saw %d orphan pods", orphanPods)
+	}
+}
+
+func TestOrphanPodsFinalizersClearedWithFeatureDisabled(t *testing.T) {
 	// Step 0: job created while feature is enabled.
 	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobTrackingWithFinalizers, true)()
 
 	closeFn, restConfig, clientSet, ns := setup(t, "simple")
 	defer closeFn()
-	ctx, cancel := startJobController(restConfig, clientSet)
+	ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 	defer func() {
 		cancel()
 	}()
@@ -571,15 +739,15 @@ func TestOrphanPodsFinalizersCleared(t *testing.T) {
 	}
 
 	// Restart controller.
-	ctx, cancel = startJobController(restConfig, clientSet)
+	ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 	if err := wait.Poll(waitInterval, wait.ForeverTestTimeout, func() (done bool, err error) {
 		pods, err := clientSet.CoreV1().Pods(jobObj.Namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			t.Fatalf("Falied to list Job Pods: %v", err)
+			t.Fatalf("Failed to list Job Pods: %v", err)
 		}
 		sawPods := false
 		for _, pod := range pods.Items {
-			if isPodOwnedByJob(&pod, jobObj) {
+			if metav1.IsControlledBy(&pod, jobObj) {
 				if hasJobTrackingFinalizer(&pod) {
 					return false, nil
 				}
@@ -635,7 +803,7 @@ func TestSuspendJob(t *testing.T) {
 
 			closeFn, restConfig, clientSet, ns := setup(t, "suspend")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer cancel()
 			events, err := clientSet.EventsV1().Events(ns.Name).Watch(ctx, metav1.ListOptions{})
 			if err != nil {
@@ -684,10 +852,11 @@ func TestSuspendJob(t *testing.T) {
 
 func TestSuspendJobControllerRestart(t *testing.T) {
 	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.SuspendJob, true)()
+	trackingWithFinalizers := feature.DefaultFeatureGate.Enabled(features.JobTrackingWithFinalizers)
 
 	closeFn, restConfig, clientSet, ns := setup(t, "suspend")
 	defer closeFn()
-	ctx, cancel := startJobController(restConfig, clientSet)
+	ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 	defer func() {
 		cancel()
 	}()
@@ -704,19 +873,27 @@ func TestSuspendJobControllerRestart(t *testing.T) {
 	}
 	validateJobPodsStatus(ctx, t, clientSet, job, podsByStatus{
 		Active: 0,
+<<<<<<< HEAD
 	}, feature.DefaultFeatureGate.Enabled(features.JobTrackingWithFinalizers))
+=======
+	}, trackingWithFinalizers)
+>>>>>>> v1.23.10
 
 	// Disable feature gate and restart controller to test that pods get created.
 	defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.SuspendJob, false)()
 	cancel()
-	ctx, cancel = startJobController(restConfig, clientSet)
+	ctx, cancel = startJobControllerAndWaitForCaches(restConfig)
 	job, err = clientSet.BatchV1().Jobs(ns.Name).Get(ctx, job.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Failed to get Job: %v", err)
 	}
 	validateJobPodsStatus(ctx, t, clientSet, job, podsByStatus{
 		Active: 2,
+<<<<<<< HEAD
 	}, feature.DefaultFeatureGate.Enabled(features.JobTrackingWithFinalizers))
+=======
+	}, trackingWithFinalizers)
+>>>>>>> v1.23.10
 }
 
 func TestNodeSelectorUpdate(t *testing.T) {
@@ -729,7 +906,7 @@ func TestNodeSelectorUpdate(t *testing.T) {
 
 			closeFn, restConfig, clientSet, ns := setup(t, "suspend")
 			defer closeFn()
-			ctx, cancel := startJobController(restConfig, clientSet)
+			ctx, cancel := startJobControllerAndWaitForCaches(restConfig)
 			defer cancel()
 
 			job, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{Spec: batchv1.JobSpec{
@@ -829,7 +1006,7 @@ func validateJobPodsStatus(ctx context.Context, t *testing.T, clientSet clientse
 		active = nil
 		for _, pod := range pods.Items {
 			phase := pod.Status.Phase
-			if isPodOwnedByJob(&pod, jobObj) && (phase == v1.PodPending || phase == v1.PodRunning) {
+			if metav1.IsControlledBy(&pod, jobObj) && (phase == v1.PodPending || phase == v1.PodRunning) {
 				p := pod
 				active = append(active, &p)
 			}
@@ -855,7 +1032,7 @@ func validateFinishedPodsNoFinalizer(ctx context.Context, t *testing.T, clientSe
 	}
 	for _, pod := range pods.Items {
 		phase := pod.Status.Phase
-		if isPodOwnedByJob(&pod, jobObj) && (phase == v1.PodPending || phase == v1.PodRunning) && hasJobTrackingFinalizer(&pod) {
+		if metav1.IsControlledBy(&pod, jobObj) && (phase == v1.PodPending || phase == v1.PodRunning) && hasJobTrackingFinalizer(&pod) {
 			t.Errorf("Finished pod %s still has a tracking finalizer", pod.Name)
 		}
 	}
@@ -879,7 +1056,7 @@ func validateIndexedJobPods(ctx context.Context, t *testing.T, clientSet clients
 	}
 	gotActive := sets.NewInt()
 	for _, pod := range pods.Items {
-		if isPodOwnedByJob(&pod, jobObj) {
+		if metav1.IsControlledBy(&pod, jobObj) {
 			if pod.Status.Phase == v1.PodPending || pod.Status.Phase == v1.PodRunning {
 				ix, err := getCompletionIndex(&pod)
 				if err != nil {
@@ -935,20 +1112,30 @@ func getJobConditionStatus(ctx context.Context, job *batchv1.Job, cType batchv1.
 	return ""
 }
 
+func validateJobFailed(ctx context.Context, t *testing.T, clientSet clientset.Interface, jobObj *batchv1.Job) {
+	t.Helper()
+	validateJobCondition(ctx, t, clientSet, jobObj, batchv1.JobFailed)
+}
+
 func validateJobSucceeded(ctx context.Context, t *testing.T, clientSet clientset.Interface, jobObj *batchv1.Job) {
+	t.Helper()
+	validateJobCondition(ctx, t, clientSet, jobObj, batchv1.JobComplete)
+}
+
+func validateJobCondition(ctx context.Context, t *testing.T, clientSet clientset.Interface, jobObj *batchv1.Job, cond batchv1.JobConditionType) {
 	t.Helper()
 	if err := wait.Poll(waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
 		j, err := clientSet.BatchV1().Jobs(jobObj.Namespace).Get(ctx, jobObj.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("Failed to obtain updated Job: %v", err)
 		}
-		return getJobConditionStatus(ctx, j, batchv1.JobComplete) == v1.ConditionTrue, nil
+		return getJobConditionStatus(ctx, j, cond) == v1.ConditionTrue, nil
 	}); err != nil {
-		t.Errorf("Waiting for Job to succeed: %v", err)
+		t.Errorf("Waiting for Job to have condition %s: %v", cond, err)
 	}
 }
 
-func setJobPodsPhase(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, phase v1.PodPhase, cnt int) error {
+func setJobPodsPhase(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, phase v1.PodPhase, cnt int) (error, int) {
 	op := func(p *v1.Pod) bool {
 		p.Status.Phase = phase
 		return true
@@ -956,7 +1143,7 @@ func setJobPodsPhase(ctx context.Context, clientSet clientset.Interface, jobObj 
 	return updateJobPodsStatus(ctx, clientSet, jobObj, op, cnt)
 }
 
-func setJobPodsReady(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, cnt int) error {
+func setJobPodsReady(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, cnt int) (error, int) {
 	op := func(p *v1.Pod) bool {
 		if podutil.IsPodReady(p) {
 			return false
@@ -970,17 +1157,17 @@ func setJobPodsReady(ctx context.Context, clientSet clientset.Interface, jobObj 
 	return updateJobPodsStatus(ctx, clientSet, jobObj, op, cnt)
 }
 
-func updateJobPodsStatus(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, op func(*v1.Pod) bool, cnt int) error {
+func updateJobPodsStatus(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, op func(*v1.Pod) bool, cnt int) (error, int) {
 	pods, err := clientSet.CoreV1().Pods(jobObj.Namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("listing Job Pods: %w", err)
+		return fmt.Errorf("listing Job Pods: %w", err), 0
 	}
 	updates := make([]v1.Pod, 0, cnt)
 	for _, pod := range pods.Items {
 		if len(updates) == cnt {
 			break
 		}
-		if p := pod.Status.Phase; isPodOwnedByJob(&pod, jobObj) && p != v1.PodFailed && p != v1.PodSucceeded {
+		if p := pod.Status.Phase; metav1.IsControlledBy(&pod, jobObj) && p != v1.PodFailed && p != v1.PodSucceeded {
 			if !op(&pod) {
 				continue
 			}
@@ -988,15 +1175,16 @@ func updateJobPodsStatus(ctx context.Context, clientSet clientset.Interface, job
 		}
 	}
 	if len(updates) != cnt {
-		return fmt.Errorf("couldn't set phase on %d Job Pods", cnt)
+		return fmt.Errorf("couldn't set phase on %d Job Pods", cnt), 0
 	}
 	return updatePodStatuses(ctx, clientSet, updates)
 }
 
-func updatePodStatuses(ctx context.Context, clientSet clientset.Interface, updates []v1.Pod) error {
+func updatePodStatuses(ctx context.Context, clientSet clientset.Interface, updates []v1.Pod) (error, int) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(updates))
 	errCh := make(chan error, len(updates))
+	var updated int32
 
 	for _, pod := range updates {
 		pod := pod
@@ -1004,6 +1192,8 @@ func updatePodStatuses(ctx context.Context, clientSet clientset.Interface, updat
 			_, err := clientSet.CoreV1().Pods(pod.Namespace).UpdateStatus(ctx, &pod, metav1.UpdateOptions{})
 			if err != nil {
 				errCh <- err
+			} else {
+				atomic.AddInt32(&updated, 1)
 			}
 			wg.Done()
 		}()
@@ -1012,10 +1202,10 @@ func updatePodStatuses(ctx context.Context, clientSet clientset.Interface, updat
 
 	select {
 	case err := <-errCh:
-		return fmt.Errorf("updating Pod status: %w", err)
+		return fmt.Errorf("updating Pod status: %w", err), int(updated)
 	default:
 	}
-	return nil
+	return nil, int(updated)
 }
 
 func setJobPhaseForIndex(ctx context.Context, clientSet clientset.Interface, jobObj *batchv1.Job, phase v1.PodPhase, ix int) error {
@@ -1024,7 +1214,7 @@ func setJobPhaseForIndex(ctx context.Context, clientSet clientset.Interface, job
 		return fmt.Errorf("listing Job Pods: %w", err)
 	}
 	for _, pod := range pods.Items {
-		if p := pod.Status.Phase; !isPodOwnedByJob(&pod, jobObj) || p == v1.PodFailed || p == v1.PodSucceeded {
+		if p := pod.Status.Phase; !metav1.IsControlledBy(&pod, jobObj) || p == v1.PodFailed || p == v1.PodSucceeded {
 			continue
 		}
 		if pix, err := getCompletionIndex(&pod); err == nil && pix == ix {
@@ -1048,15 +1238,6 @@ func getCompletionIndex(p *v1.Pod) (int, error) {
 		return 0, fmt.Errorf("annotation %s not found", batchv1.JobCompletionIndexAnnotation)
 	}
 	return strconv.Atoi(v)
-}
-
-func isPodOwnedByJob(p *v1.Pod, j *batchv1.Job) bool {
-	for _, owner := range p.ObjectMeta.OwnerReferences {
-		if owner.Kind == "Job" && owner.UID == j.UID {
-			return true
-		}
-	}
-	return false
 }
 
 func createJobWithDefaults(ctx context.Context, clientSet clientset.Interface, ns string, jobObj *batchv1.Job) (*batchv1.Job, error) {
@@ -1095,14 +1276,59 @@ func setup(t *testing.T, nsBaseName string) (framework.CloseFunc, *restclient.Co
 	return closeFn, &config, clientSet, ns
 }
 
-func startJobController(restConfig *restclient.Config, clientSet clientset.Interface) (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
-	resyncPeriod := 12 * time.Hour
-	informerSet := informers.NewSharedInformerFactory(clientset.NewForConfigOrDie(restclient.AddUserAgent(restConfig, "cronjob-informers")), resyncPeriod)
-	jc := jobcontroller.NewController(informerSet.Core().V1().Pods(), informerSet.Batch().V1().Jobs(), clientSet)
+func startJobControllerAndWaitForCaches(restConfig *restclient.Config) (context.Context, context.CancelFunc) {
+	informerSet := informers.NewSharedInformerFactory(clientset.NewForConfigOrDie(restclient.AddUserAgent(restConfig, "job-informers")), 0)
+	jc, ctx, cancel := createJobControllerWithSharedInformers(restConfig, informerSet)
 	informerSet.Start(ctx.Done())
 	go jc.Run(ctx, 1)
+
+	// since this method starts the controller in a separate goroutine
+	// and the tests don't check /readyz there is no way
+	// the tests can tell it is safe to call the server and requests won't be rejected
+	// thus we wait until caches have synced
+	informerSet.WaitForCacheSync(ctx.Done())
 	return ctx, cancel
+}
+
+func createJobControllerWithSharedInformers(restConfig *restclient.Config, informerSet informers.SharedInformerFactory) (*jobcontroller.Controller, context.Context, context.CancelFunc) {
+	clientSet := clientset.NewForConfigOrDie(restclient.AddUserAgent(restConfig, "job-controller"))
+	ctx, cancel := context.WithCancel(context.Background())
+	jc := jobcontroller.NewController(informerSet.Core().V1().Pods(), informerSet.Batch().V1().Jobs(), clientSet)
+	return jc, ctx, cancel
+}
+
+func createGC(ctx context.Context, t *testing.T, restConfig *restclient.Config, informerSet informers.SharedInformerFactory) func() {
+	restConfig = restclient.AddUserAgent(restConfig, "gc-controller")
+	clientSet := clientset.NewForConfigOrDie(restConfig)
+	metadataClient, err := metadata.NewForConfig(restConfig)
+	if err != nil {
+		t.Fatalf("Failed to create metadataClient: %v", err)
+	}
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cacheddiscovery.NewMemCacheClient(clientSet.Discovery()))
+	restMapper.Reset()
+	metadataInformers := metadatainformer.NewSharedInformerFactory(metadataClient, 0)
+	alwaysStarted := make(chan struct{})
+	close(alwaysStarted)
+	gc, err := garbagecollector.NewGarbageCollector(
+		clientSet,
+		metadataClient,
+		restMapper,
+		garbagecollector.DefaultIgnoredResources(),
+		informerfactory.NewInformerFactory(informerSet, metadataInformers),
+		alwaysStarted,
+	)
+	if err != nil {
+		t.Fatalf("Failed creating garbage collector")
+	}
+	startGC := func() {
+		syncPeriod := 5 * time.Second
+		go wait.Until(func() {
+			restMapper.Reset()
+		}, syncPeriod, ctx.Done())
+		go gc.Run(ctx, 1)
+		go gc.Sync(clientSet.Discovery(), syncPeriod, ctx.Done())
+	}
+	return startGC
 }
 
 func hasJobTrackingFinalizer(obj metav1.Object) bool {
