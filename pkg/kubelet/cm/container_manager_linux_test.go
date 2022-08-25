@@ -28,6 +28,9 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	kubefeatures "k8s.io/kubernetes/pkg/features"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/stretchr/testify/assert"
@@ -190,11 +193,11 @@ func TestGetCapacity(t *testing.T) {
 	mockCadvisorError := cadvisortest.NewMockInterface(mockCtrlError)
 	mockCadvisorError.EXPECT().RootFsInfo().Return(cadvisorapiv2.FsInfo{}, errors.New("Unable to get rootfs data from cAdvisor interface"))
 	cases := []struct {
-		name                                 string
-		cm                                   *containerManagerImpl
-		expectedResourceQuantity             *resource.Quantity
-		expectedNoEphemeralStorage           bool
-		disablelocalStorageCapacityIsolation bool
+		name                                string
+		cm                                  *containerManagerImpl
+		expectedResourceQuantity            *resource.Quantity
+		expectedNoEphemeralStorage          bool
+		enableLocalStorageCapacityIsolation bool
 	}{
 		{
 			name: "capacity property has ephemeral-storage",
@@ -204,8 +207,9 @@ func TestGetCapacity(t *testing.T) {
 					v1.ResourceEphemeralStorage: *resource.NewQuantity(ephemeralStorageFromCapacity, resource.BinarySI),
 				},
 			},
-			expectedResourceQuantity:   resource.NewQuantity(ephemeralStorageFromCapacity, resource.BinarySI),
-			expectedNoEphemeralStorage: false,
+			expectedResourceQuantity:            resource.NewQuantity(ephemeralStorageFromCapacity, resource.BinarySI),
+			expectedNoEphemeralStorage:          false,
+			enableLocalStorageCapacityIsolation: true,
 		},
 		{
 			name: "capacity property does not have ephemeral-storage",
@@ -213,8 +217,9 @@ func TestGetCapacity(t *testing.T) {
 				cadvisorInterface: mockCadvisor,
 				capacity:          v1.ResourceList{},
 			},
-			expectedResourceQuantity:   resource.NewQuantity(ephemeralStorageFromCadvisor, resource.BinarySI),
-			expectedNoEphemeralStorage: false,
+			expectedResourceQuantity:            resource.NewQuantity(ephemeralStorageFromCadvisor, resource.BinarySI),
+			expectedNoEphemeralStorage:          false,
+			enableLocalStorageCapacityIsolation: true,
 		},
 		{
 			name: "capacity property does not have ephemeral-storage, error from rootfs",
@@ -222,7 +227,8 @@ func TestGetCapacity(t *testing.T) {
 				cadvisorInterface: mockCadvisorError,
 				capacity:          v1.ResourceList{},
 			},
-			expectedNoEphemeralStorage: true,
+			expectedNoEphemeralStorage:          true,
+			enableLocalStorageCapacityIsolation: true,
 		},
 		{
 			name: "capacity property does not have ephemeral-storage, cadvisor interface is nil",
@@ -230,24 +236,26 @@ func TestGetCapacity(t *testing.T) {
 				cadvisorInterface: nil,
 				capacity:          v1.ResourceList{},
 			},
-			expectedNoEphemeralStorage: true,
+			expectedNoEphemeralStorage:          true,
+			enableLocalStorageCapacityIsolation: true,
 		},
 		{
-			name: "capacity property has ephemeral-storage, but localStorageCapacityIsolation is disabled",
+			name: "LocalStorageCapacityIsolation feature flag is disabled",
 			cm: &containerManagerImpl{
 				cadvisorInterface: mockCadvisor,
 				capacity: v1.ResourceList{
-					v1.ResourceEphemeralStorage: *resource.NewQuantity(ephemeralStorageFromCapacity, resource.BinarySI),
+					v1.ResourceCPU:    resource.MustParse("4"),
+					v1.ResourceMemory: resource.MustParse("16G"),
 				},
 			},
-			expectedResourceQuantity:             resource.NewQuantity(ephemeralStorageFromCapacity, resource.BinarySI),
-			expectedNoEphemeralStorage:           true,
-			disablelocalStorageCapacityIsolation: true,
+			expectedNoEphemeralStorage:          true,
+			enableLocalStorageCapacityIsolation: false,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			ret := c.cm.GetCapacity(!c.disablelocalStorageCapacityIsolation)
+			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, kubefeatures.LocalStorageCapacityIsolation, c.enableLocalStorageCapacityIsolation)()
+			ret := c.cm.GetCapacity()
 			if v, exists := ret[v1.ResourceEphemeralStorage]; !exists {
 				if !c.expectedNoEphemeralStorage {
 					t.Errorf("did not get any ephemeral storage data")

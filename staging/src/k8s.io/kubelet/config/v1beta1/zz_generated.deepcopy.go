@@ -452,11 +452,6 @@ func (in *KubeletConfiguration) DeepCopyInto(out *KubeletConfiguration) {
 		*out = new(apiv1.TracingConfiguration)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.LocalStorageCapacityIsolation != nil {
-		in, out := &in.LocalStorageCapacityIsolation, &out.LocalStorageCapacityIsolation
-		*out = new(bool)
-		**out = **in
-	}
 	return
 }
 

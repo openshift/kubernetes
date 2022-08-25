@@ -282,6 +282,5 @@ var (
 		"MemoryThrottlingFactor",
 		"Tracing.Endpoint",
 		"Tracing.SamplingRatePerMillion",
-		"LocalStorageCapacityIsolation",
 	)
 )

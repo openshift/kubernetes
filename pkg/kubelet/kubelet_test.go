@@ -145,16 +145,14 @@ func newTestKubelet(t *testing.T, controllerAttachDetachEnabled bool) *TestKubel
 			Size:     456,
 		},
 	}
-	return newTestKubeletWithImageList(t, imageList, controllerAttachDetachEnabled, true /*initFakeVolumePlugin*/, true /*localStorageCapacityIsolation*/)
+	return newTestKubeletWithImageList(t, imageList, controllerAttachDetachEnabled, true /*initFakeVolumePlugin*/)
 }
 
 func newTestKubeletWithImageList(
 	t *testing.T,
 	imageList []kubecontainer.Image,
 	controllerAttachDetachEnabled bool,
-	initFakeVolumePlugin bool,
-	localStorageCapacityIsolation bool,
-) *TestKubelet {
+	initFakeVolumePlugin bool) *TestKubelet {
 	logger, _ := ktesting.NewTestContext(t)
 
 	fakeRuntime := &containertest.FakeRuntime{
@@ -322,8 +320,7 @@ func newTestKubeletWithImageList(
 		Namespace: "",
 	}
 	// setup eviction manager
-	evictionManager, evictionAdmitHandler := eviction.NewManager(kubelet.resourceAnalyzer, eviction.Config{},
-		killPodNow(kubelet.podWorkers, fakeRecorder), kubelet.podManager.GetMirrorPodByPod, kubelet.imageManager, kubelet.containerGC, fakeRecorder, nodeRef, kubelet.clock, kubelet.supportLocalStorageCapacityIsolation())
+	evictionManager, evictionAdmitHandler := eviction.NewManager(kubelet.resourceAnalyzer, eviction.Config{}, killPodNow(kubelet.podWorkers, fakeRecorder), kubelet.podManager.GetMirrorPodByPod, kubelet.imageManager, kubelet.containerGC, fakeRecorder, nodeRef, kubelet.clock)
 
 	kubelet.evictionManager = evictionManager
 	kubelet.admitHandlers.AddPodAdmitHandler(evictionAdmitHandler)
@@ -389,7 +386,6 @@ func newTestKubeletWithImageList(
 	kubelet.AddPodSyncLoopHandler(activeDeadlineHandler)
 	kubelet.AddPodSyncHandler(activeDeadlineHandler)
 	kubelet.lastContainerStartedTime = newTimeCache()
-	kubelet.kubeletConfiguration.LocalStorageCapacityIsolation = localStorageCapacityIsolation
 	return &TestKubelet{kubelet, fakeRuntime, fakeContainerManager, fakeKubeClient, fakeMirrorClient, fakeClock, nil, plug}
 }
 

@@ -554,8 +554,7 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	activePods ActivePodsFunc,
 	sourcesReady config.SourcesReady,
 	podStatusProvider status.PodStatusProvider,
-	runtimeService internalapi.RuntimeService,
-	localStorageCapacityIsolation bool) error {
+	runtimeService internalapi.RuntimeService) error {
 
 	// Initialize CPU manager
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
@@ -579,7 +578,7 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	// allocatable of the node
 	cm.nodeInfo = node
 
-	if localStorageCapacityIsolation {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.LocalStorageCapacityIsolation) {
 		rootfs, err := cm.cadvisorInterface.RootFsInfo()
 		if err != nil {
 			return fmt.Errorf("failed to get rootfs info: %v", err)
@@ -916,8 +915,8 @@ func isKernelPid(pid int) bool {
 
 // GetCapacity returns node capacity data for "cpu", "memory", "ephemeral-storage", and "huge-pages*"
 // At present this method is only invoked when introspecting ephemeral storage
-func (cm *containerManagerImpl) GetCapacity(localStorageCapacityIsolation bool) v1.ResourceList {
-	if localStorageCapacityIsolation {
+func (cm *containerManagerImpl) GetCapacity() v1.ResourceList {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.LocalStorageCapacityIsolation) {
 		// We store allocatable ephemeral-storage in the capacity property once we Start() the container manager
 		if _, ok := cm.capacity[v1.ResourceEphemeralStorage]; !ok {
 			// If we haven't yet stored the capacity for ephemeral-storage, we can try to fetch it directly from cAdvisor,

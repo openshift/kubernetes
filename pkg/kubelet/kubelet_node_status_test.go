@@ -153,10 +153,7 @@ func (lcm *localCM) GetNodeAllocatableReservation() v1.ResourceList {
 	return lcm.allocatableReservation
 }
 
-func (lcm *localCM) GetCapacity(localStorageCapacityIsolation bool) v1.ResourceList {
-	if !localStorageCapacityIsolation {
-		delete(lcm.capacity, v1.ResourceEphemeralStorage)
-	}
+func (lcm *localCM) GetCapacity() v1.ResourceList {
 	return lcm.capacity
 }
 
@@ -185,7 +182,7 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 			}
 			inputImageList, expectedImageList := generateTestingImageLists(numTestImages, int(tc.nodeStatusMaxImages))
 			testKubelet := newTestKubeletWithImageList(
-				t, inputImageList, false /* controllerAttachDetachEnabled */, true /*initFakeVolumePlugin*/, true /* localStorageCapacityIsolation */)
+				t, inputImageList, false /* controllerAttachDetachEnabled */, true /*initFakeVolumePlugin*/)
 			defer testKubelet.Cleanup()
 			kubelet := testKubelet.kubelet
 			kubelet.nodeStatusMaxImages = tc.nodeStatusMaxImages
@@ -1350,7 +1347,7 @@ func TestUpdateNewNodeStatusTooLargeReservation(t *testing.T) {
 	// generate one more in inputImageList than we configure the Kubelet to report
 	inputImageList, _ := generateTestingImageLists(nodeStatusMaxImages+1, nodeStatusMaxImages)
 	testKubelet := newTestKubeletWithImageList(
-		t, inputImageList, false /* controllerAttachDetachEnabled */, true /* initFakeVolumePlugin */, true)
+		t, inputImageList, false /* controllerAttachDetachEnabled */, true /* initFakeVolumePlugin */)
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
 	kubelet.nodeStatusMaxImages = nodeStatusMaxImages

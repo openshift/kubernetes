@@ -52,7 +52,6 @@ iptablesMasqueradeBit: 14
 kind: KubeletConfiguration
 kubeAPIBurst: 10
 kubeAPIQPS: 5
-localStorageCapacityIsolation: true
 logging:
   flushFrequency: 5000000000
   format: text
