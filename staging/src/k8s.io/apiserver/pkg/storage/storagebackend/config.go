@@ -36,7 +36,7 @@ const (
 
 	DefaultCompactInterval      = 5 * time.Minute
 	DefaultDBMetricPollInterval = 30 * time.Second
-	DefaultHealthcheckTimeout   = 10 * time.Second
+	DefaultHealthcheckTimeout   = 2 * time.Second
 	DefaultReadinessTimeout     = 10 * time.Second
 )
 
@@ -86,8 +86,6 @@ type Config struct {
 	DBMetricPollInterval time.Duration
 	// HealthcheckTimeout specifies the timeout used when checking health
 	HealthcheckTimeout time.Duration
-	// ReadycheckTimeout specifies the timeout used when checking readiness
-	ReadycheckTimeout time.Duration
 
 	LeaseManagerConfig etcd3.LeaseManagerConfig
 
@@ -121,7 +119,6 @@ func NewDefaultConfig(prefix string, codec runtime.Codec) *Config {
 		CompactionInterval:   DefaultCompactInterval,
 		DBMetricPollInterval: DefaultDBMetricPollInterval,
 		HealthcheckTimeout:   DefaultHealthcheckTimeout,
-		ReadycheckTimeout:    DefaultReadinessTimeout,
 		LeaseManagerConfig:   etcd3.NewDefaultLeaseManagerConfig(),
 		Transport:            TransportConfig{TracerProvider: oteltrace.NewNoopTracerProvider()},
 	}
