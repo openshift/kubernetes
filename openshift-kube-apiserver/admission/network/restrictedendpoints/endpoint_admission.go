@@ -162,6 +162,10 @@ func (r *restrictedEndpointsAdmission) endpointsFindRestrictedPort(ep *kapi.Endp
 }
 
 func (r *restrictedEndpointsAdmission) endpointsCheckAccess(ctx context.Context, attr admission.Attributes) (bool, error) {
+	// Note that while the "endpoints/restricted" pseudo-resource is not formally
+	// documented anywhere, we have told some customers that they can use this to
+	// un-break third-party software that would otherwise break in the presence of
+	// this admission controller. So this should be considered API.
 	authzAttr := authorizer.AttributesRecord{
 		User:            attr.GetUserInfo(),
 		Verb:            "create",
@@ -235,6 +239,10 @@ func (r *restrictedEndpointsAdmission) sliceFindRestrictedPort(slice *discovery.
 }
 
 func (r *restrictedEndpointsAdmission) sliceCheckAccess(ctx context.Context, attr admission.Attributes) (bool, error) {
+	// Note that while the "endpointslices/restricted" pseudo-resource is not formally
+	// documented anywhere, we have told some customers that they can use this to
+	// un-break third-party software that would otherwise break in the presence of
+	// this admission controller. So this should be considered API.
 	authzAttr := authorizer.AttributesRecord{
 		User:            attr.GetUserInfo(),
 		Verb:            "create",
