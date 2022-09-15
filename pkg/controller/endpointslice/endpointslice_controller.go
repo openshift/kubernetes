@@ -284,6 +284,8 @@ func (c *Controller) processNextWorkItem() bool {
 	}
 	defer c.queue.Done(cKey)
 
+	klog.Infof("Got key %s with %d requeues", cKey.(string), c.queue.NumRequeues(cKey))
+
 	err := c.syncService(cKey.(string))
 	c.handleErr(err, cKey)
 
@@ -298,8 +300,8 @@ func (c *Controller) handleErr(err error, key interface{}) {
 		return
 	}
 
+	klog.Warningf("Error syncing endpoint slices for service %q, retry number %d. Error: %v", key, c.queue.NumRequeues(key), err)
 	if c.queue.NumRequeues(key) < maxRetries {
-		klog.Warningf("Error syncing endpoint slices for service %q, retrying. Error: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return
 	}
@@ -395,6 +397,7 @@ func (c *Controller) onServiceUpdate(obj interface{}) {
 		return
 	}
 
+	klog.Infof("Service %v has been updated", key)
 	_ = c.serviceSelectorCache.Update(key, obj.(*v1.Service).Spec.Selector)
 	c.queue.Add(key)
 }
@@ -407,6 +410,7 @@ func (c *Controller) onServiceDelete(obj interface{}) {
 		return
 	}
 
+	klog.Infof("Service %v has been deleted", key)
 	c.serviceSelectorCache.Delete(key)
 	c.queue.Add(key)
 }
