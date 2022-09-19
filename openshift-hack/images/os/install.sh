@@ -5,6 +5,8 @@ set -xeou pipefail
 yum install -y ostree rpm-ostree yum-utils selinux-policy-targeted xfsprogs
 curl http://base-4-10-rhel8.ocp.svc > /etc/yum.repos.d/rhel8.repo
 
+cat /etc/yum.repos.d/rhel8.repo
+
 commit=$( find /srv -name *.commit | sed -Ee 's|.*objects/(.+)/(.+)\.commit|\1\2|' | head -1 )
 mkdir /tmp/working && cd /tmp/working
 rpm-ostree db list --repo /srv/repo $commit > /tmp/packages
