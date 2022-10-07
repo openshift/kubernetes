@@ -19,6 +19,7 @@ package kubelet
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -356,6 +357,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	cloudProvider string,
 	certDirectory string,
 	rootDirectory string,
+	podLogsDirectory string,
 	imageCredentialProviderConfigFile string,
 	imageCredentialProviderBinDir string,
 	registerNode bool,
@@ -378,6 +380,9 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 
 	if rootDirectory == "" {
 		return nil, fmt.Errorf("invalid root directory %q", rootDirectory)
+	}
+	if podLogsDirectory == "" {
+		return nil, errors.New("pod logs root directory is empty")
 	}
 	if kubeCfg.SyncFrequency.Duration <= 0 {
 		return nil, fmt.Errorf("invalid sync frequency %d", kubeCfg.SyncFrequency.Duration)
@@ -528,6 +533,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		heartbeatClient:                kubeDeps.HeartbeatClient,
 		onRepeatedHeartbeatFailure:     kubeDeps.OnHeartbeatFailure,
 		rootDirectory:                  filepath.Clean(rootDirectory),
+		podLogsDirectory:               podLogsDirectory,
 		resyncInterval:                 kubeCfg.SyncFrequency.Duration,
 		sourcesReady:                   config.NewSourcesReady(kubeDeps.PodConfig.SeenAllSources),
 		registerNode:                   registerNode,
@@ -665,6 +671,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		klet.readinessManager,
 		klet.startupManager,
 		rootDirectory,
+		podLogsDirectory,
 		machineInfo,
 		klet.podWorkers,
 		kubeDeps.OSInterface,
@@ -707,7 +714,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	// common provider to get host file system usage associated with a pod managed by kubelet
 	hostStatsProvider := stats.NewHostStatsProvider(kubecontainer.RealOS{}, func(podUID types.UID) string {
 		return getEtcHostsPath(klet.getPodDir(podUID))
-	})
+	}, podLogsDirectory)
 	if kubeDeps.useLegacyCadvisorStats {
 		klet.StatsProvider = stats.NewCadvisorStatsProvider(
 			klet.cadvisor,
@@ -969,7 +976,8 @@ type Kubelet struct {
 	// pods.
 	mirrorPodClient kubepod.MirrorClient
 
-	rootDirectory string
+	rootDirectory    string
+	podLogsDirectory string
 
 	lastObservedNodeAddressesMux sync.RWMutex
 	lastObservedNodeAddresses    []v1.NodeAddress
@@ -1389,6 +1397,7 @@ func (kl *Kubelet) RlimitStats() (*statsapi.RlimitStats, error) {
 // 3.  the plugins directory
 // 4.  the pod-resources directory
 // 5.  the checkpoint directory
+// 6.  the pod logs root directory
 func (kl *Kubelet) setupDataDirs() error {
 	if cleanedRoot := filepath.Clean(kl.rootDirectory); cleanedRoot != kl.rootDirectory {
 		return fmt.Errorf("rootDirectory not in canonical form: expected %s, was %s", cleanedRoot, kl.rootDirectory)
@@ -1397,6 +1406,9 @@ func (kl *Kubelet) setupDataDirs() error {
 	pluginsDir := kl.getPluginsDir()
 	if err := os.MkdirAll(kl.getRootDir(), 0750); err != nil {
 		return fmt.Errorf("error creating root directory: %v", err)
+	}
+	if err := os.MkdirAll(kl.getPodLogsDir(), 0750); err != nil {
+		return fmt.Errorf("error creating pod logs root directory %q: %w", kl.getPodLogsDir(), err)
 	}
 	if err := kl.hostutil.MakeRShared(kl.getRootDir()); err != nil {
 		return fmt.Errorf("error configuring root directory: %v", err)
