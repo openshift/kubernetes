@@ -26,6 +26,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoinformers "k8s.io/client-go/informers"
 	corev1informers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
@@ -78,6 +79,17 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		admissionrestconfig.NewInitializer(*rest.CopyConfig(genericConfig.LoopbackClientConfig)),
 		managementcpusoverride.NewInitializer(openshiftInformers.getOpenshiftInfraInformers().Config().V1().Infrastructures()),
 	)
+
+	// This is needed in order to have the correct initializers for the SCC admission plugin which is used to mutate
+	// PodSpecs for PodSpec-y workload objects in the pod security admission plugin.
+	kubeClientConfig := genericConfig.LoopbackClientConfig
+	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return err
+	}
+	enablement.SCCAdmissionPlugin.SetExternalKubeClientSet(kubeClient)
+	enablement.SCCAdmissionPlugin.SetAuthorizer(genericConfig.Authorization.Authorizer)
+	enablement.SCCAdmissionPlugin.SetSecurityInformers(openshiftInformers.getOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints())
 	// END ADMISSION
 
 	// HANDLER CHAIN (with oauth server and web console)

@@ -113,21 +113,21 @@ func (DefaultPodSpecExtractor) ExtractPodSpec(obj runtime.Object) (*metav1.Objec
 	case *corev1.Pod:
 		return &o.ObjectMeta, &o.Spec, nil
 	case *corev1.PodTemplate:
-		return extractPodSpecFromTemplate(&o.Template)
+		return extractPodSpecFromTemplate(obj, &o.Template)
 	case *corev1.ReplicationController:
-		return extractPodSpecFromTemplate(o.Spec.Template)
+		return extractPodSpecFromTemplate(obj, o.Spec.Template)
 	case *appsv1.ReplicaSet:
-		return extractPodSpecFromTemplate(&o.Spec.Template)
+		return extractPodSpecFromTemplate(obj, &o.Spec.Template)
 	case *appsv1.Deployment:
-		return extractPodSpecFromTemplate(&o.Spec.Template)
+		return extractPodSpecFromTemplate(obj, &o.Spec.Template)
 	case *appsv1.DaemonSet:
-		return extractPodSpecFromTemplate(&o.Spec.Template)
+		return extractPodSpecFromTemplate(obj, &o.Spec.Template)
 	case *appsv1.StatefulSet:
-		return extractPodSpecFromTemplate(&o.Spec.Template)
+		return extractPodSpecFromTemplate(obj, &o.Spec.Template)
 	case *batchv1.Job:
-		return extractPodSpecFromTemplate(&o.Spec.Template)
+		return extractPodSpecFromTemplate(obj, &o.Spec.Template)
 	case *batchv1.CronJob:
-		return extractPodSpecFromTemplate(&o.Spec.JobTemplate.Spec.Template)
+		return extractPodSpecFromTemplate(obj, &o.Spec.JobTemplate.Spec.Template)
 	default:
 		return nil, nil, fmt.Errorf("unexpected object type: %s", obj.GetObjectKind().GroupVersionKind().String())
 	}
@@ -141,7 +141,7 @@ func (DefaultPodSpecExtractor) PodSpecResources() []schema.GroupResource {
 	return retval
 }
 
-func extractPodSpecFromTemplate(template *corev1.PodTemplateSpec) (*metav1.ObjectMeta, *corev1.PodSpec, error) {
+func ExtractPodSpecFromTemplate_original(template *corev1.PodTemplateSpec) (*metav1.ObjectMeta, *corev1.PodSpec, error) {
 	if template == nil {
 		return nil, nil, nil
 	}
