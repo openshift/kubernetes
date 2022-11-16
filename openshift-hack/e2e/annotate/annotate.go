@@ -72,7 +72,6 @@ func Run() {
 package generated
 
 import (
-	"fmt"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 )
@@ -85,8 +84,6 @@ func init() {
 	ginkgo.GetSuite().SetAnnotateFn(func(name string, node types.TestSpec) {
 		if newLabels, ok := Annotations[name]; ok {
 			node.AppendText(newLabels)
-		} else {
-			panic(fmt.Sprintf("unable to find test %%s", name))
 		}
 	})
 }
