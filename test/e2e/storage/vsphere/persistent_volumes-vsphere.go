@@ -128,7 +128,7 @@ var _ = utils.SIGDescribe("PersistentVolumes:vsphere [Feature:vsphere]", func() 
 		1. Wait and verify volume is detached from the node
 		2. Delete PV
 		3. Delete Volume (vmdk)
-	*/
+	
 	framework.AddCleanupAction(func() {
 		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
 		if len(ns) > 0 && len(volumePath) > 0 {
@@ -137,7 +137,7 @@ var _ = utils.SIGDescribe("PersistentVolumes:vsphere [Feature:vsphere]", func() 
 		}
 	})
 
-	/*
+	
 		Delete the PVC and then the pod.  Expect the pod to succeed in unmounting and detaching PD on delete.
 
 		Test Steps:

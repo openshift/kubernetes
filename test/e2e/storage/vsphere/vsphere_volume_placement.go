@@ -81,7 +81,7 @@ var _ = utils.SIGDescribe("Volume Placement [Feature:vsphere]", func() {
 		Steps
 		1. Remove labels assigned to node 1 and node 2
 		2. Delete VMDK volume
-	*/
+	
 	framework.AddCleanupAction(func() {
 		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
 		if len(ns) > 0 {
@@ -93,7 +93,7 @@ var _ = utils.SIGDescribe("Volume Placement [Feature:vsphere]", func() {
 			}
 		}
 	})
-	/*
+	
 		Steps
 
 		1. Create pod Spec with volume path of the vmdk and NodeSelector set to label assigned to node1.

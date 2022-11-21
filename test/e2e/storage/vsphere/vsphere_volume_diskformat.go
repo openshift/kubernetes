@@ -81,12 +81,12 @@ var _ = utils.SIGDescribe("Volume Disk Format [Feature:vsphere]", func() {
 			isNodeLabeled = true
 		}
 	})
-	framework.AddCleanupAction(func() {
+	/*framework.AddCleanupAction(func() {
 		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
 		if len(namespace) > 0 && len(nodeLabelValue) > 0 {
 			framework.RemoveLabelOffNode(client, nodeName, NodeLabelKey)
 		}
-	})
+	})*/
 
 	ginkgo.It("verify disk format type - eagerzeroedthick is honored for dynamically provisioned pv using storageclass", func() {
 		ginkgo.By("Invoking Test for diskformat: eagerzeroedthick")

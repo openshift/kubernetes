@@ -105,7 +105,7 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 
 	/*
 		Remove labels from all the nodes
-	*/
+	
 	framework.AddCleanupAction(func() {
 		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
 		if len(namespace) > 0 && nodes != nil {
@@ -113,7 +113,7 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 				framework.RemoveLabelOffNode(client, node.Name, NodeLabelKey)
 			}
 		}
-	})
+	})*/
 
 	ginkgo.It("vsphere scale tests", func() {
 		var pvcClaimList []string
