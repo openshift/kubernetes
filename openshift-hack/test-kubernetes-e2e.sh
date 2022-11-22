@@ -86,3 +86,5 @@ ginkgo \
   -host "${SERVER}" \
   -allowed-not-ready-nodes ${unschedulable} \
   2>&1 | tee -a "${test_report_dir}/k8s-e2e.log"
+
+echo "$(date) test script finished"
