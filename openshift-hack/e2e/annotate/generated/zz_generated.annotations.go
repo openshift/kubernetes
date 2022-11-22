@@ -1135,7 +1135,7 @@ var annotations = map[string]string{
 
 	"[Top Level] [sig-network] Services should implement service.kubernetes.io/service-proxy-name": "should implement service.kubernetes.io/service-proxy-name [Disabled:Broken] [Suite:k8s]",
 
-	"[Top Level] [sig-network] Services should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false": "should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[Top Level] [sig-network] Services should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false": "should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false [Disabled:Broken] [Suite:k8s]",
 
 	"[Top Level] [sig-network] Services should preserve source pod IP for traffic thru service cluster IP [LinuxOnly]": "should preserve source pod IP for traffic thru service cluster IP [LinuxOnly] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

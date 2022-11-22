@@ -112,6 +112,9 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2034958
 			`\[sig-network\] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-3979
+			`\[sig-network\] Services should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
