@@ -47,7 +47,7 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.5.2
 	github.com/golangplus/testing v0.0.0-20180327235837-af21d9c3145e // indirect
-	github.com/google/cadvisor v0.39.3
+	github.com/google/cadvisor v0.39.4
 	github.com/google/go-cmp v0.5.5
 	github.com/google/gofuzz v1.1.0
 	github.com/google/uuid v1.1.2
@@ -67,8 +67,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api v0.0.0-20211028023115-7224b732cc14
-	github.com/openshift/apiserver-library-go v0.0.0-20211105091019-06e87e7030eb
+	github.com/openshift/api v0.0.0-20220912162901-99380e59bbab
+	github.com/openshift/apiserver-library-go v0.0.0-20220706123342-0a6d1902ca30
 	github.com/openshift/client-go v0.0.0-20210831095141-e19a065e79f7
 	github.com/openshift/library-go v0.0.0-20220405121559-e304504b7d6f
 	github.com/pkg/errors v0.9.1
@@ -393,8 +393,8 @@ replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20211028023115-7224b732cc14
-	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20211105091019-06e87e7030eb
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20220912162901-99380e59bbab
+	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20220706123342-0a6d1902ca30
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210831095141-e19a065e79f7
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20220405121559-e304504b7d6f
