@@ -69,7 +69,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api v0.0.0-20210910062324-a41d3573a3ba
+	github.com/openshift/api v0.0.0-20220601113858-6193c161ad9e
 	github.com/openshift/apiserver-library-go v0.0.0-20211116020226-339bb71f9a26
 	github.com/openshift/client-go v0.0.0-20210521082421-73d9475a9142
 	github.com/openshift/library-go v0.0.0-20220418144517-9b2f1479b51c
@@ -89,10 +89,10 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vmware/govmomi v0.20.3
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	golang.org/x/tools v0.1.0
@@ -398,9 +398,9 @@ replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/runtime-spec => github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.8.2
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20210910062324-a41d3573a3ba
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20220601113858-6193c161ad9e
 	github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20211116020226-339bb71f9a26
-	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
+	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20211221165021-8d8fec7ad2c7
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210521082421-73d9475a9142
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20220418144517-9b2f1479b51c
 	github.com/pascaldekloe/goe => github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
@@ -466,7 +466,7 @@ replace (
 	go.uber.org/goleak => go.uber.org/goleak v1.1.10
 	go.uber.org/multierr => go.uber.org/multierr v1.1.0
 	go.uber.org/zap => go.uber.org/zap v1.10.0
-	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20210220032938-85be41e4509f
 	golang.org/x/image => golang.org/x/image v0.0.0-20190802002840-cff245a6509b
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20200302205851-738671d3881b
@@ -475,7 +475,7 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync => golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys => golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
 	golang.org/x/term => golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
 	golang.org/x/text => golang.org/x/text v0.3.6
 	golang.org/x/time => golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
