@@ -12,7 +12,6 @@ require (
 )
 
 replace (
-	github.com/onsi/ginkgo/v2 => github.com/soltysh/ginkgo/v2 v2.1.5-0.20220819125456-719bfd56933e
 	k8s.io/api => ../../api
 	k8s.io/apimachinery => ../../apimachinery
 	k8s.io/client-go => ../../client-go
