@@ -1,5 +1,7 @@
 # OpenShift's fork of k8s.io/kubernetes
 
+test
+
 This respository contains core Kubernetes components with OpenShift-specific patches.
 
 ## Cherry-picking an upstream commit into openshift/kubernetes: Why, how, and when.
