@@ -1707,11 +1707,11 @@ var Annotations = map[string]string{
 
 	"[sig-node] kubelet host cleanup with volume mounts [HostCleanup][Flaky] Host cleanup after disrupting NFS volume [NFS] after stopping the nfs-server and deleting the (sleeping) client pod, the NFS mount and the pod's UID directory should be removed.": " [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl node-logs <node-name> [Feature:add node log viewer] should return the logs ": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] kubelet kubectl node-logs <node-name> [Feature:add node log viewer] should return the logs ": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl node-logs <node-name> [Feature:add node log viewer] should return the logs for the provided path": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] kubelet kubectl node-logs <node-name> [Feature:add node log viewer] should return the logs for the provided path": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl node-logs <node-name> [Feature:add node log viewer] should return the logs for the requested service": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] kubelet kubectl node-logs <node-name> [Feature:add node log viewer] should return the logs for the requested service": " [Disabled:Alpha] [Suite:k8s]",
 
 	"[sig-scheduling] GPUDevicePluginAcrossRecreate [Feature:Recreate] run Nvidia GPU Device Plugin tests with a recreation": " [Disabled:SpecialConfig] [Suite:k8s]",
 
