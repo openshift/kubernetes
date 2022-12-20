@@ -253,7 +253,7 @@ func (e *E2EServices) startKubelet(featureGates map[string]bool) (*server, error
 	cmdArgs = append(cmdArgs,
 		"--kubeconfig", kubeconfigPath,
 		"--root-dir", KubeletRootDirectory,
-		"--v", LogVerbosityLevel,
+		"--v", LogVerbosityLevel, "--logtostderr",
 	)
 
 	// Apply test framework feature gates by default. This could also be overridden
