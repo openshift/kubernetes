@@ -13,6 +13,7 @@ var (
 			`\[Feature:StatefulSetAutoDeletePVC\]`,
 			`\[Feature:ProxyTerminatingEndpoints\]`,
 			`\[Feature:UserNamespacesStatelessPodsSupport\]`,
+			`\[Feature:add node log viewer\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
