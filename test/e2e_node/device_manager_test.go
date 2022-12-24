@@ -19,12 +19,12 @@ package e2enode
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -273,12 +273,53 @@ var _ = SIGDescribe("Device Manager  [Serial] [Feature:DeviceManager][NodeFeatur
 
 	})
 
-	ginkgo.Context("With sample device plugin", func(ctx context.Context) {
+	/*
+		This end to end test is to simulate a scenario where after kubelet restart/node
+		reboot application pods requesting devices appear before the device plugin
+		pod exposing those devices as resources.
+
+		The happy path is where after node reboot/ kubelet restart, the device plugin pod
+		appears before the application pod. This PR and this e2e test
+		aims to tackle the scenario where device plugin either does not appear first
+		or doesn't get the chance to re-register itself.
+
+		Since there is no way of controlling the order in which the pods appear after
+		kubelet restart/node reboot, we can't guarantee that the application pod
+		recovers before device plugin pod (the scenario we want to exercise here).
+		If the device plugin pod is recovered before the test pod, we still can
+		meaningfully reproduce the scenario by NOT sending the registration command.
+		To do so sample device plugin is enhanced. For implementation details, refer to:
+		`test/images/sample-device-plugin/sampledeviceplugin.go`. This enhancement
+		allows auto-registration of the plugin to be controlled with the help of an environment
+		variable: AUTO_REGISTER. By default AUTO_REGISTER=true allowing the device plugin
+		to autoregister to kubelet. For this e2e test, we use sample device plugin
+		spec with AUTO_REGISTER=false to first manually register the plugin to allow
+		an application pod (requesting devices) to successfully run on the node
+		followed by kubelet restart where device plugin doesn't register and the
+		application pod fails with admission error.
+
+		   Breakdown of the steps implemented as part of this e2e test is as follows:
+		   1. Create sample device plugin with AUTO_REGISTER= false which means it
+		      waits for a client to connect to a unix socket exposed at
+		       `/var/lib/kubelet/device-plugins/registered` path.
+		   2. Trigger plugin registeration by connecting to the abovementioned unix socket.
+		   3. Create a test pod requesting devices exposed by the device plugin.
+		   4. Stop kubelet.
+		   5. Remove pods using CRI to ensure new pods are created after kubelet restart.
+		   6. Restart kubelet.
+		   7. Wait for the sample device plugin pod to be running. In this case,
+		      the registration is not triggered.
+		   8. Ensure that resource capacity/allocatable exported by the device plugin is zero.
+		   9. The test pod should fail with `UnexpectedAdmissionError`
+		   10. Delete the test pod.
+		   11. Delete the sample device plugin pod.
+	*/
+	ginkgo.Context("With sample device plugin", func() {
 		var deviceCount int = 2
 		var devicePluginPod *v1.Pod
-		var testPods []*v1.Pod
 
-		ginkgo.BeforeEach(func() {
+		// this test wants to reproduce what happened in https://github.com/kubernetes/kubernetes/issues/109595
+		ginkgo.BeforeEach(func(ctx context.Context) {
 			ginkgo.By("Wait for node to be ready")
 			gomega.Eventually(func() bool {
 				nodes, err := e2enode.TotalReady(ctx, f.ClientSet)
@@ -302,6 +343,21 @@ var _ = SIGDescribe("Device Manager  [Serial] [Feature:DeviceManager][NodeFeatur
 
 			devicePluginPod = e2epod.NewPodClient(f).CreateSync(ctx, dp)
 
+			go func() {
+				// Since autoregistration is disabled for the device plugin (as AUTO_REGISTER=false),
+				// device plugin registration needs to be triggerred manually.
+				// This is done by writing to the Unix socket exposed at:
+				// `/var/lib/kubelet/device-plugins/registered`.
+
+				triggerPath := devicePluginDir + "/registered"
+				conn, err := net.Dial("unix", triggerPath)
+				framework.ExpectNoError(err)
+				defer conn.Close()
+
+				_, err = conn.Write([]byte("registering"))
+				framework.ExpectNoError(err)
+			}()
+
 			ginkgo.By("Waiting for devices to become available on the local node")
 			gomega.Eventually(func() bool {
 				node, ready := getLocalTestNode(ctx, f)
@@ -319,45 +375,20 @@ var _ = SIGDescribe("Device Manager  [Serial] [Feature:DeviceManager][NodeFeatur
 			}, 30*time.Second, framework.Poll).Should(gomega.BeTrue())
 		})
 
-		ginkgo.AfterEach(func() {
-			ginkgo.By("Deleting the device plugin pod")
-			e2epod.NewPodClient(f).DeleteSync(ctx, devicePluginPod.Name, metav1.DeleteOptions{}, time.Minute)
-
-			ginkgo.By("Deleting any Pods created by the test")
-			l, err := e2epod.NewPodClient(f).List(context.TODO(), metav1.ListOptions{})
-			framework.ExpectNoError(err)
-			for _, p := range l.Items {
-				if p.Namespace != f.Namespace.Name {
-					continue
-				}
-
-				framework.Logf("Deleting pod: %s", p.Name)
-				e2epod.NewPodClient(f).DeleteSync(ctx, p.Name, metav1.DeleteOptions{}, 2*time.Minute)
-			}
-
-			restartKubelet(true)
-
-			ginkgo.By("Waiting for devices to become unavailable on the local node")
-			gomega.Eventually(func() bool {
-				node, ready := getLocalTestNode(ctx, f)
-				return ready && numberOfSampleResources(node) <= 0
-			}, 5*time.Minute, framework.Poll).Should(gomega.BeTrue())
-		})
-
-		ginkgo.It("should recover device plugin pod first, then pod consuming devices", func() {
+		ginkgo.It("should deploy pod consuming devices first but fail with admission error after kubelet restart in case device plugin hasn't re-registered", func(ctx context.Context) {
 			var err error
-			podCMD := "cat /tmp/Dev-* && sleep inf"
+			podCMD := "while true; do sleep 1000; done;"
 
-			ginkgo.By(fmt.Sprintf("creating %d pods requiring %q", deviceCount, resourceName))
-			var devReqPods []*v1.Pod
-			for idx := 0; idx < deviceCount; idx++ {
-				pod := makeBusyboxDeviceRequiringPod(resourceName, podCMD)
-				devReqPods = append(devReqPods, pod)
-			}
-			testPods = e2epod.NewPodClient(f).CreateBatch(ctx, devReqPods)
+			ginkgo.By(fmt.Sprintf("creating a pods requiring %d %q", deviceCount, resourceName))
+
+			pod := makeBusyboxDeviceRequiringPod(resourceName, podCMD)
+			testPod := e2epod.NewPodClient(f).CreateSync(ctx, pod)
 
 			ginkgo.By("making sure all the pods are ready")
-			waitForPodConditionBatch(ctx, f, testPods, "Ready", 120*time.Second, testutils.PodRunningReady)
+
+			err = e2epod.WaitForPodCondition(ctx, f.ClientSet, testPod.Namespace, testPod.Name, "Ready", 120*time.Second, testutils.PodRunningReady)
+			framework.ExpectNoError(err, "pod %s/%s did not go running", testPod.Namespace, testPod.Name)
+			framework.Logf("pod %s/%s running", testPod.Namespace, testPod.Name)
 
 			ginkgo.By("stopping the kubelet")
 			startKubelet := stopKubelet()
@@ -384,15 +415,84 @@ var _ = SIGDescribe("Device Manager  [Serial] [Feature:DeviceManager][NodeFeatur
 				nodes, err := e2enode.TotalReady(ctx, f.ClientSet)
 				framework.ExpectNoError(err)
 				return nodes == 1
-			}, time.Minute, time.Second).Should(gomega.BeTrue())
-
-			// TODO: here we need to tolerate pods waiting to be recreated
+			}, 2*time.Minute, time.Second).Should(gomega.BeTrue())
 
 			ginkgo.By("making sure all the pods are ready after the recovery")
-			waitForPodConditionBatch(ctx, f, testPods, "Ready", 120*time.Second, testutils.PodRunningReady)
 
-			ginkgo.By("removing all the pods")
-			deleteBatch(ctx, f, testPods)
+			var devicePluginPodAfterRestart, tmpPod *v1.Pod
+
+			devicePluginPodAfterRestart, err = e2epod.NewPodClient(f).Get(ctx, devicePluginPod.Name, metav1.GetOptions{})
+			framework.ExpectNoError(err)
+
+			err = e2epod.WaitForPodCondition(ctx, f.ClientSet, devicePluginPodAfterRestart.Namespace, devicePluginPodAfterRestart.Name, "Ready", 120*time.Second, testutils.PodRunningReady)
+			framework.ExpectNoError(err, "pod %s/%s did not go running", devicePluginPodAfterRestart.Namespace, devicePluginPodAfterRestart.Name)
+			framework.Logf("pod %s/%s running", devicePluginPodAfterRestart.Namespace, devicePluginPodAfterRestart.Name)
+
+			ginkgo.By("Waiting for the resource capacity/allocatable exported by the sample device plugin to become zero")
+
+			// The device plugin pod has restarted but has not re-registered to kubelet (as AUTO_REGISTER= false)
+			// and registration wasn't triggered manually (by writing to the unix socket exposed at
+			// `/var/lib/kubelet/device-plugins/registered`). Because of this, the capacity and allocatable corresponding
+			// to the resource exposed by the device plugin should be zero.
+			gomega.Eventually(func() bool {
+				node, ready := getLocalTestNode(ctx, f)
+				return ready &&
+					numberOfDevicesCapacity(node, resourceName) == 0 &&
+					numberOfDevicesAllocatable(node, resourceName) == 0
+			}, 30*time.Second, framework.Poll).Should(gomega.BeTrue())
+
+			ginkgo.By("Checking that pod requesting devices failed to start because of admission error")
+
+			// NOTE: The device plugin won't re-register again and this is intentional.
+			// Because of this, the testpod (requesting a device) should fail with an admission error.
+
+			gomega.Eventually(ctx, func() bool {
+				tmpPod, err = e2epod.NewPodClient(f).Get(ctx, testPod.Name, metav1.GetOptions{})
+				framework.ExpectNoError(err)
+
+				if tmpPod.Status.Phase != v1.PodFailed {
+					return false
+				}
+
+				if tmpPod.Status.Reason != "UnexpectedAdmissionError" {
+					return false
+				}
+
+				if !strings.Contains(tmpPod.Status.Message, "Allocate failed due to can't allocate unhealthy devices") {
+					return false
+				}
+
+				return true
+			}, time.Minute, 5*time.Second).Should(
+				gomega.Equal(true),
+				"the pod succeeded to start, when it should fail with the admission error",
+			)
+
+			ginkgo.By("removing application pods")
+			e2epod.NewPodClient(f).DeleteSync(ctx, tmpPod.Name, metav1.DeleteOptions{}, 2*time.Minute)
+		})
+
+		ginkgo.AfterEach(func(ctx context.Context) {
+			ginkgo.By("Deleting the device plugin pod")
+			e2epod.NewPodClient(f).DeleteSync(ctx, devicePluginPod.Name, metav1.DeleteOptions{}, time.Minute)
+
+			ginkgo.By("Deleting any Pods created by the test")
+			l, err := e2epod.NewPodClient(f).List(context.TODO(), metav1.ListOptions{})
+			framework.ExpectNoError(err)
+			for _, p := range l.Items {
+				if p.Namespace != f.Namespace.Name {
+					continue
+				}
+
+				framework.Logf("Deleting pod: %s", p.Name)
+				e2epod.NewPodClient(f).DeleteSync(ctx, p.Name, metav1.DeleteOptions{}, 2*time.Minute)
+			}
+
+			ginkgo.By("Waiting for devices to become unavailable on the local node")
+			gomega.Eventually(func() bool {
+				node, ready := getLocalTestNode(ctx, f)
+				return ready && numberOfSampleResources(node) <= 0
+			}, 5*time.Minute, framework.Poll).Should(gomega.BeTrue())
 		})
 
 	})
@@ -483,41 +583,10 @@ func stringifyContainerDevices(devs []*kubeletpodresourcesv1.ContainerDevices) s
 	return strings.Join(entries, ", ")
 }
 
-func waitForPodConditionBatch(ctx context.Context, f *framework.Framework, pods []*v1.Pod, conditionDesc string, timeout time.Duration, condition func(pod *v1.Pod) (bool, error)) {
-	var wg sync.WaitGroup
-	for _, pod := range pods {
-		wg.Add(1)
-		go func(podNS, podName string) {
-			defer ginkgo.GinkgoRecover()
-			defer wg.Done()
-
-			err := e2epod.WaitForPodCondition(ctx, f.ClientSet, podNS, podName, conditionDesc, timeout, condition)
-			framework.ExpectNoError(err, "pod %s/%s did not go running", podNS, podName)
-			framework.Logf("pod %s/%s running", podNS, podName)
-		}(pod.Namespace, pod.Name)
-	}
-	wg.Wait()
-}
-
-func deleteBatch(ctx context.Context, f *framework.Framework, pods []*v1.Pod) {
-	var wg sync.WaitGroup
-	for _, pod := range pods {
-		wg.Add(1)
-		go func(podNS, podName string) {
-			defer ginkgo.GinkgoRecover()
-			defer wg.Done()
-
-			deletePodSyncByName(ctx, f, podName)
-			waitForAllContainerRemoval(ctx, podName, podNS)
-		}(pod.Namespace, pod.Name)
-	}
-	wg.Wait()
-}
-
 func makeBusyboxDeviceRequiringPod(resourceName, cmd string) *v1.Pod {
 	podName := "device-manager-test-" + string(uuid.NewUUID())
 	rl := v1.ResourceList{
-		v1.ResourceName(resourceName): *resource.NewQuantity(1, resource.DecimalSI),
+		v1.ResourceName(resourceName): *resource.NewQuantity(2, resource.DecimalSI),
 	}
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
