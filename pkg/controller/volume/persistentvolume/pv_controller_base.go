@@ -378,6 +378,7 @@ func (ctrl *PersistentVolumeController) updateVolumeMigrationAnnotationsAndFinal
 	volume *v1.PersistentVolume) (*v1.PersistentVolume, error) {
 	volumeClone := volume.DeepCopy()
 	annModified := updateMigrationAnnotations(ctrl.csiMigratedPluginManager, ctrl.translator, volumeClone.Annotations, false)
+	klog.Infof("JSAF: PV %s migration annotations updated: %v", volume.Name, annModified)
 	modifiedFinalizers, finalizersModified := modifyDeletionFinalizers(ctrl.csiMigratedPluginManager, volumeClone)
 	if !annModified && !finalizersModified {
 		return volumeClone, nil
@@ -494,11 +495,13 @@ func updateMigrationAnnotations(cmpm CSIMigratedPluginManager, translator CSINam
 			return false
 		}
 		if migratedToDriver != csiDriverName {
+			klog.Infof("JSAF: added migration annotation to %s", provisioner)
 			ann[storagehelpers.AnnMigratedTo] = csiDriverName
 			return true
 		}
 	} else {
 		if migratedToDriver != "" {
+			klog.Infof("JSAF: removed migration annotation for %s", provisioner)
 			// Migration annotation exists but the driver isn't migrated currently
 			delete(ann, storagehelpers.AnnMigratedTo)
 			return true
