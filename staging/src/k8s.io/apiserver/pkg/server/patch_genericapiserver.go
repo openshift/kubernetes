@@ -21,8 +21,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	goatomic "sync/atomic"
+	"time"
 
 	"go.uber.org/atomic"
 
@@ -38,17 +38,19 @@ import (
 // access to the http path in order to filter out healthz or readyz probes that
 // are allowed at any point during termination.
 //
-// Connections are late after the lateStopCh has been closed.
+// Connections are late after the veryLateStopCh has been closed.
 type terminationLoggingListener struct {
 	net.Listener
-	lateStopCh <-chan struct{}
+	terminationStartedCh <-chan struct{}
+	veryLateStopCh       <-chan struct{}
 }
 
 type eventfFunc func(eventType, reason, messageFmt string, args ...interface{})
 
 var (
-	lateConnectionRemoteAddrsLock sync.RWMutex
-	lateConnectionRemoteAddrs     = map[string]bool{}
+	terminationStarted     = atomic.NewBool(false)
+	terminationStartedTime goatomic.Value
+	veryLate               = atomic.NewBool(false)
 
 	unexpectedRequestsEventf goatomic.Value
 )
@@ -60,10 +62,21 @@ func (l *terminationLoggingListener) Accept() (net.Conn, error) {
 	}
 
 	select {
-	case <-l.lateStopCh:
-		lateConnectionRemoteAddrsLock.Lock()
-		defer lateConnectionRemoteAddrsLock.Unlock()
-		lateConnectionRemoteAddrs[c.RemoteAddr().String()] = true
+	case <-l.veryLateStopCh:
+		if !veryLate.Load() {
+			veryLate.Store(true)
+		}
+		if !terminationStarted.Load() {
+			terminationStarted.Store(true)
+			terminationStartedTime.Store(time.Now())
+		}
+
+	case <-l.terminationStartedCh:
+		if !terminationStarted.Load() {
+			terminationStarted.Store(true)
+			terminationStartedTime.Store(time.Now())
+		}
+
 	default:
 	}
 
@@ -75,17 +88,24 @@ func WithLateConnectionFilter(handler http.Handler) http.Handler {
 	var lateRequestReceived atomic.Bool
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		lateConnectionRemoteAddrsLock.RLock()
-		late := lateConnectionRemoteAddrs[r.RemoteAddr]
-		lateConnectionRemoteAddrsLock.RUnlock()
-
-		if late {
+		if terminationStarted.Load() {
 			if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
+				elapsed := time.Now().Sub(terminationStartedTime.Load().(time.Time))
 				if isLocal(r) {
-					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-graceful", fmt.Sprintf("loopback=true,%v,readyz=false", r.URL.Host))
+					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-termination", fmt.Sprintf("loopback=true,host=%v,elapsed=%v,readyz=false", r.URL.Host, elapsed))
+				} else {
+					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-termination", fmt.Sprintf("loopback=false,host=%v,elapsed=%v,readyz=false", r.URL.Host, elapsed))
+				}
+			}
+		}
+		if veryLate.Load() {
+			if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
+				elapsed := time.Now().Sub(terminationStartedTime.Load().(time.Time))
+				if isLocal(r) {
+					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-graceful", fmt.Sprintf("loopback=true,host=%v,elapsed=%v,readyz=false", r.URL.Host, elapsed))
 					klog.V(4).Infof("Loopback request to %q (user agent %q) through connection created very late in the graceful termination process (more than 80%% has passed). This client probably does not watch /readyz and might get failures when termination is over.", r.URL.Path, r.UserAgent())
 				} else {
-					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-graceful", fmt.Sprintf("loopback=false,%v,readyz=false", r.URL.Host))
+					audit.AddAuditAnnotation(r.Context(), "openshift.io/during-graceful", fmt.Sprintf("loopback=false,host=%v,elapsed=%v,readyz=false", r.URL.Host, elapsed))
 					klog.Warningf("Request to %q (source IP %s, user agent %q) through a connection created very late in the graceful termination process (more than 80%% has passed), possibly a sign for a broken load balancer setup.", r.URL.Path, r.RemoteAddr, r.UserAgent())
 
 					// create only one event to avoid event spam.

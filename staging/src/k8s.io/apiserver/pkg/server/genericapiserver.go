@@ -505,10 +505,15 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 		time.Sleep(s.ShutdownDelayDuration)
 	}()
 
-	lateStopCh := make(chan struct{})
+	terminationStartedCh := make(chan struct{})
+	veryLateStopCh := make(chan struct{})
 	if s.ShutdownDelayDuration > 0 {
 		go func() {
-			defer close(lateStopCh)
+			defer close(terminationStartedCh)
+			<-stopCh
+		}()
+		go func() {
+			defer close(veryLateStopCh)
 
 			<-stopCh
 
@@ -517,8 +522,9 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	}
 
 	s.SecureServingInfo.Listener = &terminationLoggingListener{
-		Listener:   s.SecureServingInfo.Listener,
-		lateStopCh: lateStopCh,
+		Listener:             s.SecureServingInfo.Listener,
+		terminationStartedCh: terminationStartedCh,
+		veryLateStopCh:       veryLateStopCh,
 	}
 	unexpectedRequestsEventf.Store(s.Eventf)
 
