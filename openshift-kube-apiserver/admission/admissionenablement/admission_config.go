@@ -1,9 +1,6 @@
 package admissionenablement
 
 import (
-	"time"
-
-	"github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/informers"
@@ -45,7 +42,6 @@ func SetAdmissionDefaults(o *options.ServerRunOptions, informers informers.Share
 			admission.DecoratorFunc(sccLabelDecorator.WithNamespaceLabelSelector),
 
 			admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
-			admission.DecoratorFunc(admissiontimeout.AdmissionTimeout{Timeout: 13 * time.Second}.WithTimeout),
 		},
 	)
 }
