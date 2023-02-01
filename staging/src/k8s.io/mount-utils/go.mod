@@ -23,7 +23,6 @@ require (
 )
 
 replace (
-	golang.org/x/sys => golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.70.1
 	k8s.io/mount-utils => ../mount-utils
 	k8s.io/utils => k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
