@@ -52,10 +52,6 @@ require (
 	github.com/google/gofuzz v1.1.0
 	github.com/google/uuid v1.1.2
 	github.com/heketi/heketi v10.3.0+incompatible
-<<<<<<< HEAD
-	github.com/hpcloud/tail v1.0.0 // indirect
-=======
->>>>>>> v1.24.10
 	github.com/ishidawataru/sctp v0.0.0-20190723014705-7c296d48a2b5
 	github.com/libopenstorage/openstorage v1.0.0
 	github.com/lithammer/dedent v1.1.0
@@ -92,19 +88,11 @@ require (
 	go.opentelemetry.io/proto/otlp v0.7.0
 	go.uber.org/zap v1.19.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
-<<<<<<< HEAD
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-=======
 	golang.org/x/net v0.3.1-0.20221206200815-1e63c2f08a10
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.3.0
 	golang.org/x/term v0.3.0
->>>>>>> v1.24.10
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
 	golang.org/x/tools v0.1.12
 	gonum.org/v1/gonum v0.6.2
@@ -119,19 +107,11 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-<<<<<<< HEAD
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-	k8s.io/api v0.24.0
-	k8s.io/apiextensions-apiserver v0.24.0
-	k8s.io/apimachinery v0.24.0
-	k8s.io/apiserver v0.24.0
-=======
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.0.0
 	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/apiserver v0.0.0
->>>>>>> v1.24.10
 	k8s.io/cli-runtime v0.0.0
 	k8s.io/client-go v0.24.0
 	k8s.io/cloud-provider v0.0.0
@@ -674,12 +654,7 @@ replace (
 	modernc.org/strutil => modernc.org/strutil v1.0.0
 	modernc.org/xc => modernc.org/xc v1.0.0
 	rsc.io/pdf => rsc.io/pdf v0.1.1
-<<<<<<< HEAD
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30
-	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.8
-=======
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.35
->>>>>>> v1.24.10
 	sigs.k8s.io/json => sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2
 	sigs.k8s.io/kube-storage-version-migrator => sigs.k8s.io/kube-storage-version-migrator v0.0.4
 	sigs.k8s.io/kustomize/api => sigs.k8s.io/kustomize/api v0.11.4

@@ -18,27 +18,16 @@ require (
 	github.com/gophercloud/gophercloud v0.1.0
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/rubiojr/go-vhd v0.0.0-20200706105327-02e210299021
-<<<<<<< HEAD
-	github.com/stretchr/testify v1.7.0
-=======
 	github.com/stretchr/testify v1.8.0
->>>>>>> v1.24.10
 	github.com/vmware/govmomi v0.20.3
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	google.golang.org/api v0.46.0
 	gopkg.in/gcfg.v1 v1.2.0
-<<<<<<< HEAD
-	k8s.io/api v0.24.0
-	k8s.io/apimachinery v0.24.0
-	k8s.io/apiserver v0.24.0
-	k8s.io/client-go v0.24.0
-=======
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v0.0.0
->>>>>>> v1.24.10
 	k8s.io/cloud-provider v0.0.0
 	k8s.io/component-base v0.24.0
 	k8s.io/csi-translation-lib v0.0.0

@@ -7,23 +7,8 @@ go 1.19
 require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gnostic v0.5.7-v3refs
-<<<<<<< HEAD
-	github.com/hpcloud/tail v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/onsi/ginkgo v4.7.0-origin.0+incompatible // indirect
-	github.com/onsi/gomega v1.10.1 // indirect
-	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
-	golang.org/x/tools v0.1.10-0.20220218145154-897bd77cd717
-	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/fsnotify.v1 v1.4.7 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-=======
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/tools v0.1.12
->>>>>>> v1.24.10
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
 	k8s.io/klog/v2 v2.60.1
