@@ -1297,11 +1297,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-<<<<<<< HEAD
-# golang.org/x/net v0.0.0-20220909164309-bea034e7d591 => golang.org/x/net v0.0.0-20220722155237-a158d28d115b
-=======
 # golang.org/x/net v0.3.1-0.20221206200815-1e63c2f08a10 => golang.org/x/net v0.3.1-0.20221206200815-1e63c2f08a10
->>>>>>> v1.25.5
 ## explicit; go 1.17
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1330,11 +1326,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 => golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 ## explicit
 golang.org/x/sync/singleflight
-<<<<<<< HEAD
-# golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 => golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f
-=======
 # golang.org/x/sys v0.3.0 => golang.org/x/sys v0.3.0
->>>>>>> v1.25.5
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
