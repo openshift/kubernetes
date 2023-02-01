@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"io"
 	"net"
 	"net/http"
@@ -289,6 +288,16 @@ func TestRoundTripAndNewConnection(t *testing.T) {
 			serverStatusCode:       http.StatusSwitchingProtocols,
 			shouldError:            false,
 		},
+		"proxied valid https, proxy auth with chars that percent escape -> valid https": {
+			serverFunc:             httpsServerValidHostname(t),
+			proxyServerFunc:        httpsServerValidHostname(t),
+			proxyAuth:              url.UserPassword("proxy user", "proxypasswd%"),
+			clientTLS:              &tls.Config{RootCAs: localhostPool},
+			serverConnectionHeader: "Upgrade",
+			serverUpgradeHeader:    "SPDY/3.1",
+			serverStatusCode:       http.StatusSwitchingProtocols,
+			shouldError:            false,
+		},
 	}
 
 	for k, testCase := range testCases {
@@ -398,18 +407,19 @@ func TestRoundTripAndNewConnection(t *testing.T) {
 				}
 			}
 
-			var expectedProxyAuth string
 			if testCase.proxyAuth != nil {
-				encodedCredentials := base64.StdEncoding.EncodeToString([]byte(testCase.proxyAuth.String()))
-				expectedProxyAuth = "Basic " + encodedCredentials
-			}
-			if len(expectedProxyAuth) == 0 && proxyCalledWithAuth {
+				expectedUsername := testCase.proxyAuth.Username()
+				expectedPassword, _ := testCase.proxyAuth.Password()
+				username, password, ok := (&http.Request{Header: http.Header{"Authorization": []string{proxyCalledWithAuthHeader}}}).BasicAuth()
+				if !ok {
+					t.Fatalf("invalid proxy auth header %s", proxyCalledWithAuthHeader)
+				}
+				if username != expectedUsername || password != expectedPassword {
+					t.Fatalf("expected proxy auth \"%s:%s\", got \"%s:%s\"", expectedUsername, expectedPassword, username, password)
+				}
+			} else if proxyCalledWithAuth {
 				t.Fatalf("proxy authorization unexpected, got %q", proxyCalledWithAuthHeader)
 			}
-			if proxyCalledWithAuthHeader != expectedProxyAuth {
-				t.Fatalf("expected to see a call to the proxy with credentials %q, got %q", testCase.proxyAuth, proxyCalledWithAuthHeader)
-			}
-
 		})
 	}
 }
@@ -683,7 +693,8 @@ func TestRoundTripSocks5AndNewConnection(t *testing.T) {
 }
 
 // exampleCert was generated from crypto/tls/generate_cert.go with the following command:
-//    go run generate_cert.go  --rsa-bits 2048 --host example.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
+//
+//	go run generate_cert.go  --rsa-bits 2048 --host example.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
 var exampleCert = []byte(`-----BEGIN CERTIFICATE-----
 MIIDADCCAeigAwIBAgIQVHG3Fn9SdWayyLOZKCW1vzANBgkqhkiG9w0BAQsFADAS
 MRAwDgYDVQQKEwdBY21lIENvMCAXDTcwMDEwMTAwMDAwMFoYDzIwODQwMTI5MTYw
@@ -733,7 +744,8 @@ LB4rdf46lV0mUkvd2/oofIbTrzukjQSnyfLawb/2uJGV1IkTcZcn9CI=
 -----END RSA PRIVATE KEY-----`)
 
 // localhostCert was generated from crypto/tls/generate_cert.go with the following command:
-//     go run generate_cert.go  --rsa-bits 2048 --host 127.0.0.1,::1,example.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
+//
+//	go run generate_cert.go  --rsa-bits 2048 --host 127.0.0.1,::1,example.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
 var localhostCert = []byte(`-----BEGIN CERTIFICATE-----
 MIIDGTCCAgGgAwIBAgIRALL5AZcefF4kkYV1SEG6YrMwDQYJKoZIhvcNAQELBQAw
 EjEQMA4GA1UEChMHQWNtZSBDbzAgFw03MDAxMDEwMDAwMDBaGA8yMDg0MDEyOTE2

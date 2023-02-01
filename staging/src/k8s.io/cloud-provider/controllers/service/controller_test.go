@@ -64,7 +64,7 @@ func newService(name string, uid types.UID, serviceType v1.ServiceType) *v1.Serv
 	}
 }
 
-//Wrap newService so that you don't have to call default arguments again and again.
+// Wrap newService so that you don't have to call default arguments again and again.
 func defaultExternalService() *v1.Service {
 	return newService("external-balancer", types.UID("123"), v1.ServiceTypeLoadBalancer)
 }
@@ -996,14 +996,15 @@ func TestProcessServiceDeletion(t *testing.T) {
 
 // Test cases:
 // index    finalizer    timestamp    wantLB  |  clean-up
-//   0         0           0            0     |   false    (No finalizer, no clean up)
-//   1         0           0            1     |   false    (Ignored as same with case 0)
-//   2         0           1            0     |   false    (Ignored as same with case 0)
-//   3         0           1            1     |   false    (Ignored as same with case 0)
-//   4         1           0            0     |   true
-//   5         1           0            1     |   false
-//   6         1           1            0     |   true    (Service is deleted, needs clean up)
-//   7         1           1            1     |   true    (Ignored as same with case 6)
+//
+//	0         0           0            0     |   false    (No finalizer, no clean up)
+//	1         0           0            1     |   false    (Ignored as same with case 0)
+//	2         0           1            0     |   false    (Ignored as same with case 0)
+//	3         0           1            1     |   false    (Ignored as same with case 0)
+//	4         1           0            0     |   true
+//	5         1           0            1     |   false
+//	6         1           1            0     |   true    (Service is deleted, needs clean up)
+//	7         1           1            1     |   true    (Ignored as same with case 6)
 func TestNeedsCleanup(t *testing.T) {
 	testCases := []struct {
 		desc               string
@@ -1205,6 +1206,75 @@ func TestNeedsUpdate(t *testing.T) {
 			},
 			expectedNeedsUpdate: true,
 		},
+		{
+			testName: "If appProtocol is the same",
+			updateFn: func() {
+				oldSvc = &v1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tcp-service",
+						Namespace: "default",
+					},
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{{
+							Port:       80,
+							Protocol:   v1.ProtocolTCP,
+							TargetPort: intstr.Parse("22"),
+						}},
+						Type: v1.ServiceTypeLoadBalancer,
+					},
+				}
+				newSvc = oldSvc.DeepCopy()
+			},
+			expectedNeedsUpdate: false,
+		},
+		{
+			testName: "If appProtocol is set when previously unset",
+			updateFn: func() {
+				oldSvc = &v1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tcp-service",
+						Namespace: "default",
+					},
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{{
+							Port:       80,
+							Protocol:   v1.ProtocolTCP,
+							TargetPort: intstr.Parse("22"),
+						}},
+						Type: v1.ServiceTypeLoadBalancer,
+					},
+				}
+				newSvc = oldSvc.DeepCopy()
+				protocol := "http"
+				newSvc.Spec.Ports[0].AppProtocol = &protocol
+			},
+			expectedNeedsUpdate: true,
+		},
+		{
+			testName: "If appProtocol is set to a different value",
+			updateFn: func() {
+				protocol := "http"
+				oldSvc = &v1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tcp-service",
+						Namespace: "default",
+					},
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{{
+							Port:        80,
+							Protocol:    v1.ProtocolTCP,
+							TargetPort:  intstr.Parse("22"),
+							AppProtocol: &protocol,
+						}},
+						Type: v1.ServiceTypeLoadBalancer,
+					},
+				}
+				newSvc = oldSvc.DeepCopy()
+				newProtocol := "tcp"
+				newSvc.Spec.Ports[0].AppProtocol = &newProtocol
+			},
+			expectedNeedsUpdate: true,
+		},
 	}
 
 	controller, _, _ := newController()
@@ -1217,10 +1287,10 @@ func TestNeedsUpdate(t *testing.T) {
 	}
 }
 
-//All the test cases for ServiceCache uses a single cache, these below test cases should be run in order,
-//as tc1 (addCache would add elements to the cache)
-//and tc2 (delCache would remove element from the cache without it adding automatically)
-//Please keep this in mind while adding new test cases.
+// All the test cases for ServiceCache uses a single cache, these below test cases should be run in order,
+// as tc1 (addCache would add elements to the cache)
+// and tc2 (delCache would remove element from the cache without it adding automatically)
+// Please keep this in mind while adding new test cases.
 func TestServiceCache(t *testing.T) {
 
 	//ServiceCache a common service cache for all the test cases
@@ -1327,7 +1397,7 @@ func TestServiceCache(t *testing.T) {
 	}
 }
 
-//Test a utility functions as it's not easy to unit test nodeSyncInternal directly
+// Test a utility functions as it's not easy to unit test nodeSyncInternal directly
 func TestNodeSlicesEqualForLB(t *testing.T) {
 	numNodes := 10
 	nArray := make([]*v1.Node, numNodes)
