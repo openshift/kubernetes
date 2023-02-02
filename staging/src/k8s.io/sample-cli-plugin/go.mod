@@ -2,7 +2,7 @@
 
 module k8s.io/sample-cli-plugin
 
-go 1.19
+go 1.17
 
 require (
 	github.com/go-openapi/jsonreference v0.19.5 // indirect

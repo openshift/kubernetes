@@ -2,7 +2,7 @@
 
 module k8s.io/apiserver
 
-go 1.19
+go 1.17
 
 require (
 	github.com/coreos/go-oidc v2.1.0+incompatible

@@ -2,7 +2,7 @@
 
 module k8s.io/sample-controller
 
-go 1.19
+go 1.17
 
 require (
 	k8s.io/api v0.23.0
