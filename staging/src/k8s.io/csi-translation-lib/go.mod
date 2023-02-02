@@ -6,8 +6,8 @@ go 1.17
 
 require (
 	github.com/stretchr/testify v1.8.0
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.23.0
+	k8s.io/apimachinery v0.23.0
 	k8s.io/klog/v2 v2.30.0
 )
 

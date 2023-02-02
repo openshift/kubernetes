@@ -36,8 +36,6 @@ require (
 )
 
 replace (
-	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.0
-	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
