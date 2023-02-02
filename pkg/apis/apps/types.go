@@ -27,8 +27,9 @@ import (
 
 // StatefulSet represents a set of pods with consistent identities.
 // Identities are defined as:
-//  - Network: A single stable DNS and hostname.
-//  - Storage: As many VolumeClaims as requested.
+//   - Network: A single stable DNS and hostname.
+//   - Storage: As many VolumeClaims as requested.
+//
 // The StatefulSet guarantees that a given network identity will always
 // map to the same storage identity.
 type StatefulSet struct {
@@ -246,6 +247,7 @@ type StatefulSetStatus struct {
 
 	// Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset.
 	// This is a beta field and requires enabling StatefulSetMinReadySeconds feature gate.
+	// +optional
 	AvailableReplicas int32
 }
 
