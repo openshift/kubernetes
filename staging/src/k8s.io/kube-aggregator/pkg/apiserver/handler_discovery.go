@@ -20,9 +20,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -185,11 +187,19 @@ func NewDiscoveryManager(
 // and a non-nil error
 // If the result is current, returns nil error and non-nil result
 func (dm *discoveryManager) fetchFreshDiscoveryForService(gv metav1.GroupVersion, info groupVersionInfo) (*cachedResult, error) {
+	shouldLog := false
+	if strings.HasSuffix(gv.Group, "openshift.io") {
+		shouldLog = true
+	}
+
 	// Lookup last cached result for this apiservice's service.
 	cached, exists := dm.getCacheEntryForService(info.service)
 
 	// If entry exists and was updated after the given time, just stop now
 	if exists && cached.lastUpdated.After(info.lastMarkedDirty) {
+		if shouldLog {
+			klog.V(2).Infof("discovery: %v: 1z cache lastUpdated=%v, lastMarkedDirty=%v", gv, cached.lastUpdated, info.lastMarkedDirty)
+		}
 		return &cached, nil
 	}
 
@@ -242,6 +252,9 @@ func (dm *discoveryManager) fetchFreshDiscoveryForService(gv metav1.GroupVersion
 		// Discovery Document is not being served at all.
 		// Fall back to legacy discovery information
 		if len(gv.Version) == 0 {
+			if shouldLog {
+				klog.V(2).Infof("discovery: %v: 1a", gv)
+			}
 			return nil, errors.New("not found")
 		}
 
@@ -252,6 +265,9 @@ func (dm *discoveryManager) fetchFreshDiscoveryForService(gv metav1.GroupVersion
 			path = "/apis/" + gv.Group + "/" + gv.Version
 		}
 
+		if shouldLog {
+			klog.V(2).Infof("discovery: %v: 1b %q", gv, path)
+		}
 		req, err := http.NewRequest("GET", path, nil)
 		if err != nil {
 			// NewRequest should not fail, but if it does for some reason,
@@ -278,15 +294,26 @@ func (dm *discoveryManager) fetchFreshDiscoveryForService(gv metav1.GroupVersion
 			return nil, fmt.Errorf("failed to download discovery for %s: %v", path, writer.String())
 		}
 
+		if shouldLog {
+			klog.V(2).Infof("discovery: %v: 1c got %v", gv, string(writer.data))
+		}
 		parsed := &metav1.APIResourceList{}
 		if err := runtime.DecodeInto(scheme.Codecs.UniversalDecoder(), writer.data, parsed); err != nil {
 			return nil, err
+		}
+
+		if shouldLog {
+			klog.V(2).Infof("discovery: %v: 1d got %v", gv, parsed)
 		}
 
 		// Create a discomap with single group-version
 		resources, err := endpoints.ConvertGroupVersionIntoToDiscovery(parsed.APIResources)
 		if err != nil {
 			return nil, err
+		}
+
+		if shouldLog {
+			klog.V(2).Infof("discovery: %v: 1e converted %v", gv, spew.Sdump(resources))
 		}
 
 		discoMap := map[metav1.GroupVersion]apidiscoveryv2beta1.APIVersionDiscovery{
