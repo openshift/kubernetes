@@ -17,22 +17,22 @@ limitations under the License.
 package aggregated
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"net/http"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 
+	"k8s.io/klog/v2"
 	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/version"
-	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
-
-	"sync/atomic"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/klog/v2"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
+	"sync/atomic"
 )
 
 // This handler serves the /apis endpoint for an aggregated list of
@@ -147,6 +147,17 @@ func (rdm *resourceDiscoveryManager) AddGroupVersion(groupName string, value api
 
 func (rdm *resourceDiscoveryManager) addGroupVersionLocked(groupName string, value apidiscoveryv2beta1.APIVersionDiscovery) {
 	klog.Infof("Adding GroupVersion %s %s to ResourceManager", groupName, value.Version)
+	shouldLog := false
+	if strings.HasSuffix(groupName, "openshift.io") {
+		shouldLog = true
+	}
+	if shouldLog {
+		if len(value.Resources) > 0 {
+			klog.Infof("discoveryRM: %v: 2a adding %v", groupName, spew.Sdump(value.Resources[0]))
+		} else {
+			klog.Infof("discoveryRM: %v: 2b NO RESOURCES", groupName)
+		}
+	}
 
 	if rdm.apiGroups == nil {
 		rdm.apiGroups = make(map[string]*apidiscoveryv2beta1.APIGroupDiscovery)
@@ -163,6 +174,9 @@ func (rdm *resourceDiscoveryManager) addGroupVersionLocked(groupName string, val
 				// the map. This is a noop and cache should not be
 				// invalidated.
 				if reflect.DeepEqual(existing.Versions[i], value) {
+					if shouldLog {
+						klog.Infof("discoveryRM: %v: 2b matched existing, return early", groupName)
+					}
 					return
 				}
 				existing.Versions[i] = value
@@ -172,6 +186,9 @@ func (rdm *resourceDiscoveryManager) addGroupVersionLocked(groupName string, val
 		}
 
 		if !versionExists {
+			if shouldLog {
+				klog.Infof("discoveryRM: %v: 2c adding new", groupName)
+			}
 			existing.Versions = append(existing.Versions, value)
 		}
 
@@ -181,6 +198,9 @@ func (rdm *resourceDiscoveryManager) addGroupVersionLocked(groupName string, val
 				Name: groupName,
 			},
 			Versions: []apidiscoveryv2beta1.APIVersionDiscovery{value},
+		}
+		if shouldLog {
+			klog.Infof("discoveryRM: %v: 2d assigned map", groupName)
 		}
 		rdm.apiGroups[groupName] = group
 	}
@@ -200,6 +220,15 @@ func (rdm *resourceDiscoveryManager) addGroupVersionLocked(groupName string, val
 func (rdm *resourceDiscoveryManager) RemoveGroupVersion(apiGroup metav1.GroupVersion) {
 	rdm.lock.Lock()
 	defer rdm.lock.Unlock()
+
+	shouldLog := false
+	if strings.HasSuffix(apiGroup.Group, "openshift.io") {
+		shouldLog = true
+	}
+	if shouldLog {
+		klog.Infof("discoveryRM: %v: 3a removing", apiGroup.Group)
+	}
+
 	group, exists := rdm.apiGroups[apiGroup.Group]
 	if !exists {
 		return

@@ -198,7 +198,7 @@ func (dm *discoveryManager) fetchFreshDiscoveryForService(gv metav1.GroupVersion
 	// If entry exists and was updated after the given time, just stop now
 	if exists && cached.lastUpdated.After(info.lastMarkedDirty) {
 		if shouldLog {
-			klog.V(2).Infof("discovery: %v: 1z cache lastUpdated=%v, lastMarkedDirty=%v", gv, cached.lastUpdated, info.lastMarkedDirty)
+			klog.V(2).Infof("discovery: %v: 1z cache lastUpdated=%v, lastMarkedDirty=%v, ret :%v", gv, cached.lastUpdated, info.lastMarkedDirty, spew.Sdump(cached.discovery))
 		}
 		return &cached, nil
 	}
@@ -313,7 +313,11 @@ func (dm *discoveryManager) fetchFreshDiscoveryForService(gv metav1.GroupVersion
 		}
 
 		if shouldLog {
-			klog.V(2).Infof("discovery: %v: 1e converted %v", gv, spew.Sdump(resources))
+			if len(resources) > 0 {
+				klog.V(2).Infof("discovery: %v: 1e converted %v", gv, spew.Sdump(resources[0]))
+			} else {
+				klog.V(2).Infof("discovery: %v: 1ee converted empty", gv)
+			}
 		}
 
 		discoMap := map[metav1.GroupVersion]apidiscoveryv2beta1.APIVersionDiscovery{
