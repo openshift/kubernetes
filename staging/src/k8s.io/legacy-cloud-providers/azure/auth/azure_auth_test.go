@@ -24,50 +24,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	CrossTenantNetworkResourceNegativeConfig = []*AzureAuthConfig{
-		{
-			TenantID:        "TenantID",
-			AADClientID:     "AADClientID",
-			AADClientSecret: "AADClientSecret",
-		},
-		{
-			TenantID:                      "TenantID",
-			AADClientID:                   "AADClientID",
-			AADClientSecret:               "AADClientSecret",
-			NetworkResourceTenantID:       "NetworkResourceTenantID",
-			NetworkResourceSubscriptionID: "NetworkResourceSubscriptionID",
-			IdentitySystem:                ADFSIdentitySystem,
-		},
-		{
-			TenantID:                      "TenantID",
-			AADClientID:                   "AADClientID",
-			AADClientSecret:               "AADClientSecret",
-			NetworkResourceTenantID:       "NetworkResourceTenantID",
-			NetworkResourceSubscriptionID: "NetworkResourceSubscriptionID",
-			UseManagedIdentityExtension:   true,
-		},
-	}
-)
-
-func TestGetServicePrincipalToken(t *testing.T) {
-	config := &AzureAuthConfig{
+var CrossTenantNetworkResourceNegativeConfig = []*AzureAuthConfig{
+	{
 		TenantID:        "TenantID",
 		AADClientID:     "AADClientID",
 		AADClientSecret: "AADClientSecret",
-	}
-	env := &azure.PublicCloud
-
-	token, err := GetServicePrincipalToken(config, env)
-	assert.NoError(t, err)
-
-	oauthConfig, err := adal.NewOAuthConfigWithAPIVersion(env.ActiveDirectoryEndpoint, config.TenantID, nil)
-	assert.NoError(t, err)
-
-	spt, err := adal.NewServicePrincipalToken(*oauthConfig, config.AADClientID, config.AADClientSecret, env.ServiceManagementEndpoint)
-	assert.NoError(t, err)
-
-	assert.Equal(t, token, spt)
+	},
+	{
+		TenantID:                      "TenantID",
+		AADClientID:                   "AADClientID",
+		AADClientSecret:               "AADClientSecret",
+		NetworkResourceTenantID:       "NetworkResourceTenantID",
+		NetworkResourceSubscriptionID: "NetworkResourceSubscriptionID",
+		IdentitySystem:                ADFSIdentitySystem,
+	},
+	{
+		TenantID:                      "TenantID",
+		AADClientID:                   "AADClientID",
+		AADClientSecret:               "AADClientSecret",
+		NetworkResourceTenantID:       "NetworkResourceTenantID",
+		NetworkResourceSubscriptionID: "NetworkResourceSubscriptionID",
+		UseManagedIdentityExtension:   true,
+	},
 }
 
 func TestGetMultiTenantServicePrincipalToken(t *testing.T) {

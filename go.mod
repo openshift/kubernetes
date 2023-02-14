@@ -11,8 +11,8 @@ go 1.19
 require (
 	bitbucket.org/bertimus9/systemstat v0.5.0
 	github.com/Azure/azure-sdk-for-go v55.0.0+incompatible
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.3.1
 	github.com/Azure/go-autorest/autorest v0.11.27
-	github.com/Azure/go-autorest/autorest/adal v0.9.20
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/GoogleCloudPlatform/k8s-cloud-provider v1.18.1-0.20220218231025-f11817397a1b
 	github.com/JeffAshton/win_pdh v0.0.0-20161109143554-76bb4ee9f0ab
@@ -44,7 +44,7 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gofuzz v1.2.0
-	github.com/google/uuid v1.1.2
+	github.com/google/uuid v1.3.0
 	github.com/ishidawataru/sctp v0.0.0-20190723014705-7c296d48a2b5
 	github.com/libopenstorage/openstorage v1.0.0
 	github.com/lithammer/dedent v1.1.0
@@ -81,12 +81,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.10.0
 	go.opentelemetry.io/proto/otlp v0.19.0
 	go.uber.org/zap v1.19.0
-	golang.org/x/crypto v0.1.0
-	golang.org/x/net v0.5.0
+	golang.org/x/crypto v0.6.0
+	golang.org/x/net v0.6.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
-	golang.org/x/sys v0.4.0
-	golang.org/x/term v0.4.0
+	golang.org/x/sys v0.5.0
+	golang.org/x/term v0.5.0
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
 	golang.org/x/tools v0.2.0
 	google.golang.org/api v0.60.0
@@ -136,14 +136,18 @@ require (
 
 require (
 	cloud.google.com/go v0.97.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.1.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.20 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/mocks v0.4.2 // indirect
-	github.com/Azure/go-autorest/autorest/validation v0.1.0 // indirect
+	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.8.1 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
@@ -179,7 +183,7 @@ require (
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
-	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.4.3 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
@@ -196,9 +200,11 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/jongio/azidext/go/azidext v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2 // indirect
@@ -217,6 +223,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/pkg/browser v0.0.0-20210115035449-ce105d075bb4 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rubiojr/go-vhd v0.0.0-20200706105327-02e210299021 // indirect
@@ -245,7 +252,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.1 // indirect
