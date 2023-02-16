@@ -85,13 +85,16 @@ type Controller struct {
 	eventRecorder       record.EventRecorder
 	nodeLister          corelisters.NodeLister
 	nodeListerSynced    cache.InformerSynced
-	// services and nodes that need to be synced
-	serviceQueue workqueue.RateLimitingInterface
-	nodeQueue    workqueue.RateLimitingInterface
-	// lastSyncedNodes is used when reconciling node state and keeps track of
-	// the last synced set of nodes. This field is concurrently safe because the
-	// nodeQueue is serviced by only one go-routine, so node events are not
-	// processed concurrently.
+	// services that need to be synced
+	queue workqueue.RateLimitingInterface
+
+	// nodeSyncLock ensures there is only one instance of triggerNodeSync getting executed at one time
+	// and protects internal states (needFullSync) of nodeSync
+	nodeSyncLock sync.Mutex
+	// nodeSyncCh triggers nodeSyncLoop to run
+	nodeSyncCh chan interface{}
+	// lastSyncedNodes is used when reconciling node state and keeps track of the last synced set of
+	// nodes. Access to this attribute by multiple go-routines is protected by nodeSyncLock
 	lastSyncedNodes []*v1.Node
 }
 
@@ -118,9 +121,10 @@ func New(
 		eventRecorder:    recorder,
 		nodeLister:       nodeInformer.Lister(),
 		nodeListerSynced: nodeInformer.Informer().HasSynced,
-		serviceQueue:     workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(minRetryDelay, maxRetryDelay), "service"),
-		nodeQueue:        workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(minRetryDelay, maxRetryDelay), "node"),
-		lastSyncedNodes:  []*v1.Node{},
+		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(minRetryDelay, maxRetryDelay), "service"),
+		// nodeSyncCh has a size 1 buffer. Only one pending sync signal would be cached.
+		nodeSyncCh:      make(chan interface{}, 1),
+		lastSyncedNodes: []*v1.Node{},
 	}
 
 	serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
@@ -151,7 +155,7 @@ func New(
 	nodeInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(cur interface{}) {
-				s.enqueueNode(cur)
+				s.triggerNodeSync()
 			},
 			UpdateFunc: func(old, cur interface{}) {
 				oldNode, ok := old.(*v1.Node)
@@ -168,13 +172,13 @@ func New(
 					return
 				}
 
-				s.enqueueNode(curNode)
+				s.triggerNodeSync()
 			},
 			DeleteFunc: func(old interface{}) {
-				s.enqueueNode(old)
+				s.triggerNodeSync()
 			},
 		},
-		nodeSyncPeriod,
+		time.Duration(0),
 	)
 
 	if err := s.init(); err != nil {
@@ -191,17 +195,7 @@ func (c *Controller) enqueueService(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", obj, err))
 		return
 	}
-	c.serviceQueue.Add(key)
-}
-
-// obj could be an *v1.Service, or a DeletionFinalStateUnknown marker item.
-func (c *Controller) enqueueNode(obj interface{}) {
-	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", obj, err))
-		return
-	}
-	c.nodeQueue.Add(key)
+	c.queue.Add(key)
 }
 
 // Run starts a background goroutine that watches for changes to services that
@@ -216,8 +210,7 @@ func (c *Controller) enqueueNode(obj interface{}) {
 // object.
 func (c *Controller) Run(ctx context.Context, workers int, controllerManagerMetrics *controllersmetrics.ControllerManagerMetrics) {
 	defer runtime.HandleCrash()
-	defer c.serviceQueue.ShutDown()
-	defer c.nodeQueue.ShutDown()
+	defer c.queue.ShutDown()
 
 	// Start event processing pipeline.
 	c.eventBroadcaster.StartStructuredLogging(0)
@@ -234,60 +227,65 @@ func (c *Controller) Run(ctx context.Context, workers int, controllerManagerMetr
 	}
 
 	for i := 0; i < workers; i++ {
-		go wait.UntilWithContext(ctx, c.serviceWorker, time.Second)
+		go wait.UntilWithContext(ctx, c.worker, time.Second)
 	}
 
-	// Initialize one go-routine servicing node events. This ensure we only
-	// process one node at any given moment in time
-	go wait.UntilWithContext(ctx, func(ctx context.Context) { c.nodeWorker(ctx, workers) }, time.Second)
+	go c.nodeSyncLoop(ctx, workers)
+	go wait.Until(c.triggerNodeSync, nodeSyncPeriod, ctx.Done())
 
 	<-ctx.Done()
 }
 
-// worker runs a worker thread that just dequeues items, processes them, and marks them done.
-// It enforces that the syncHandler is never invoked concurrently with the same key.
-func (c *Controller) serviceWorker(ctx context.Context) {
-	for c.processNextServiceItem(ctx) {
+// triggerNodeSync triggers a nodeSync asynchronously
+func (c *Controller) triggerNodeSync() {
+	c.nodeSyncLock.Lock()
+	defer c.nodeSyncLock.Unlock()
+	select {
+	case c.nodeSyncCh <- struct{}{}:
+		klog.V(4).Info("Triggering nodeSync")
+		return
+	default:
+		klog.V(4).Info("A pending nodeSync is already in queue")
+		return
 	}
 }
 
 // worker runs a worker thread that just dequeues items, processes them, and marks them done.
 // It enforces that the syncHandler is never invoked concurrently with the same key.
-func (c *Controller) nodeWorker(ctx context.Context, workers int) {
-	for c.processNextNodeItem(ctx, workers) {
+func (c *Controller) worker(ctx context.Context) {
+	for c.processNextWorkItem(ctx) {
 	}
 }
 
-func (c *Controller) processNextNodeItem(ctx context.Context, workers int) bool {
-	key, quit := c.nodeQueue.Get()
-	if quit {
-		return false
+// nodeSyncLoop takes nodeSync signal and triggers nodeSync
+func (c *Controller) nodeSyncLoop(ctx context.Context, workers int) {
+	klog.V(4).Info("nodeSyncLoop Started")
+	for {
+		select {
+		case <-c.nodeSyncCh:
+			klog.V(4).Info("nodeSync has been triggered")
+			c.nodeSyncInternal(ctx, workers)
+		case <-ctx.Done():
+			return
+		}
 	}
-	defer c.nodeQueue.Done(key)
-
-	for serviceToRetry := range c.syncNodes(ctx, workers) {
-		c.serviceQueue.Add(serviceToRetry)
-	}
-
-	c.nodeQueue.Forget(key)
-	return true
 }
 
-func (c *Controller) processNextServiceItem(ctx context.Context) bool {
-	key, quit := c.serviceQueue.Get()
+func (c *Controller) processNextWorkItem(ctx context.Context) bool {
+	key, quit := c.queue.Get()
 	if quit {
 		return false
 	}
-	defer c.serviceQueue.Done(key)
+	defer c.queue.Done(key)
 
 	err := c.syncService(ctx, key.(string))
 	if err == nil {
-		c.serviceQueue.Forget(key)
+		c.queue.Forget(key)
 		return true
 	}
 
 	runtime.HandleError(fmt.Errorf("error processing service %v (will retry): %v", key, err))
-	c.serviceQueue.AddRateLimited(key)
+	c.queue.AddRateLimited(key)
 	return true
 }
 
@@ -674,13 +672,13 @@ func shouldSyncUpdatedNode(oldNode, newNode *v1.Node) bool {
 	return respectsPredicates(oldNode, allNodePredicates...) != respectsPredicates(newNode, allNodePredicates...)
 }
 
-// syncNodes handles updating the hosts pointed to by all load
+// nodeSyncInternal handles updating the hosts pointed to by all load
 // balancers whenever the set of nodes in the cluster changes.
-func (c *Controller) syncNodes(ctx context.Context, workers int) sets.String {
+func (c *Controller) nodeSyncInternal(ctx context.Context, workers int) {
 	startTime := time.Now()
 	defer func() {
 		latency := time.Since(startTime).Seconds()
-		klog.V(4).Infof("It took %v seconds to finish syncNodes", latency)
+		klog.V(4).Infof("It took %v seconds to finish nodeSyncInternal", latency)
 		nodeSyncLatency.Observe(latency)
 	}()
 
@@ -690,7 +688,6 @@ func (c *Controller) syncNodes(ctx context.Context, workers int) sets.String {
 	servicesToRetry := c.updateLoadBalancerHosts(ctx, servicesToUpdate, workers)
 	klog.V(2).Infof("Successfully updated %d out of %d load balancers to direct traffic to the updated set of nodes",
 		numServices-len(servicesToRetry), numServices)
-	return servicesToRetry
 }
 
 // nodeSyncService syncs the nodes for one load balancer type service. The return value
