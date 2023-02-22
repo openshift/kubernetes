@@ -1038,7 +1038,7 @@ var _ = common.SIGDescribe("LoadBalancers", func() {
 
 	ginkgo.It("should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes", func() {
 		// requires cloud load-balancer support
-		e2eskipper.SkipUnlessProviderIs("gce", "gke", "aws", "azure")
+		e2eskipper.SkipUnlessProviderIs("gce", "gke", "azure")
 		ns := f.Namespace.Name
 		nodes, err := e2enode.GetBoundedReadySchedulableNodes(cs, 2)
 		framework.ExpectNoError(err)
@@ -1170,7 +1170,7 @@ var _ = common.SIGDescribe("LoadBalancers", func() {
 
 	ginkgo.It("should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes", func() {
 		// requires cloud load-balancer support
-		e2eskipper.SkipUnlessProviderIs("gce", "gke", "aws", "azure")
+		e2eskipper.SkipUnlessProviderIs("gce", "gke", "azure")
 		ns := f.Namespace.Name
 		nodes, err := e2enode.GetBoundedReadySchedulableNodes(cs, 1)
 		framework.ExpectNoError(err)
