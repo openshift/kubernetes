@@ -18,6 +18,7 @@ package endpointslice
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -73,7 +74,40 @@ const (
 	// controllerName is a unique value used with LabelManagedBy to indicated
 	// the component managing an EndpointSlice.
 	controllerName = "endpointslice-controller.k8s.io"
+
+	// topologyHintsEventQPS is the number of times per second that the same event can be
+	// emitted.
+	topologyHintsEventQPS = 1. / 300. // 1 every 5 minutes.
+
+	// topologyHintsEventBurstSize is the number of times the same event may be emitted
+	// in a burst.
+	topologyHintsEventBurstSize = 1
 )
+
+// topologyHintsEventKeyFunc is an EventAggregatorKeyFunc.  The default
+// EventAggregatorKeyFunc, EventAggregatorByReasonFunc, groups events that
+// differ only in the message and may aggregate them and suppress some of them.
+// This function treats two events with different messages as distinct events
+// so that they don't get aggregated.  This enables the controller to configure
+// strict rate-limiting to suppress repetitious events related to
+// TopologyAwareHints without suppressing meaningful (viz. distinct) events.
+func topologyHintsEventKeyFunc(event *v1.Event) (string, string) {
+	groupByFields := []string{
+		event.InvolvedObject.APIVersion,
+		event.InvolvedObject.Kind,
+		event.InvolvedObject.Name,
+		event.InvolvedObject.Namespace,
+		string(event.InvolvedObject.UID),
+		event.Message,
+		event.Reason,
+		event.ReportingController,
+		event.ReportingInstance,
+		event.Source.Component,
+		event.Source.Host,
+		event.Type,
+	}
+	return strings.Join(groupByFields, ""), event.Message
+}
 
 // NewController creates and initializes a new Controller
 func NewController(podInformer coreinformers.PodInformer,
@@ -155,16 +189,27 @@ func NewController(podInformer coreinformers.PodInformer,
 		})
 
 		c.topologyCache = topologycache.NewTopologyCache()
+
+		topologyHintsBroadcaster := record.NewBroadcasterWithCorrelatorOptions(record.CorrelatorOptions{
+			BurstSize: topologyHintsEventBurstSize,
+			QPS:       topologyHintsEventQPS,
+			KeyFunc:   topologyHintsEventKeyFunc,
+		})
+		c.topologyHintsRecorder = topologyHintsBroadcaster.NewRecorder(
+			scheme.Scheme,
+			v1.EventSource{Component: "endpoint-slice-controller"},
+		)
 	}
 
 	c.reconciler = &reconciler{
-		client:               c.client,
-		nodeLister:           c.nodeLister,
-		maxEndpointsPerSlice: c.maxEndpointsPerSlice,
-		endpointSliceTracker: c.endpointSliceTracker,
-		metricsCache:         endpointslicemetrics.NewCache(maxEndpointsPerSlice),
-		topologyCache:        c.topologyCache,
-		eventRecorder:        c.eventRecorder,
+		client:                c.client,
+		nodeLister:            c.nodeLister,
+		maxEndpointsPerSlice:  c.maxEndpointsPerSlice,
+		endpointSliceTracker:  c.endpointSliceTracker,
+		metricsCache:          endpointslicemetrics.NewCache(maxEndpointsPerSlice),
+		topologyCache:         c.topologyCache,
+		topologyHintsRecorder: c.topologyHintsRecorder,
+		eventRecorder:         c.eventRecorder,
 	}
 
 	return c
@@ -241,6 +286,12 @@ type Controller struct {
 	// topologyCache tracks the distribution of Nodes and endpoints across zones
 	// to enable TopologyAwareHints.
 	topologyCache *topologycache.TopologyCache
+
+	// topologyHintsRecorder is a rate-limited event recorder for events
+	// that this controller generates for TopologyAwareHints.  The
+	// TopologyAwareHints logic sometimes generates many duplicate events,
+	// and this recorder suppresses excessive duplicates.
+	topologyHintsRecorder record.EventRecorder
 }
 
 // Run will not return until stopCh is closed.

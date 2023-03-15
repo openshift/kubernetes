@@ -1918,12 +1918,13 @@ func newReconciler(client *fake.Clientset, nodes []*corev1.Node, maxEndpointsPer
 	}
 
 	return &reconciler{
-		client:               client,
-		nodeLister:           corelisters.NewNodeLister(indexer),
-		maxEndpointsPerSlice: maxEndpointsPerSlice,
-		endpointSliceTracker: endpointsliceutil.NewEndpointSliceTracker(),
-		metricsCache:         metrics.NewCache(maxEndpointsPerSlice),
-		eventRecorder:        eventRecorder,
+		client:                client,
+		nodeLister:            corelisters.NewNodeLister(indexer),
+		maxEndpointsPerSlice:  maxEndpointsPerSlice,
+		endpointSliceTracker:  endpointsliceutil.NewEndpointSliceTracker(),
+		metricsCache:          metrics.NewCache(maxEndpointsPerSlice),
+		eventRecorder:         eventRecorder,
+		topologyHintsRecorder: eventRecorder,
 	}
 }
 

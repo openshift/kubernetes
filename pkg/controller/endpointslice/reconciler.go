@@ -53,6 +53,9 @@ type reconciler struct {
 	topologyCache *topologycache.TopologyCache
 	// eventRecorder allows reconciler to record and publish events.
 	eventRecorder record.EventRecorder
+	// topologyHintsRecorder allows reconciler to record and publish events
+	// related to TopologyAwareHints with deduplication of events.
+	topologyHintsRecorder record.EventRecorder
 }
 
 // endpointMeta includes the attributes we group slices on, this type helps with
@@ -284,7 +287,7 @@ func (r *reconciler) reconcileByAddressType(service *corev1.Service, pods []*cor
 		errs = append(errs, err)
 	}
 	for _, event := range events {
-		r.eventRecorder.Event(service, event.EventType, event.Reason, event.Message)
+		r.topologyHintsRecorder.Event(service, event.EventType, event.Reason, event.Message)
 	}
 	return utilerrors.NewAggregate(errs)
 
