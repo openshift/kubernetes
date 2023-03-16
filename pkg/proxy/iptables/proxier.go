@@ -994,7 +994,7 @@ func (proxier *Proxier) syncProxyRules() {
 		// Fixes <https://bugzilla.redhat.com/show_bug.cgi?id=1919737>.
 		// TODO: Delete this once node-level topology is
 		// implemented and the DNS operator is updated to use it.
-		if svcPortNameString == "openshift-dns/dns-default:dns" {
+		if svcPortNameString == "openshift-dns/dns-default:dns" || svcPortNameString == "openshift-dns/dns-default:dns-tcp" {
 			for _, ep := range clusterEndpoints {
 				if ep.GetIsLocal() {
 					klog.V(4).Infof("Found a local endpoint %q for service %q; preferring the local endpoint and ignoring %d other endpoints", ep.String(), svcPortNameString, len(clusterEndpoints) - 1)
