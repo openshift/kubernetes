@@ -268,6 +268,15 @@ func (dswp *desiredStateOfWorldPopulator) findAndRemoveDeletedPods() {
 		dswp.deleteProcessedPod(volumeToMount.PodName)
 	}
 
+	go func() {
+		dswp.pods.Lock()
+		defer dswp.pods.Unlock()
+		klog.Infof("JSAF: processed pods size: %v", len(dswp.pods.processedPods))
+		for k, v := range dswp.pods.processedPods {
+			klog.Infof("JSAF: processed pod %v: %v", k, v)
+		}
+	}()
+
 	podsWithError := dswp.desiredStateOfWorld.GetPodsWithErrors()
 	for _, podName := range podsWithError {
 		if _, podExists := dswp.podManager.GetPodByUID(types.UID(podName)); !podExists {
