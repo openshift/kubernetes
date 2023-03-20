@@ -148,6 +148,10 @@ type cgroupCommon struct {
 	// useSystemd tells if systemd cgroup manager should be used.
 	useSystemd bool
 
+  	// cpuLoadBalanceDisable tells whether kubelet should disable
+	// cpu load balancing on new cgroups it creates.
+	cpuLoadBalanceDisable bool
+
 	// isCgroup2UnifiedModeOverride is used to override the default behavior of isCgroup2UnifiedMode() for testing purposes.
 	isCgroup2UnifiedModeOverride *bool
 }
