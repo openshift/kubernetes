@@ -500,7 +500,8 @@ func (f *fakeCgroupManager) GetCgroupConfig(_ CgroupName, _ v1.ResourceName) (*R
 func (f *fakeCgroupManager) SetCgroupConfig(_ klog.Logger, _ CgroupName, _ *ResourceConfig) error {
 	return nil
 }
-func (f *fakeCgroupManager) Version() int { return 1 }
+func (f *fakeCgroupManager) SetCPULoadBalanceDisable() {}
+func (f *fakeCgroupManager) Version() int              { return 1 }
 
 // TestQOSCPUConfigUpdate verifies that UpdateCgroups() computes and
 // updates the correct CPU shares for each QoS class based on the
