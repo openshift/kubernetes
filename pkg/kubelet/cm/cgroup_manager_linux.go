@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	libcontainercgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
 	"github.com/opencontainers/runc/libcontainer/cgroups/manager"
@@ -150,6 +151,10 @@ type cgroupManagerImpl struct {
 
 	// useSystemd tells if systemd cgroup manager should be used.
 	useSystemd bool
+
+	// cpuLoadBalanceDisable tells whether kubelet should disable
+	// cpu load balancing on new cgroups it creates.
+	cpuLoadBalanceDisable bool
 }
 
 // Make sure that cgroupManagerImpl implements the CgroupManager interface
@@ -476,6 +481,19 @@ func (m *cgroupManagerImpl) Create(cgroupConfig *CgroupConfig) error {
 		utilruntime.HandleError(fmt.Errorf("cgroup manager.Set failed: %w", err))
 	}
 
+	// Disable cpuset.sched_load_balance for all cgroups Kubelet creates.
+	// This way, CRI can disable sched_load_balance for pods that must have load balance
+	// disabled, but the slices can contain all cpus (as the guaranteed cpus are known dynamically).
+	if m.cpuLoadBalanceDisable && !libcontainercgroups.IsCgroup2UnifiedMode() {
+		path := manager.Path("cpuset")
+		if path == "" {
+			return fmt.Errorf("Failed to find cpuset for newly created cgroup")
+		}
+		if err := cgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -746,4 +764,8 @@ func (m *cgroupManagerImpl) SetCgroupConfig(name CgroupName, resource v1.Resourc
 		return setCgroupMemoryConfig(cgroupResourcePath, resourceConfig)
 	}
 	return nil
+}
+
+func (m *cgroupManagerImpl) SetCPULoadBalanceDisable() {
+	m.cpuLoadBalanceDisable = true
 }
