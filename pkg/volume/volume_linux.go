@@ -61,6 +61,11 @@ func SetVolumeOwnership(mounter Mounter, fsGroup *int64, fsGroupChangePolicy *v1
 		}
 		return changeFilePermission(path, fsGroup, mounter.GetAttributes().ReadOnly, info)
 	})
+	if err != nil {
+		klog.Errorf("JSAF: fsgroup for %s failed with: %s", mounter.GetPath(), err)
+	} else {
+		klog.Errorf("JSAF: fsgroup for %s succeeded", mounter.GetPath())
+	}
 	if completeFunc != nil {
 		completeFunc(types.CompleteFuncParam{
 			Err: &err,
