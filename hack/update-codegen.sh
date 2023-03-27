@@ -52,7 +52,7 @@ function git_find() {
     # Similar to find but faster and easier to understand.  We want to include
     # modified and untracked files because this might be running against code
     # which is not tracked by git yet.
-    git ls-files -cmo --exclude-standard "$@"
+    git ls-files -cmo --exclude-standard ':!:vendor/*' "$@"
 }
 
 function git_grep() {
