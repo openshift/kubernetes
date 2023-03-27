@@ -773,3 +773,15 @@ func GetReliableMountRefs(mounter mount.Interface, mountPath string) ([]string, 
 	}
 	return paths, err
 }
+
+func InjectFail(volumeName, filename string) error {
+	f, err := os.ReadFile(filename)
+	if err != nil {
+		klog.Infof("JSAF: failed to load %s: %s", filename, err)
+		return nil
+	}
+	if strings.Contains(string(f), volumeName) {
+		return fmt.Errorf("Mock failure on vol %s in %s", volumeName, filename)
+	}
+	return nil
+}

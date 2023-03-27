@@ -276,6 +276,10 @@ func (plugin *vsphereVolumePlugin) NewDeviceUnmounter() (volume.DeviceUnmounter,
 
 // Detach the given device from the given node.
 func (detacher *vsphereVMDKDetacher) Detach(volumeName string, nodeName types.NodeName) error {
+	if err := volumeutil.InjectFail(volumeName, "/etc/kubernetes/detach-intree"); err != nil {
+		return err
+	}
+
 	volPath := getVolPathfromVolumeName(volumeName)
 	attached, newVolumePath, err := detacher.vsphereVolumes.DiskIsAttached(volPath, nodeName)
 	if err != nil {

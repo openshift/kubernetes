@@ -420,6 +420,9 @@ var _ volume.Detacher = &csiAttacher{}
 var _ volume.DeviceUnmounter = &csiAttacher{}
 
 func (c *csiAttacher) Detach(volumeName string, nodeName types.NodeName) error {
+	if err := util.InjectFail(volumeName, "/etc/kubernetes/detach-csi"); err != nil {
+		return err
+	}
 	_, ok := c.plugin.host.(volume.KubeletVolumeHost)
 	if ok {
 		return errors.New("detaching volumes from the kubelet is not supported")
