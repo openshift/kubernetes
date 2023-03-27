@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app"
@@ -115,7 +116,8 @@ func StartTestServer(ctx context.Context, customFlags []string) (result TestServ
 	go func(ctx context.Context) {
 		defer close(errCh)
 
-		if err := app.Run(ctx, config.Complete()); err != nil {
+		stopCh := server.SetupSignalHandler()
+		if err := app.Run(ctx, config.Complete(), stopCh); err != nil {
 			errCh <- err
 		}
 	}(ctx)
