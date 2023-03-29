@@ -253,6 +253,9 @@ func SetDefaults_KubeletConfiguration(obj *kubeletconfigv1beta1.KubeletConfigura
 	if obj.EnableSystemLogHandler == nil {
 		obj.EnableSystemLogHandler = utilpointer.Bool(true)
 	}
+	if obj.EnableSystemLogQuery == nil {
+		obj.EnableSystemLogQuery = utilpointer.Bool(true)
+	}
 	if obj.EnableProfilingHandler == nil {
 		obj.EnableProfilingHandler = utilpointer.Bool(true)
 	}

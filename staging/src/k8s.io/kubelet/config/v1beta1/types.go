@@ -694,7 +694,7 @@ type KubeletConfiguration struct {
 	EnableSystemLogHandler *bool `json:"enableSystemLogHandler,omitempty"`
 	// enableSystemLogQuery enables the node log query feature on the /logs endpoint.
 	// EnableSystemLogHandler has to be enabled in addition for this feature to work.
-	// Default: false
+	// Default: true
 	// +featureGate=NodeLogQuery
 	// +optional
 	EnableSystemLogQuery *bool `json:"enableSystemLogQuery,omitempty"`

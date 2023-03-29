@@ -29,7 +29,7 @@ enableDebuggingHandlers: true
 enableProfilingHandler: true
 enableServer: true
 enableSystemLogHandler: true
-enableSystemLogQuery: false
+enableSystemLogQuery: true
 enforceNodeAllocatable:
 - pods
 eventBurst: 100

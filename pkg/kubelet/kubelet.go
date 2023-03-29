@@ -1530,7 +1530,7 @@ func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 					http.Error(w, errs.ToAggregate().Error(), http.StatusBadRequest)
 					return
 				} else if nlq != nil {
-					if req.URL.Path != "/" && req.URL.Path != "" {
+					if req.URL.Path != "/" && req.URL.Path != "" && req.URL.Path != "journal" {
 						http.Error(w, "path not allowed in query mode", http.StatusNotAcceptable)
 						return
 					}
