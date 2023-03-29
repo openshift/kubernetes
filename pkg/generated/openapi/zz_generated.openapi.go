@@ -58868,7 +58868,7 @@ func schema_k8sio_kubelet_config_v1beta1_KubeletConfiguration(ref common.Referen
 					},
 					"enableSystemLogQuery": {
 						SchemaProps: spec.SchemaProps{
-							Description: "enableSystemLogQuery enables the node log query feature on the /logs endpoint. EnableSystemLogHandler has to be enabled in addition for this feature to work. Default: false",
+							Description: "enableSystemLogQuery enables the node log query feature on the /logs endpoint. EnableSystemLogHandler has to be enabled in addition for this feature to work. Default: true",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
