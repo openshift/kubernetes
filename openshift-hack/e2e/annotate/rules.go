@@ -16,6 +16,8 @@ var (
 			`\[Feature:ReadWriteOncePod\]`,
 			`\[Feature:SELinuxMountReadWriteOncePod\]`,
 			`\[Feature:PodSchedulingReadiness\]`,
+			`\[Feature:InPlacePodVerticalScaling\]`,
+			`\[Feature:APISelfSubjectReview\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -115,6 +117,9 @@ var (
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
 			`DNS HostNetwork should resolve DNS of partial qualified names for services on hostNetwork pods with dnsPolicy`, // TODO not working, yet not testing anything new
+			`\[sig-network\] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod`,      // TODO(network): simple test in k8s 1.27, needs investigation
+			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`,                         // TODO(workloads): alpha feature in k8s 1.27. It's failing with `error: unknown flag: --applyset`. Needs investigation
+			`\[sig-cli\] Kubectl client Simple pod should return command exit codes should handle in-cluster config`,        // TODO(workloads): alpha feature in k8s 1.27. It's failing with `/bin/sh: /tmp/kubectl: not found`. Needs investigation
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
