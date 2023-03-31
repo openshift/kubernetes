@@ -113,7 +113,7 @@ require (
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
 	github.com/openshift/api => github.com/bertinatto/api v0.0.0-20230321171305-5054c4c89a70
-	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20230325135526-046119c0eb1b
+	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20230331115022-a8f1b038155a
 	github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20230325134819-b83a1fcd7d77
 	github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20230325135209-cd81cd54833c
 	k8s.io/api => ../api

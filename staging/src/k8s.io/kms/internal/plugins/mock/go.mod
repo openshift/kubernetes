@@ -34,6 +34,6 @@ replace github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0
 
 replace github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20230325135209-cd81cd54833c
 
-replace github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20230325135526-046119c0eb1b
+replace github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20230331115022-a8f1b038155a
 
 replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
