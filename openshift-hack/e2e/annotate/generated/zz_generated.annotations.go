@@ -509,11 +509,11 @@ var Annotations = map[string]string{
 
 	"[sig-auth] Certificates API [Privileged:ClusterAdmin] should support building a client with a CSR": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-auth] SelfSubjectReview [Feature:APISelfSubjectReview] should support SelfSubjectReview API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-auth] SelfSubjectReview [Feature:APISelfSubjectReview] should support SelfSubjectReview API operations": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-auth] SelfSubjectReview [Feature:APISelfSubjectReview] testing SSR in different API groups authentication/v1alpha1": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-auth] SelfSubjectReview [Feature:APISelfSubjectReview] testing SSR in different API groups authentication/v1alpha1": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-auth] SelfSubjectReview [Feature:APISelfSubjectReview] testing SSR in different API groups authentication/v1beta1": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-auth] SelfSubjectReview [Feature:APISelfSubjectReview] testing SSR in different API groups authentication/v1beta1": " [Disabled:Alpha] [Suite:k8s]",
 
 	"[sig-auth] ServiceAccounts ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -769,7 +769,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] Kubectl client Kubectl patch should add annotations for pods in rc  [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects": " [Disabled:RebaseInProgress] [Suite:k8s]",
 
 	"[sig-cli] Kubectl client Kubectl replace should update a single-container pod's image  [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -813,7 +813,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] Kubectl client Simple pod should return command exit codes execing into a container with a successful command": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-cli] Kubectl client Simple pod should return command exit codes should handle in-cluster config": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-cli] Kubectl client Simple pod should return command exit codes should handle in-cluster config": " [Disabled:RebaseInProgress] [Suite:k8s]",
 
 	"[sig-cli] Kubectl client Simple pod should return command exit codes should support port-forward": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -879,7 +879,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] Connectivity Pod Lifecycle should be able to connect from a Pod to a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Disabled:RebaseInProgress] [Suite:k8s]",
 
 	"[sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1539,71 +1539,71 @@ var Annotations = map[string]string{
 
 	"[sig-node] NodeProblemDetector should run without error": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] BestEffort pod - try requesting memory, expect error": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] BestEffort pod - try requesting memory, expect error": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container - decrease CPU (RestartContainer) & memory (NotRequired)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container - decrease CPU (RestartContainer) & memory (NotRequired)": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU limits only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and increase CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and increase CPU limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and increase memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and increase memory limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory limits only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase CPU limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase memory limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU limits only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and decrease CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and decrease CPU limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and decrease memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and decrease memory limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory limits only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and decrease CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and decrease CPU limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and decrease memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and decrease memory limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and limits": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests only": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests - decrease memory request": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, one container with cpu & memory requests - decrease memory request": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, three containers - decrease c1 resources, increase c2 resources, no change for c3 (net increase for pod)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, three containers - decrease c1 resources, increase c2 resources, no change for c3 (net increase for pod)": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, three containers - increase c1 resources, no change for c2, decrease c3 resources (no net change for pod)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, three containers - increase c1 resources, no change for c2, decrease c3 resources (no net change for pod)": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, three containers - no change for c1, increase c2 resources, decrease c3 (net decrease for pod)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Burstable QoS pod, three containers - no change for c1, increase c2 resources, decrease c3 (net decrease for pod)": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - decrease CPU & increase memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - decrease CPU & increase memory": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - decrease CPU & memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - decrease CPU & memory": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - increase CPU & decrease memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - increase CPU & decrease memory": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - increase CPU & memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - increase CPU & memory": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - increase CPU (NotRequired) & memory (RestartContainer)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, one container - increase CPU (NotRequired) & memory (RestartContainer)": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, three containers (c1, c2, c3) - increase: CPU (c1,c3), memory (c2) ; decrease: CPU (c2), memory (c1,c3)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] Guaranteed QoS pod, three containers (c1, c2, c3) - increase: CPU (c1,c3), memory (c2) ; decrease: CPU (c2), memory (c1,c3)": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] pod-resize-resource-quota-test": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] pod-resize-resource-quota-test": " [Disabled:Alpha] [Suite:k8s]",
 
 	"[sig-node] Pod garbage collector [Feature:PodGarbageCollector] [Slow] should handle the creation of 1000 pods": " [Suite:k8s]",
 
@@ -1827,7 +1827,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] [Feature:Example] Secret should create a pod that reads a secret": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [Serial] Pod InPlace Resize Container (scheduler-focused) [Feature:InPlacePodVerticalScaling] pod-resize-scheduler-tests": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-node] [Serial] Pod InPlace Resize Container (scheduler-focused) [Feature:InPlacePodVerticalScaling] pod-resize-scheduler-tests": " [Disabled:Alpha] [Suite:k8s]",
 
 	"[sig-node] crictl should be able to run crictl on the node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
