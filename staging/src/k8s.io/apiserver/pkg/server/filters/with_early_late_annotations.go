@@ -117,6 +117,7 @@ func withShutdownResponseHeader(handler http.Handler, shutdownInitiated lifecycl
 
 		w.Header().Set("X-OpenShift-Disruption", msgFn(true, clock.Since(*shutdownInitiatedAt)))
 		handler.ServeHTTP(w, req)
+		w.Header().Set("X-OpenShift-Shutdown", message)
 	})
 }
 
