@@ -996,7 +996,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	NewVolumeManagerReconstruction: {Default: false, PreRelease: featuregate.Beta}, // disabled for https://github.com/kubernetes/kubernetes/issues/117745
 
-	NodeLogQuery: {Default: false, PreRelease: featuregate.Alpha},
+	NodeLogQuery: {Default: true, PreRelease: featuregate.Alpha},
 
 	NodeOutOfServiceVolumeDetach: {Default: true, PreRelease: featuregate.Beta},
 
