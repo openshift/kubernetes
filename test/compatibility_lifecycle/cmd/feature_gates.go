@@ -267,8 +267,8 @@ func verifyFeatureRemoval(featureList []featureInfo, baseFeatureList []featureIn
 }
 
 func verifyAlphaFeatures(featureList []featureInfo) error {
-	for featureName, f := range featureList {
-		if featureName == "NodeLogQuery" {
+	for _, f := range featureList {
+		if f.Name == "NodeLogQuery" {
 			continue
 		}
 		for _, spec := range f.VersionedSpecs {
