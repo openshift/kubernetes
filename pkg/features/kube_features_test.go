@@ -77,6 +77,7 @@ func TestEnsureAlphaGatesAreNotSwitchedOnByDefault(t *testing.T) {
 		if feature == "WindowsHostNetwork" {
 			return
 		}
+		// OpenShift-specific
 		if feature == "NodeLogQuery" {
 			return
 		}
