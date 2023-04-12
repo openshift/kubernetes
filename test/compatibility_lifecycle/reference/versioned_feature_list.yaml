@@ -1432,11 +1432,11 @@
     version: "1.37"
 - name: NodeLogQuery
   versionedSpecs:
-  - default: false
+  - default: true
     lockToDefault: false
     preRelease: Alpha
     version: "1.27"
-  - default: false
+  - default: true
     lockToDefault: false
     preRelease: Beta
     version: "1.30"
