@@ -74,6 +74,10 @@ func TestAllRegisteredFeaturesExpected(t *testing.T) {
 }
 func TestEnsureAlphaGatesAreNotSwitchedOnByDefault(t *testing.T) {
 	checkAlphaGates := func(feature featuregate.Feature, spec featuregate.FeatureSpec) {
+		// OpenShift-specific
+		if feature == "NodeLogQuery" {
+			return
+		}
 		if spec.PreRelease == featuregate.Alpha && spec.Default {
 			t.Errorf("The alpha feature gate %q is switched on by default", feature)
 		}
