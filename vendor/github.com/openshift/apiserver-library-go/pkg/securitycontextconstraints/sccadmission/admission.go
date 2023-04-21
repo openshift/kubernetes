@@ -91,7 +91,11 @@ func (c *constraint) Admit(ctx context.Context, a admission.Attributes, _ admiss
 	// TODO(liggitt): allow spec mutation during initializing updates?
 	specMutationAllowed := a.GetOperation() == admission.Create
 
-	allowedPod, sccName, validationErrs, err := c.computeSecurityContext(ctx, a, pod, specMutationAllowed, "")
+	// Get SCCHint.
+	annotations := pod.GetAnnotations()
+	sccHint := annotations[securityv1.SCCHint]
+
+	allowedPod, sccName, validationErrs, err := c.computeSecurityContext(ctx, a, pod, specMutationAllowed, sccHint)
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -177,7 +181,7 @@ func (c *constraint) areListersSynced() bool {
 	return true
 }
 
-func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*coreapi.Pod, string, field.ErrorList, error) {
+func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, sccHint string) (*coreapi.Pod, string, field.ErrorList, error) {
 	// get all constraints that are usable by the user
 	klog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
@@ -221,14 +225,13 @@ func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Att
 		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in namespace %s", a.GetNamespace()))
 	}
 
-	// If mutation is not allowed and validatedSCCHint is provided, check the validated policy first.
-	// Keep the order the same for everything else
+	// If sccHint is provided, check the validated policy first. Keep the order the same for everything else.
 	sort.SliceStable(constraints, func(i, j int) bool {
-		if !specMutationAllowed {
-			if constraints[i].Name == validatedSCCHint {
+		if sccHint != "" {
+			if constraints[i].Name == sccHint {
 				return true
 			}
-			if constraints[j].Name == validatedSCCHint {
+			if constraints[j].Name == sccHint {
 				return false
 			}
 		}
@@ -391,17 +394,17 @@ loop:
 		} else {
 			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/reason", "all too restrictive or denied")
 		}
-	} else if len(validatedSCCHint) != 0 && (allowingProvider == nil || allowingProvider.GetSCCName() != validatedSCCHint) {
-		if reason, ok := failures[validatedSCCHint]; ok {
-			a.AddAnnotation(fmt.Sprintf("securitycontextconstraints.admission.openshift.io/too-restrictive-%s", validatedSCCHint), reason)
+	} else if len(sccHint) != 0 && (allowingProvider == nil || allowingProvider.GetSCCName() != sccHint) {
+		if reason, ok := failures[sccHint]; ok {
+			a.AddAnnotation(fmt.Sprintf("securitycontextconstraints.admission.openshift.io/too-restrictive-%s", sccHint), reason)
 		} else {
-			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/denied-validation", fmt.Sprintf("originally chosen %q got denied in final validation after mutating admission", validatedSCCHint))
+			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/denied-validation", fmt.Sprintf("originally chosen %q got denied in final validation after mutating admission", sccHint))
 		}
 
 		if allowingProvider != nil {
-			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/reason-validation", fmt.Sprintf("originally chosen %q did not pass final validation after mutating admission, but %q did instead", validatedSCCHint, allowingProvider.GetSCCName()))
+			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/reason-validation", fmt.Sprintf("originally chosen %q did not pass final validation after mutating admission, but %q did instead", sccHint, allowingProvider.GetSCCName()))
 		} else {
-			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/denied-validation", fmt.Sprintf("originally chosen %q got denied in final validation after mutating admission, and no other matched", validatedSCCHint))
+			a.AddAnnotation("securitycontextconstraints.admission.openshift.io/denied-validation", fmt.Sprintf("originally chosen %q got denied in final validation after mutating admission, and no other matched", sccHint))
 		}
 	}
 
