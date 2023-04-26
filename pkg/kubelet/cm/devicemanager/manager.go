@@ -123,6 +123,7 @@ func NewManagerImpl(topology []cadvisorapi.Node, topologyAffinityStore topologym
 
 func newManagerImpl(socketPath string, topology []cadvisorapi.Node, topologyAffinityStore topologymanager.Store) (*ManagerImpl, error) {
 	klog.V(2).InfoS("Creating Device Plugin manager", "path", socketPath)
+	klog.InfoS("Creating Device Plugin manager", "path", socketPath, "recoveryFixes", true)
 
 	var numaNodes []int
 	for _, node := range topology {
@@ -537,6 +538,7 @@ func (m *ManagerImpl) devicesToAllocate(podUID, contName, resource string, requi
 	devices := m.podDevices.containerDevices(podUID, contName, resource)
 	if devices != nil {
 		klog.V(3).InfoS("Found pre-allocated devices for resource on pod", "resourceName", resource, "containerName", contName, "podUID", string(podUID), "devices", devices.List())
+		klog.InfoS("Found pre-allocated devices for resource on pod", "resourceName", resource, "containerName", contName, "podUID", string(podUID), "devices", devices.List())
 		needed = needed - devices.Len()
 		// A pod's resource is not expected to change once admitted by the API server,
 		// so just fail loudly here. We can revisit this part if this no longer holds.
@@ -547,6 +549,8 @@ func (m *ManagerImpl) devicesToAllocate(podUID, contName, resource string, requi
 
 	klog.V(3).InfoS("Need devices to allocate for pod", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
 	healthyDevices, hasRegistered := m.healthyDevices[resource]
+
+	klog.InfoS("Need devices to allocate for pod", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName, "healthyDevicesCount", healthyDevices.Len(), "hasRegistered", hasRegistered)
 
 	// Check if resource registered with devicemanager
 	if !hasRegistered {
@@ -771,6 +775,7 @@ func (m *ManagerImpl) allocateContainerResources(pod *v1.Pod, container *v1.Cont
 		resource := string(k)
 		needed := int(v.Value())
 		klog.V(3).InfoS("Looking for needed resources", "needed", needed, "resourceName", resource)
+		klog.InfoS("Looking for needed resources", "needed", needed, "resourceName", resource)
 		if !m.isDevicePluginResource(resource) {
 			continue
 		}
@@ -817,6 +822,7 @@ func (m *ManagerImpl) allocateContainerResources(pod *v1.Pod, container *v1.Cont
 		// TODO: refactor this part of code to just append a ContainerAllocationRequest
 		// in a passed in AllocateRequest pointer, and issues a single Allocate call per pod.
 		klog.V(3).InfoS("Making allocation request for device plugin", "devices", devs, "resourceName", resource)
+		klog.InfoS("Making allocation request for device plugin", "devices", devs, "resourceName", resource)
 		resp, err := eI.e.allocate(devs)
 		metrics.DevicePluginAllocationDuration.WithLabelValues(resource).Observe(metrics.SinceInSeconds(startRPCTime))
 		if err != nil {
