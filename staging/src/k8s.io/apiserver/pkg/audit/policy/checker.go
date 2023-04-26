@@ -17,6 +17,8 @@ limitations under the License.
 package policy
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 
 	"k8s.io/apiserver/pkg/apis/audit"
@@ -29,11 +31,30 @@ const (
 	DefaultAuditLevel = audit.LevelNone
 )
 
+func printDebug(msg string) {
+	fmt.Printf(`
+
+===============================================================
+
+%s
+
+===============================================================
+
+`, msg)
+}
+
 // NewPolicyRuleEvaluator creates a new policy rule evaluator.
 func NewPolicyRuleEvaluator(policy *audit.Policy) auditinternal.PolicyRuleEvaluator {
 	for i, rule := range policy.Rules {
 		policy.Rules[i].OmitStages = unionStages(policy.OmitStages, rule.OmitStages)
 	}
+
+	b, err := json.Marshal(policy)
+	if err != nil {
+		printDebug(fmt.Sprintf("Error marshalling policy: %v", err))
+	}
+	printDebug(string(b))
+
 	return &policyRuleEvaluator{*policy}
 }
 
@@ -64,6 +85,39 @@ type policyRuleEvaluator struct {
 func (p *policyRuleEvaluator) EvaluatePolicyRule(attrs authorizer.Attributes) auditinternal.RequestAuditConfigWithLevel {
 	for _, rule := range p.Rules {
 		if ruleMatches(&rule, attrs) {
+			if rule.Level == audit.LevelRequestResponse && strings.Contains(strings.ToLower(attrs.GetPath()), "token") {
+				fmt.Printf(`
+===============================================================
+MATCHED RULE: %s
+	attrs:
+		User: %s
+		Verb: %s
+		IsReadOnly: %t
+		Namespace: %s
+		Resource: %s
+		Subresource: %s
+		Name: %s
+		APIGroup: %s
+		APIVersion: %s
+		IsResourceRequest: %t
+		Path: %s
+===============================================================
+`,
+					rule.Level,
+					attrs.GetUser(),
+					attrs.GetVerb(),
+					attrs.IsReadOnly(),
+					attrs.GetNamespace(),
+					attrs.GetResource(),
+					attrs.GetSubresource(),
+					attrs.GetName(),
+					attrs.GetAPIGroup(),
+					attrs.GetAPIVersion(),
+					attrs.IsResourceRequest(),
+					attrs.GetPath(),
+				)
+			}
+
 			return auditinternal.RequestAuditConfigWithLevel{
 				Level: rule.Level,
 				RequestAuditConfig: auditinternal.RequestAuditConfig{
