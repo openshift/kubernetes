@@ -72,5 +72,6 @@ replace (
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/cli-runtime => ../cli-runtime
 	k8s.io/client-go => ../client-go
+	k8s.io/kube-openapi => github.com/Jefftree/kube-openapi v0.0.8-gnostic.0.20230426215329-445ccc7e2bf5
 	k8s.io/sample-cli-plugin => ../sample-cli-plugin
 )

@@ -45,4 +45,5 @@ require (
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
 	k8s.io/code-generator => ../code-generator
+	k8s.io/kube-openapi => github.com/Jefftree/kube-openapi v0.0.8-gnostic.0.20230426215329-445ccc7e2bf5
 )
