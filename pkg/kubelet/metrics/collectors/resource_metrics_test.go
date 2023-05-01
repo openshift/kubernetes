@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/component-base/metrics/testutil"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	summaryprovidertest "k8s.io/kubernetes/pkg/kubelet/server/stats/testing"
@@ -33,7 +32,7 @@ import (
 func TestCollectResourceMetrics(t *testing.T) {
 	// a static timestamp: 2021-06-23 05:11:18.302091597 +0800
 	staticTimestamp := time.Unix(0, 1624396278302091597)
-	testTime := metav1.NewTime(staticTimestamp)
+	testTime := statsapi.NewTime(staticTimestamp)
 	interestedMetrics := []string{
 		"scrape_error",
 		"node_cpu_usage_seconds_total",
@@ -123,7 +122,7 @@ func TestCollectResourceMetrics(t *testing.T) {
 						Containers: []statsapi.ContainerStats{
 							{
 								Name:      "container_a",
-								StartTime: metav1.NewTime(staticTimestamp.Add(-30 * time.Second)),
+								StartTime: statsapi.NewTime(staticTimestamp.Add(-30 * time.Second)),
 								CPU: &statsapi.CPUStats{
 									Time:                 testTime,
 									UsageCoreNanoSeconds: uint64Ptr(10000000000),
@@ -135,7 +134,7 @@ func TestCollectResourceMetrics(t *testing.T) {
 							},
 							{
 								Name:      "container_b",
-								StartTime: metav1.NewTime(staticTimestamp.Add(-2 * time.Minute)),
+								StartTime: statsapi.NewTime(staticTimestamp.Add(-2 * time.Minute)),
 								CPU: &statsapi.CPUStats{
 									Time:                 testTime,
 									UsageCoreNanoSeconds: uint64Ptr(10000000000),
@@ -155,7 +154,7 @@ func TestCollectResourceMetrics(t *testing.T) {
 						Containers: []statsapi.ContainerStats{
 							{
 								Name:      "container_a",
-								StartTime: metav1.NewTime(staticTimestamp.Add(-10 * time.Minute)),
+								StartTime: statsapi.NewTime(staticTimestamp.Add(-10 * time.Minute)),
 								CPU: &statsapi.CPUStats{
 									Time:                 testTime,
 									UsageCoreNanoSeconds: uint64Ptr(10000000000),
@@ -203,7 +202,7 @@ func TestCollectResourceMetrics(t *testing.T) {
 						Containers: []statsapi.ContainerStats{
 							{
 								Name:      "container_a",
-								StartTime: metav1.NewTime(time.Unix(0, -1624396278302091597)),
+								StartTime: statsapi.NewTime(time.Unix(0, -1624396278302091597)),
 								CPU: &statsapi.CPUStats{
 									Time:                 testTime,
 									UsageCoreNanoSeconds: uint64Ptr(10000000000),
@@ -242,7 +241,7 @@ func TestCollectResourceMetrics(t *testing.T) {
 						Containers: []statsapi.ContainerStats{
 							{
 								Name:      "container_a",
-								StartTime: metav1.NewTime(staticTimestamp.Add(-30 * time.Second)),
+								StartTime: statsapi.NewTime(staticTimestamp.Add(-30 * time.Second)),
 								CPU: &statsapi.CPUStats{
 									Time:                 testTime,
 									UsageCoreNanoSeconds: nil,
@@ -262,7 +261,7 @@ func TestCollectResourceMetrics(t *testing.T) {
 						Containers: []statsapi.ContainerStats{
 							{
 								Name:      "container_a",
-								StartTime: metav1.NewTime(staticTimestamp.Add(-10 * time.Minute)),
+								StartTime: statsapi.NewTime(staticTimestamp.Add(-10 * time.Minute)),
 								CPU: &statsapi.CPUStats{
 									Time:                 testTime,
 									UsageCoreNanoSeconds: uint64Ptr(10000000000),

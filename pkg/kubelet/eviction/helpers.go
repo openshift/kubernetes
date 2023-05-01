@@ -25,6 +25,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corev1helpers "k8s.io/component-helpers/scheduling/corev1"
 	"k8s.io/klog/v2"
@@ -670,7 +671,7 @@ func makeSignalObservations(summary *statsapi.Summary) (signalObservations, stat
 		result[evictionapi.SignalMemoryAvailable] = signalObservation{
 			available: resource.NewQuantity(int64(*memory.AvailableBytes), resource.BinarySI),
 			capacity:  resource.NewQuantity(int64(*memory.AvailableBytes+*memory.WorkingSetBytes), resource.BinarySI),
-			time:      memory.Time,
+			time:      metav1.NewTime(memory.Time.Time),
 		}
 	}
 	if allocatableContainer, err := getSysContainer(summary.Node.SystemContainers, statsapi.SystemContainerPods); err != nil {
@@ -680,7 +681,7 @@ func makeSignalObservations(summary *statsapi.Summary) (signalObservations, stat
 			result[evictionapi.SignalAllocatableMemoryAvailable] = signalObservation{
 				available: resource.NewQuantity(int64(*memory.AvailableBytes), resource.BinarySI),
 				capacity:  resource.NewQuantity(int64(*memory.AvailableBytes+*memory.WorkingSetBytes), resource.BinarySI),
-				time:      memory.Time,
+				time:      metav1.NewTime(memory.Time.Time),
 			}
 		}
 	}
@@ -689,14 +690,14 @@ func makeSignalObservations(summary *statsapi.Summary) (signalObservations, stat
 			result[evictionapi.SignalNodeFsAvailable] = signalObservation{
 				available: resource.NewQuantity(int64(*nodeFs.AvailableBytes), resource.BinarySI),
 				capacity:  resource.NewQuantity(int64(*nodeFs.CapacityBytes), resource.BinarySI),
-				time:      nodeFs.Time,
+				time:      metav1.NewTime(nodeFs.Time.Time),
 			}
 		}
 		if nodeFs.InodesFree != nil && nodeFs.Inodes != nil {
 			result[evictionapi.SignalNodeFsInodesFree] = signalObservation{
 				available: resource.NewQuantity(int64(*nodeFs.InodesFree), resource.DecimalSI),
 				capacity:  resource.NewQuantity(int64(*nodeFs.Inodes), resource.DecimalSI),
-				time:      nodeFs.Time,
+				time:      metav1.NewTime(nodeFs.Time.Time),
 			}
 		}
 	}
@@ -706,13 +707,13 @@ func makeSignalObservations(summary *statsapi.Summary) (signalObservations, stat
 				result[evictionapi.SignalImageFsAvailable] = signalObservation{
 					available: resource.NewQuantity(int64(*imageFs.AvailableBytes), resource.BinarySI),
 					capacity:  resource.NewQuantity(int64(*imageFs.CapacityBytes), resource.BinarySI),
-					time:      imageFs.Time,
+					time:      metav1.NewTime(imageFs.Time.Time),
 				}
 				if imageFs.InodesFree != nil && imageFs.Inodes != nil {
 					result[evictionapi.SignalImageFsInodesFree] = signalObservation{
 						available: resource.NewQuantity(int64(*imageFs.InodesFree), resource.DecimalSI),
 						capacity:  resource.NewQuantity(int64(*imageFs.Inodes), resource.DecimalSI),
-						time:      imageFs.Time,
+						time:      metav1.NewTime(imageFs.Time.Time),
 					}
 				}
 			}
@@ -724,7 +725,7 @@ func makeSignalObservations(summary *statsapi.Summary) (signalObservations, stat
 			result[evictionapi.SignalPIDAvailable] = signalObservation{
 				available: resource.NewQuantity(available, resource.DecimalSI),
 				capacity:  resource.NewQuantity(int64(*rlimit.MaxPID), resource.DecimalSI),
-				time:      rlimit.Time,
+				time:      metav1.NewTime(rlimit.Time.Time),
 			}
 		}
 	}

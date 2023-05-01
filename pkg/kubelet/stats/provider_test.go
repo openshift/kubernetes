@@ -584,7 +584,7 @@ func getPodVolumeStats(seed int, volumeName string) statsapi.VolumeStats {
 	inodesFree := uint64(seed + offsetFsInodesFree)
 	inodesUsed := uint64(seed + offsetFsInodeUsage)
 	fsStats := statsapi.FsStats{
-		Time:           metav1.NewTime(time.Now()),
+		Time:           statsapi.NewTime(time.Now()),
 		AvailableBytes: &availableBytes,
 		CapacityBytes:  &capacityBytes,
 		UsedBytes:      &usedBytes,

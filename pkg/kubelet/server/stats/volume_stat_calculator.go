@@ -208,7 +208,7 @@ func (s *volumeStatCalculator) parsePodVolumeStats(podName string, pvcRef *stats
 	volumeStats := stats.VolumeStats{
 		Name:   podName,
 		PVCRef: pvcRef,
-		FsStats: stats.FsStats{Time: metric.Time, AvailableBytes: &available, CapacityBytes: &capacity,
+		FsStats: stats.FsStats{Time: stats.NewTime(metric.Time.Time), AvailableBytes: &available, CapacityBytes: &capacity,
 			UsedBytes: &used, Inodes: &inodes, InodesFree: &inodesFree, InodesUsed: &inodesUsed},
 	}
 

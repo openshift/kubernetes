@@ -24,7 +24,6 @@ import (
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"github.com/stretchr/testify/assert"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 )
 
@@ -84,7 +83,7 @@ func TestCustomMetrics(t *testing.T) {
 				Type:  statsapi.MetricGauge,
 				Units: "per second",
 			},
-			Time:  metav1.NewTime(timestamp2),
+			Time:  statsapi.NewTime(timestamp2),
 			Value: 100,
 		},
 		statsapi.UserDefinedMetric{
@@ -93,7 +92,7 @@ func TestCustomMetrics(t *testing.T) {
 				Type:  statsapi.MetricCumulative,
 				Units: "count",
 			},
-			Time:  metav1.NewTime(timestamp2),
+			Time:  statsapi.NewTime(timestamp2),
 			Value: 2.1,
 		})
 }

@@ -26,12 +26,11 @@ import (
 	"testing"
 	"time"
 
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	cadvisorfs "github.com/google/cadvisor/fs"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -920,7 +919,7 @@ func getPodSandboxStatsStrictlyFromCRI(seed int, podSandbox *critest.FakePodSand
 			Namespace: podSandbox.Metadata.Namespace,
 		},
 		// The StartTime in the summary API is the pod creation time.
-		StartTime: metav1.NewTime(time.Unix(0, podSandbox.CreatedAt)),
+		StartTime: statsapi.NewTime(time.Unix(0, podSandbox.CreatedAt)),
 	}
 	if podSandbox.State == runtimeapi.PodSandboxState_SANDBOX_NOTREADY {
 		podStats.CPU = nil
@@ -929,11 +928,11 @@ func getPodSandboxStatsStrictlyFromCRI(seed int, podSandbox *critest.FakePodSand
 		usageCoreNanoSeconds := uint64(seed + offsetCRI + offsetCPUUsageCoreSeconds)
 		workingSetBytes := uint64(seed + offsetCRI + offsetMemWorkingSetBytes)
 		podStats.CPU = &statsapi.CPUStats{
-			Time:                 metav1.NewTime(timestamp),
+			Time:                 statsapi.NewTime(timestamp),
 			UsageCoreNanoSeconds: &usageCoreNanoSeconds,
 		}
 		podStats.Memory = &statsapi.MemoryStats{
-			Time:            metav1.NewTime(timestamp),
+			Time:            statsapi.NewTime(timestamp),
 			WorkingSetBytes: &workingSetBytes,
 		}
 	}
@@ -960,7 +959,7 @@ func makeFakeVolumeStats(volumeNames []string) []statsapi.VolumeStats {
 	inodesUsed := rand.Uint64() / 100
 	for i, name := range volumeNames {
 		fsStats := statsapi.FsStats{
-			Time:           metav1.NewTime(time.Now()),
+			Time:           statsapi.NewTime(time.Now()),
 			AvailableBytes: &availableBytes,
 			CapacityBytes:  &capacityBytes,
 			UsedBytes:      &usedBytes,
@@ -1290,22 +1289,22 @@ func TestExtractIDFromCgroupPath(t *testing.T) {
 func getCRIContainerStatsStrictlyFromCRI(seed int, containerName string) statsapi.ContainerStats {
 	result := statsapi.ContainerStats{
 		Name:      containerName,
-		StartTime: metav1.NewTime(timestamp),
+		StartTime: statsapi.NewTime(timestamp),
 		CPU:       &statsapi.CPUStats{},
 		Memory:    &statsapi.MemoryStats{},
 		// UserDefinedMetrics is not supported by CRI.
 		Rootfs: &statsapi.FsStats{},
 	}
 
-	result.CPU.Time = metav1.NewTime(timestamp)
+	result.CPU.Time = statsapi.NewTime(timestamp)
 	usageCoreNanoSeconds := uint64(seed + offsetCRI + offsetCPUUsageCoreSeconds)
 	result.CPU.UsageCoreNanoSeconds = &usageCoreNanoSeconds
 
-	result.Memory.Time = metav1.NewTime(timestamp)
+	result.Memory.Time = statsapi.NewTime(timestamp)
 	workingSetBytes := uint64(seed + offsetCRI + offsetMemWorkingSetBytes)
 	result.Memory.WorkingSetBytes = &workingSetBytes
 
-	result.Rootfs.Time = metav1.NewTime(timestamp)
+	result.Rootfs.Time = statsapi.NewTime(timestamp)
 	usedBytes := uint64(seed + offsetCRI + offsetFsUsage)
 	result.Rootfs.UsedBytes = &usedBytes
 

@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/component-base/metrics/testutil"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	statstest "k8s.io/kubernetes/pkg/kubelet/server/stats/testing"
@@ -57,11 +56,11 @@ func TestVolumeStatsCollector(t *testing.T) {
 		podStats = []statsapi.PodStats{
 			{
 				PodRef:    statsapi.PodReference{Name: "test-pod", Namespace: "test-namespace", UID: "UID_test-pod"},
-				StartTime: metav1.Now(),
+				StartTime: statsapi.Now(),
 				VolumeStats: []statsapi.VolumeStats{
 					{
 						FsStats: statsapi.FsStats{
-							Time:           metav1.Now(),
+							Time:           statsapi.Now(),
 							AvailableBytes: newUint64Pointer(5.663154176e+09),
 							CapacityBytes:  newUint64Pointer(1.0434699264e+10),
 							UsedBytes:      newUint64Pointer(4.21789696e+09),
@@ -74,7 +73,7 @@ func TestVolumeStatsCollector(t *testing.T) {
 					},
 					{
 						FsStats: statsapi.FsStats{
-							Time:           metav1.Now(),
+							Time:           statsapi.Now(),
 							AvailableBytes: newUint64Pointer(5.663154176e+09),
 							CapacityBytes:  newUint64Pointer(1.0434699264e+10),
 							UsedBytes:      newUint64Pointer(4.21789696e+09),
@@ -96,11 +95,11 @@ func TestVolumeStatsCollector(t *testing.T) {
 			{
 				// Another pod references the same PVC (test-namespace/testpvc).
 				PodRef:    statsapi.PodReference{Name: "test-pod-2", Namespace: "test-namespace", UID: "UID_test-pod"},
-				StartTime: metav1.Now(),
+				StartTime: statsapi.Now(),
 				VolumeStats: []statsapi.VolumeStats{
 					{
 						FsStats: statsapi.FsStats{
-							Time:           metav1.Now(),
+							Time:           statsapi.Now(),
 							AvailableBytes: newUint64Pointer(5.663154176e+09),
 							CapacityBytes:  newUint64Pointer(1.0434699264e+10),
 							UsedBytes:      newUint64Pointer(4.21789696e+09),
@@ -176,11 +175,11 @@ func TestVolumeStatsCollectorWithNullVolumeStatus(t *testing.T) {
 		podStats = []statsapi.PodStats{
 			{
 				PodRef:    statsapi.PodReference{Name: "test-pod", Namespace: "test-namespace", UID: "UID_test-pod"},
-				StartTime: metav1.Now(),
+				StartTime: statsapi.Now(),
 				VolumeStats: []statsapi.VolumeStats{
 					{
 						FsStats: statsapi.FsStats{
-							Time:           metav1.Now(),
+							Time:           statsapi.Now(),
 							AvailableBytes: newUint64Pointer(5.663154176e+09),
 							CapacityBytes:  newUint64Pointer(1.0434699264e+10),
 							UsedBytes:      newUint64Pointer(4.21789696e+09),
@@ -193,7 +192,7 @@ func TestVolumeStatsCollectorWithNullVolumeStatus(t *testing.T) {
 					},
 					{
 						FsStats: statsapi.FsStats{
-							Time:           metav1.Now(),
+							Time:           statsapi.Now(),
 							AvailableBytes: newUint64Pointer(5.663154176e+09),
 							CapacityBytes:  newUint64Pointer(1.0434699264e+10),
 							UsedBytes:      newUint64Pointer(4.21789696e+09),

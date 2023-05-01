@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -97,7 +96,8 @@ func (h hostStatsProvider) getPodEtcHostsStats(podUID types.UID, rootFsInfo *cad
 	inodesUsed := uint64(hostMetrics.InodesUsed.Value())
 	result.UsedBytes = addUsage(result.UsedBytes, &usedBytes)
 	result.InodesUsed = addUsage(result.InodesUsed, &inodesUsed)
-	result.Time = maxUpdateTime(&result.Time, &hostMetrics.Time)
+	t := statsapi.NewTime(hostMetrics.Time.Time)
+	result.Time = maxUpdateTime(&result.Time, &t)
 	return result, nil
 }
 
@@ -141,7 +141,8 @@ func metricsByPathToFsStats(metricsByPath metricsProviderByPath, rootFsInfo *cad
 		inodesUsed := uint64(hostMetrics.InodesUsed.Value())
 		result.UsedBytes = addUsage(result.UsedBytes, &usedBytes)
 		result.InodesUsed = addUsage(result.InodesUsed, &inodesUsed)
-		result.Time = maxUpdateTime(&result.Time, &hostMetrics.Time)
+		t := statsapi.NewTime(hostMetrics.Time.Time)
+		result.Time = maxUpdateTime(&result.Time, &t)
 	}
 	return result, nil
 }
@@ -149,7 +150,7 @@ func metricsByPathToFsStats(metricsByPath metricsProviderByPath, rootFsInfo *cad
 // rootFsInfoToFsStats is a utility to convert rootFsInfo into statsapi.FsStats
 func rootFsInfoToFsStats(rootFsInfo *cadvisorapiv2.FsInfo) *statsapi.FsStats {
 	return &statsapi.FsStats{
-		Time:           metav1.NewTime(rootFsInfo.Timestamp),
+		Time:           statsapi.NewTime(rootFsInfo.Timestamp),
 		AvailableBytes: &rootFsInfo.Available,
 		CapacityBytes:  &rootFsInfo.Capacity,
 		InodesFree:     rootFsInfo.InodesFree,

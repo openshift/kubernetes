@@ -30,7 +30,6 @@ import (
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	internalapi "k8s.io/cri-api/pkg/apis"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -401,7 +400,7 @@ func (p *criStatsProvider) ImageFsStats(ctx context.Context) (*statsapi.FsStats,
 	}
 	fs := resp[0]
 	s := &statsapi.FsStats{
-		Time:      metav1.NewTime(time.Unix(0, fs.Timestamp)),
+		Time:      statsapi.NewTime(time.Unix(0, fs.Timestamp)),
 		UsedBytes: &fs.UsedBytes.Value,
 	}
 	if fs.InodesUsed != nil {
@@ -468,7 +467,7 @@ func buildPodStats(podSandbox *runtimeapi.PodSandbox) *statsapi.PodStats {
 			Namespace: podSandbox.Metadata.Namespace,
 		},
 		// The StartTime in the summary API is the pod creation time.
-		StartTime: metav1.NewTime(time.Unix(0, podSandbox.CreatedAt)),
+		StartTime: statsapi.NewTime(time.Unix(0, podSandbox.CreatedAt)),
 	}
 }
 
@@ -573,14 +572,14 @@ func (p *criStatsProvider) makeContainerStats(
 	result := &statsapi.ContainerStats{
 		Name: stats.Attributes.Metadata.Name,
 		// The StartTime in the summary API is the container creation time.
-		StartTime: metav1.NewTime(time.Unix(0, container.CreatedAt)),
+		StartTime: statsapi.NewTime(time.Unix(0, container.CreatedAt)),
 		CPU:       &statsapi.CPUStats{},
 		Memory:    &statsapi.MemoryStats{},
 		Rootfs:    &statsapi.FsStats{},
 		// UserDefinedMetrics is not supported by CRI.
 	}
 	if stats.Cpu != nil {
-		result.CPU.Time = metav1.NewTime(time.Unix(0, stats.Cpu.Timestamp))
+		result.CPU.Time = statsapi.NewTime(time.Unix(0, stats.Cpu.Timestamp))
 		if stats.Cpu.UsageCoreNanoSeconds != nil {
 			result.CPU.UsageCoreNanoSeconds = &stats.Cpu.UsageCoreNanoSeconds.Value
 		}
@@ -594,21 +593,21 @@ func (p *criStatsProvider) makeContainerStats(
 			result.CPU.UsageNanoCores = usageNanoCores
 		}
 	} else {
-		result.CPU.Time = metav1.NewTime(time.Unix(0, time.Now().UnixNano()))
+		result.CPU.Time = statsapi.NewTime(time.Unix(0, time.Now().UnixNano()))
 		result.CPU.UsageCoreNanoSeconds = uint64Ptr(0)
 		result.CPU.UsageNanoCores = uint64Ptr(0)
 	}
 	if stats.Memory != nil {
-		result.Memory.Time = metav1.NewTime(time.Unix(0, stats.Memory.Timestamp))
+		result.Memory.Time = statsapi.NewTime(time.Unix(0, stats.Memory.Timestamp))
 		if stats.Memory.WorkingSetBytes != nil {
 			result.Memory.WorkingSetBytes = &stats.Memory.WorkingSetBytes.Value
 		}
 	} else {
-		result.Memory.Time = metav1.NewTime(time.Unix(0, time.Now().UnixNano()))
+		result.Memory.Time = statsapi.NewTime(time.Unix(0, time.Now().UnixNano()))
 		result.Memory.WorkingSetBytes = uint64Ptr(0)
 	}
 	if stats.WritableLayer != nil {
-		result.Rootfs.Time = metav1.NewTime(time.Unix(0, stats.WritableLayer.Timestamp))
+		result.Rootfs.Time = statsapi.NewTime(time.Unix(0, stats.WritableLayer.Timestamp))
 		if stats.WritableLayer.UsedBytes != nil {
 			result.Rootfs.UsedBytes = &stats.WritableLayer.UsedBytes.Value
 		}
@@ -652,13 +651,13 @@ func (p *criStatsProvider) makeContainerCPUAndMemoryStats(
 	result := &statsapi.ContainerStats{
 		Name: stats.Attributes.Metadata.Name,
 		// The StartTime in the summary API is the container creation time.
-		StartTime: metav1.NewTime(time.Unix(0, container.CreatedAt)),
+		StartTime: statsapi.NewTime(time.Unix(0, container.CreatedAt)),
 		CPU:       &statsapi.CPUStats{},
 		Memory:    &statsapi.MemoryStats{},
 		// UserDefinedMetrics is not supported by CRI.
 	}
 	if stats.Cpu != nil {
-		result.CPU.Time = metav1.NewTime(time.Unix(0, stats.Cpu.Timestamp))
+		result.CPU.Time = statsapi.NewTime(time.Unix(0, stats.Cpu.Timestamp))
 		if stats.Cpu.UsageCoreNanoSeconds != nil {
 			result.CPU.UsageCoreNanoSeconds = &stats.Cpu.UsageCoreNanoSeconds.Value
 		}
@@ -668,17 +667,17 @@ func (p *criStatsProvider) makeContainerCPUAndMemoryStats(
 			result.CPU.UsageNanoCores = usageNanoCores
 		}
 	} else {
-		result.CPU.Time = metav1.NewTime(time.Unix(0, time.Now().UnixNano()))
+		result.CPU.Time = statsapi.NewTime(time.Unix(0, time.Now().UnixNano()))
 		result.CPU.UsageCoreNanoSeconds = uint64Ptr(0)
 		result.CPU.UsageNanoCores = uint64Ptr(0)
 	}
 	if stats.Memory != nil {
-		result.Memory.Time = metav1.NewTime(time.Unix(0, stats.Memory.Timestamp))
+		result.Memory.Time = statsapi.NewTime(time.Unix(0, stats.Memory.Timestamp))
 		if stats.Memory.WorkingSetBytes != nil {
 			result.Memory.WorkingSetBytes = &stats.Memory.WorkingSetBytes.Value
 		}
 	} else {
-		result.Memory.Time = metav1.NewTime(time.Unix(0, time.Now().UnixNano()))
+		result.Memory.Time = statsapi.NewTime(time.Unix(0, time.Now().UnixNano()))
 		result.Memory.WorkingSetBytes = uint64Ptr(0)
 	}
 
@@ -920,7 +919,7 @@ func addCRIPodNetworkStats(ps *statsapi.PodStats, criPodStat *runtimeapi.PodSand
 	}
 	criNetwork := criPodStat.Linux.Network
 	iStats := statsapi.NetworkStats{
-		Time:           metav1.NewTime(time.Unix(0, criNetwork.Timestamp)),
+		Time:           statsapi.NewTime(time.Unix(0, criNetwork.Timestamp)),
 		InterfaceStats: criInterfaceToSummary(criNetwork.DefaultInterface),
 		Interfaces:     make([]statsapi.InterfaceStats, 0, len(criNetwork.Interfaces)),
 	}
@@ -946,7 +945,7 @@ func addCRIPodCPUStats(ps *statsapi.PodStats, criPodStat *runtimeapi.PodSandboxS
 	}
 	criCPU := criPodStat.Linux.Cpu
 	ps.CPU = &statsapi.CPUStats{
-		Time:                 metav1.NewTime(time.Unix(0, criCPU.Timestamp)),
+		Time:                 statsapi.NewTime(time.Unix(0, criCPU.Timestamp)),
 		UsageNanoCores:       valueOfUInt64Value(criCPU.UsageNanoCores),
 		UsageCoreNanoSeconds: valueOfUInt64Value(criCPU.UsageCoreNanoSeconds),
 	}
@@ -958,7 +957,7 @@ func addCRIPodMemoryStats(ps *statsapi.PodStats, criPodStat *runtimeapi.PodSandb
 	}
 	criMemory := criPodStat.Linux.Memory
 	ps.Memory = &statsapi.MemoryStats{
-		Time:            metav1.NewTime(time.Unix(0, criMemory.Timestamp)),
+		Time:            statsapi.NewTime(time.Unix(0, criMemory.Timestamp)),
 		AvailableBytes:  valueOfUInt64Value(criMemory.AvailableBytes),
 		UsageBytes:      valueOfUInt64Value(criMemory.UsageBytes),
 		WorkingSetBytes: valueOfUInt64Value(criMemory.WorkingSetBytes),

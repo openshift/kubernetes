@@ -25,7 +25,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/Microsoft/hcsshim"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 )
 
@@ -82,7 +81,7 @@ func (p *criStatsProvider) listContainerNetworkStats() (map[string]*statsapi.Net
 // hcsStatsToNetworkStats converts hcsshim.Statistics.Network to statsapi.NetworkStats
 func hcsStatsToNetworkStats(timestamp time.Time, hcsStats *hcsshim.HNSEndpointStats, endpointName string) *statsapi.NetworkStats {
 	result := &statsapi.NetworkStats{
-		Time:       metav1.NewTime(timestamp),
+		Time:       statsapi.NewTime(timestamp),
 		Interfaces: make([]statsapi.InterfaceStats, 0),
 	}
 

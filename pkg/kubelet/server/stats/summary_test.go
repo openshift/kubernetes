@@ -55,7 +55,7 @@ func TestSummaryProviderGetStats(t *testing.T) {
 	podStats := []statsapi.PodStats{
 		{
 			PodRef:      statsapi.PodReference{Name: "test-pod", Namespace: "test-namespace", UID: "UID_test-pod"},
-			StartTime:   metav1.NewTime(time.Now()),
+			StartTime:   statsapi.NewTime(time.Now()),
 			Containers:  []statsapi.ContainerStats{*getContainerStats()},
 			Network:     getNetworkStats(),
 			VolumeStats: []statsapi.VolumeStats{*getVolumeStats()},
@@ -107,7 +107,7 @@ func TestSummaryProviderGetStats(t *testing.T) {
 	assert.Equal(len(summary.Node.SystemContainers), 4)
 	assert.Contains(summary.Node.SystemContainers, statsapi.ContainerStats{
 		Name:               "kubelet",
-		StartTime:          kubeletCreationTime,
+		StartTime:          statsapi.NewTime(kubeletCreationTime.Time),
 		CPU:                cgroupStatsMap["/kubelet"].cs.CPU,
 		Memory:             cgroupStatsMap["/kubelet"].cs.Memory,
 		Accelerators:       cgroupStatsMap["/kubelet"].cs.Accelerators,
@@ -147,7 +147,7 @@ func TestSummaryProviderGetCPUAndMemoryStats(t *testing.T) {
 	podStats := []statsapi.PodStats{
 		{
 			PodRef:     statsapi.PodReference{Name: "test-pod", Namespace: "test-namespace", UID: "UID_test-pod"},
-			StartTime:  metav1.NewTime(time.Now()),
+			StartTime:  statsapi.NewTime(time.Now()),
 			Containers: []statsapi.ContainerStats{*getContainerStats()},
 		},
 	}

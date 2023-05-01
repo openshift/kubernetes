@@ -16,10 +16,6 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 // Summary is a top-level container for holding NodeStats and PodStats.
 type Summary struct {
 	// Overall node stats.
@@ -39,7 +35,7 @@ type NodeStats struct {
 	// +patchStrategy=merge
 	SystemContainers []ContainerStats `json:"systemContainers,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
 	// The time at which data collection for the node-scoped (i.e. aggregate) stats was (re)started.
-	StartTime metav1.Time `json:"startTime"`
+	StartTime Time `json:"startTime"`
 	// Stats pertaining to CPU resources.
 	// +optional
 	CPU *CPUStats `json:"cpu,omitempty"`
@@ -63,7 +59,7 @@ type NodeStats struct {
 
 // RlimitStats are stats rlimit of OS.
 type RlimitStats struct {
-	Time metav1.Time `json:"time"`
+	Time Time `json:"time"`
 
 	// The max number of extant process (threads, precisely on Linux) of OS. See RLIMIT_NPROC in getrlimit(2).
 	// The operating system ceiling on the number of process IDs that can be assigned.
@@ -105,7 +101,7 @@ type PodStats struct {
 	// Reference to the measured Pod.
 	PodRef PodReference `json:"podRef"`
 	// The time at which data collection for the pod-scoped (e.g. network) stats was (re)started.
-	StartTime metav1.Time `json:"startTime"`
+	StartTime Time `json:"startTime"`
 	// Stats of containers in the measured pod.
 	// +patchMergeKey=name
 	// +patchStrategy=merge
@@ -138,7 +134,7 @@ type ContainerStats struct {
 	// Reference to the measured container.
 	Name string `json:"name"`
 	// The time at which data collection for this container was (re)started.
-	StartTime metav1.Time `json:"startTime"`
+	StartTime Time `json:"startTime"`
 	// Stats pertaining to CPU resources.
 	// +optional
 	CPU *CPUStats `json:"cpu,omitempty"`
@@ -189,7 +185,7 @@ type InterfaceStats struct {
 // NetworkStats contains data about network resources.
 type NetworkStats struct {
 	// The time at which these stats were updated.
-	Time metav1.Time `json:"time"`
+	Time Time `json:"time"`
 
 	// Stats for the default interface, if found
 	InterfaceStats `json:",inline"`
@@ -200,7 +196,7 @@ type NetworkStats struct {
 // CPUStats contains data about CPU usage.
 type CPUStats struct {
 	// The time at which these stats were updated.
-	Time metav1.Time `json:"time"`
+	Time Time `json:"time"`
 	// Total CPU usage (sum of all cores) averaged over the sample window.
 	// The "core" unit can be interpreted as CPU core-nanoseconds per second.
 	// +optional
@@ -213,7 +209,7 @@ type CPUStats struct {
 // MemoryStats contains data about memory usage.
 type MemoryStats struct {
 	// The time at which these stats were updated.
-	Time metav1.Time `json:"time"`
+	Time Time `json:"time"`
 	// Available memory for use.  This is defined as the memory limit - workingSetBytes.
 	// If memory limit is undefined, the available bytes is omitted.
 	// +optional
@@ -293,7 +289,7 @@ type PVCReference struct {
 // FsStats contains data about filesystem usage.
 type FsStats struct {
 	// The time at which these stats were updated.
-	Time metav1.Time `json:"time"`
+	Time Time `json:"time"`
 	// AvailableBytes represents the storage space available (bytes) for the filesystem.
 	// +optional
 	AvailableBytes *uint64 `json:"availableBytes,omitempty"`
@@ -351,7 +347,7 @@ type UserDefinedMetricDescriptor struct {
 type UserDefinedMetric struct {
 	UserDefinedMetricDescriptor `json:",inline"`
 	// The time at which these stats were updated.
-	Time metav1.Time `json:"time"`
+	Time Time `json:"time"`
 	// Value of the metric. Float64s have 53 bit precision.
 	// We do not foresee any metrics exceeding that value.
 	Value float64 `json:"value"`

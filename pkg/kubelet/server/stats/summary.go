@@ -106,7 +106,7 @@ func (sp *summaryProviderImpl) Get(ctx context.Context, updateStats bool) (*stat
 		CPU:              rootStats.CPU,
 		Memory:           rootStats.Memory,
 		Network:          networkStats,
-		StartTime:        sp.systemBootTime,
+		StartTime:        statsapi.NewTime(sp.systemBootTime.Time),
 		Fs:               rootFsStats,
 		Runtime:          &statsapi.RuntimeStats{ImageFs: imageFsStats},
 		Rlimit:           rlimit,

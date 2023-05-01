@@ -26,7 +26,6 @@ import (
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"k8s.io/klog/v2"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
@@ -157,7 +156,7 @@ func (p *cadvisorStatsProvider) ListPodStats(_ context.Context) ([]statsapi.PodS
 
 		status, found := p.statusProvider.GetPodStatus(podUID)
 		if found && status.StartTime != nil && !status.StartTime.IsZero() {
-			podStats.StartTime = *status.StartTime
+			podStats.StartTime = statsapi.NewTime(status.StartTime.Time)
 			// only append stats if we were able to get the start time of the pod
 			result = append(result, *podStats)
 		}
@@ -211,7 +210,7 @@ func (p *cadvisorStatsProvider) ListPodCPUAndMemoryStats(_ context.Context) ([]s
 		if containerName == leaky.PodInfraContainerName {
 			// Special case for infrastructure container which is hidden from
 			// the user and has network stats.
-			podStats.StartTime = metav1.NewTime(cinfo.Spec.CreationTime)
+			podStats.StartTime = statsapi.NewTime(cinfo.Spec.CreationTime)
 		} else {
 			podStats.Containers = append(podStats.Containers, *cadvisorInfoToContainerCPUAndMemoryStats(containerName, &cinfo))
 		}
@@ -252,7 +251,7 @@ func (p *cadvisorStatsProvider) ImageFsStats(ctx context.Context) (*statsapi.FsS
 	}
 
 	return &statsapi.FsStats{
-		Time:           metav1.NewTime(imageFsInfo.Timestamp),
+		Time:           statsapi.NewTime(imageFsInfo.Timestamp),
 		AvailableBytes: &imageFsInfo.Available,
 		CapacityBytes:  &imageFsInfo.Capacity,
 		UsedBytes:      &imageStats.TotalStorageBytes,

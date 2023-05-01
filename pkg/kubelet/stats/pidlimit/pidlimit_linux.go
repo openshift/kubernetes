@@ -27,7 +27,6 @@ import (
 	"syscall"
 	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 )
 
@@ -64,7 +63,7 @@ func Stats() (*statsapi.RlimitStats, error) {
 		rlimit.NumOfRunningProcesses = &procs
 	}
 
-	rlimit.Time = v1.NewTime(time.Now())
+	rlimit.Time = statsapi.NewTime(time.Now())
 
 	return rlimit, nil
 }

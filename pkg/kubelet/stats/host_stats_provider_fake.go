@@ -88,7 +88,8 @@ func fakeMetricsProvidersToStats(metricsProviders []volume.MetricsProvider, root
 		inodesUsed := uint64(hostMetrics.InodesUsed.Value())
 		result.UsedBytes = addUsage(result.UsedBytes, &usedBytes)
 		result.InodesUsed = addUsage(result.InodesUsed, &inodesUsed)
-		result.Time = maxUpdateTime(&result.Time, &hostMetrics.Time)
+		t := statsapi.NewTime(hostMetrics.Time.Time)
+		result.Time = maxUpdateTime(&result.Time, &t)
 	}
 	return result, nil
 }

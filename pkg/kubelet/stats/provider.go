@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	cadvisorapiv1 "github.com/google/cadvisor/info/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	internalapi "k8s.io/cri-api/pkg/apis"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
@@ -148,7 +147,7 @@ func (p *Provider) RootFsStats() (*statsapi.FsStats, error) {
 	}
 
 	return &statsapi.FsStats{
-		Time:           metav1.NewTime(rootStats.Timestamp),
+		Time:           statsapi.NewTime(rootStats.Timestamp),
 		AvailableBytes: &rootFsInfo.Available,
 		CapacityBytes:  &rootFsInfo.Capacity,
 		UsedBytes:      &rootFsInfo.Usage,

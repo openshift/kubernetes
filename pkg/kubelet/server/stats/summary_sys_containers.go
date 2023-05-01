@@ -54,7 +54,7 @@ func (sp *summaryProviderImpl) GetSystemContainersStats(nodeConfig cm.NodeConfig
 
 		// if we know the start time of a system container, use that instead of the start time provided by cAdvisor
 		if !cont.startTime.IsZero() {
-			s.StartTime = cont.startTime
+			s.StartTime = statsapi.NewTime(cont.startTime.Time)
 		}
 		stats = append(stats, *s)
 	}
@@ -87,7 +87,7 @@ func (sp *summaryProviderImpl) GetSystemContainersCPUAndMemoryStats(nodeConfig c
 
 		// if we know the start time of a system container, use that instead of the start time provided by cAdvisor
 		if !cont.startTime.IsZero() {
-			s.StartTime = cont.startTime
+			s.StartTime = statsapi.NewTime(cont.startTime.Time)
 		}
 		stats = append(stats, *s)
 	}
