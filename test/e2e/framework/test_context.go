@@ -194,6 +194,9 @@ type TestContextType struct {
 
 	// Enable volume drivers which are disabled by default. See test/e2e/storage/in_tree_volumes.go for details.
 	EnabledVolumeDrivers []string
+
+	// Network e2e specific test context
+	NetworkTestContextType
 }
 
 // NodeKillerConfig describes configuration of NodeKiller -- a utility to
@@ -242,6 +245,12 @@ type NodeTestContextType struct {
 	RestartKubelet bool
 	// ExtraEnvs is a map of environment names to values.
 	ExtraEnvs map[string]string
+}
+
+// NodeTestContextType is part of TestContextType, it is shared by all network e2e test.
+type NetworkTestContextType struct {
+	// If true, do not check service reachability using a node's external IPs
+	ServiceToNodePortDisableExternalIPs bool
 }
 
 // CloudConfig holds the cloud configuration for e2e test suites.
@@ -429,6 +438,12 @@ func RegisterClusterFlags(flags *flag.FlagSet) {
 	flags.DurationVar(&nodeKiller.Interval, "node-killer-interval", 1*time.Minute, "Time between node failures.")
 	flags.Float64Var(&nodeKiller.JitterFactor, "node-killer-jitter-factor", 60, "Factor used to jitter node failures.")
 	flags.DurationVar(&nodeKiller.SimulatedDowntime, "node-killer-simulated-downtime", 10*time.Minute, "A delay between node death and recreation")
+}
+
+// RegisterNetworkFlags registers flags specific to the network e2e test suite.
+func RegisterNetworkFlags(flags *flag.FlagSet) {
+	netTextContext := &TestContext.NetworkTestContextType
+	flags.BoolVar(&netTextContext.ServiceToNodePortDisableExternalIPs, "net-srv2nodeport-disable-ext-ips", false, "If true, do not check service reachability using a node's external IPs")
 }
 
 // GenerateSecureToken returns a string of length tokenLen, consisting

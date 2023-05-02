@@ -44,6 +44,7 @@ func main() {
 	flag.CommandLine = flag.NewFlagSet("empty", flag.ExitOnError)
 	framework.RegisterCommonFlags(flag.CommandLine)
 	framework.RegisterClusterFlags(flag.CommandLine)
+	framework.RegisterNetworkFlags(flag.CommandLine)
 
 	if err := func() error {
 		return root.Execute()
