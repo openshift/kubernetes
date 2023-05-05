@@ -1201,9 +1201,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should find a service from listing all namespaces [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity timeout work for NodePort service [LinuxOnly]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly] [Conformance]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] Services should have session affinity timeout work for service with type clusterIP [LinuxOnly]": " [Skipped:Network/OVNKuberenetes] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Services should have session affinity work for NodePort service [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
