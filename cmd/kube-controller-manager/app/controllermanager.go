@@ -738,6 +738,7 @@ func (c serviceAccountTokenControllerStarter) startServiceAccountTokenController
 		applyOpenShiftServiceServingCertCA(serviceaccountcontroller.TokensControllerOptions{
 			TokenGenerator: tokenGenerator,
 			RootCA:         rootCA,
+			AutoGenerate:   !utilfeature.DefaultFeatureGate.Enabled(kubefeatures.LegacyServiceAccountTokenNoAutoGeneration),
 		}),
 	)
 	if err != nil {
