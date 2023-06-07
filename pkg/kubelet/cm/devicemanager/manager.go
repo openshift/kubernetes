@@ -546,6 +546,11 @@ func (m *ManagerImpl) devicesToAllocate(podUID, contName, resource string, requi
 	}
 
 	klog.V(3).InfoS("Need devices to allocate for pod", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
+	if IsRelaxedCheckEnabled() && needed == 0 {
+		// No change, no work.
+		return nil, nil
+	}
+
 	healthyDevices, hasRegistered := m.healthyDevices[resource]
 
 	// Check if resource registered with devicemanager
