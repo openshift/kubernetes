@@ -1674,7 +1674,34 @@ func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 		kl.eventedPleg.Start()
 	}
 
+	// TODO: avoid unnecessary wait on *node* reboot.
+	// TODO: perhaps: wait for a PLEG relist, check the podCache: if empty (runtime reports no pods)
+	// assume full node reboot and skip wait entirely
+	kl.waitForDevicesReady(ctx, kl.kubeletConfiguration.DeviceRegistrationTimeout.Duration)
+
 	kl.syncLoop(ctx, updates, kl)
+}
+
+func (kl *Kubelet) waitForDevicesReady(ctx context.Context, timeout time.Duration) {
+	if timeout == 0 {
+		klog.V(2).InfoS("Wait for device readiness disabled", "timeout", timeout)
+		return
+	}
+
+	klog.V(2).InfoS("Waiting for device readiness", "timeout", timeout)
+	var devsReady bool
+	wait.PollImmediateWithContext(ctx, 500*time.Millisecond, timeout, func(_ context.Context) (bool, error) {
+		// containerManager is initialized asynchronously.
+		// TODO: find a better way
+		cm := kl.containerManager
+		if cm == nil {
+			klog.V(2).InfoS("Container manager not initialized, skipping check")
+			return false, nil
+		}
+		devsReady = cm.AreAllDeviceResourcesReady()
+		return devsReady, nil
+	})
+	klog.V(2).InfoS("Done waiting for device readiness", "timeout", timeout, "ready", devsReady)
 }
 
 // SyncPod is the transaction script for the sync of a single pod (setting up)

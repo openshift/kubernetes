@@ -127,6 +127,8 @@ type ContainerManager interface {
 	// might need to unprepare resources.
 	PodMightNeedToUnprepareResources(UID types.UID) bool
 
+	AreAllDeviceResourcesReady() bool
+
 	// Implements the PodResources Provider API
 	podresources.CPUsProvider
 	podresources.DevicesProvider

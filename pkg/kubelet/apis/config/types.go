@@ -481,6 +481,11 @@ type KubeletConfiguration struct {
 	// If not specified the default value is ContainerRuntimeEndpoint
 	// +optional
 	ImageServiceEndpoint string
+
+	// DeviceRegistrationTimeout is a optional timeout to make Kubelet wait for device plugin re-registration on restart
+	// If not specified there is no wait
+	// +optional
+	DeviceRegistrationTimeout metav1.Duration
 }
 
 // KubeletAuthorizationMode denotes the authorization mode for the kubelet
