@@ -104,7 +104,11 @@ type servicePortInfo struct {
 	localPolicyChainName   utiliptables.Chain
 	firewallChainName      utiliptables.Chain
 	externalChainName      utiliptables.Chain
+
+	localWithFallback bool
 }
+
+const localWithFallbackAnnotation = "traffic-policy.network.alpha.openshift.io/local-with-fallback"
 
 // returns a new proxy.ServicePort which abstracts a serviceInfo
 func newServiceInfo(port *v1.ServicePort, service *v1.Service, bsvcPortInfo *proxy.BaseServicePortInfo) proxy.ServicePort {
@@ -119,6 +123,14 @@ func newServiceInfo(port *v1.ServicePort, service *v1.Service, bsvcPortInfo *pro
 	svcPort.localPolicyChainName = servicePortPolicyLocalChainName(svcPort.nameString, protocol)
 	svcPort.firewallChainName = serviceFirewallChainName(svcPort.nameString, protocol)
 	svcPort.externalChainName = serviceExternalChainName(svcPort.nameString, protocol)
+
+	if _, set := service.Annotations[localWithFallbackAnnotation]; set {
+		if svcPort.ExternalPolicyLocal() {
+			svcPort.localWithFallback = true
+		} else {
+			klog.Warningf("Ignoring annotation %q on Service %s which does not have Local ExternalTrafficPolicy", localWithFallbackAnnotation, svcName)
+		}
+	}
 
 	return svcPort
 }
@@ -1010,12 +1022,31 @@ func (proxier *Proxier) syncProxyRules() {
 		allEndpoints := proxier.endpointsMap[svcName]
 		clusterEndpoints, localEndpoints, allLocallyReachableEndpoints, hasEndpoints := proxy.CategorizeEndpoints(allEndpoints, svcInfo, proxier.nodeLabels)
 
+		// Prefer local endpoint for the DNS service.
+		// Fixes <https://bugzilla.redhat.com/show_bug.cgi?id=1919737>.
+		// TODO: Delete this once node-level topology is
+		// implemented and the DNS operator is updated to use it.
+		if svcPortNameString == "openshift-dns/dns-default:dns" || svcPortNameString == "openshift-dns/dns-default:dns-tcp" {
+			for _, ep := range clusterEndpoints {
+				if ep.GetIsLocal() {
+					klog.V(4).Infof("Found a local endpoint %q for service %q; preferring the local endpoint and ignoring %d other endpoints", ep.String(), svcPortNameString, len(clusterEndpoints) - 1)
+					clusterEndpoints = []proxy.Endpoint{ep}
+					allLocallyReachableEndpoints = clusterEndpoints
+					break
+				}
+			}
+		}
+
 		// Note the endpoint chains that will be used
 		for _, ep := range allLocallyReachableEndpoints {
 			if epInfo, ok := ep.(*endpointsInfo); ok {
 				activeNATChains[epInfo.ChainName] = true
 			}
 		}
+
+		// If "local-with-fallback" is in effect and there are no local endpoints,
+		// then we will force cluster behavior
+		localWithFallback := svcInfo.localWithFallback && len(localEndpoints) == 0
 
 		// clusterPolicyChain contains the endpoints used with "Cluster" traffic policy
 		clusterPolicyChain := svcInfo.clusterPolicyChainName
@@ -1057,7 +1088,7 @@ func (proxier *Proxier) syncProxyRules() {
 		// local traffic are set up.)
 		externalPolicyChain := clusterPolicyChain
 		hasExternalEndpoints := hasEndpoints
-		if svcInfo.ExternalPolicyLocal() {
+		if svcInfo.ExternalPolicyLocal() && !localWithFallback {
 			externalPolicyChain = localPolicyChain
 			if len(localEndpoints) == 0 {
 				hasExternalEndpoints = false
@@ -1285,7 +1316,14 @@ func (proxier *Proxier) syncProxyRules() {
 		if usesExternalTrafficChain {
 			proxier.natChains.Write(utiliptables.MakeChainLine(externalTrafficChain))
 
-			if !svcInfo.ExternalPolicyLocal() {
+			if localWithFallback {
+				// Masquerade external traffic but not internal
+				proxier.natRules.Write(
+					"-A", string(externalTrafficChain),
+					"-m", "comment", "--comment", fmt.Sprintf(`"masquerade traffic for %s external destinations"`, svcPortNameString),
+					proxier.localDetector.IfNotLocal(),
+					"-j", string(kubeMarkMasqChain))
+			} else if !svcInfo.ExternalPolicyLocal() {
 				// If we are using non-local endpoints we need to masquerade,
 				// in case we cross nodes.
 				proxier.natRules.Write(
