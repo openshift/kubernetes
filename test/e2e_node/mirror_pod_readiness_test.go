@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -44,10 +45,14 @@ var _ = SIGDescribe("MirrorPod", func() {
 			staticPodName = "static-pod-" + string(uuid.NewUUID())
 			mirrorPodName = staticPodName + "-" + framework.TestContext.NodeName
 
-			podPath = framework.TestContext.KubeletConfig.StaticPodPath
+			getCurrentKubeletConfig(ctx)
+
+			kubeletCfg, err := getCurrentKubeletConfig(ctx)
+			framework.ExpectNoError(err)
+			podPath = kubeletCfg.StaticPodPath
 
 			ginkgo.By("create the static pod")
-			err := createStaticPodWithReadiness(podPath, staticPodName, ns,
+			err = createStaticPodWithReadiness(podPath, staticPodName, ns,
 				imageutils.GetE2EImage(imageutils.Perl), v1.RestartPolicyAlways)
 			framework.ExpectNoError(err)
 
