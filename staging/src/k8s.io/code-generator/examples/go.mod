@@ -5,8 +5,8 @@ module k8s.io/code-generator/examples
 go 1.19
 
 require (
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.28.0-alpha.2
+	k8s.io/apimachinery v0.28.0-alpha.2
 	k8s.io/client-go v0.0.0
 	k8s.io/kube-openapi v0.0.0-20230601164746-7562a1006961
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3
@@ -45,7 +45,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2 // indirect
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
@@ -55,3 +55,13 @@ replace (
 	k8s.io/apimachinery => ../../apimachinery
 	k8s.io/client-go => ../../client-go
 )
+
+replace github.com/openshift/api => github.com/bertinatto/api v0.0.0-20230612162802-c6bd62d2f62d
+
+replace github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20230612171757-4fa46087d27b
+
+replace github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20230612173447-732e2b28ed87
+
+replace github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20230612175645-6648ff742591
+
+replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460

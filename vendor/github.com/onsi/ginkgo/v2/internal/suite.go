@@ -65,6 +65,8 @@ type Suite struct {
 	selectiveLock *sync.Mutex
 
 	client parallel_support.Client
+
+	annotateFn AnnotateFunc
 }
 
 func NewSuite() *Suite {
@@ -96,6 +98,11 @@ func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string
 	}
 	ApplyNestedFocusPolicyToTree(suite.tree)
 	specs := GenerateSpecsFromTreeRoot(suite.tree)
+	if suite.annotateFn != nil {
+		for _, spec := range specs {
+			suite.annotateFn(spec.Text(), spec)
+		}
+	}
 	specs, hasProgrammaticFocus := ApplyFocusToSpecs(specs, description, suiteLabels, suiteConfig)
 
 	suite.phase = PhaseRun
@@ -937,12 +944,6 @@ func (suite *Suite) runNode(node Node, specDeadline time.Time, text string) (typ
 			gracePeriodChannel = time.After(gracePeriod)
 		case <-interruptStatus.Channel:
 			interruptStatus = suite.interruptHandler.Status()
-			// ignore interruption from other process if we are cleaning up or reporting
-			if interruptStatus.Cause == interrupt_handler.InterruptCauseAbortByOtherProcess &&
-				node.NodeType.Is(types.NodeTypesAllowedDuringReportInterrupt|types.NodeTypesAllowedDuringCleanupInterrupt) {
-				continue
-			}
-
 			deadlineChannel = nil // don't worry about deadlines, time's up now
 
 			failureTimelineLocation := suite.generateTimelineLocation()
