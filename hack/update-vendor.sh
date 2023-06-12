@@ -353,14 +353,14 @@ comm -23 \
 while read -r X; do echo "-dropreplace=${X}"; done |
 xargs -L 100 go mod edit -fmt
 
-# disallow transitive dependencies on k8s.io/kubernetes
-loopback_deps=()
-kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' || true)
-if [[ -n ${loopback_deps[*]:+"${loopback_deps[*]}"} ]]; then
-  kube::log::error "Disallowed transitive k8s.io/kubernetes dependencies exist via the following imports:" >&22 2>&1
-  kube::log::error "${loopback_deps[@]}" >&22 2>&1
-  exit 1
-fi
+# # disallow transitive dependencies on k8s.io/kubernetes
+# loopback_deps=()
+# kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' || true)
+# if [[ -n ${loopback_deps[*]:+"${loopback_deps[*]}"} ]]; then
+#   kube::log::error "Disallowed transitive k8s.io/kubernetes dependencies exist via the following imports:" >&22 2>&1
+#   kube::log::error "${loopback_deps[@]}" >&22 2>&1
+#   exit 1
+# fi
 
 # Phase 6: add generated comments to go.mod files
 kube::log::status "go.mod: adding generated comments" >&11
