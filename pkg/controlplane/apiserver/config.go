@@ -24,7 +24,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/discovery/aggregated"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
@@ -41,10 +40,7 @@ import (
 	"k8s.io/component-base/version"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 
-	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	"k8s.io/kubernetes/openshift-kube-apiserver/configdefault"
-	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controlplane"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
@@ -57,7 +53,6 @@ func BuildGenericConfig(
 	s *options.ServerRunOptions,
 	schemes []*runtime.Scheme,
 	getOpenAPIDefinitions func(ref openapicommon.ReferenceCallback) map[string]openapicommon.OpenAPIDefinition,
-	pluginInitializers []admission.PluginInitializer,
 ) (
 	genericConfig *genericapiserver.Config,
 	versionedInformers clientgoinformers.SharedInformerFactory,
@@ -158,16 +153,6 @@ func BuildGenericConfig(
 	lastErr = s.Audit.ApplyTo(genericConfig)
 	if lastErr != nil {
 		return
-	}
-
-	StartingDelegate, err := app.PatchKubeAPIServerConfig(genericConfig, versionedInformers, &pluginInitializers)
-	if err != nil {
-		lastErr = fmt.Errorf("failed to patch: %v", err)
-		return
-	}
-
-	if enablement.IsOpenShift() {
-		configdefault.SetAdmissionDefaults(s, versionedInformers, clientgoExternalClient)
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIPriorityAndFairness) && s.GenericServerRunOptions.EnablePriorityAndFairness {
