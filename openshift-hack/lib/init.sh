@@ -65,4 +65,4 @@ if [[ -n "${JUNIT_REPORT:-}" ]]; then
 fi
 
 # Use the go version from the system
-export FORCE_HOST_GO=1
+# export FORCE_HOST_GO=1
