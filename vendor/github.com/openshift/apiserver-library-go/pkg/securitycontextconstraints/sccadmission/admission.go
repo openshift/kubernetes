@@ -267,12 +267,37 @@ func (c *constraint) computeSecurityContext(
 		saUserInfo = serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
 	}
 
-	allowedForUserOrSA := func(provider sccmatching.SecurityContextConstraintsProvider) bool {
+	allowedForUserOrSA := func(provider sccmatching.SecurityContextConstraintsProvider, validationErrs field.ErrorList) (bool, field.ErrorList) {
 		sccName := provider.GetSCCName()
 		sccUsers := provider.GetSCCUsers()
 		sccGroups := provider.GetSCCGroups()
-		return sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) ||
-			(saUserInfo != nil && sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer))
+
+		userAllowed := sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer)
+		if !userAllowed {
+			validationErrs = append(validationErrs,
+				field.Forbidden(
+					field.NewPath(fmt.Sprintf("provider %q", provider.GetSCCName()), fmt.Sprintf("user %q", userInfo.GetName())),
+					fmt.Sprintf("not usable by user %q", userInfo.GetName()),
+				),
+			)
+		}
+
+		saAllowed := false
+		saName := "N/A"
+		if saUserInfo != nil {
+			saName = saUserInfo.GetName()
+			saAllowed = sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer)
+		}
+		if !saAllowed {
+			validationErrs = append(validationErrs,
+				field.Forbidden(
+					field.NewPath(fmt.Sprintf("provider %q", provider.GetSCCName()), fmt.Sprintf("service account %q", userInfo.GetName())),
+					fmt.Sprintf("not usable by service account %q", saName),
+				),
+			)
+		}
+
+		return userAllowed || saAllowed, validationErrs
 	}
 
 	appliesToPod := func(provider sccmatching.SecurityContextConstraintsProvider, pod *coreapi.Pod) (podCopy *coreapi.Pod, errs field.ErrorList) {
@@ -300,16 +325,10 @@ loop:
 			restrictedV2SCCProvider = providers[i]
 		}
 
-		if !allowedForUserOrSA(provider) {
+		var allowed bool
+		allowed, validationErrs = allowedForUserOrSA(provider, validationErrs)
+		if !allowed {
 			denied = append(denied, provider.GetSCCName())
-			// this will cause every security context constraint attempted, in order, to the failure
-			validationErrs = append(validationErrs,
-				field.Forbidden(
-					field.NewPath(fmt.Sprintf("provider %q", provider.GetSCCName())),
-					"not usable by user or serviceaccount",
-				),
-			)
-
 			continue
 		}
 
@@ -379,7 +398,8 @@ loop:
 		// find next provider that was not chosen
 		var nextNotChosenProvider sccmatching.SecurityContextConstraintsProvider
 		for _, provider := range providers[i+1:] {
-			if !allowedForUserOrSA(provider) {
+			allowed, _ := allowedForUserOrSA(provider, nil)
+			if !allowed {
 				continue
 			}
 			if _, errs := appliesToPod(provider, pod); len(errs) == 0 {
