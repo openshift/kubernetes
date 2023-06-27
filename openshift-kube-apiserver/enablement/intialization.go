@@ -64,8 +64,10 @@ func ForceGlobalInitializationForOpenShift() {
 	aggregatorapiserver.AddAlwaysLocalDelegateForPrefix("/apis/authorization.openshift.io/v1/rolebindingrestrictions")
 	aggregatorapiserver.AddAlwaysLocalDelegateGroupResource(schema.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"})
 
-	// This allows the CRD registration to avoid fighting with the APIService from the operator
+	// This allows the CRD registration and openapi v3 controller to avoid fighting with the APIService from the operator
 	aggregatorapiserver.AddOverlappingGroupVersion(schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"})
+	aggregatorapiserver.AddOverlappingGroupVersion(schema.GroupVersion{Group: "security.openshift.io", Version: "v1"})
+	aggregatorapiserver.AddOverlappingGroupVersion(schema.GroupVersion{Group: "quota.openshift.io", Version: "v1"})
 
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{

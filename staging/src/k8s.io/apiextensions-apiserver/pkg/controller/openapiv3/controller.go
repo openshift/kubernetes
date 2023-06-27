@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
+	"k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kube-openapi/pkg/handler3"
 	"k8s.io/kube-openapi/pkg/spec3"
 
@@ -104,6 +105,10 @@ func (c *Controller) Run(openAPIV3Service *handler3.OpenAPIService, stopCh <-cha
 			if !v.Served {
 				continue
 			}
+			if apiserver.APIServiceAlreadyExists(schema.GroupVersion{Group: crd.Spec.Group, Version: v.Name}) {
+				// do not fight with the openapi v3 aggregator for serving the openapi spec when APIService for this group exists
+				break
+			}
 			c.buildV3Spec(crd, crd.Name, v.Name)
 		}
 	}
@@ -163,6 +168,10 @@ func (c *Controller) sync(name string) error {
 	for _, v := range crd.Spec.Versions {
 		if !v.Served {
 			continue
+		}
+		if apiserver.APIServiceAlreadyExists(schema.GroupVersion{Group: crd.Spec.Group, Version: v.Name}) {
+			// do not fight with the openapi v3 aggregator for serving the openapi spec when APIService for this group exists
+			break
 		}
 		c.buildV3Spec(crd, name, v.Name)
 	}
