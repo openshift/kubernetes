@@ -99,6 +99,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/spf13/cobra v1.6.0 // indirect
@@ -126,6 +127,8 @@ require (
 replace (
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.47.1-openshift-4.15
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
+	github.com/openshift/api => github.com/s-urbaniak/api v0.0.0-20230703093451-ec0b1feb2bfc
+	github.com/openshift/apiserver-library-go => github.com/s-urbaniak/apiserver-library-go v0.0.0-20230703074606-d54db1166c54
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

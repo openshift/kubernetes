@@ -43,6 +43,7 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -59,8 +60,18 @@ require (
 )
 
 replace (
+	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.47.1-openshift-4.15
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
+	github.com/openshift/api => github.com/s-urbaniak/api v0.0.0-20230703093451-ec0b1feb2bfc
+	github.com/openshift/apiserver-library-go => github.com/s-urbaniak/apiserver-library-go v0.0.0-20230703074606-d54db1166c54
 	k8s.io/api => ../api
+	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
+	k8s.io/apiserver => ../apiserver
 	k8s.io/client-go => ../client-go
+	k8s.io/code-generator => ../code-generator
+	k8s.io/component-base => ../component-base
+	k8s.io/component-helpers => ../component-helpers
+	k8s.io/kms => ../kms
+	k8s.io/kube-aggregator => ../kube-aggregator
 )
