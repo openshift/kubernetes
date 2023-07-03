@@ -703,12 +703,22 @@ func (c *Controller) syncNodes(ctx context.Context, workers int) sets.String {
 	return servicesToRetry
 }
 
+func getNodeNames(nodes []*v1.Node) []string {
+	nodeNames := make([]string, 0, len(nodes))
+	for i, node := range nodes {
+		nodeNames[i] = node.Name
+	}
+	return nodeNames
+}
+
 // nodeSyncService syncs the nodes for one load balancer type service. The return value
 // indicates if we should retry. Hence, this functions returns false if we've updated
 // load balancers and finished doing it successfully, or didn't try to at all because
 // there's no need. This function returns true if we tried to update load balancers and
 // failed, indicating to the caller that we should try again.
 func (c *Controller) nodeSyncService(svc *v1.Service, oldNodes, newNodes []*v1.Node) bool {
+	klog.Infof("nodeSyncService started for service %s/%s: raw oldNodes: %v, raw newNodes %v", svc.Namespace, svc.Name, getNodeNames(oldNodes), getNodeNames(newNodes))
+
 	const retSuccess = false
 	const retNeedRetry = true
 	if svc == nil || !wantsLoadBalancer(svc) {
@@ -719,13 +729,14 @@ func (c *Controller) nodeSyncService(svc *v1.Service, oldNodes, newNodes []*v1.N
 	if nodeNames(newNodes).Equal(nodeNames(oldNodes)) {
 		return retSuccess
 	}
-	klog.V(4).Infof("nodeSyncService started for service %s/%s", svc.Namespace, svc.Name)
+
+	klog.Infof("nodeSyncService started for service %s/%s: filtered oldNodes: %v, filtered newNodes %v", svc.Namespace, svc.Name, getNodeNames(oldNodes), getNodeNames(newNodes))
 	if err := c.lockedUpdateLoadBalancerHosts(svc, newNodes); err != nil {
 		runtime.HandleError(fmt.Errorf("failed to update load balancer hosts for service %s/%s: %v", svc.Namespace, svc.Name, err))
 		nodeSyncErrorCount.Inc()
 		return retNeedRetry
 	}
-	klog.V(4).Infof("nodeSyncService finished successfully for service %s/%s", svc.Namespace, svc.Name)
+	klog.Infof("nodeSyncService finished successfully for service %s/%s", svc.Namespace, svc.Name)
 	return retSuccess
 }
 
@@ -961,28 +972,40 @@ var (
 
 func getNodePredicatesForService(service *v1.Service) []NodeConditionPredicate {
 	if utilfeature.DefaultFeatureGate.Enabled(features.StableLoadBalancerNodeSet) {
+		klog.Infof("getNodePredicatesForService: using stableNodeSetPredicates")
 		return stableNodeSetPredicates
 	}
 	if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyLocal {
+		klog.Infof("getNodePredicatesForService: using etpLocalNodePredicates")
 		return etpLocalNodePredicates
 	}
+	klog.Infof("getNodePredicatesForService: using allNodePredicates")
 	return allNodePredicates
 }
 
 // We consider the node for load balancing only when the node is not labelled for exclusion.
 func nodeIncludedPredicate(node *v1.Node) bool {
 	_, hasExcludeBalancerLabel := node.Labels[v1.LabelNodeExcludeBalancers]
+	if hasExcludeBalancerLabel {
+		klog.Infof("nodeIncludedPredicate: node %s hasExcludeBalancerLabel %v", node.Name, hasExcludeBalancerLabel)
+	}
 	return !hasExcludeBalancerLabel
 }
 
 func nodeHasProviderIDPredicate(node *v1.Node) bool {
-	return node.Spec.ProviderID != ""
+	hasProviderID := node.Spec.ProviderID != ""
+	if !hasProviderID {
+		klog.Infof("nodeHasProviderIDPredicate: node %s hasProviderID %v", node.Name, hasProviderID)
+	}
+
+	return hasProviderID
 }
 
 // We consider the node for load balancing only when its not tainted for deletion by the cluster autoscaler.
 func nodeUnTaintedPredicate(node *v1.Node) bool {
 	for _, taint := range node.Spec.Taints {
 		if taint.Key == ToBeDeletedTaint {
+			klog.Infof("nodeUnTaintedPredicate: node %s has taint %s", node.Name, ToBeDeletedTaint)
 			return false
 		}
 	}
@@ -993,14 +1016,23 @@ func nodeUnTaintedPredicate(node *v1.Node) bool {
 func nodeReadyPredicate(node *v1.Node) bool {
 	for _, cond := range node.Status.Conditions {
 		if cond.Type == v1.NodeReady {
-			return cond.Status == v1.ConditionTrue
+			ready := cond.Status == v1.ConditionTrue
+			if !ready {
+				klog.Infof("nodeReadyPredicate: node %s is not ready", node.Name)
+			}
+			return ready
 		}
 	}
 	return false
 }
 
 func nodeNotDeletedPredicate(node *v1.Node) bool {
-	return node.DeletionTimestamp.IsZero()
+	notDeleted := node.DeletionTimestamp.IsZero()
+	if !notDeleted {
+		klog.Infof("nodeNotDeletedPredicate: node %s is deleted", node.Name)
+	}
+
+	return notDeleted
 }
 
 // listWithPredicate gets nodes that matches all predicate functions.

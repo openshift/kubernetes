@@ -818,7 +818,7 @@ func (as *availabilitySet) EnsureHostInPool(service *v1.Service, nodeName types.
 	nic, _, err := as.getPrimaryInterfaceWithVMSet(vmName, vmSetName)
 	if err != nil {
 		if err == errNotInVMSet {
-			klog.V(3).Infof("EnsureHostInPool skips node %s because it is not in the vmSet %s", nodeName, vmSetName)
+			klog.Infof("EnsureHostInPool skips node %s because it is not in the vmSet %s", nodeName, vmSetName)
 			return "", "", "", nil, nil
 		}
 
@@ -875,7 +875,7 @@ func (as *availabilitySet) EnsureHostInPool(service *v1.Service, nodeName types.
 				return "", "", "", nil, err
 			}
 			if !isSameLB {
-				klog.V(4).Infof("Node %q has already been added to LB %q, omit adding it to a new one", nodeName, oldLBName)
+				klog.Infof("Node %q has already been added to LB %q, omit adding it to a new one", nodeName, oldLBName)
 				return "", "", "", nil, nil
 			}
 		}
@@ -888,7 +888,7 @@ func (as *availabilitySet) EnsureHostInPool(service *v1.Service, nodeName types.
 		primaryIPConfig.LoadBalancerBackendAddressPools = &newBackendPools
 
 		nicName := *nic.Name
-		klog.V(3).Infof("nicupdate(%s): nic(%s) - updating", serviceName, nicName)
+		klog.Infof("nicupdate(%s): nic(%s) - updating", serviceName, nicName)
 		err := as.CreateOrUpdateInterface(service, nic)
 		if err != nil {
 			return "", "", "", nil, err
@@ -909,8 +909,9 @@ func (as *availabilitySet) EnsureHostsInPool(service *v1.Service, nodes []*v1.No
 	hostUpdates := make([]func() error, 0, len(nodes))
 	for _, node := range nodes {
 		localNodeName := node.Name
+		klog.Infof("EnsureHostsInPool(%s): node(%s) - updating, useStandardLoadBalancer(%t) excludeMasterNodesFromStandardLB(%t) isMasterNode(%t)", getServiceName(service), localNodeName, as.useStandardLoadBalancer(), as.excludeMasterNodesFromStandardLB(), isMasterNode(node))
 		if as.useStandardLoadBalancer() && as.excludeMasterNodesFromStandardLB() && isMasterNode(node) {
-			klog.V(4).Infof("Excluding master node %q from load balancer backendpool %q", localNodeName, backendPoolID)
+			klog.Infof("Excluding master node %q from load balancer backendpool %q", localNodeName, backendPoolID)
 			continue
 		}
 
@@ -919,8 +920,9 @@ func (as *availabilitySet) EnsureHostsInPool(service *v1.Service, nodes []*v1.No
 			klog.Errorf("ShouldNodeExcludedFromLoadBalancer(%s) failed with error: %v", localNodeName, err)
 			return err
 		}
+		klog.Infof("EnsureHostsInPool(%s): node(%s): shouldExcludeLoadBalancer(%t)", getServiceName(service), localNodeName, shouldExcludeLoadBalancer)
 		if shouldExcludeLoadBalancer {
-			klog.V(4).Infof("Excluding unmanaged/external-resource-group node %q", localNodeName)
+			klog.Infof("Excluding unmanaged/external-resource-group node %q", localNodeName)
 			continue
 		}
 

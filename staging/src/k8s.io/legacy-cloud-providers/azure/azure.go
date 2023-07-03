@@ -823,6 +823,7 @@ func (az *Cloud) updateNodeCaches(prevNode, newNode *v1.Node) {
 	}
 
 	if newNode != nil {
+		nodeName := newNode.ObjectMeta.Name
 		// Add to nodeNames cache.
 		az.nodeNames.Insert(newNode.ObjectMeta.Name)
 
@@ -845,6 +846,8 @@ func (az *Cloud) updateNodeCaches(prevNode, newNode *v1.Node) {
 		managed, ok := newNode.ObjectMeta.Labels[managedByAzureLabel]
 		isNodeManagedByCloudProvider := !ok || managed != "false"
 
+		klog.Infof("updateNodeCaches: node %q: isNodeManagedByCloudProvider=(%v), hasExcludeBalancerLabel=(%v), isNodeReady=(%v), isNodeMaster=(%v), getCloudTaint=(%v)", nodeName, isNodeManagedByCloudProvider, hasExcludeBalancerLabel, isNodeReady(newNode), isNodeMaster(newNode), getCloudTaint(newNode.Spec.Taints) != nil)
+
 		// Update unmanagedNodes cache
 		if !isNodeManagedByCloudProvider {
 			az.unmanagedNodes.Insert(newNode.ObjectMeta.Name)
@@ -853,9 +856,11 @@ func (az *Cloud) updateNodeCaches(prevNode, newNode *v1.Node) {
 		// Update excludeLoadBalancerNodes cache
 		switch {
 		case !isNodeManagedByCloudProvider:
+			klog.Infof("updateNodeCaches: node %q is excluded: isNodeManagedByCloudProvider=(%v)", nodeName, isNodeManagedByCloudProvider)
 			az.excludeLoadBalancerNodes.Insert(newNode.ObjectMeta.Name)
 
 		case hasExcludeBalancerLabel:
+			klog.Infof("updateNodeCaches: node %q is excluded: hasExcludeBalancerLabel=(%v)", nodeName, hasExcludeBalancerLabel)
 			az.excludeLoadBalancerNodes.Insert(newNode.ObjectMeta.Name)
 
 		case !isNodeReady(newNode) && !isNodeMaster(newNode) && getCloudTaint(newNode.Spec.Taints) == nil:
@@ -864,11 +869,13 @@ func (az *Cloud) updateNodeCaches(prevNode, newNode *v1.Node) {
 			// excluded from load balancers regardless of their state, so as to reduce the number of
 			// VMSS API calls and not provoke VMScaleSetActiveModelsCountLimitReached.
 			// (https://github.com/kubernetes-sigs/cloud-provider-azure/issues/851)
+			klog.Infof("updateNodeCaches: node %q is excluded: isNodeReady=(%v), isNodeMaster=(%v), getCloudTaint=(%v)", nodeName, isNodeReady(newNode), isNodeMaster(newNode), getCloudTaint(newNode.Spec.Taints) != nil)
 			az.excludeLoadBalancerNodes.Insert(newNode.ObjectMeta.Name)
 
 		default:
 			// Nodes not falling into the three cases above are valid backends and
 			// should not appear in excludeLoadBalancerNodes cache.
+			klog.Infof("updateNodeCaches: node %q is not excluded", nodeName)
 			az.excludeLoadBalancerNodes.Delete(newNode.ObjectMeta.Name)
 		}
 	}
