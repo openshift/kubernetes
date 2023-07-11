@@ -12,7 +12,7 @@ var (
 			`\[Feature:StorageVersionAPI\]`,
 			`\[Feature:StatefulSetAutoDeletePVC\]`,
 			`\[Feature:ProxyTerminatingEndpoints\]`,
-			`\[Feature:UserNamespacesStatelessPodsSupport\]`,
+			`\[Feature:UserNamespacesSupport\]`,
 			`\[Feature:ReadWriteOncePod\]`,
 			`\[Feature:SELinuxMountReadWriteOncePod\]`,
 			`\[Feature:PodSchedulingReadiness\]`,
