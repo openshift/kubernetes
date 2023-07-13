@@ -252,6 +252,26 @@ func (w *terminationFileWriter) WriteToTerminationLog(bs []byte) (int, error) {
 		return len(bs), nil
 	}
 
+	// lumberjack create log files with 644 permissions, which might cause some cluster to fail security compliance.
+	// create the target log file if it does not exists with correct permissions.
+	// change the log file permission if it already exists with incorrect permissions.
+	fs, err := os.Stat(w.fn)
+	if os.IsNotExist(err) {
+		f, err := os.OpenFile(w.fn, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+		if err != nil {
+			return 0, fmt.Errorf("unable to create log file %q: %w", w.fn, err)
+		}
+		if err := f.Close(); err != nil {
+			return 0, fmt.Errorf("unable to close log file %q: %w", w.fn, err)
+		}
+	} else {
+		if fs.Mode() != 0600 {
+			if err := os.Chmod(w.fn, 0600); err != nil {
+				return 0, fmt.Errorf("unable to change file %q permissions: %w", w.fn, err)
+			}
+		}
+	}
+
 	if w.logger == nil {
 		l := &lumberjack.Logger{
 			Filename:   w.fn,
