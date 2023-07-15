@@ -576,12 +576,12 @@ func (m *ManagerImpl) devicesToAllocate(podUID, contName, resource string, requi
 	klog.V(2).InfoS("container running check", "relaxed", relaxedCheck)
 
 	if !relaxedCheck && !m.sourcesReady.AllReady() && m.isContainerAlreadyRunning(podUID, contName) {
-		klog.V(3).InfoS("container detected running, nothing to do", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
+		klog.V(2).InfoS("container detected running, nothing to do", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
 		return nil, nil
 	}
 
 	// We dealt with scenario 2. If we got this far it's either scenario 3 (node reboot) or scenario 1 (steady state, normal flow).
-	klog.V(3).InfoS("Need devices to allocate for pod", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
+	klog.V(2).InfoS("Need devices to allocate for pod", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
 	healthyDevices, hasRegistered := m.healthyDevices[resource]
 
 	// The following checks are expected to fail only happen on scenario 3 (node reboot).
@@ -607,10 +607,12 @@ func (m *ManagerImpl) devicesToAllocate(podUID, contName, resource string, requi
 	// We handled the known error paths in scenario 3 (node reboot), so from now on we can fall back in a common path.
 	// We cover container restart on kubelet steady state with the same flow.
 	if needed == 0 {
-		klog.V(3).InfoS("no devices needed, nothing to do", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
+		klog.V(2).InfoS("no devices needed, nothing to do", "deviceNumber", needed, "resourceName", resource, "podUID", string(podUID), "containerName", contName)
 		// No change, no work.
 		return nil, nil
 	}
+
+	klog.V(2).InfoS("Allocating devices", "resourceName", resource, "containerName", contName, "podUID", string(podUID))
 
 	// Declare the list of allocated devices.
 	// This will be populated and returned below.
