@@ -564,7 +564,7 @@ kube::golang::setup_env() {
   if ! command -v ncpu >/dev/null 2>&1; then
     # shellcheck disable=SC2164
     pushd "${KUBE_ROOT}/hack/tools" >/dev/null
-    GO111MODULE=on go install ./ncpu
+    GO111MODULE=on GOFLAGS=-mod=readonly go install ./ncpu
     # shellcheck disable=SC2164
     popd >/dev/null
   fi
