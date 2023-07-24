@@ -20,6 +20,8 @@ var (
 			`\[Feature:RecoverVolumeExpansionFailure\]`,
 			`\[Feature:SELinux\]`,
 			`\[Feature:NodeLogQuery\]`,
+			`\[Feature:SidecarContainers\]`,
+			`\[Feature: PersistentVolumeLastPhaseTransitionTime\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
