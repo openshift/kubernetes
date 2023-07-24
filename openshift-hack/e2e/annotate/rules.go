@@ -19,6 +19,7 @@ var (
 			`\[Feature:InPlacePodVerticalScaling\]`,
 			`\[Feature:RecoverVolumeExpansionFailure\]`,
 			`\[Feature:SELinux\]`,
+			`\[Feature:NodeLogQuery\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
