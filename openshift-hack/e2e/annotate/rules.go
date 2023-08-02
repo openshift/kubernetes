@@ -17,6 +17,8 @@ var (
 			`\[Feature:SELinuxMountReadWriteOncePod\]`,
 			`\[Feature:PodSchedulingReadiness\]`,
 			`\[Feature:InPlacePodVerticalScaling\]`,
+			`\[Feature:RecoverVolumeExpansionFailure\]`,
+			`\[Feature:SELinux\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -34,7 +36,6 @@ var (
 			`\[Feature:GPUDevicePlugin\]`,
 			`\[sig-scheduling\] GPUDevicePluginAcrossRecreate \[Feature:Recreate\]`,
 
-			`\[Feature:ImageQuota\]`,                    // Quota isn't turned on by default, we should do that and then reenable these tests
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
 			`\[sig-cloud-provider-gcp\]`,                // these test require a different configuration - note that GCE tests from the sig-cluster-lifecycle were moved to the sig-cloud-provider-gcpcluster lifecycle see https://github.com/kubernetes/kubernetes/commit/0b3d50b6dccdc4bbd0b3e411c648b092477d79ac#diff-3b1910d08fb8fd8b32956b5e264f87cb
 
@@ -110,12 +111,6 @@ var (
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy based on Ports`,
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
 
-			// The new NetworkPolicy test suite is extremely resource
-			// intensive and causes itself and other concurrently-running
-			// tests to be flaky.
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1980141
-			`\[sig-network\] Netpol `,
-
 			`Topology Hints should distribute endpoints evenly`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
@@ -141,9 +136,6 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
-
-			// https://issues.redhat.com/browse/WRKLDS-665
-			`\[sig-scheduling\] SchedulerPreemption \[Serial\] validates pod disruption condition is added to the preempted pod`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
@@ -151,6 +143,10 @@ var (
 			`DNS HostNetwork should resolve DNS of partial qualified names for services on hostNetwork pods with dnsPolicy`,
 			`\[sig-network\] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod`, // TODO(network): simple test in k8s 1.27, needs investigation
 			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`,                    // TODO(workloads): alpha feature in k8s 1.27. It's failing with `error: unknown flag: --applyset`. Needs investigation
+
+			// https://issues.redhat.com/browse/OCPBUGS-13392
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce updated policy`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {

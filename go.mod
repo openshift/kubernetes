@@ -38,7 +38,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.3
-	github.com/google/cadvisor v0.47.1
+	github.com/google/cadvisor v0.47.2
 	github.com/google/cel-go v0.12.6
 	github.com/google/gnostic v0.5.7-v3refs
 	github.com/google/go-cmp v0.5.9
@@ -54,8 +54,8 @@ require (
 	github.com/onsi/gomega v1.27.4
 	github.com/opencontainers/runc v1.1.6
 	github.com/opencontainers/selinux v1.10.0
-	github.com/openshift/api v0.0.0-20230503133300-8bbcb7ca7183
-	github.com/openshift/apiserver-library-go v0.0.0-20230503174907-d9b2bf6185e9
+	github.com/openshift/api v0.0.0-20230703134140-1c2204a0195c
+	github.com/openshift/apiserver-library-go v0.0.0-20230703120157-e3794c5cc9fd
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
 	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
 	github.com/pkg/errors v0.9.1
@@ -244,7 +244,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.1 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.1 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.13.2 // indirect
 	sigs.k8s.io/kustomize/kustomize/v5 v5.0.1 // indirect
@@ -252,6 +252,7 @@ require (
 )
 
 replace (
+	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.47.1-openshift-4.15
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
