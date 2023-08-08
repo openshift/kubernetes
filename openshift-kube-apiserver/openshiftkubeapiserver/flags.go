@@ -10,9 +10,12 @@ import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/apiserver-library-go/pkg/configflags"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/library-go/pkg/features"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
+	"k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/klog/v2"
 )
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
@@ -41,6 +44,15 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	configflags.SetIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
 	configflags.SetIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
 	configflags.SetIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
+
+	// set the global featuregates.`
+	warnings, err := features.SetFeatureGates(args, feature.DefaultMutableFeatureGate)
+	if err != nil {
+		return nil, err
+	}
+	for _, warning := range warnings {
+		klog.Warning(warning)
+	}
 
 	return configflags.ToFlagSlice(args), nil
 }

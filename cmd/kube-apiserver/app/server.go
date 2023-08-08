@@ -32,6 +32,8 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/features"
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +49,10 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/egressselector"
+	"k8s.io/apiserver/pkg/server/filters"
+	serveroptions "k8s.io/apiserver/pkg/server/options"
+	serverstorage "k8s.io/apiserver/pkg/server/storage"
+	"k8s.io/apiserver/pkg/util/feature"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/notfoundhandler"
 	"k8s.io/apiserver/pkg/util/webhook"
@@ -118,6 +124,10 @@ cluster's shared state through which all other components interact.`,
 			if len(s.OpenShiftConfig) > 0 {
 				// if we are running openshift, we modify the admission chain defaults accordingly
 				admissionenablement.InstallOpenShiftAdmissionPlugins(s)
+
+				if err := features.InitializeFeatureGates(feature.DefaultMutableFeatureGate, configv1.FeatureGateRouteExternalCertificate); err != nil {
+					return err
+				}
 
 				openshiftConfig, err := enablement.GetOpenshiftConfig(s.OpenShiftConfig)
 				if err != nil {
