@@ -11,11 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	"k8s.io/component-base/featuregate"
 
+	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	routecommon "github.com/openshift/library-go/pkg/route"
 	"github.com/openshift/library-go/pkg/route/hostassignment"
 	hostassignmentapi "k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/hostassignment"
 	hostassignmentv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/hostassignment/v1"
@@ -38,6 +42,7 @@ type hostAssignment struct {
 
 	hostnameGenerator hostassignment.HostnameGenerator
 	sarClient         authorizationv1.SubjectAccessReviewInterface
+	validationOpts    routecommon.RouteValidationOptions
 }
 
 func readConfig(reader io.Reader) (*hostassignmentapi.HostAssignmentAdmissionConfig, error) {
@@ -112,7 +117,7 @@ func (a *hostAssignment) Admit(ctx context.Context, attributes admission.Attribu
 		if len(errs) > 0 {
 			return errors.NewInvalid(attributes.GetKind().GroupKind(), attributes.GetName(), errs)
 		}
-		errs = hostassignment.AllocateHost(ctx, r, a.sarClient, a.hostnameGenerator)
+		errs = hostassignment.AllocateHost(ctx, r, a.sarClient, a.hostnameGenerator, a.validationOpts)
 		if len(errs) > 0 {
 			return errors.NewInvalid(attributes.GetKind().GroupKind(), attributes.GetName(), errs)
 		}
@@ -132,7 +137,7 @@ func (a *hostAssignment) Admit(ctx context.Context, attributes admission.Attribu
 		if len(errs) > 0 {
 			return errors.NewInvalid(attributes.GetKind().GroupKind(), attributes.GetName(), errs)
 		}
-		errs = hostassignment.ValidateHostUpdate(ctx, r, old, a.sarClient)
+		errs = hostassignment.ValidateHostUpdate(ctx, r, old, a.sarClient, a.validationOpts)
 		if len(errs) > 0 {
 			return errors.NewInvalid(attributes.GetKind().GroupKind(), attributes.GetName(), errs)
 		}
@@ -147,6 +152,9 @@ var _ initializer.WantsExternalKubeClientSet = &hostAssignment{}
 
 func (a *hostAssignment) SetExternalKubeClientSet(clientset kubernetes.Interface) {
 	a.sarClient = clientset.AuthorizationV1().SubjectAccessReviews()
+	a.validationOpts = routecommon.RouteValidationOptions{
+		AllowExternalCertificates: feature.DefaultMutableFeatureGate.Enabled(featuregate.Feature(configv1.FeatureGateRouteExternalCertificate)),
+	}
 }
 
 func (a *hostAssignment) ValidateInitialization() error {
