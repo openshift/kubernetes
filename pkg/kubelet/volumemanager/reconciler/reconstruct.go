@@ -95,6 +95,7 @@ func (rc *reconciler) syncStates(kubeletPodDir string) {
 			klog.V(4).InfoS("Volume exists in desired state, marking as InUse", "podName", volume.podName, "volumeSpecName", volume.volumeSpecName)
 			continue
 		}
+		gvl.addPodVolume(reconstructedVolume)
 		// There is no pod that uses the volume.
 		if rc.operationExecutor.IsOperationPending(reconstructedVolume.volumeName, nestedpendingoperations.EmptyUniquePodName, nestedpendingoperations.EmptyNodeName) {
 			klog.InfoS("Volume is in pending operation, skip cleaning up mounts")
