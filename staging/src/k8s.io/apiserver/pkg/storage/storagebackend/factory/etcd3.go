@@ -153,19 +153,11 @@ func newETCD3Check(c storagebackend.Config, timeout time.Duration, stopCh <-chan
 	// retry in a loop in the background until we successfully create the client, storing the client or error encountered
 
 	lock := sync.RWMutex{}
-<<<<<<< HEAD
-	var client *clientv3.Client
-	clientErr := fmt.Errorf("etcd client connection not yet established")
-
-	go wait.PollUntil(time.Second, func() (bool, error) {
-		newClient, err := newETCD3Client(c.Transport)
-=======
 	var prober *etcd3Prober
 	clientErr := fmt.Errorf("etcd client connection not yet established")
 
 	go wait.PollUntil(time.Second, func() (bool, error) {
 		newProber, err := newETCD3Prober(c)
->>>>>>> v1.25.12
 		lock.Lock()
 		defer lock.Unlock()
 		// Ensure that server is already not shutting down.
@@ -222,18 +214,8 @@ func newETCD3Check(c storagebackend.Config, timeout time.Duration, stopCh <-chan
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		// See https://github.com/etcd-io/etcd/blob/c57f8b3af865d1b531b979889c602ba14377420e/etcdctl/ctlv3/command/ep_command.go#L118
-<<<<<<< HEAD
 		now := time.Now()
-		_, err := client.Get(ctx, path.Join("/", c.Prefix, "health"))
-		if err != nil {
-			err = fmt.Errorf("error getting data from etcd: %w", err)
-=======
 		err := prober.Probe(ctx)
-		if err == nil {
-			return nil
->>>>>>> v1.25.12
-		}
 		lastError.Store(err, now)
 		return err
 	}, nil
