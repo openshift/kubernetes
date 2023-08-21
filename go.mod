@@ -409,11 +409,7 @@ replace (
 	github.com/gonum/lapack => github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9
 	github.com/gonum/matrix => github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9
 	github.com/google/btree => github.com/google/btree v1.0.1
-<<<<<<< HEAD
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.44.1-openshift-4.11
-=======
-	github.com/google/cadvisor => github.com/google/cadvisor v0.44.2
->>>>>>> v1.24.16
 	github.com/google/cel-go => github.com/google/cel-go v0.10.4
 	github.com/google/cel-spec => github.com/google/cel-spec v0.6.0
 	github.com/google/gnostic => github.com/google/gnostic v0.5.7-v3refs
