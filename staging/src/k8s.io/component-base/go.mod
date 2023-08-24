@@ -24,10 +24,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.10.0
 	go.uber.org/zap v1.19.0
 	golang.org/x/sys v0.10.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
+	k8s.io/apimachinery v0.28.0
+	k8s.io/client-go v0.28.0
 	k8s.io/klog/v2 v2.100.1
-	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
 )
 
@@ -63,7 +63,6 @@ require (
 	go.opentelemetry.io/otel/metric v0.31.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/goleak v1.2.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.13.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
@@ -79,15 +78,26 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.0.0 // indirect
+	k8s.io/api v0.28.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace (
+	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230811135323-13a5964cc98e
+	github.com/openshift/api => github.com/bertinatto/api v0.0.0-20230815232009-4e19797cb1b3
+	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20230816180740-0dcaa2852418
+	github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20230816123209-e7d8f2006034
+	github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20230816123704-f890ce581b2a
 	k8s.io/api => ../api
+	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
+	k8s.io/apiserver => ../apiserver
 	k8s.io/client-go => ../client-go
+	k8s.io/code-generator => ../code-generator
 	k8s.io/component-base => ../component-base
+	k8s.io/component-helpers => ../component-helpers
+	k8s.io/kms => ../kms
+	k8s.io/kube-aggregator => ../kube-aggregator
 )
