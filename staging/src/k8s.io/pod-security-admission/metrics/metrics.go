@@ -100,13 +100,6 @@ func (r *PrometheusRecorder) RecordEvaluation(decision Decision, policy api.Leve
 
 	// prevent cardinality explosion by only recording the platform namespaces
 	namespace := attrs.GetNamespace()
-	if !(namespace == "openshift" ||
-		strings.HasPrefix(namespace, "openshift-") ||
-		strings.HasPrefix(namespace, "kube-") ||
-		namespace == "default") {
-		// remove non-OpenShift platform namespace names to prevent cardinality explosion
-		namespace = ""
-	}
 
 	el := evaluationsLabels{
 		decision:     string(decision),
