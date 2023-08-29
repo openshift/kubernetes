@@ -40,6 +40,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
+	"k8s.io/apiserver/pkg/storage/etcd3/etcd3retry"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -452,7 +453,7 @@ func startCompactorOnce(c storagebackend.TransportConfig, interval time.Duration
 	}, nil
 }
 
-func newETCD3Storage(c storagebackend.ConfigForResource, newFunc, newListFunc func() runtime.Object, reverseKeyFunc storage.ReverseKeyFunc, resourcePrefix string) (storage.Interface, DestroyFunc, error) {
+func newETCD3Storage(c storagebackend.ConfigForResource, newFunc, newListFunc func() runtime.Object, resourcePrefix string) (storage.Interface, DestroyFunc, error) {
 	compactor, stopCompactor, err := startCompactorOnce(c.Transport, c.CompactionInterval)
 	if err != nil {
 		return nil, nil, err
@@ -479,12 +480,13 @@ func newETCD3Storage(c storagebackend.ConfigForResource, newFunc, newListFunc fu
 		transformer = etcd3.WithCorruptObjErrorHandlingTransformer(transformer)
 		decoder = etcd3.WithCorruptObjErrorHandlingDecoder(decoder)
 	}
-	store, err := etcd3.New(client, compactor, c.Codec, newFunc, newListFunc, reverseKeyFunc, c.Prefix, resourcePrefix, c.GroupResource, transformer, c.LeaseManagerConfig, decoder, versioner)
+	etcd3StorageInterface, err := etcd3.New(client, compactor, c.Codec, newFunc, newListFunc, reverseKeyFunc, c.Prefix, resourcePrefix, c.GroupResource, transformer, c.LeaseManagerConfig, decoder, versioner)
 	if err != nil {
 		stopCompactor()
 		_ = client.Close()
 		return nil, nil, err
 	}
+	store := etcd3retry.NewRetryingEtcdStorage(etcd3StorageInterface)
 	var once sync.Once
 	destroyFunc := func() {
 		// we know that storage destroy funcs are called multiple times (due to reuse in subresources).
@@ -492,7 +494,7 @@ func newETCD3Storage(c storagebackend.ConfigForResource, newFunc, newListFunc fu
 		// TODO: fix duplicated storage destroy calls higher level
 		once.Do(func() {
 			stopCompactor()
-			store.Close()
+			etcd3StorageInterface.Close()
 			_ = client.Close()
 		})
 	}
