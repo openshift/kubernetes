@@ -39,6 +39,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"k8s.io/apiserver/pkg/storage/etcd3/etcd3retry"
 	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -455,7 +456,8 @@ func newETCD3Storage(c storagebackend.ConfigForResource, newFunc, newListFunc fu
 		transformer = etcd3.WithCorruptObjErrorHandlingTransformer(transformer)
 		decoder = etcd3.WithCorruptObjErrorHandlingDecoder(decoder)
 	}
-	store := etcd3.New(client, compactor, c.Codec, newFunc, newListFunc, c.Prefix, resourcePrefix, c.GroupResource, transformer, c.LeaseManagerConfig, decoder, versioner)
+	etcd3StorageInterface := etcd3.New(client, compactor, c.Codec, newFunc, newListFunc, c.Prefix, resourcePrefix, c.GroupResource, transformer, c.LeaseManagerConfig, decoder, versioner)
+	store := etcd3retry.NewRetryingEtcdStorage(etcd3StorageInterface)
 	var once sync.Once
 	destroyFunc := func() {
 		// we know that storage destroy funcs are called multiple times (due to reuse in subresources).
@@ -464,7 +466,7 @@ func newETCD3Storage(c storagebackend.ConfigForResource, newFunc, newListFunc fu
 		once.Do(func() {
 			stopCompactor()
 			stopDBSizeMonitor()
-			store.Close()
+			etcd3StorageInterface.Close()
 			_ = client.Close()
 		})
 	}
