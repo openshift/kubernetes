@@ -57,6 +57,7 @@ import (
 	"k8s.io/utils/exec"
 	fakeexec "k8s.io/utils/exec/testing"
 	netutils "k8s.io/utils/net"
+	"k8s.io/utils/pointer"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -2204,7 +2205,96 @@ func TestClusterIPEndpointsJump(t *testing.T) {
 	})
 }
 
-func TestOpenShiftDNSHack(t *testing.T) {
+func TestOpenShiftDNSHackTCP(t *testing.T) {
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt)
+	svcIP := "172.30.0.10"
+	svcPort := 53
+	podPort := 5353
+	svcPortName := proxy.ServicePortName{
+		NamespacedName: makeNSN("openshift-dns", "dns-default"),
+		Port:           "dns-tcp",
+		Protocol:       v1.ProtocolTCP,
+	}
+
+	makeServiceMap(fp,
+		makeTestService(svcPortName.Namespace, svcPortName.Name, func(svc *v1.Service) {
+			svc.Spec.ClusterIP = svcIP
+			svc.Spec.Ports = []v1.ServicePort{{
+				Name:     svcPortName.Port,
+				Port:     int32(svcPort),
+				Protocol: svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	populateEndpointSlices(fp,
+		makeTestEndpointSlice(svcPortName.Namespace, svcPortName.Name, 1, func(eps *discovery.EndpointSlice) {
+			eps.AddressType = discovery.AddressTypeIPv4
+			eps.Endpoints = []discovery.Endpoint{{
+				// This endpoint is ignored because it's remote
+				Addresses: []string{"10.180.0.2"},
+				NodeName:  pointer.StringPtr("node2"),
+			}, {
+				Addresses: []string{"10.180.0.1"},
+				NodeName:  pointer.StringPtr(testHostname),
+			}}
+			eps.Ports = []discovery.EndpointPort{{
+				Name:     pointer.StringPtr(svcPortName.Port),
+				Port:     pointer.Int32(int32(podPort)),
+				Protocol: &svcPortName.Protocol,
+			}}
+		}),
+	)
+
+	// Deal with conntrack stuff
+	fakeExec := fp.exec.(*fakeexec.FakeExec)
+	fakeExec.LookPathFunc = func(cmd string) (string, error) { return cmd, nil }
+	fcmd := fakeexec.FakeCmd{
+		CombinedOutputScript: []fakeexec.FakeAction{
+			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
+		},
+	}
+	fakeExec.CommandScript = []fakeexec.FakeCommandAction{
+		func(cmd string, args ...string) exec.Cmd { return fakeexec.InitFakeCmd(&fcmd, cmd, args...) },
+	}
+
+	fp.syncProxyRules()
+
+	expected := dedent.Dedent(`
+		*filter
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-EXTERNAL-SERVICES - [0:0]
+		:KUBE-FORWARD - [0:0]
+		:KUBE-PROXY-FIREWALL - [0:0]
+		-A KUBE-FORWARD -m conntrack --ctstate INVALID -j DROP
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding rules" -m mark --mark 0x4000/0x4000 -j ACCEPT
+		-A KUBE-FORWARD -m comment --comment "kubernetes forwarding conntrack rule" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+		COMMIT
+		*nat
+		:KUBE-NODEPORTS - [0:0]
+		:KUBE-SERVICES - [0:0]
+		:KUBE-MARK-MASQ - [0:0]
+		:KUBE-POSTROUTING - [0:0]
+		:KUBE-SEP-2BB3P6JTCQXWOZ75 - [0:0]
+		:KUBE-SVC-6BRQXW4I6ZZ3LHZH - [0:0]
+		-A KUBE-SERVICES -m comment --comment "openshift-dns/dns-default:dns-tcp cluster IP" -m tcp -p tcp -d 172.30.0.10 --dport 53 -j KUBE-SVC-6BRQXW4I6ZZ3LHZH
+		-A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
+		-A KUBE-MARK-MASQ -j MARK --or-mark 0x4000
+		-A KUBE-POSTROUTING -m mark ! --mark 0x4000/0x4000 -j RETURN
+		-A KUBE-POSTROUTING -j MARK --xor-mark 0x4000
+		-A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -j MASQUERADE
+		-A KUBE-SEP-2BB3P6JTCQXWOZ75 -m comment --comment openshift-dns/dns-default:dns-tcp -s 10.180.0.1 -j KUBE-MARK-MASQ
+		-A KUBE-SEP-2BB3P6JTCQXWOZ75 -m comment --comment openshift-dns/dns-default:dns-tcp -m tcp -p tcp -j DNAT --to-destination 10.180.0.1:5353
+		-A KUBE-SVC-6BRQXW4I6ZZ3LHZH -m comment --comment "openshift-dns/dns-default:dns-tcp cluster IP" -m tcp -p tcp -d 172.30.0.10 --dport 53 ! -s 10.0.0.0/8 -j KUBE-MARK-MASQ
+		-A KUBE-SVC-6BRQXW4I6ZZ3LHZH -m comment --comment "openshift-dns/dns-default:dns-tcp -> 10.180.0.1:5353" -j KUBE-SEP-2BB3P6JTCQXWOZ75
+		COMMIT
+		`)
+	assertIPTablesRulesEqual(t, getLine(), expected, fp.iptablesData.String())
+}
+
+func TestOpenShiftDNSHackUDP(t *testing.T) {
 	ipt := iptablestest.NewFake()
 	fp := NewFakeProxier(ipt)
 	svcIP := "172.30.0.10"
@@ -2246,14 +2336,14 @@ func TestOpenShiftDNSHack(t *testing.T) {
 		}),
 	)
 
-	// Deal with UDP conntrack stuff
+	// Setup fake exec to mimic output from conntrack CLI tool
 	fakeExec := fp.exec.(*fakeexec.FakeExec)
 	fakeExec.LookPathFunc = func(cmd string) (string, error) { return cmd, nil }
 	fcmd := fakeexec.FakeCmd{
 		CombinedOutputScript: []fakeexec.FakeAction{
-                        func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
-                },
-        }
+			func() ([]byte, []byte, error) { return []byte{}, nil, nil },
+		},
+	}
 	fakeExec.CommandScript = []fakeexec.FakeCommandAction{
 		func(cmd string, args ...string) exec.Cmd { return fakeexec.InitFakeCmd(&fcmd, cmd, args...) },
 	}
@@ -2340,9 +2430,9 @@ func TestOpenShiftDNSHackFallback(t *testing.T) {
 	fakeExec.LookPathFunc = func(cmd string) (string, error) { return cmd, nil }
 	fcmd := fakeexec.FakeCmd{
 		CombinedOutputScript: []fakeexec.FakeAction{
-                        func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
-                },
-        }
+			func() ([]byte, []byte, error) { return []byte("1 flow entries have been deleted"), nil, nil },
+		},
+	}
 	fakeExec.CommandScript = []fakeexec.FakeCommandAction{
 		func(cmd string, args ...string) exec.Cmd { return fakeexec.InitFakeCmd(&fcmd, cmd, args...) },
 	}
