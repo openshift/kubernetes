@@ -52,7 +52,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.4
-	github.com/opencontainers/runc v1.1.6
+	github.com/opencontainers/runc v1.1.9
 	github.com/opencontainers/selinux v1.10.0
 	github.com/openshift/api v0.0.0-20230703134140-1c2204a0195c
 	github.com/openshift/apiserver-library-go v0.0.0-20230807133552-675520b3d567
@@ -252,7 +252,7 @@ require (
 )
 
 replace (
-	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.47.1-openshift-4.15
+	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.47.1-openshift-4.15-1
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
