@@ -20,6 +20,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -496,6 +497,14 @@ func (og *operationGenerator) GenerateDetachVolumeFunc(
 		if verifySafeToDetach {
 			err = og.verifyVolumeIsSafeToDetach(volumeToDetach)
 		}
+
+		// terrible hack-ish attempt to reproduce OCPBUGS-18531
+		// delay Detach long enough to allow an Attach request to start
+		sec := rand.Intn(8) + 2 // 2 - 10 seconds
+		msg := fmt.Sprintf("DEBUG: sleeping for %q seconds before detach", sec)
+		klog.Infof(volumeToDetach.GenerateMsgDetailed(msg, ""))
+		time.Sleep(time.Duration(sec) * time.Second) // 2 - 10 seconds
+
 		if err == nil {
 			err = volumeDetacher.Detach(volumeName, volumeToDetach.NodeName)
 		}
