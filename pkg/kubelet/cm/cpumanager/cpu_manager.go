@@ -349,6 +349,22 @@ type reconciledContainer struct {
 	containerID   string
 }
 
+func (m *manager) getActiveAndAdmittedPods() []*v1.Pod {
+	activeAndAdmittedPods := m.activePods()
+	if m.pendingAdmissionPod == nil {
+		return activeAndAdmittedPods
+	}
+	for _, pod := range activeAndAdmittedPods {
+		if pod.UID == m.pendingAdmissionPod.UID {
+			klog.InfoS("pending pod already in the active list", "pod", klog.KObj(pod), "podUID", pod.UID)
+			return activeAndAdmittedPods
+		}
+		activeAndAdmittedPods = append(activeAndAdmittedPods, m.pendingAdmissionPod)
+		klog.InfoS("pending pod added to the active list", "pod", klog.KObj(pod), "podUID", pod.UID)
+	}
+	return activeAndAdmittedPods
+}
+
 func (m *manager) removeStaleState(logKey interface{}) {
 	// Only once all sources are ready do we attempt to remove any stale state.
 	// This ensures that the call to `m.activePods()` below will succeed with
@@ -365,10 +381,7 @@ func (m *manager) removeStaleState(logKey interface{}) {
 	defer m.Unlock()
 
 	// Get the list of active pods.
-	activeAndAdmittedPods := m.activePods()
-	if m.pendingAdmissionPod != nil {
-		activeAndAdmittedPods = append(activeAndAdmittedPods, m.pendingAdmissionPod)
-	}
+	activeAndAdmittedPods := m.getActiveAndAdmittedPods()
 
 	// Build a list of (podUID, containerName) pairs for all containers in all active Pods.
 	activeContainersCount := 0
