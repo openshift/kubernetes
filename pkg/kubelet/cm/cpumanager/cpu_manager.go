@@ -350,18 +350,25 @@ type reconciledContainer struct {
 }
 
 func (m *manager) getActiveAndAdmittedPods() []*v1.Pod {
+	// step 1: clean active list?
 	activeAndAdmittedPods := m.activePods()
+	// step 2: do we have a pending pod at all? if not, nothing to do, bail out
 	if m.pendingAdmissionPod == nil {
 		return activeAndAdmittedPods
 	}
+	klog.InfoS("pending pod on record", "pod", klog.KObj(m.pendingAdmissionPod), "podUID", m.pendingAdmissionPod.UID)
+	// step 3: is the pending pod already in the active list? if so the original
+	// bug has indeed a better fix, and we need to do nothing, bail out
 	for _, pod := range activeAndAdmittedPods {
 		if pod.UID == m.pendingAdmissionPod.UID {
 			klog.InfoS("pending pod already in the active list", "pod", klog.KObj(pod), "podUID", pod.UID)
-			return activeAndAdmittedPods
+			// keep the original buggy behavior
+			// return activeAndAdmittedPods
 		}
-		activeAndAdmittedPods = append(activeAndAdmittedPods, m.pendingAdmissionPod)
-		klog.InfoS("pending pod added to the active list", "pod", klog.KObj(pod), "podUID", pod.UID)
 	}
+	// step 4: the pending pod was NOT in the active list. We need to actually do the original buggy fix
+	activeAndAdmittedPods = append(activeAndAdmittedPods, m.pendingAdmissionPod)
+	klog.InfoS("pending pod added to the active list", "pod", klog.KObj(m.pendingAdmissionPod), "podUID", m.pendingAdmissionPod.UID)
 	return activeAndAdmittedPods
 }
 
