@@ -986,15 +986,3 @@ func (az *Cloud) ShouldNodeExcludedFromLoadBalancer(nodeName string) (bool, erro
 
 	return az.excludeLoadBalancerNodes.Has(nodeName), nil
 }
-<<<<<<< HEAD
-
-func getCloudTaint(taints []v1.Taint) *v1.Taint {
-	for _, taint := range taints {
-		if taint.Key == cloudproviderapi.TaintExternalCloudProvider {
-			return &taint
-		}
-	}
-	return nil
-}
-=======
->>>>>>> v1.26.9
