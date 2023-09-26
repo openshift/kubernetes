@@ -145,7 +145,9 @@ func TestEventSeries(t *testing.T) {
 			return false, err
 		}
 
-		if len(events.Items) != 1 {
+		// Be sure that at least the events we sent in the test were delivered.
+		// To add any events from the kube-apiserver itself will require this tolerate additional events.
+		if len(events.Items) < 1 {
 			return false, nil
 		}
 
