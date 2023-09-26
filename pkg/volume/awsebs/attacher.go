@@ -279,11 +279,6 @@ func (plugin *awsElasticBlockStorePlugin) NewDeviceUnmounter() (volume.DeviceUnm
 func (detacher *awsElasticBlockStoreDetacher) Detach(volumeName string, nodeName types.NodeName) error {
 	volumeID := aws.KubernetesVolumeID(path.Base(volumeName))
 
-	// terrible hack-ish attempt to reproduce OCPBUGS-18531
-	// delay Detach long enough to allow an Attach request to start
-	klog.Infof("DEBUG: sleeping for 30 min before detaching %q from %q", volumeID, nodeName)
-	time.Sleep(30 * time.Minute)
-
 	if _, err := detacher.awsVolumes.DetachDisk(volumeID, nodeName); err != nil {
 		klog.Errorf("Error detaching volumeID %q: %v", volumeID, err)
 		return err
