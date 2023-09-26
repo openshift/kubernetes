@@ -277,6 +277,10 @@ func (plugin *awsElasticBlockStorePlugin) NewDeviceUnmounter() (volume.DeviceUnm
 }
 
 func (detacher *awsElasticBlockStoreDetacher) Detach(volumeName string, nodeName types.NodeName) error {
+	if _, err := os.Stat("/tmp/detach-error"); err == nil {
+		time.Sleep(100 * time.Second)
+		return fmt.Errorf("simulated error detaching volume %q", volumeName)
+	}
 	volumeID := aws.KubernetesVolumeID(path.Base(volumeName))
 
 	if _, err := detacher.awsVolumes.DetachDisk(volumeID, nodeName); err != nil {
