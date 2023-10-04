@@ -462,6 +462,7 @@ var _ = SIGDescribe("kubelet", func() {
 		)
 
 		ginkgo.BeforeEach(func(ctx context.Context) {
+			e2eskipper.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
 			nodes, err := e2enode.GetBoundedReadySchedulableNodes(ctx, c, maxNodesToCheck)
 			numNodes = len(nodes.Items)
 			framework.ExpectNoError(err)
