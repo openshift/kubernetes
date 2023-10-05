@@ -159,13 +159,14 @@ func (r *externalIPRanger) Validate(ctx context.Context, a admission.Attributes,
 	var errs field.ErrorList
 	switch {
 	// administrator disabled externalIPs
-	case len(svc.Spec.ExternalIPs) > 0 && len(r.admit) == 0:
+	case len(svc.Spec.ExternalIPs) > 0 && len(r.admit) == 0 && len(r.reject) == 0:
 		onlyIngressIP := len(svc.Spec.ExternalIPs) == 1 && svc.Spec.ExternalIPs[0] == ingressIP
 		if !onlyIngressIP {
 			errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs"), "externalIPs have been disabled"))
 		}
 	// administrator has limited the range
-	case len(svc.Spec.ExternalIPs) > 0 && len(r.admit) > 0:
+	case len(svc.Spec.ExternalIPs) > 0 && (len(r.admit) > 0 || len(r.reject) > 0):
+		var forbidden bool
 		for i, s := range svc.Spec.ExternalIPs {
 			ip := netutils.ParseIPSloppy(s)
 			if ip == nil {
@@ -173,9 +174,14 @@ func (r *externalIPRanger) Validate(ctx context.Context, a admission.Attributes,
 				continue
 			}
 			notIngressIP := s != ingressIP
-			if (NetworkSlice(r.reject).Contains(ip) || !NetworkSlice(r.admit).Contains(ip)) && notIngressIP {
+			forbidden = false
+			if len(r.reject) > 0 && NetworkSlice(r.reject).Contains(ip) && notIngressIP {
+				forbidden = true
+			} else if len(r.admit) > 0 && !NetworkSlice(r.admit).Contains(ip) && notIngressIP {
+				forbidden = true
+			}
+			if forbidden {
 				errs = append(errs, field.Forbidden(field.NewPath("spec", "externalIPs").Index(i), "externalIP is not allowed"))
-				continue
 			}
 		}
 	}

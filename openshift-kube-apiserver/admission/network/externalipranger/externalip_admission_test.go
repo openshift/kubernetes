@@ -136,6 +136,14 @@ func TestAdmission(t *testing.T) {
 			userinfo: serviceaccount.UserInfo("test", "ordinary-user", ""),
 		},
 		{
+			admit:       true,
+			rejects:     []*net.IPNet{ipv4},
+			externalIPs: []string{"1.2.3.4"},
+			op:          admission.Create,
+			testName:    "IP not in reject range on create and admits is empty",
+			userinfo:    serviceaccount.UserInfo("test", "ordinary-user", ""),
+		},
+		{
 			admit:       false,
 			admits:      []*net.IPNet{ipv4},
 			externalIPs: []string{"1.2.3.4"},
