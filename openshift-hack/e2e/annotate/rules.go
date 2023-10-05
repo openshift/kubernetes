@@ -147,9 +147,6 @@ var (
 			`\[sig-network\] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod`, // TODO(network): simple test in k8s 1.27, needs investigation
 			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`,                    // TODO(workloads): alpha feature in k8s 1.27. It's failing with `error: unknown flag: --applyset`. Needs investigation
 
-			// https://issues.redhat.com/browse/OCPBUGS-16760
-			`\[Feature:NodeLogQuery\]`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-16922
 			`AdmissionWebhook \[Privileged:ClusterAdmin\] should reject mutating webhook configurations with invalid match conditions`,
 			`AdmissionWebhook \[Privileged:ClusterAdmin\] should be able to deny pod and configmap creation`,

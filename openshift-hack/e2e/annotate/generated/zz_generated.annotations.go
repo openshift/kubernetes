@@ -1851,21 +1851,21 @@ var Annotations = map[string]string{
 
 	"[sig-node] kubelet host cleanup with volume mounts [HostCleanup][Flaky] Host cleanup after disrupting NFS volume [NFS] after stopping the nfs-server and deleting the (sleeping) client pod, the NFS mount and the pod's UID directory should be removed.": " [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the error of running without --query option": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the error of running without --query option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the current boot with pattern error and output in 2 lines": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the current boot with pattern error and output in 2 lines": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the current boot": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the current boot": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the previous boot": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the previous boot": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs ": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs ": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs filtered by pattern container": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs filtered by pattern container": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs for the requested query since the current date and time": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs for the requested query since the current date and time": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs for the requested query until the current date and time": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the logs for the requested query until the current date and time": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-scheduling] GPUDevicePluginAcrossRecreate [Feature:Recreate] run Nvidia GPU Device Plugin tests with a recreation": " [Disabled:SpecialConfig] [Suite:k8s]",
 
