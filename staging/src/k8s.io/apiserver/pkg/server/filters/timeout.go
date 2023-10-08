@@ -146,13 +146,13 @@ func (t *timeoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return false
 		})
 		defer postTimeoutFn()
-		tw.timeout(err)
+		tw.timeout(r, err)
 	}
 }
 
 type timeoutWriter interface {
 	http.ResponseWriter
-	timeout(*apierrors.StatusError)
+	timeout(*http.Request, *apierrors.StatusError)
 }
 
 func newTimeoutWriter(w http.ResponseWriter) (timeoutWriter, http.ResponseWriter) {
@@ -245,7 +245,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func (tw *baseTimeoutWriter) timeout(err *apierrors.StatusError) {
+func (tw *baseTimeoutWriter) timeout(r *http.Request, err *apierrors.StatusError) {
 	tw.mu.Lock()
 	defer tw.mu.Unlock()
 
@@ -255,6 +255,14 @@ func (tw *baseTimeoutWriter) timeout(err *apierrors.StatusError) {
 	// We can safely timeout the HTTP request by sending by a timeout
 	// handler
 	if !tw.wroteHeader && !tw.hijacked {
+		// http2 is an expensive protocol that is prone to abuse,
+		// see CVE-2023-44487 and CVE-2023-39325 for an example.
+		// Do not allow clients to reset these connections
+		// prematurely as that can trivially OOM the api server
+		// (i.e. basically degrade them to http1).
+		if isLikelyEarlyHTTP2Reset(r) {
+			tw.w.Header().Set("Connection", "close")
+		}
 		tw.w.WriteHeader(http.StatusGatewayTimeout)
 		enc := json.NewEncoder(tw.w)
 		enc.Encode(&err.ErrStatus)
@@ -275,6 +283,24 @@ func (tw *baseTimeoutWriter) timeout(err *apierrors.StatusError) {
 		// We are throwing http.ErrAbortHandler deliberately so that a client is notified and to suppress a not helpful stacktrace in the logs
 		panic(http.ErrAbortHandler)
 	}
+}
+
+// isLikelyEarlyHTTP2Reset returns true if an http2 stream was reset before the request deadline.
+// Note that this does not prevent a client from trying to create more streams than the configured
+// max, but https://github.com/golang/net/commit/b225e7ca6dde1ef5a5ae5ce922861bda011cfabd protects
+// us from abuse via that vector.
+func isLikelyEarlyHTTP2Reset(r *http.Request) bool {
+	if r.ProtoMajor != 2 {
+		return false
+	}
+
+	deadline, ok := r.Context().Deadline()
+	if !ok {
+		return true // this context had no deadline but was canceled meaning the client likely reset it early
+	}
+
+	// this context was canceled before its deadline meaning the client likely reset it early
+	return time.Now().Before(deadline)
 }
 
 func (tw *baseTimeoutWriter) CloseNotify() <-chan bool {
