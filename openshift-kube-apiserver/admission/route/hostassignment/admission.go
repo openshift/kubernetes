@@ -11,16 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
-	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
-	"k8s.io/component-base/featuregate"
 
-	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	routecommon "github.com/openshift/library-go/pkg/route"
 	"github.com/openshift/library-go/pkg/route/hostassignment"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/route"
 	hostassignmentapi "k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/hostassignment"
 	hostassignmentv1 "k8s.io/kubernetes/openshift-kube-apiserver/admission/route/apis/hostassignment/v1"
 )
@@ -152,9 +150,7 @@ var _ initializer.WantsExternalKubeClientSet = &hostAssignment{}
 
 func (a *hostAssignment) SetExternalKubeClientSet(clientset kubernetes.Interface) {
 	a.sarClient = clientset.AuthorizationV1().SubjectAccessReviews()
-	a.validationOpts = routecommon.RouteValidationOptions{
-		AllowExternalCertificates: feature.DefaultMutableFeatureGate.Enabled(featuregate.Feature(configv1.FeatureGateRouteExternalCertificate)),
-	}
+	a.validationOpts = route.NewRouteValidationOpts().Initialize().GetValidationOptions()
 }
 
 func (a *hostAssignment) ValidateInitialization() error {

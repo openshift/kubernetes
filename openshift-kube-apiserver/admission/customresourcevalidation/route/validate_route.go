@@ -12,7 +12,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	routev1 "github.com/openshift/api/route/v1"
-	routecommon "github.com/openshift/library-go/pkg/route"
 	routevalidation "github.com/openshift/library-go/pkg/route/validation"
 )
 
@@ -41,9 +40,9 @@ func toRoute(uncastObj runtime.Object) (*routev1.Route, field.ErrorList) {
 }
 
 type routeV1 struct {
-	sarc           authorizationv1client.SubjectAccessReviewInterface
-	secretsGetter  corev1client.SecretsGetter
-	validationOpts routecommon.RouteValidationOptions
+	secretsGetter             corev1client.SecretsGetter
+	sarGetter                 authorizationv1client.SubjectAccessReviewsGetter
+	routeValidationOptsGetter RouteValidationOptionGetter
 }
 
 func (r routeV1) ValidateCreate(obj runtime.Object) field.ErrorList {
@@ -52,7 +51,7 @@ func (r routeV1) ValidateCreate(obj runtime.Object) field.ErrorList {
 		return errs
 	}
 
-	return routevalidation.ValidateRoute(context.TODO(), routeObj, r.sarc, r.secretsGetter, r.validationOpts)
+	return routevalidation.ValidateRoute(context.TODO(), routeObj, r.sarGetter.SubjectAccessReviews(), r.secretsGetter, r.routeValidationOptsGetter.GetValidationOptions())
 }
 
 func (r routeV1) ValidateUpdate(obj runtime.Object, oldObj runtime.Object) field.ErrorList {
@@ -66,7 +65,7 @@ func (r routeV1) ValidateUpdate(obj runtime.Object, oldObj runtime.Object) field
 		return errs
 	}
 
-	return routevalidation.ValidateRouteUpdate(context.TODO(), routeObj, routeOldObj, r.sarc, r.secretsGetter, r.validationOpts)
+	return routevalidation.ValidateRouteUpdate(context.TODO(), routeObj, routeOldObj, r.sarGetter.SubjectAccessReviews(), r.secretsGetter, r.routeValidationOptsGetter.GetValidationOptions())
 }
 
 func (r routeV1) ValidateStatusUpdate(obj runtime.Object, oldObj runtime.Object) field.ErrorList {
