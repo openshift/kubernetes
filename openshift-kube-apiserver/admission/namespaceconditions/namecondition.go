@@ -2,14 +2,17 @@ package namespaceconditions
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/warning"
 )
 
 // pluginHandlerWithNamespaceNameConditions skips running admission plugins if they deal in the namespaceToExclude list
 type pluginHandlerWithNamespaceNameConditions struct {
+	pluginName          string
 	admissionPlugin     admission.Interface
 	namespacesToExclude sets.String
 }
@@ -24,6 +27,7 @@ func (p pluginHandlerWithNamespaceNameConditions) Handles(operation admission.Op
 // Admit performs a mutating admission control check and emit metrics.
 func (p pluginHandlerWithNamespaceNameConditions) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
 	if !p.shouldRunAdmission(a) {
+		p.recordSkippedWarning(ctx, a.GetNamespace())
 		return nil
 	}
 
@@ -37,6 +41,7 @@ func (p pluginHandlerWithNamespaceNameConditions) Admit(ctx context.Context, a a
 // Validate performs a non-mutating admission control check and emits metrics.
 func (p pluginHandlerWithNamespaceNameConditions) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
 	if !p.shouldRunAdmission(a) {
+		p.recordSkippedWarning(ctx, a.GetNamespace())
 		return nil
 	}
 
@@ -57,4 +62,8 @@ func (p pluginHandlerWithNamespaceNameConditions) shouldRunAdmission(attr admiss
 	}
 
 	return true
+}
+
+func (p pluginHandlerWithNamespaceNameConditions) recordSkippedWarning(ctx context.Context, ns string) {
+	warning.AddWarning(ctx, "", fmt.Sprintf("Admission plugin %q skipped due to request namespace %q.", p.pluginName, ns))
 }

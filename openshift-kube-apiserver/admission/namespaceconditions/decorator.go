@@ -32,7 +32,9 @@ func (d *NamespaceLabelConditions) WithNamespaceLabelConditions(admissionPlugin 
 		// return a decorated admission plugin that skips runlevel 0 and 1 namespaces based on name (for known values) and
 		// label.
 		return &pluginHandlerWithNamespaceNameConditions{
+			pluginName: name,
 			admissionPlugin: &pluginHandlerWithNamespaceLabelConditions{
+				pluginName:        name,
 				admissionPlugin:   admissionPlugin,
 				namespaceClient:   d.NamespaceClient,
 				namespaceLister:   d.NamespaceLister,
@@ -45,7 +47,9 @@ func (d *NamespaceLabelConditions) WithNamespaceLabelConditions(admissionPlugin 
 		// return a decorated admission plugin that skips runlevel 0 namespaces based on name (for known values) and
 		// label.
 		return &pluginHandlerWithNamespaceNameConditions{
+			pluginName: name,
 			admissionPlugin: &pluginHandlerWithNamespaceLabelConditions{
+				pluginName:        name,
 				admissionPlugin:   admissionPlugin,
 				namespaceClient:   d.NamespaceClient,
 				namespaceLister:   d.NamespaceLister,
@@ -83,6 +87,7 @@ func (d *NamespaceLabelSelector) WithNamespaceLabelSelector(admissionPlugin admi
 	}
 
 	return &pluginHandlerWithNamespaceLabelConditions{
+		pluginName:        name,
 		admissionPlugin:   admissionPlugin,
 		namespaceClient:   d.namespaceClient,
 		namespaceLister:   d.namespaceLister,

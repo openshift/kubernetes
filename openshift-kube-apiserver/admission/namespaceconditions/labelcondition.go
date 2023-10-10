@@ -2,12 +2,14 @@ package namespaceconditions
 
 import (
 	"context"
+	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/warning"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 )
@@ -33,6 +35,7 @@ func init() {
 
 // pluginHandlerWithNamespaceLabelConditions wraps an admission plugin in a conditional skip based on namespace labels
 type pluginHandlerWithNamespaceLabelConditions struct {
+	pluginName        string
 	admissionPlugin   admission.Interface
 	namespaceClient   corev1client.NamespacesGetter
 	namespaceLister   corev1lister.NamespaceLister
@@ -48,27 +51,31 @@ func (p pluginHandlerWithNamespaceLabelConditions) Handles(operation admission.O
 
 // Admit performs a mutating admission control check and emit metrics.
 func (p pluginHandlerWithNamespaceLabelConditions) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
-	if !p.shouldRunAdmission(a) {
-		return nil
-	}
-
 	mutatingHandler, ok := p.admissionPlugin.(admission.MutationInterface)
 	if !ok {
 		return nil
 	}
+
+	if !p.shouldRunAdmission(a) {
+		p.recordSkippedWarning(ctx)
+		return nil
+	}
+
 	return mutatingHandler.Admit(ctx, a, o)
 }
 
 // Validate performs a non-mutating admission control check and emits metrics.
 func (p pluginHandlerWithNamespaceLabelConditions) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
-	if !p.shouldRunAdmission(a) {
-		return nil
-	}
-
 	validatingHandler, ok := p.admissionPlugin.(admission.ValidationInterface)
 	if !ok {
 		return nil
 	}
+
+	if !p.shouldRunAdmission(a) {
+		p.recordSkippedWarning(ctx)
+		return nil
+	}
+
 	return validatingHandler.Validate(ctx, a, o)
 }
 
@@ -122,4 +129,8 @@ func (p pluginHandlerWithNamespaceLabelConditions) getNamespaceLabels(attr admis
 		}
 	}
 	return namespace.Labels, nil
+}
+
+func (p pluginHandlerWithNamespaceLabelConditions) recordSkippedWarning(ctx context.Context) {
+	warning.AddWarning(ctx, "", fmt.Sprintf("Admission plugin %q skipped because namespace labels match the selector %q.", p.pluginName, p.namespaceSelector.String()))
 }
