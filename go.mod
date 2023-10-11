@@ -258,7 +258,7 @@ require (
 replace (
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.47.3-openshift-4.15-1
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230811135323-13a5964cc98e
-	github.com/openshift/library-go => github.com/thejasn/library-go v0.0.0-20231010133927-2805597f9f2c
+	github.com/openshift/library-go => github.com/thejasn/library-go v0.0.0-20231011094227-971698e5dbfc
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery
