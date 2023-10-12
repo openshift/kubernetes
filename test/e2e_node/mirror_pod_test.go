@@ -45,7 +45,7 @@ import (
 
 var _ = SIGDescribe("MirrorPod", func() {
 	f := framework.NewDefaultFramework("mirror-pod")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	ginkgo.Context("when create a mirror pod ", func() {
 		var ns, podPath, staticPodName, mirrorPodName string
 		ginkgo.BeforeEach(func(ctx context.Context) {
@@ -53,7 +53,7 @@ var _ = SIGDescribe("MirrorPod", func() {
 			staticPodName = "static-pod-" + string(uuid.NewUUID())
 			mirrorPodName = staticPodName + "-" + framework.TestContext.NodeName
 
-			podPath = framework.TestContext.KubeletConfig.StaticPodPath
+			podPath = kubeletCfg.StaticPodPath
 
 			ginkgo.By("create the static pod")
 			err := createStaticPod(podPath, staticPodName, ns,
@@ -157,7 +157,7 @@ var _ = SIGDescribe("MirrorPod", func() {
 			staticPodName = "static-pod-" + string(uuid.NewUUID())
 			mirrorPodName = staticPodName + "-" + framework.TestContext.NodeName
 
-			podPath = framework.TestContext.KubeletConfig.StaticPodPath
+			podPath = kubeletCfg.StaticPodPath
 			ginkgo.By("create the static pod")
 			err := createStaticPod(podPath, staticPodName, ns,
 				imageutils.GetE2EImage(imageutils.Nginx), v1.RestartPolicyAlways)
@@ -209,7 +209,7 @@ var _ = SIGDescribe("MirrorPod", func() {
 				e2evolume.TestServerCleanup(ctx, f, nfsTestConfig)
 			})
 
-			podPath = framework.TestContext.KubeletConfig.StaticPodPath
+			podPath = kubeletCfg.StaticPodPath
 			staticPodName = "static-pod-nfs-test-pod" + string(uuid.NewUUID())
 			mirrorPodName = staticPodName + "-" + framework.TestContext.NodeName
 

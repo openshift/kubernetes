@@ -46,11 +46,12 @@ import (
 const (
 	// systemdSuffix is the cgroup name suffix for systemd
 	systemdSuffix string = ".slice"
-	// MemoryMin is memory.min for cgroup v2
-	MemoryMin string = "memory.min"
-	// MemoryHigh is memory.high for cgroup v2
-	MemoryHigh         string = "memory.high"
-	Cgroup2MaxCpuLimit string = "max"
+	// Cgroup2MemoryMin is memory.min for cgroup v2
+	Cgroup2MemoryMin string = "memory.min"
+	// Cgroup2MemoryHigh is memory.high for cgroup v2
+	Cgroup2MemoryHigh      string = "memory.high"
+	Cgroup2MaxCpuLimit     string = "max"
+	Cgroup2MaxSwapFilename string = "memory.swap.max"
 )
 
 var RootCgroupName = CgroupName([]string{})
@@ -464,6 +465,25 @@ func (m *cgroupManagerImpl) Create(cgroupConfig *CgroupConfig) error {
 		return err
 	}
 
+	// Disable cpuset.sched_load_balance for all cgroups Kubelet creates.
+	// This way, CRI can disable sched_load_balance for pods that must have load balance
+	// disabled, but the slices can contain all cpus (as the guaranteed cpus are known dynamically).
+	// Note: this should be done before Apply(-1) below, as Apply contains cpusetCopyIfNeeded(), which will
+	// populate the cpuset with the parent's cpuset. However, it will be initialized to sched_load_balance=1
+	// which will cause the kernel to move all cpusets out of their isolated sched_domain, causing unnecessary churn.
+	if m.cpuLoadBalanceDisable && !libcontainercgroups.IsCgroup2UnifiedMode() {
+		path := manager.Path("cpuset")
+		if path == "" {
+			return fmt.Errorf("Failed to find cpuset for newly created cgroup")
+		}
+		if err := os.MkdirAll(path, 0o755); err != nil {
+			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)
+		}
+		if err := cgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
+			return err
+		}
+	}
+
 	// Apply(-1) is a hack to create the cgroup directories for each resource
 	// subsystem. The function [cgroups.Manager.apply()] applies cgroup
 	// configuration to the process with the specified pid.
@@ -479,20 +499,6 @@ func (m *cgroupManagerImpl) Create(cgroupConfig *CgroupConfig) error {
 	if err := manager.Set(libcontainerCgroupConfig.Resources); err != nil {
 		utilruntime.HandleError(fmt.Errorf("cgroup manager.Set failed: %w", err))
 	}
-
-	// Disable cpuset.sched_load_balance for all cgroups Kubelet creates.
-	// This way, CRI can disable sched_load_balance for pods that must have load balance
-	// disabled, but the slices can contain all cpus (as the guaranteed cpus are known dynamically).
-	if m.cpuLoadBalanceDisable && !libcontainercgroups.IsCgroup2UnifiedMode() {
-		path := manager.Path("cpuset")
-		if path == "" {
-			return fmt.Errorf("Failed to find cpuset for newly created cgroup")
-		}
-		if err := cgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

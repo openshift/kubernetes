@@ -46,14 +46,14 @@ import (
 
 var _ = SIGDescribe("[Feature:StandaloneMode] ", func() {
 	f := framework.NewDefaultFramework("static-pod")
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
+	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
 	ginkgo.Context("when creating a static pod", func() {
 		var ns, podPath, staticPodName string
 
 		ginkgo.It("the pod should be running", func(ctx context.Context) {
 			ns = f.Namespace.Name
 			staticPodName = "static-pod-" + string(uuid.NewUUID())
-			podPath = framework.TestContext.KubeletConfig.StaticPodPath
+			podPath = kubeletCfg.StaticPodPath
 
 			err := createBasicStaticPod(podPath, staticPodName, ns)
 			framework.ExpectNoError(err)
@@ -88,7 +88,7 @@ var _ = SIGDescribe("[Feature:StandaloneMode] ", func() {
 					return nil
 				}
 				return fmt.Errorf("pod (%v/%v) still exists", ns, staticPodName)
-			})
+			}).Should(gomega.Succeed())
 		})
 	})
 })
