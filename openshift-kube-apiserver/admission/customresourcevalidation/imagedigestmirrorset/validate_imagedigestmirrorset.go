@@ -89,15 +89,15 @@ type imagedigestmirrorsetV1 struct {
 	imageContentSourcePoliciesGetter func() operatorsv1alpha1client.ImageContentSourcePoliciesGetter
 }
 
-func (i imagedigestmirrorsetV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
+func (i imagedigestmirrorsetV1) ValidateCreate(_ context.Context, uncastObj runtime.Object) field.ErrorList {
 	return ValidateITMSIDMSUse("create", i.imageContentSourcePoliciesGetter(), IDMSKind)
 }
 
-func (i imagedigestmirrorsetV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imagedigestmirrorsetV1) ValidateUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	return ValidateITMSIDMSUse("update", i.imageContentSourcePoliciesGetter(), IDMSKind)
 }
 
-func (i imagedigestmirrorsetV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imagedigestmirrorsetV1) ValidateStatusUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	return ValidateITMSIDMSUse("update", i.imageContentSourcePoliciesGetter(), IDMSKind)
 }
 

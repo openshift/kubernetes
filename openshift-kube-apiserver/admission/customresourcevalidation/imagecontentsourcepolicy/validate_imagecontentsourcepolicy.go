@@ -94,15 +94,15 @@ type imagecontentsourcepolicy struct {
 	imageTagMirrorSetsGetter    func() configv1client.ImageTagMirrorSetsGetter
 }
 
-func (i imagecontentsourcepolicy) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
+func (i imagecontentsourcepolicy) ValidateCreate(_ context.Context, uncastObj runtime.Object) field.ErrorList {
 	return i.validateICSPUse("create")
 }
 
-func (i imagecontentsourcepolicy) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imagecontentsourcepolicy) ValidateUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	return i.validateICSPUse("update")
 }
 
-func (i imagecontentsourcepolicy) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imagecontentsourcepolicy) ValidateStatusUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	return i.validateICSPUse("update")
 }
 

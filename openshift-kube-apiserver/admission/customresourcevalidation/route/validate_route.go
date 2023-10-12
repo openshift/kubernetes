@@ -45,16 +45,16 @@ type routeV1 struct {
 	routeValidationOptsGetter RouteValidationOptionGetter
 }
 
-func (r routeV1) ValidateCreate(obj runtime.Object) field.ErrorList {
+func (r routeV1) ValidateCreate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	routeObj, errs := toRoute(obj)
 	if len(errs) > 0 {
 		return errs
 	}
 
-	return routevalidation.ValidateRoute(context.TODO(), routeObj, r.sarGetter.SubjectAccessReviews(), r.secretsGetter, r.routeValidationOptsGetter.GetValidationOptions())
+	return routevalidation.ValidateRoute(ctx, routeObj, r.sarGetter.SubjectAccessReviews(), r.secretsGetter, r.routeValidationOptsGetter.GetValidationOptions())
 }
 
-func (r routeV1) ValidateUpdate(obj runtime.Object, oldObj runtime.Object) field.ErrorList {
+func (r routeV1) ValidateUpdate(ctx context.Context, obj runtime.Object, oldObj runtime.Object) field.ErrorList {
 	routeObj, errs := toRoute(obj)
 	if len(errs) > 0 {
 		return errs
@@ -65,10 +65,10 @@ func (r routeV1) ValidateUpdate(obj runtime.Object, oldObj runtime.Object) field
 		return errs
 	}
 
-	return routevalidation.ValidateRouteUpdate(context.TODO(), routeObj, routeOldObj, r.sarGetter.SubjectAccessReviews(), r.secretsGetter, r.routeValidationOptsGetter.GetValidationOptions())
+	return routevalidation.ValidateRouteUpdate(ctx, routeObj, routeOldObj, r.sarGetter.SubjectAccessReviews(), r.secretsGetter, r.routeValidationOptsGetter.GetValidationOptions())
 }
 
-func (r routeV1) ValidateStatusUpdate(obj runtime.Object, oldObj runtime.Object) field.ErrorList {
+func (r routeV1) ValidateStatusUpdate(_ context.Context, obj runtime.Object, oldObj runtime.Object) field.ErrorList {
 	routeObj, errs := toRoute(obj)
 	if len(errs) > 0 {
 		return errs

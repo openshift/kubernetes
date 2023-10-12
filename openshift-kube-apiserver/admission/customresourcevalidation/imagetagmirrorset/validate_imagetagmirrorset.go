@@ -1,6 +1,7 @@
 package imagetagmirrorset
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -80,14 +81,14 @@ type imagetagmirrorsetV1 struct {
 	imageContentSourcePoliciesGetter func() operatorsv1alpha1client.ImageContentSourcePoliciesGetter
 }
 
-func (i imagetagmirrorsetV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
+func (i imagetagmirrorsetV1) ValidateCreate(_ context.Context, uncastObj runtime.Object) field.ErrorList {
 	return imagedigestmirrorset.ValidateITMSIDMSUse("create", i.imageContentSourcePoliciesGetter(), imagedigestmirrorset.ITMSKind)
 }
 
-func (i imagetagmirrorsetV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imagetagmirrorsetV1) ValidateUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	return imagedigestmirrorset.ValidateITMSIDMSUse("update", i.imageContentSourcePoliciesGetter(), imagedigestmirrorset.ITMSKind)
 }
 
-func (i imagetagmirrorsetV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imagetagmirrorsetV1) ValidateStatusUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	return imagedigestmirrorset.ValidateITMSIDMSUse("update", i.imageContentSourcePoliciesGetter(), imagedigestmirrorset.ITMSKind)
 }
