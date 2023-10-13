@@ -25,7 +25,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 
@@ -388,7 +388,7 @@ func TestUnauthenticatedHTTP2ClientConnectionClose(t *testing.T) {
 			f := func(t *testing.T, nextProto string, expectConnections uint64) {
 				defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.UnauthenticatedHTTP2DOSMitigation, !tc.skipHTTP2DOSMitigation)()
 
-				var localAddrs atomic.Uint64 // indicates how many TCP connection set up
+				var localAddrs atomicUint64 // indicates how many TCP connection set up
 
 				tlsConfig := &tls.Config{
 					RootCAs:    rootCAs,
@@ -460,4 +460,26 @@ func TestUnauthenticatedHTTP2ClientConnectionClose(t *testing.T) {
 			// })
 		})
 	}
+}
+
+// atomicUint64 is a mutex-based implementation of atomic.Uint64, as that type is only available in
+// go 1.19 and newer.
+type atomicUint64 struct {
+	lock  sync.Mutex
+	value uint64
+}
+
+func (a *atomicUint64) Add(delta uint64) (new uint64) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	a.value += delta
+	return a.value
+}
+
+func (a *atomicUint64) Load() uint64 {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	return a.value
 }
