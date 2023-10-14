@@ -23,7 +23,7 @@ require (
 	go.opentelemetry.io/otel/sdk v0.20.0
 	go.opentelemetry.io/otel/trace v0.20.0
 	go.uber.org/zap v1.19.0
-	golang.org/x/sys v0.5.0
+	golang.org/x/sys v0.13.0
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
 	k8s.io/klog/v2 v2.30.0
@@ -55,10 +55,10 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/term v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
@@ -79,6 +79,8 @@ replace (
 	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
+	golang.org/x/mod => golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
+	golang.org/x/tools => golang.org/x/tools v0.1.12
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go

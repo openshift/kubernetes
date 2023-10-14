@@ -107,16 +107,16 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/term v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
-	golang.org/x/tools v0.1.12 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
@@ -131,6 +131,8 @@ replace (
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
 	github.com/onsi/ginkgo => github.com/openshift/ginkgo v4.7.0-origin.0+incompatible
 	github.com/openshift/build-machinery-go => github.com/openshift/build-machinery-go v0.0.0-20210806203541-4ea9b6da3a37
+	golang.org/x/mod => golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
+	golang.org/x/tools => golang.org/x/tools v0.1.12
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
