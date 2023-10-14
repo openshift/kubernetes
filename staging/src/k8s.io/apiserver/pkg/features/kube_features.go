@@ -95,6 +95,24 @@ const (
 	// Enable the storage version API.
 	StorageVersionAPI featuregate.Feature = "StorageVersionAPI"
 
+	// owner: @enj
+	// beta: v1.29
+	//
+	// Enables http2 DOS mitigations for unauthenticated clients.
+	//
+	// Some known reasons to disable these mitigations:
+	//
+	// An API server that is fronted by an L7 load balancer that is set up
+	// to mitigate http2 attacks may opt to disable this protection to prevent
+	// unauthenticated clients from disabling connection reuse between the load
+	// balancer and the API server (many incoming connections could share the
+	// same backend connection).
+	//
+	// An API server that is on a private network may opt to disable this
+	// protection to prevent performance regressions for unauthenticated
+	// clients.
+	UnauthenticatedHTTP2DOSMitigation featuregate.Feature = "UnauthenticatedHTTP2DOSMitigation"
+
 	// owner: @wojtek-t
 	// alpha: v1.15
 	// beta: v1.16
@@ -196,6 +214,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	ServerSideApply:                     {Default: true, PreRelease: featuregate.GA},
 	StorageVersionHash:                  {Default: true, PreRelease: featuregate.Beta},
 	StorageVersionAPI:                   {Default: false, PreRelease: featuregate.Alpha},
+	UnauthenticatedHTTP2DOSMitigation:   {Default: true, PreRelease: featuregate.Beta},
 	WatchBookmark:                       {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
 	APIPriorityAndFairness:              {Default: true, PreRelease: featuregate.Beta},
 	RemoveSelfLink:                      {Default: true, PreRelease: featuregate.GA, LockToDefault: true},
