@@ -16,11 +16,44 @@ limitations under the License.
 
 package vsphere
 
-// Context holds common information for vSphere tests
-type Context struct {
+import (
+	"context"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
+)
+
+// TestContext holds common information for vSphere tests
+type TestContext struct {
 	NodeMapper       *NodeMapper
 	VSphereInstances map[string]*VSphere
 }
 
-// TestContext should be used by all tests to access common context data. It should be initialized only once, during bootstrapping the tests.
-var TestContext Context
+func NewTestContext(f *framework.Framework) *TestContext {
+	// Read vSphere conf and get VSphere instances
+	vsphereInstances, err := GetVSphereInstances()
+	if err != nil {
+		framework.Failf("Failed to bootstrap vSphere with error: %v", err)
+	}
+
+	// Get all nodes
+	nodeList, err := f.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		framework.Failf("Failed to get nodes: %v", err)
+	}
+	testContext := &TestContext{NodeMapper: NewNodeMapper(), VSphereInstances: vsphereInstances}
+
+	// Get Node to VSphere mapping
+	err = testContext.NodeMapper.GenerateNodeMap(vsphereInstances, *nodeList)
+	if err != nil {
+		framework.Failf("Failed to bootstrap vSphere with error: %v", err)
+	}
+
+	// Generate Zone to Datastore mapping
+	err = testContext.NodeMapper.GenerateZoneToDatastoreMap()
+	if err != nil {
+		framework.Failf("Failed to generate zone to datastore mapping with error: %v", err)
+	}
+
+	return testContext
+}
