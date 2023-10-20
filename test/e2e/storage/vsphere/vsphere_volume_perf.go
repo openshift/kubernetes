@@ -58,6 +58,7 @@ const (
 var _ = utils.SIGDescribe("vcp-performance [Feature:vsphere]", func() {
 	f := framework.NewDefaultFramework("vcp-performance")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 
 	var (
 		client           clientset.Interface
@@ -72,7 +73,6 @@ var _ = utils.SIGDescribe("vcp-performance [Feature:vsphere]", func() {
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 
@@ -105,7 +105,7 @@ var _ = utils.SIGDescribe("vcp-performance [Feature:vsphere]", func() {
 
 		sumLatency := make(map[string]float64)
 		for i := 0; i < iterations; i++ {
-			latency := invokeVolumeLifeCyclePerformance(ctx, f, client, namespace, scList, volumesPerPod, volumeCount, nodeSelectorList)
+			latency := invokeVolumeLifeCyclePerformance(ctx, testContext, f, client, namespace, scList, volumesPerPod, volumeCount, nodeSelectorList)
 			for key, val := range latency {
 				sumLatency[key] += val
 			}
@@ -163,7 +163,7 @@ func getTestStorageClasses(ctx context.Context, client clientset.Interface, poli
 }
 
 // invokeVolumeLifeCyclePerformance peforms full volume life cycle management and records latency for each operation
-func invokeVolumeLifeCyclePerformance(ctx context.Context, f *framework.Framework, client clientset.Interface, namespace string, sc []*storagev1.StorageClass, volumesPerPod int, volumeCount int, nodeSelectorList []*NodeSelector) (latency map[string]float64) {
+func invokeVolumeLifeCyclePerformance(ctx context.Context, testContext *TestContext, f *framework.Framework, client clientset.Interface, namespace string, sc []*storagev1.StorageClass, volumesPerPod int, volumeCount int, nodeSelectorList []*NodeSelector) (latency map[string]float64) {
 	var (
 		totalpvclaims [][]*v1.PersistentVolumeClaim
 		totalpvs      [][]*v1.PersistentVolume
@@ -207,7 +207,7 @@ func invokeVolumeLifeCyclePerformance(ctx context.Context, f *framework.Framewor
 	latency[AttachOp] = elapsed.Seconds()
 
 	for i, pod := range totalpods {
-		verifyVSphereVolumesAccessible(ctx, client, pod, totalpvs[i])
+		verifyVSphereVolumesAccessible(ctx, testContext, client, pod, totalpvs[i])
 	}
 
 	ginkgo.By("Deleting pods")
@@ -225,7 +225,7 @@ func invokeVolumeLifeCyclePerformance(ctx context.Context, f *framework.Framewor
 		}
 	}
 
-	err := waitForVSphereDisksToDetach(ctx, nodeVolumeMap)
+	err := waitForVSphereDisksToDetach(ctx, testContext, nodeVolumeMap)
 	framework.ExpectNoError(err)
 
 	ginkgo.By("Deleting the PVCs")

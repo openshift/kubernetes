@@ -38,6 +38,7 @@ import (
 var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:ReclaimPolicy]", func() {
 	f := framework.NewDefaultFramework("persistentvolumereclaim")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	var (
 		c          clientset.Interface
 		ns         string
@@ -57,8 +58,7 @@ var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:ReclaimPo
 		ginkgo.BeforeEach(func(ctx context.Context) {
 			e2eskipper.SkipUnlessProviderIs("vsphere")
 			ginkgo.DeferCleanup(testCleanupVSpherePersistentVolumeReclaim, c, nodeInfo, ns, volumePath, pv, pvc)
-			Bootstrap(f)
-			nodeInfo = GetReadySchedulableRandomNodeInfo(ctx, c)
+			nodeInfo = GetReadySchedulableRandomNodeInfo(ctx, testContext, c)
 			pv = nil
 			pvc = nil
 			volumePath = ""
@@ -127,21 +127,21 @@ var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:ReclaimPo
 			framework.ExpectNoError(err)
 
 			ginkgo.By("Verify the volume is attached to the node")
-			isVolumeAttached, verifyDiskAttachedError := diskIsAttached(ctx, pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
+			isVolumeAttached, verifyDiskAttachedError := diskIsAttached(ctx, testContext, pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 			framework.ExpectNoError(verifyDiskAttachedError)
 			if !isVolumeAttached {
 				framework.Failf("Disk %s is not attached with the node %s", pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 			}
 
 			ginkgo.By("Verify the volume is accessible and available in the pod")
-			verifyVSphereVolumesAccessible(ctx, c, pod, []*v1.PersistentVolume{pv})
+			verifyVSphereVolumesAccessible(ctx, testContext, c, pod, []*v1.PersistentVolume{pv})
 			framework.Logf("Verified that Volume is accessible in the POD after deleting PV claim")
 
 			ginkgo.By("Deleting the Pod")
 			framework.ExpectNoError(e2epod.DeletePodWithWait(ctx, c, pod), "Failed to delete pod ", pod.Name)
 
 			ginkgo.By("Verify PV is detached from the node after Pod is deleted")
-			err = waitForVSphereDiskToDetach(ctx, pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
+			err = waitForVSphereDiskToDetach(ctx, testContext, pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 			framework.ExpectNoError(err)
 
 			ginkgo.By("Verify PV should be deleted automatically")

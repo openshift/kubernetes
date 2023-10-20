@@ -34,6 +34,7 @@ import (
 var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]", func() {
 	f := framework.NewDefaultFramework("node-unregister")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	var (
 		client     clientset.Interface
 		namespace  string
@@ -43,7 +44,6 @@ var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(ctx, client, f.Timeouts.NodeSchedulable))
@@ -62,7 +62,7 @@ var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]
 		totalNodesCount := len(nodeList.Items)
 		nodeVM := nodeList.Items[0]
 
-		nodeInfo := TestContext.NodeMapper.GetNodeInfo(nodeVM.ObjectMeta.Name)
+		nodeInfo := testContext.NodeMapper.GetNodeInfo(nodeVM.ObjectMeta.Name)
 		vmObject := object.NewVirtualMachine(nodeInfo.VSphere.Client.Client, nodeInfo.VirtualMachineRef)
 
 		// Find VM .vmx file path, host, resource pool.
@@ -94,7 +94,7 @@ var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]
 
 		// Register Node VM
 		ginkgo.By("Register back the node VM")
-		registerNodeVM(ctx, nodeVM.ObjectMeta.Name, workingDir, vmxFilePath, vmPool, vmHost)
+		registerNodeVM(ctx, testContext, nodeVM.ObjectMeta.Name, workingDir, vmxFilePath, vmPool, vmHost)
 
 		// Ready nodes should be equal to earlier count
 		ginkgo.By("Verifying the ready node counts")
@@ -114,6 +114,6 @@ var _ = utils.SIGDescribe("Node Unregister [Feature:vsphere] [Slow] [Disruptive]
 		scParameters := make(map[string]string)
 		storagePolicy := GetAndExpectStringEnvVar("VSPHERE_SPBM_GOLD_POLICY")
 		scParameters[SpbmStoragePolicy] = storagePolicy
-		invokeValidPolicyTest(ctx, f, client, namespace, scParameters)
+		invokeValidPolicyTest(ctx, testContext, f, client, namespace, scParameters)
 	})
 })

@@ -78,6 +78,8 @@ const (
 var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsphere]", func() {
 	f := framework.NewDefaultFramework("volume-vsan-policy")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
+
 	var (
 		client       clientset.Interface
 		namespace    string
@@ -87,7 +89,6 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 	)
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		policyName = GetAndExpectStringEnvVar(SPBMPolicyName)
@@ -104,7 +105,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 		scParameters[PolicyHostFailuresToTolerate] = HostFailuresToTolerateCapabilityVal
 		scParameters[PolicyCacheReservation] = CacheReservationCapabilityVal
 		framework.Logf("Invoking test for VSAN storage capabilities: %+v", scParameters)
-		invokeValidPolicyTest(ctx, f, client, namespace, scParameters)
+		invokeValidPolicyTest(ctx, testContext, f, client, namespace, scParameters)
 	})
 
 	// Valid policy.
@@ -113,7 +114,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 		scParameters[PolicyDiskStripes] = "1"
 		scParameters[PolicyObjectSpaceReservation] = "30"
 		framework.Logf("Invoking test for VSAN storage capabilities: %+v", scParameters)
-		invokeValidPolicyTest(ctx, f, client, namespace, scParameters)
+		invokeValidPolicyTest(ctx, testContext, f, client, namespace, scParameters)
 	})
 
 	// Valid policy.
@@ -123,7 +124,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 		scParameters[PolicyObjectSpaceReservation] = ObjectSpaceReservationCapabilityVal
 		scParameters[Datastore] = vsanDatastore
 		framework.Logf("Invoking test for VSAN storage capabilities: %+v", scParameters)
-		invokeValidPolicyTest(ctx, f, client, namespace, scParameters)
+		invokeValidPolicyTest(ctx, testContext, f, client, namespace, scParameters)
 	})
 
 	// Valid policy.
@@ -132,7 +133,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 		scParameters[PolicyObjectSpaceReservation] = ObjectSpaceReservationCapabilityVal
 		scParameters[PolicyIopsLimit] = IopsLimitCapabilityVal
 		framework.Logf("Invoking test for VSAN storage capabilities: %+v", scParameters)
-		invokeValidPolicyTest(ctx, f, client, namespace, scParameters)
+		invokeValidPolicyTest(ctx, testContext, f, client, namespace, scParameters)
 	})
 
 	// Invalid VSAN storage capabilities parameters.
@@ -200,7 +201,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 		scParameters[SpbmStoragePolicy] = policyName
 		scParameters[DiskFormat] = ThinDisk
 		framework.Logf("Invoking test for SPBM storage policy: %+v", scParameters)
-		invokeValidPolicyTest(ctx, f, client, namespace, scParameters)
+		invokeValidPolicyTest(ctx, testContext, f, client, namespace, scParameters)
 	})
 
 	ginkgo.It("verify clean up of stale dummy VM for dynamically provisioned pvc using SPBM policy", func(ctx context.Context) {
@@ -211,7 +212,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 		kubernetesClusterName := GetAndExpectStringEnvVar(KubernetesClusterName)
 		controlPlaneNode, err := getControlPlaneNode(ctx, client)
 		framework.ExpectNoError(err)
-		invokeStaleDummyVMTestWithStoragePolicy(ctx, client, controlPlaneNode, namespace, kubernetesClusterName, scParameters)
+		invokeStaleDummyVMTestWithStoragePolicy(ctx, testContext, client, controlPlaneNode, namespace, kubernetesClusterName, scParameters)
 	})
 
 	ginkgo.It("verify if a SPBM policy is not honored on a non-compatible datastore for dynamically provisioned pvc using storageclass", func(ctx context.Context) {
@@ -257,7 +258,7 @@ var _ = utils.SIGDescribe("Storage Policy Based Volume Provisioning [Feature:vsp
 	})
 })
 
-func invokeValidPolicyTest(ctx context.Context, f *framework.Framework, client clientset.Interface, namespace string, scParameters map[string]string) {
+func invokeValidPolicyTest(ctx context.Context, testContext *TestContext, f *framework.Framework, client clientset.Interface, namespace string, scParameters map[string]string) {
 	ginkgo.By("Creating Storage Class With storage policy params")
 	storageclass, err := client.StorageV1().StorageClasses().Create(ctx, getVSphereStorageClassSpec("storagepolicysc", scParameters, nil, ""), metav1.CreateOptions{})
 	framework.ExpectNoError(err, fmt.Sprintf("Failed to create storage class with err: %v", err))
@@ -280,13 +281,13 @@ func invokeValidPolicyTest(ctx context.Context, f *framework.Framework, client c
 	framework.ExpectNoError(err)
 
 	ginkgo.By("Verify the volume is accessible and available in the pod")
-	verifyVSphereVolumesAccessible(ctx, client, pod, persistentvolumes)
+	verifyVSphereVolumesAccessible(ctx, testContext, client, pod, persistentvolumes)
 
 	ginkgo.By("Deleting pod")
 	framework.ExpectNoError(e2epod.DeletePodWithWait(ctx, client, pod))
 
 	ginkgo.By("Waiting for volumes to be detached from the node")
-	framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName))
+	framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, testContext, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName))
 }
 
 func invokeInvalidPolicyTestNeg(ctx context.Context, client clientset.Interface, namespace string, scParameters map[string]string) error {
@@ -311,7 +312,7 @@ func invokeInvalidPolicyTestNeg(ctx context.Context, client clientset.Interface,
 
 // invokeStaleDummyVMTestWithStoragePolicy assumes control plane node is present on the datacenter specified in the workspace section of vsphere.conf file.
 // With in-tree VCP, when the volume is created using storage policy, shadow (dummy) VM is getting created and deleted to apply SPBM policy on the volume.
-func invokeStaleDummyVMTestWithStoragePolicy(ctx context.Context, client clientset.Interface, controlPlaneNode string, namespace string, clusterName string, scParameters map[string]string) {
+func invokeStaleDummyVMTestWithStoragePolicy(ctx context.Context, testContext *TestContext, client clientset.Interface, controlPlaneNode string, namespace string, clusterName string, scParameters map[string]string) {
 	ginkgo.By("Creating Storage Class With storage policy params")
 	storageclass, err := client.StorageV1().StorageClasses().Create(ctx, getVSphereStorageClassSpec("storagepolicysc", scParameters, nil, ""), metav1.CreateOptions{})
 	framework.ExpectNoError(err, fmt.Sprintf("Failed to create storage class with err: %v", err))
@@ -338,7 +339,7 @@ func invokeStaleDummyVMTestWithStoragePolicy(ctx context.Context, client clients
 	fnvHash.Write([]byte(vmName))
 	dummyVMFullName := dummyVMPrefixName + "-" + fmt.Sprint(fnvHash.Sum32())
 	errorMsg := "Dummy VM - " + vmName + " is still present. Failing the test.."
-	nodeInfo := TestContext.NodeMapper.GetNodeInfo(controlPlaneNode)
+	nodeInfo := testContext.NodeMapper.GetNodeInfo(controlPlaneNode)
 	isVMPresentFlag, err := nodeInfo.VSphere.IsVMPresent(dummyVMFullName, nodeInfo.DataCenterRef)
 	framework.ExpectNoError(err)
 	if isVMPresentFlag {

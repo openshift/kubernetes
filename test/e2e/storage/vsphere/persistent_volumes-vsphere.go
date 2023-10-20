@@ -53,6 +53,7 @@ var _ = utils.SIGDescribe("PersistentVolumes:vsphere [Feature:vsphere]", func() 
 
 	f := framework.NewDefaultFramework("pv")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	/*
 		Test Setup
 
@@ -64,13 +65,12 @@ var _ = utils.SIGDescribe("PersistentVolumes:vsphere [Feature:vsphere]", func() 
 	*/
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		c = f.ClientSet
 		ns = f.Namespace.Name
 		clientPod = nil
 		pvc = nil
 		pv = nil
-		nodeInfo = GetReadySchedulableRandomNodeInfo(ctx, c)
+		nodeInfo = GetReadySchedulableRandomNodeInfo(ctx, testContext, c)
 
 		volLabel = labels.Set{e2epv.VolumeSelectorKey: ns}
 		selector = metav1.SetAsLabelSelector(volLabel)
@@ -115,11 +115,11 @@ var _ = utils.SIGDescribe("PersistentVolumes:vsphere [Feature:vsphere]", func() 
 			framework.ExpectNoError(e2epod.DeletePodWithWait(ctx, c, clientPod), "AfterEach: failed to delete pod ", clientPod.Name)
 		})
 		ginkgo.DeferCleanup(func() {
-			framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, volumePath, node), "wait for vsphere disk to detach")
+			framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, testContext, volumePath, node), "wait for vsphere disk to detach")
 		})
 
 		ginkgo.By("Verify disk should be attached to the node")
-		isAttached, err := diskIsAttached(ctx, volumePath, node)
+		isAttached, err := diskIsAttached(ctx, testContext, volumePath, node)
 		framework.ExpectNoError(err)
 		if !isAttached {
 			framework.Failf("Disk %s is not attached with the node", volumePath)
@@ -195,7 +195,7 @@ var _ = utils.SIGDescribe("PersistentVolumes:vsphere [Feature:vsphere]", func() 
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Verifying Persistent Disk detaches")
-		err = waitForVSphereDiskToDetach(ctx, volumePath, node)
+		err = waitForVSphereDiskToDetach(ctx, testContext, volumePath, node)
 		framework.ExpectNoError(err)
 	})
 })

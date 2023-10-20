@@ -103,6 +103,7 @@ For the number of schedulable nodes,
 var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disruptive]", func() {
 	f := framework.NewDefaultFramework("restart-master")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 
 	const labelKey = "vsphere_e2e_label"
 	var (
@@ -117,7 +118,6 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 	)
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(ctx, client, f.Timeouts.NodeSchedulable))
@@ -128,7 +128,7 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 		if numNodes < 2 {
 			e2eskipper.Skipf("Requires at least %d nodes (not %d)", 2, len(nodes.Items))
 		}
-		nodeInfo = TestContext.NodeMapper.GetNodeInfo(nodes.Items[0].Name)
+		nodeInfo = testContext.NodeMapper.GetNodeInfo(nodes.Items[0].Name)
 		for i := 0; i < numNodes; i++ {
 			nodeName := nodes.Items[i].Name
 			nodeNameList = append(nodeNameList, nodeName)
@@ -166,7 +166,7 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 
 			nodeName := pod.Spec.NodeName
 			ginkgo.By(fmt.Sprintf("Verify volume %s is attached to the node %s", volumePath, nodeName))
-			expectVolumeToBeAttached(ctx, nodeName, volumePath)
+			expectVolumeToBeAttached(ctx, testContext, nodeName, volumePath)
 		}
 
 		ginkgo.By("Restarting kubelet on instance node")
@@ -183,14 +183,14 @@ var _ = utils.SIGDescribe("Volume Attach Verify [Feature:vsphere][Serial][Disrup
 			nodeName := pod.Spec.NodeName
 
 			ginkgo.By(fmt.Sprintf("After master restart, verify volume %v is attached to the node %v", volumePath, nodeName))
-			expectVolumeToBeAttached(ctx, nodeName, volumePath)
+			expectVolumeToBeAttached(ctx, testContext, nodeName, volumePath)
 
 			ginkgo.By(fmt.Sprintf("Deleting pod on node %s", nodeName))
 			err = e2epod.DeletePodWithWait(ctx, client, pod)
 			framework.ExpectNoError(err)
 
 			ginkgo.By(fmt.Sprintf("Waiting for volume %s to be detached from the node %s", volumePath, nodeName))
-			err = waitForVSphereDiskToDetach(ctx, volumePath, nodeName)
+			err = waitForVSphereDiskToDetach(ctx, testContext, volumePath, nodeName)
 			framework.ExpectNoError(err)
 
 			ginkgo.By(fmt.Sprintf("Deleting volume %s", volumePath))

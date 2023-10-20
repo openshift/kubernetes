@@ -55,6 +55,7 @@ import (
 var _ = utils.SIGDescribe("Volume Operations Storm [Feature:vsphere]", func() {
 	f := framework.NewDefaultFramework("volume-ops-storm")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	const defaultVolumeOpsScale = 30
 	var (
 		client            clientset.Interface
@@ -67,10 +68,9 @@ var _ = utils.SIGDescribe("Volume Operations Storm [Feature:vsphere]", func() {
 	)
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
-		gomega.Expect(GetReadySchedulableNodeInfos(ctx, client)).NotTo(gomega.BeEmpty())
+		gomega.Expect(GetReadySchedulableNodeInfos(ctx, testContext, client)).NotTo(gomega.BeEmpty())
 		if scale := os.Getenv("VOLUME_OPS_SCALE"); scale != "" {
 			volumeOpsScale, err = strconv.Atoi(scale)
 			framework.ExpectNoError(err)
@@ -114,14 +114,14 @@ var _ = utils.SIGDescribe("Volume Operations Storm [Feature:vsphere]", func() {
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Verify all volumes are accessible and available in the pod")
-		verifyVSphereVolumesAccessible(ctx, client, pod, persistentvolumes)
+		verifyVSphereVolumesAccessible(ctx, testContext, client, pod, persistentvolumes)
 
 		ginkgo.By("Deleting pod")
 		framework.ExpectNoError(e2epod.DeletePodWithWait(ctx, client, pod))
 
 		ginkgo.By("Waiting for volumes to be detached from the node")
 		for _, pv := range persistentvolumes {
-			framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName))
+			framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, testContext, pv.Spec.VsphereVolume.VolumePath, pod.Spec.NodeName))
 		}
 	})
 })

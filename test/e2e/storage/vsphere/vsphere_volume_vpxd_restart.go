@@ -55,6 +55,7 @@ For the number of schedulable nodes:
 var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vsphere][Serial][Disruptive]", func() {
 	f := framework.NewDefaultFramework("restart-vpxd")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 
 	type node struct {
 		name     string
@@ -77,7 +78,6 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 		// Requires SSH access to vCenter.
 		e2eskipper.SkipUnlessProviderIs("vsphere")
 
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(ctx, client, f.Timeouts.NodeSchedulable))
@@ -88,7 +88,7 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 
 		vcNodesMap = make(map[string][]node)
 		for i := 0; i < numNodes; i++ {
-			nodeInfo := TestContext.NodeMapper.GetNodeInfo(nodes.Items[i].Name)
+			nodeInfo := testContext.NodeMapper.GetNodeInfo(nodes.Items[i].Name)
 			nodeName := nodes.Items[i].Name
 			nodeLabel := "vsphere_e2e_" + string(uuid.NewUUID())
 			e2enode.AddOrUpdateLabelOnNode(client, nodeName, labelKey, nodeLabel)
@@ -135,7 +135,7 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 
 				nodeName := pod.Spec.NodeName
 				ginkgo.By(fmt.Sprintf("Verifying that volume %v is attached to node %v", volumePath, nodeName))
-				expectVolumeToBeAttached(ctx, nodeName, volumePath)
+				expectVolumeToBeAttached(ctx, testContext, nodeName, volumePath)
 
 				ginkgo.By(fmt.Sprintf("Creating a file with random content on the volume mounted on pod %d", i))
 				filePath := fmt.Sprintf("/mnt/volume1/%v_vpxd_restart_test_%v.txt", namespace, strconv.FormatInt(time.Now().UnixNano(), 10))
@@ -158,7 +158,7 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 			err = invokeVCenterServiceControl(ctx, "start", vpxdServiceName, vcAddress)
 			framework.ExpectNoError(err, "Unable to start vpxd on the vCenter host")
 
-			expectVolumesToBeAttached(ctx, pods, volumePaths)
+			expectVolumesToBeAttached(ctx, testContext, pods, volumePaths)
 			expectFilesToBeAccessible(namespace, pods, filePaths)
 			expectFileContentsToMatch(namespace, pods, filePaths, fileContents)
 
@@ -172,7 +172,7 @@ var _ = utils.SIGDescribe("Verify Volume Attach Through vpxd Restart [Feature:vs
 				framework.ExpectNoError(err)
 
 				ginkgo.By(fmt.Sprintf("Waiting for volume %s to be detached from node %s", volumePath, nodeName))
-				err = waitForVSphereDiskToDetach(ctx, volumePath, nodeName)
+				err = waitForVSphereDiskToDetach(ctx, testContext, volumePath, nodeName)
 				framework.ExpectNoError(err)
 
 				ginkgo.By(fmt.Sprintf("Deleting volume %s", volumePath))

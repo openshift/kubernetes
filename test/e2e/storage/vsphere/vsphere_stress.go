@@ -49,6 +49,7 @@ The following actions will be performed as part of this test.
 var _ = utils.SIGDescribe("vsphere cloud provider stress [Feature:vsphere]", func() {
 	f := framework.NewDefaultFramework("vcp-stress")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	var (
 		client        clientset.Interface
 		namespace     string
@@ -61,7 +62,6 @@ var _ = utils.SIGDescribe("vsphere cloud provider stress [Feature:vsphere]", fun
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 
@@ -125,7 +125,7 @@ var _ = utils.SIGDescribe("vsphere cloud provider stress [Feature:vsphere]", fun
 		wg.Add(instances)
 		for instanceCount := 0; instanceCount < instances; instanceCount++ {
 			instanceID := fmt.Sprintf("Thread:%v", instanceCount+1)
-			go PerformVolumeLifeCycleInParallel(ctx, f, client, namespace, instanceID, scArrays[instanceCount%len(scArrays)], iterations, &wg)
+			go PerformVolumeLifeCycleInParallel(ctx, testContext, f, client, namespace, instanceID, scArrays[instanceCount%len(scArrays)], iterations, &wg)
 		}
 		wg.Wait()
 	})
@@ -134,7 +134,7 @@ var _ = utils.SIGDescribe("vsphere cloud provider stress [Feature:vsphere]", fun
 
 // PerformVolumeLifeCycleInParallel performs volume lifecycle operations
 // Called as a go routine to perform operations in parallel
-func PerformVolumeLifeCycleInParallel(ctx context.Context, f *framework.Framework, client clientset.Interface, namespace string, instanceID string, sc *storagev1.StorageClass, iterations int, wg *sync.WaitGroup) {
+func PerformVolumeLifeCycleInParallel(ctx context.Context, testContext *TestContext, f *framework.Framework, client clientset.Interface, namespace string, instanceID string, sc *storagev1.StorageClass, iterations int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer ginkgo.GinkgoRecover()
 
@@ -165,21 +165,21 @@ func PerformVolumeLifeCycleInParallel(ctx context.Context, f *framework.Framewor
 		framework.ExpectNoError(err)
 
 		ginkgo.By(fmt.Sprintf("%v Verifying the volume: %v is attached to the node VM: %v", logPrefix, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName))
-		isVolumeAttached, verifyDiskAttachedError := diskIsAttached(ctx, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
+		isVolumeAttached, verifyDiskAttachedError := diskIsAttached(ctx, testContext, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 		if !isVolumeAttached {
 			framework.Failf("Volume: %s is not attached to the node: %v", persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 		}
 		framework.ExpectNoError(verifyDiskAttachedError)
 
 		ginkgo.By(fmt.Sprintf("%v Verifying the volume: %v is accessible in the pod: %v", logPrefix, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Name))
-		verifyVSphereVolumesAccessible(ctx, client, pod, persistentvolumes)
+		verifyVSphereVolumesAccessible(ctx, testContext, client, pod, persistentvolumes)
 
 		ginkgo.By(fmt.Sprintf("%v Deleting pod: %v", logPrefix, pod.Name))
 		err = e2epod.DeletePodWithWait(ctx, client, pod)
 		framework.ExpectNoError(err)
 
 		ginkgo.By(fmt.Sprintf("%v Waiting for volume: %v to be detached from the node: %v", logPrefix, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName))
-		err = waitForVSphereDiskToDetach(ctx, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
+		err = waitForVSphereDiskToDetach(ctx, testContext, persistentvolumes[0].Spec.VsphereVolume.VolumePath, pod.Spec.NodeName)
 		framework.ExpectNoError(err)
 
 		ginkgo.By(fmt.Sprintf("%v Deleting the Claim: %v", logPrefix, pvclaim.Name))

@@ -48,6 +48,7 @@ Test to verify volume status after node power off:
 var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]", func() {
 	f := framework.NewDefaultFramework("node-poweroff")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	var (
 		client    clientset.Interface
 		namespace string
@@ -55,7 +56,6 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(ctx, client, f.Timeouts.NodeSchedulable))
@@ -113,7 +113,7 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 		node1 := pod.Spec.NodeName
 
 		ginkgo.By(fmt.Sprintf("Verify disk is attached to the node: %v", node1))
-		isAttached, err := diskIsAttached(ctx, volumePath, node1)
+		isAttached, err := diskIsAttached(ctx, testContext, volumePath, node1)
 		framework.ExpectNoError(err)
 		if !isAttached {
 			framework.Failf("Volume: %s is not attached to the node: %v", volumePath, node1)
@@ -121,7 +121,7 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 
 		ginkgo.By(fmt.Sprintf("Power off the node: %v", node1))
 
-		nodeInfo := TestContext.NodeMapper.GetNodeInfo(node1)
+		nodeInfo := testContext.NodeMapper.GetNodeInfo(node1)
 		vm := object.NewVirtualMachine(nodeInfo.VSphere.Client.Client, nodeInfo.VirtualMachineRef)
 		_, err = vm.PowerOff(ctx)
 		framework.ExpectNoError(err)
@@ -135,11 +135,11 @@ var _ = utils.SIGDescribe("Node Poweroff [Feature:vsphere] [Slow] [Disruptive]",
 		framework.ExpectNoError(err, "Pod did not fail over to a different node")
 
 		ginkgo.By(fmt.Sprintf("Waiting for disk to be attached to the new node: %v", node2))
-		err = waitForVSphereDiskToAttach(ctx, volumePath, node2)
+		err = waitForVSphereDiskToAttach(ctx, testContext, volumePath, node2)
 		framework.ExpectNoError(err, "Disk is not attached to the node")
 
 		ginkgo.By(fmt.Sprintf("Waiting for disk to be detached from the previous node: %v", node1))
-		err = waitForVSphereDiskToDetach(ctx, volumePath, node1)
+		err = waitForVSphereDiskToDetach(ctx, testContext, volumePath, node1)
 		framework.ExpectNoError(err, "Disk is not detached from the node")
 
 		ginkgo.By(fmt.Sprintf("Power on the previous node: %v", node1))

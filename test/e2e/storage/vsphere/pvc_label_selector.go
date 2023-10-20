@@ -51,6 +51,7 @@ Test Steps
 var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:LabelSelector]", func() {
 	f := framework.NewDefaultFramework("pvclabelselector")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	var (
 		c          clientset.Interface
 		ns         string
@@ -67,8 +68,7 @@ var _ = utils.SIGDescribe("PersistentVolumes [Feature:vsphere][Feature:LabelSele
 		e2eskipper.SkipUnlessProviderIs("vsphere")
 		c = f.ClientSet
 		ns = f.Namespace.Name
-		Bootstrap(f)
-		nodeInfo = GetReadySchedulableRandomNodeInfo(ctx, c)
+		nodeInfo = GetReadySchedulableRandomNodeInfo(ctx, testContext, c)
 		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(ctx, c, f.Timeouts.NodeSchedulable))
 		ssdlabels = make(map[string]string)
 		ssdlabels["volume-type"] = "ssd"

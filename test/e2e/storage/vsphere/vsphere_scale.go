@@ -59,6 +59,7 @@ type NodeSelector struct {
 var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 	f := framework.NewDefaultFramework("vcp-at-scale")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 
 	var (
 		client            clientset.Interface
@@ -76,7 +77,6 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		nodeVolumeMapChan = make(chan map[string][]string)
@@ -148,7 +148,7 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 				volumeCountPerInstance = volumeCount
 			}
 			volumeCount = volumeCount - volumeCountPerInstance
-			go VolumeCreateAndAttach(ctx, f, scArrays, volumeCountPerInstance, volumesPerPod, nodeSelectorList, nodeVolumeMapChan)
+			go VolumeCreateAndAttach(ctx, testContext, f, scArrays, volumeCountPerInstance, volumesPerPod, nodeSelectorList, nodeVolumeMapChan)
 		}
 
 		// Get the list of all volumes attached to each node from the go routines by reading the data from the channel
@@ -166,7 +166,7 @@ var _ = utils.SIGDescribe("vcp at scale [Feature:vsphere] ", func() {
 			framework.ExpectNoError(err)
 		}
 		ginkgo.By("Waiting for volumes to be detached from the node")
-		err = waitForVSphereDisksToDetach(ctx, nodeVolumeMap)
+		err = waitForVSphereDisksToDetach(ctx, testContext, nodeVolumeMap)
 		framework.ExpectNoError(err)
 
 		for _, pvcClaim := range pvcClaimList {
@@ -188,7 +188,7 @@ func getClaimsForPod(pod *v1.Pod, volumesPerPod int) []string {
 }
 
 // VolumeCreateAndAttach peforms create and attach operations of vSphere persistent volumes at scale
-func VolumeCreateAndAttach(ctx context.Context, f *framework.Framework, sc []*storagev1.StorageClass, volumeCountPerInstance int, volumesPerPod int, nodeSelectorList []*NodeSelector, nodeVolumeMapChan chan map[string][]string) {
+func VolumeCreateAndAttach(ctx context.Context, testContext *TestContext, f *framework.Framework, sc []*storagev1.StorageClass, volumeCountPerInstance int, volumesPerPod int, nodeSelectorList []*NodeSelector, nodeVolumeMapChan chan map[string][]string) {
 	defer ginkgo.GinkgoRecover()
 	client := f.ClientSet
 	namespace := f.Namespace.Name
@@ -220,7 +220,7 @@ func VolumeCreateAndAttach(ctx context.Context, f *framework.Framework, sc []*st
 			nodeVolumeMap[pod.Spec.NodeName] = append(nodeVolumeMap[pod.Spec.NodeName], pv.Spec.VsphereVolume.VolumePath)
 		}
 		ginkgo.By("Verify the volume is accessible and available in the pod")
-		verifyVSphereVolumesAccessible(ctx, client, pod, persistentvolumes)
+		verifyVSphereVolumesAccessible(ctx, testContext, client, pod, persistentvolumes)
 		nodeSelectorIndex++
 	}
 	nodeVolumeMapChan <- nodeVolumeMap

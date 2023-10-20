@@ -56,7 +56,6 @@ var _ = utils.SIGDescribe("Volume Disk Size [Feature:vsphere]", func() {
 	)
 	ginkgo.BeforeEach(func() {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
-		Bootstrap(f)
 		client = f.ClientSet
 		namespace = f.Namespace.Name
 		scParameters = make(map[string]string)

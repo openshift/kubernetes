@@ -58,6 +58,7 @@ const (
 var _ = utils.SIGDescribe("vsphere statefulset [Feature:vsphere]", func() {
 	f := framework.NewDefaultFramework("vsphere-statefulset")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+	testContext := NewTestContext(f)
 	var (
 		namespace string
 		client    clientset.Interface
@@ -66,7 +67,6 @@ var _ = utils.SIGDescribe("vsphere statefulset [Feature:vsphere]", func() {
 		e2eskipper.SkipUnlessProviderIs("vsphere")
 		namespace = f.Namespace.Name
 		client = f.ClientSet
-		Bootstrap(f)
 	})
 
 	ginkgo.It("vsphere statefulset testing", func(ctx context.Context) {
@@ -120,7 +120,7 @@ var _ = utils.SIGDescribe("vsphere statefulset [Feature:vsphere]", func() {
 					if volumespec.PersistentVolumeClaim != nil {
 						vSpherediskPath := getvSphereVolumePathFromClaim(ctx, client, statefulset.Namespace, volumespec.PersistentVolumeClaim.ClaimName)
 						framework.Logf("Waiting for Volume: %q to detach from Node: %q", vSpherediskPath, sspod.Spec.NodeName)
-						framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, vSpherediskPath, sspod.Spec.NodeName))
+						framework.ExpectNoError(waitForVSphereDiskToDetach(ctx, testContext, vSpherediskPath, sspod.Spec.NodeName))
 					}
 				}
 			}
@@ -151,7 +151,7 @@ var _ = utils.SIGDescribe("vsphere statefulset [Feature:vsphere]", func() {
 					if volumesBeforeScaleDown[vSpherediskPath] == "" {
 						framework.Failf("Volume: %q was not attached to the Node: %q before scale down", vSpherediskPath, sspod.Spec.NodeName)
 					}
-					isVolumeAttached, verifyDiskAttachedError := diskIsAttached(ctx, vSpherediskPath, sspod.Spec.NodeName)
+					isVolumeAttached, verifyDiskAttachedError := diskIsAttached(ctx, testContext, vSpherediskPath, sspod.Spec.NodeName)
 					if !isVolumeAttached {
 						framework.Failf("Volume: %q is not attached to the Node: %q", vSpherediskPath, sspod.Spec.NodeName)
 					}
