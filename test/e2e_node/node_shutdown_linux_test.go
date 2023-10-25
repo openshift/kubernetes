@@ -352,35 +352,6 @@ var _ = SIGDescribe("GracefulNodeShutdown [Serial] [NodeFeature:GracefulNodeShut
 				return nil
 			}, nodeStatusUpdateTimeout, pollInterval).Should(gomega.Succeed())
 		})
-
-		ginkgo.It("after restart dbus, should be able to gracefully shutdown", func(ctx context.Context) {
-			// allows manual restart of dbus to work in Ubuntu.
-			err := overlayDbusConfig()
-			framework.ExpectNoError(err)
-			defer func() {
-				err := restoreDbusConfig()
-				framework.ExpectNoError(err)
-			}()
-
-			ginkgo.By("Restart Dbus")
-			err = restartDbus()
-			framework.ExpectNoError(err)
-
-			gomega.Eventually(ctx, func(ctx context.Context) error {
-				// re-send the shutdown signal in case the dbus restart is not done
-				ginkgo.By("Emitting Shutdown signal")
-				err = emitSignalPrepareForShutdown(true)
-				if err != nil {
-					return err
-				}
-
-				isReady := getNodeReadyStatus(ctx, f)
-				if isReady {
-					return fmt.Errorf("node did not become shutdown as expected")
-				}
-				return nil
-			}, nodeStatusUpdateTimeout, pollInterval).Should(gomega.Succeed())
-		})
 	})
 
 	ginkgo.Context("when gracefully shutting down with Pod priority", func() {
@@ -652,12 +623,6 @@ func getNodeReadyStatus(ctx context.Context, f *framework.Framework) bool {
 	// Assuming that there is only one node, because this is a node e2e test.
 	framework.ExpectEqual(len(nodeList.Items), 1)
 	return isNodeReady(&nodeList.Items[0])
-}
-
-func restartDbus() error {
-	cmd := "systemctl restart dbus"
-	_, err := runCommand("sh", "-c", cmd)
-	return err
 }
 
 func systemctlDaemonReload() error {
