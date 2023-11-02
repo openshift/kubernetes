@@ -162,6 +162,9 @@ func ValidateKubeletFlags(f *KubeletFlags) error {
 	unknownLabels := sets.NewString()
 	for k := range f.NodeLabels {
 		if isKubernetesLabel(k) && !kubeletapis.IsKubeletLabel(k) {
+			if kubeletapis.IsForbiddenOpenshiftLabel(k) {
+				continue
+			}
 			unknownLabels.Insert(k)
 		}
 	}
