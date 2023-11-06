@@ -23,7 +23,7 @@ func TestValidateICSPUse(t *testing.T) {
 		validateErrors func(t *testing.T, errs field.ErrorList)
 	}{
 		{
-			name: "can't create icsp with existing idms",
+			name: "can't create icsp with existing idms objects",
 			objects: []runtime.Object{
 				&configv1.ImageDigestMirrorSet{
 					ObjectMeta: metav1.ObjectMeta{Name: "idms"},
