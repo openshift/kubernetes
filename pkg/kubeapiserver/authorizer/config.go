@@ -17,7 +17,6 @@ limitations under the License.
 package authorizer
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -30,12 +29,7 @@ import (
 	authzconfig "k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/apis/apiserver/load"
 	"k8s.io/apiserver/pkg/apis/apiserver/validation"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
-	"k8s.io/apiserver/pkg/authorization/union"
-	webhookutil "k8s.io/apiserver/pkg/util/webhook"
-	"k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	versionedinformers "k8s.io/client-go/informers"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
