@@ -150,6 +150,7 @@ func (kl *Kubelet) reconcileInitialNodeWithExistingNode(logger klog.Logger, init
 	if managed.IsEnabled() {
 		requiresUpdate = kl.addManagementNodeCapacity(logger, node, existingNode) || requiresUpdate
 	}
+  	requiresUpdate = kl.reconcileSharedCPUsNodeCapacity(node, existingNode) || requiresUpdate
 	return requiresUpdate
 }
 
