@@ -177,6 +177,7 @@ func (kl *Kubelet) addManagementNodeCapacity(logger klog.Logger, initialNode, ex
 func (kl *Kubelet) reconcileSharedCPUsNodeCapacity(initialNode, existingNode *v1.Node) bool {
 	updateDefaultResources(initialNode, existingNode)
 	sharedCPUsResourceName := sharedcpus.GetResourceName()
+	// delete resources in case they exist and feature has been disabled
 	if !sharedcpus.IsEnabled() {
 		if _, ok := existingNode.Status.Capacity[sharedCPUsResourceName]; ok {
 			delete(existingNode.Status.Capacity, sharedCPUsResourceName)
