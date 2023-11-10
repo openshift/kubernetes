@@ -195,10 +195,6 @@ github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3I
 github.com/opencontainers/runc v1.1.9/go.mod h1:CbUumNnWCuTGFukNXahoo/RFBZvDAgRh/smNYNOhA50=
 github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/selinux v1.11.0/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift/api v0.0.0-20231102215821-c90b4c82852e/go.mod h1:qNtV0315F+f8ld52TLtPvrfivZpdimOzTi3kn9IVbtU=
-github.com/openshift/apiserver-library-go v0.0.0-20230927115548-521857444d9a/go.mod h1:1EYKLn9Noff0qebQdZghEtZDYNySM575P5Xo8WnB+Lk=
-github.com/openshift/client-go v0.0.0-20231024221206-506d798bc61c/go.mod h1:3BkYp+FtKD2TypMD0nTPkVsxUaY4fJPLEMFMlOLtrJM=
-github.com/openshift/library-go v0.0.0-20231102154438-cfcf2b4fbc87/go.mod h1:8UzmrBMCn7+GzouL8DVYkL9COBQTB1Ggd13/mHJQCUg=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -223,8 +219,12 @@ github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQD
 github.com/seccomp/libseccomp-golang v0.10.0/go.mod h1:JA8cRccbGaA1s33RQf7Y1+q9gHmZX1yB/z9WDN1C6fg=
 github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/soheilhy/cmux v0.1.5/go.mod h1:T7TcVDs9LWfQgPlPsdngu6I6QIoyIFZDDC6sNE1GqG0=
+github.com/soltysh/api v0.0.0-20231110161527-403cf2b0c634/go.mod h1:l5HyxoAUTxT0o5XdhlPU0p3C/J79Rz5/1be85oZMUmQ=
+github.com/soltysh/apiserver-library-go v0.0.0-20231110164844-a54c851983e7/go.mod h1:a/D50XQzQAMID0lqDa6X7d/SRMEtS2CttGg96dJJE5o=
+github.com/soltysh/client-go v0.0.0-20231110162106-5c78b94630e0/go.mod h1:0WlN1FPF16Mw59jsVaWsWPWrwhN/xxYDs3fw9tZY+w0=
 github.com/soltysh/ginkgo/v2 v2.1.5-0.20231031162821-c5e24be53ea7 h1:aNNSmwcAskpd9TxP7VB9SL92wrtnku4sQ817MbxvynQ=
 github.com/soltysh/ginkgo/v2 v2.1.5-0.20231031162821-c5e24be53ea7/go.mod h1:TE309ZR8s5FsKKpuB1YAQYBzCaAfUgatB/xlT/ETL/o=
+github.com/soltysh/library-go v0.0.0-20231110163950-c30e6a3ff459/go.mod h1:xKGRUCKQGjkMbP6bIwKXxz7IHEFHnNzeDb1Ukl/if2I=
 github.com/spf13/cobra v1.7.0 h1:hyqWnYt1ZQShIddO5kBpj3vu05/++x6tJ6dg8EC572I=
 github.com/spf13/cobra v1.7.0/go.mod h1:uLxZILRyS/50WlhOIKD7W6V5bgeIt+4sICxh6uRMrb0=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=

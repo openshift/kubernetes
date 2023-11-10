@@ -100,16 +100,16 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.28.2
-	k8s.io/apiextensions-apiserver v0.28.2
-	k8s.io/apimachinery v0.28.2
-	k8s.io/apiserver v0.28.2
+	k8s.io/api v0.29.0-alpha.3
+	k8s.io/apiextensions-apiserver v0.29.0-alpha.3
+	k8s.io/apimachinery v0.29.0-alpha.3
+	k8s.io/apiserver v0.29.0-alpha.3
 	k8s.io/cli-runtime v0.0.0
-	k8s.io/client-go v0.28.2
+	k8s.io/client-go v0.29.0-alpha.3
 	k8s.io/cloud-provider v0.0.0
 	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.28.2
-	k8s.io/component-base v0.28.2
+	k8s.io/code-generator v0.29.0-alpha.3
+	k8s.io/component-base v0.29.0-alpha.3
 	k8s.io/component-helpers v0.25.0
 	k8s.io/controller-manager v0.0.0
 	k8s.io/cri-api v0.0.0
@@ -118,8 +118,8 @@ require (
 	k8s.io/endpointslice v0.0.0
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01
 	k8s.io/klog/v2 v2.110.1
-	k8s.io/kms v0.28.2
-	k8s.io/kube-aggregator v0.28.2
+	k8s.io/kms v0.29.0-alpha.3
+	k8s.io/kube-aggregator v0.29.0-alpha.3
 	k8s.io/kube-controller-manager v0.0.0
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
 	k8s.io/kube-proxy v0.0.0
@@ -258,6 +258,10 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/soltysh/ginkgo/v2 v2.1.5-0.20231031162821-c5e24be53ea7
+	github.com/openshift/api => github.com/soltysh/api v0.0.0-20231110161527-403cf2b0c634
+	github.com/openshift/apiserver-library-go => github.com/soltysh/apiserver-library-go v0.0.0-20231110164844-a54c851983e7
+	github.com/openshift/client-go => github.com/soltysh/client-go v0.0.0-20231110162106-5c78b94630e0
+	github.com/openshift/library-go => github.com/soltysh/library-go v0.0.0-20231110163950-c30e6a3ff459
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery

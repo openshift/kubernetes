@@ -20,11 +20,11 @@ require (
 	golang.org/x/oauth2 v0.10.0
 	google.golang.org/api v0.126.0
 	gopkg.in/gcfg.v1 v1.2.3
-	k8s.io/api v0.28.2
-	k8s.io/apimachinery v0.28.2
-	k8s.io/client-go v0.28.2
+	k8s.io/api v0.29.0-alpha.3
+	k8s.io/apimachinery v0.29.0-alpha.3
+	k8s.io/client-go v0.29.0-alpha.3
 	k8s.io/cloud-provider v0.0.0
-	k8s.io/component-base v0.28.2
+	k8s.io/component-base v0.29.0-alpha.3
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/yaml v1.3.0
@@ -96,6 +96,7 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/soltysh/ginkgo/v2 v2.1.5-0.20231031162821-c5e24be53ea7
+	github.com/openshift/library-go => github.com/soltysh/library-go v0.0.0-20231110163950-c30e6a3ff459
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/apiserver => ../apiserver

@@ -7,7 +7,7 @@ go 1.20
 require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/stretchr/testify v1.8.4
-	k8s.io/apimachinery v0.28.2
+	k8s.io/apimachinery v0.29.0-alpha.3
 )
 
 require (
@@ -39,6 +39,10 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/soltysh/ginkgo/v2 v2.1.5-0.20231031162821-c5e24be53ea7
+	github.com/openshift/api => github.com/soltysh/api v0.0.0-20231110161527-403cf2b0c634
+	github.com/openshift/apiserver-library-go => github.com/soltysh/apiserver-library-go v0.0.0-20231110164844-a54c851983e7
+	github.com/openshift/client-go => github.com/soltysh/client-go v0.0.0-20231110162106-5c78b94630e0
+	github.com/openshift/library-go => github.com/soltysh/library-go v0.0.0-20231110163950-c30e6a3ff459
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

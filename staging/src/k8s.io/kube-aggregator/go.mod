@@ -14,12 +14,12 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.17.0
-	k8s.io/api v0.28.2
-	k8s.io/apimachinery v0.28.2
-	k8s.io/apiserver v0.28.2
-	k8s.io/client-go v0.28.2
-	k8s.io/code-generator v0.28.2
-	k8s.io/component-base v0.28.2
+	k8s.io/api v0.29.0-alpha.3
+	k8s.io/apimachinery v0.29.0-alpha.3
+	k8s.io/apiserver v0.29.0-alpha.3
+	k8s.io/client-go v0.29.0-alpha.3
+	k8s.io/code-generator v0.29.0-alpha.3
+	k8s.io/component-base v0.29.0-alpha.3
 	k8s.io/klog/v2 v2.110.1
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
@@ -107,7 +107,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
-	k8s.io/kms v0.28.2 // indirect
+	k8s.io/kms v0.29.0-alpha.3 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.28.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
@@ -115,6 +115,10 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/soltysh/ginkgo/v2 v2.1.5-0.20231031162821-c5e24be53ea7
+	github.com/openshift/api => github.com/soltysh/api v0.0.0-20231110161527-403cf2b0c634
+	github.com/openshift/apiserver-library-go => github.com/soltysh/apiserver-library-go v0.0.0-20231110164844-a54c851983e7
+	github.com/openshift/client-go => github.com/soltysh/client-go v0.0.0-20231110162106-5c78b94630e0
+	github.com/openshift/library-go => github.com/soltysh/library-go v0.0.0-20231110163950-c30e6a3ff459
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
