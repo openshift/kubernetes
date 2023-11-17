@@ -1024,6 +1024,8 @@ func testCost(t *testing.T, expr string, expectEsimatedCost checker.CostEstimate
 		Authz(),
 		Quantity(),
 		ext.Sets(),
+		IP(),
+		CIDR(),
 		// cel-go v0.17.7 introduced CostEstimatorOptions.
 		// Previous the presence has a cost of 0 but cel fixed it to 1. We still set to 0 here to avoid breaking changes.
 		cel.CostEstimatorOptions(checker.PresenceTestHasCost(false)),
