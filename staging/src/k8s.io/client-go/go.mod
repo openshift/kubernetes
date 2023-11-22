@@ -22,11 +22,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/net v0.17.0
-<<<<<<< HEAD
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
-=======
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
->>>>>>> v1.25.16
 	golang.org/x/term v0.13.0
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
 	google.golang.org/protobuf v1.28.0

@@ -80,11 +80,7 @@ require (
 	github.com/xlab/treeprint v1.1.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	golang.org/x/net v0.17.0 // indirect
-<<<<<<< HEAD
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-=======
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
->>>>>>> v1.25.16
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
