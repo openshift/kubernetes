@@ -574,6 +574,7 @@ replace (
 	go.uber.org/goleak => go.uber.org/goleak v1.2.0
 	go.uber.org/multierr => go.uber.org/multierr v1.6.0
 	go.uber.org/zap => go.uber.org/zap v1.19.0
+	golang.org/x/arch => golang.org/x/arch v0.0.0-20180920145803-b19384d3c130
 	golang.org/x/crypto => golang.org/x/crypto v0.14.0
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20210220032938-85be41e4509f
 	golang.org/x/image => golang.org/x/image v0.0.0-20190802002840-cff245a6509b
