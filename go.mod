@@ -71,7 +71,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
 	github.com/vishvananda/netlink v1.1.0
-	github.com/vmware/govmomi v0.30.0
+	github.com/vmware/govmomi v0.30.6
 	go.etcd.io/etcd/api/v3 v3.5.4
 	go.etcd.io/etcd/client/pkg/v3 v3.5.4
 	go.etcd.io/etcd/client/v3 v3.5.4
@@ -85,7 +85,11 @@ require (
 	go.uber.org/zap v1.19.0
 	golang.org/x/crypto v0.14.0
 	golang.org/x/net v0.17.0
+<<<<<<< HEAD
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
+=======
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+>>>>>>> v1.25.16
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.13.0
 	golang.org/x/term v0.13.0
@@ -540,7 +544,7 @@ replace (
 	github.com/urfave/negroni => github.com/urfave/negroni v1.0.0
 	github.com/vishvananda/netlink => github.com/vishvananda/netlink v1.1.0
 	github.com/vishvananda/netns => github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
-	github.com/vmware/govmomi => github.com/vmware/govmomi v0.30.0
+	github.com/vmware/govmomi => github.com/vmware/govmomi v0.30.6
 	github.com/vmware/vmw-guestinfo => github.com/vmware/vmw-guestinfo v0.0.0-20170707015358-25eff159a728
 	github.com/xiang90/probing => github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2
 	github.com/xlab/handysort => github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1
@@ -574,7 +578,10 @@ replace (
 	go.uber.org/goleak => go.uber.org/goleak v1.2.0
 	go.uber.org/multierr => go.uber.org/multierr v1.6.0
 	go.uber.org/zap => go.uber.org/zap v1.19.0
+<<<<<<< HEAD
 	golang.org/x/arch => golang.org/x/arch v0.0.0-20180920145803-b19384d3c130
+=======
+>>>>>>> v1.25.16
 	golang.org/x/crypto => golang.org/x/crypto v0.14.0
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20210220032938-85be41e4509f
 	golang.org/x/image => golang.org/x/image v0.0.0-20190802002840-cff245a6509b

@@ -19,9 +19,15 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/rubiojr/go-vhd v0.0.0-20200706105327-02e210299021
 	github.com/stretchr/testify v1.8.0
+<<<<<<< HEAD
 	github.com/vmware/govmomi v0.30.0
 	golang.org/x/crypto v0.14.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
+=======
+	github.com/vmware/govmomi v0.30.6
+	golang.org/x/crypto v0.14.0
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+>>>>>>> v1.25.16
 	google.golang.org/api v0.60.0
 	gopkg.in/gcfg.v1 v1.2.0
 	k8s.io/api v0.25.0
