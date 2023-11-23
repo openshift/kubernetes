@@ -341,9 +341,6 @@ func shouldUseMetadataServer() bool {
 
 func (cs awsCredentialSource) subjectToken() (string, error) {
 	if cs.requestSigner == nil {
-<<<<<<< HEAD
-		awsSessionToken, err := cs.getAWSSessionToken()
-=======
 		headers := make(map[string]string)
 		if shouldUseMetadataServer() {
 			awsSessionToken, err := cs.getAWSSessionToken()
@@ -357,24 +354,10 @@ func (cs awsCredentialSource) subjectToken() (string, error) {
 		}
 
 		awsSecurityCredentials, err := cs.getSecurityCredentials(headers)
->>>>>>> v1.26.11
 		if err != nil {
 			return "", err
 		}
 
-<<<<<<< HEAD
-		headers := make(map[string]string)
-		if awsSessionToken != "" {
-			headers[awsIMDSv2SessionTokenHeader] = awsSessionToken
-		}
-
-		awsSecurityCredentials, err := cs.getSecurityCredentials(headers)
-		if err != nil {
-			return "", err
-		}
-
-=======
->>>>>>> v1.26.11
 		if cs.region, err = cs.getRegion(headers); err != nil {
 			return "", err
 		}
@@ -445,39 +428,6 @@ func (cs awsCredentialSource) subjectToken() (string, error) {
 func (cs *awsCredentialSource) getAWSSessionToken() (string, error) {
 	if cs.IMDSv2SessionTokenURL == "" {
 		return "", nil
-<<<<<<< HEAD
-	}
-
-	req, err := http.NewRequest("PUT", cs.IMDSv2SessionTokenURL, nil)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Add(awsIMDSv2SessionTtlHeader, awsIMDSv2SessionTtl)
-
-	resp, err := cs.doRequest(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("oauth2/google: unable to retrieve AWS session token - %s", string(respBody))
-	}
-
-	return string(respBody), nil
-}
-
-func (cs *awsCredentialSource) getRegion(headers map[string]string) (string, error) {
-	if envAwsRegion := getenv("AWS_REGION"); envAwsRegion != "" {
-		return envAwsRegion, nil
-=======
->>>>>>> v1.26.11
 	}
 
 	req, err := http.NewRequest("PUT", cs.IMDSv2SessionTokenURL, nil)
@@ -551,23 +501,12 @@ func (cs *awsCredentialSource) getRegion(headers map[string]string) (string, err
 }
 
 func (cs *awsCredentialSource) getSecurityCredentials(headers map[string]string) (result awsSecurityCredentials, err error) {
-<<<<<<< HEAD
-	if accessKeyID := getenv("AWS_ACCESS_KEY_ID"); accessKeyID != "" {
-		if secretAccessKey := getenv("AWS_SECRET_ACCESS_KEY"); secretAccessKey != "" {
-			return awsSecurityCredentials{
-				AccessKeyID:     accessKeyID,
-				SecretAccessKey: secretAccessKey,
-				SecurityToken:   getenv("AWS_SESSION_TOKEN"),
-			}, nil
-		}
-=======
 	if canRetrieveSecurityCredentialFromEnvironment() {
 		return awsSecurityCredentials{
 			AccessKeyID:     getenv(awsAccessKeyId),
 			SecretAccessKey: getenv(awsSecretAccessKey),
 			SecurityToken:   getenv(awsSessionToken),
 		}, nil
->>>>>>> v1.26.11
 	}
 
 	roleName, err := cs.getMetadataRoleName(headers)

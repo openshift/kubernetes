@@ -7,19 +7,11 @@ go 1.19
 require (
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
-<<<<<<< HEAD
-	github.com/stretchr/testify v1.8.0
-	google.golang.org/grpc v1.49.0
-	k8s.io/api v0.26.1
-	k8s.io/apimachinery v0.26.1
-	k8s.io/client-go v0.26.1
-=======
 	github.com/stretchr/testify v1.8.1
 	google.golang.org/grpc v1.56.3
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
->>>>>>> v1.26.11
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kubelet v0.0.0
 )
@@ -45,19 +37,11 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-<<<<<<< HEAD
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
-=======
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
->>>>>>> v1.26.11
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect

@@ -185,13 +185,10 @@ func (c *Config) parse(ctx context.Context) (baseCredentialSource, error) {
 				awsCredSource.IMDSv2SessionTokenURL = c.CredentialSource.IMDSv2SessionTokenURL
 			}
 
-<<<<<<< HEAD
-=======
 			if err := awsCredSource.validateMetadataServers(); err != nil {
 				return nil, err
 			}
 
->>>>>>> v1.26.11
 			return awsCredSource, nil
 		}
 	} else if c.CredentialSource.File != "" {

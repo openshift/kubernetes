@@ -36,16 +36,10 @@
 // Follow the detailed instructions on how to configure Workload Identity Federation
 // in various platforms:
 //
-<<<<<<< HEAD
-//	Amazon Web Services (AWS): https://cloud.google.com/iam/docs/access-resources-aws
-//	Microsoft Azure: https://cloud.google.com/iam/docs/access-resources-azure
-//	OIDC identity provider: https://cloud.google.com/iam/docs/access-resources-oidc
-=======
 //	Amazon Web Services (AWS): https://cloud.google.com/iam/docs/workload-identity-federation-with-other-clouds#aws
 //	Microsoft Azure: https://cloud.google.com/iam/docs/workload-identity-federation-with-other-clouds#azure
 //	OIDC identity provider: https://cloud.google.com/iam/docs/workload-identity-federation-with-other-providers#oidc
 //	SAML 2.0 identity provider: https://cloud.google.com/iam/docs/workload-identity-federation-with-other-providers#saml
->>>>>>> v1.26.11
 //
 // For OIDC and SAML providers, the library can retrieve tokens in three ways:
 // from a local file location (file-sourced credentials), from a server
@@ -64,8 +58,6 @@
 // executable-sourced credentials), please check out:
 // https://cloud.google.com/iam/docs/workload-identity-federation-with-other-providers#create_a_credential_configuration
 //
-<<<<<<< HEAD
-=======
 // Note that this library does not perform any validation on the token_url, token_info_url,
 // or service_account_impersonation_url fields of the credential configuration.
 // It is not recommended to use a credential configuration that you did not generate with
@@ -114,7 +106,6 @@
 // It is not recommended to use a credential configuration that you did not generate with
 // the gcloud CLI unless you verify that the URL fields point to a googleapis.com domain.
 //
->>>>>>> v1.26.11
 // # Credentials
 //
 // The Credentials type represents Google credentials, including Application Default
