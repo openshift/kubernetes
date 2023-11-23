@@ -10,7 +10,7 @@ require (
 	golang.org/x/oauth2 v0.7.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
-	k8s.io/apiserver v0.0.0
+	k8s.io/apiserver v0.26.1
 	k8s.io/client-go v0.26.1
 	k8s.io/component-base v0.26.1
 	k8s.io/klog/v2 v2.80.1
@@ -18,7 +18,6 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.110.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

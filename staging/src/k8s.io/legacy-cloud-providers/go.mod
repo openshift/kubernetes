@@ -22,9 +22,9 @@ require (
 	golang.org/x/oauth2 v0.7.0
 	google.golang.org/api v0.114.0
 	gopkg.in/gcfg.v1 v1.2.3
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
+	k8s.io/api v0.26.1
+	k8s.io/apimachinery v0.26.1
+	k8s.io/client-go v0.26.1
 	k8s.io/cloud-provider v0.0.0
 	k8s.io/component-base v0.26.1
 	k8s.io/csi-translation-lib v0.0.0

@@ -17,7 +17,6 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.110.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

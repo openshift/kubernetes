@@ -18,7 +18,7 @@ require (
 	k8s.io/apimachinery v0.26.1
 	k8s.io/apiserver v0.26.1
 	k8s.io/client-go v0.26.1
-	k8s.io/code-generator v0.0.0
+	k8s.io/code-generator v0.26.1
 	k8s.io/component-base v0.26.1
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280

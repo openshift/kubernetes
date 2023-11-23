@@ -8,9 +8,9 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	golang.org/x/net v0.17.0
 	google.golang.org/grpc v1.56.3
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/component-base v0.0.0
+	k8s.io/api v0.26.1
+	k8s.io/apimachinery v0.26.1
+	k8s.io/component-base v0.26.1
 )
 
 require (
