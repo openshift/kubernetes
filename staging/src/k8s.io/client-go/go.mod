@@ -9,7 +9,7 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.3
 	github.com/google/gnostic v0.5.7-v3refs
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gofuzz v1.2.0
@@ -18,6 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.7
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/spf13/pflag v1.0.5
+<<<<<<< HEAD
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
@@ -26,6 +27,16 @@ require (
 	google.golang.org/protobuf v1.28.1
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
+=======
+	github.com/stretchr/testify v1.8.1
+	golang.org/x/net v0.17.0
+	golang.org/x/oauth2 v0.7.0
+	golang.org/x/term v0.13.0
+	golang.org/x/time v0.3.0
+	google.golang.org/protobuf v1.31.0
+	k8s.io/api v0.0.0
+	k8s.io/apimachinery v0.0.0
+>>>>>>> v1.26.11
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
