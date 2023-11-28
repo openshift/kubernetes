@@ -1483,7 +1483,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] NoExecuteTaintManager Single Pod [Serial] evicts pods from tainted nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-node] NoExecuteTaintManager Single Pod [Serial] pods evicted from tainted nodes have pod disruption condition": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-node] NoExecuteTaintManager Single Pod [Serial] pods evicted from tainted nodes have pod disruption condition": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] NoExecuteTaintManager Single Pod [Serial] removing taint cancels eviction [Disruptive] [Conformance]": " [Skipped:SingleReplicaTopology] [Suite:k8s]",
 
