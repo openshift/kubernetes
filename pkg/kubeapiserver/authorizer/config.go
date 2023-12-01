@@ -155,11 +155,11 @@ func (config Config) New() (authorizer.Authorizer, authorizer.RuleResolver, erro
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(rbacAuthorizer, user.AllAuthenticated))
 			ruleResolvers = append(ruleResolvers, rbacAuthorizer)
-		case modes.ModeScope:
+		case authzconfig.AuthorizerType(modes.ModeScope):
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 			scopeLimitedAuthorizer := scopeauthorizer.NewAuthorizer(config.VersionedInformerFactory.Rbac().V1().ClusterRoles().Lister())
 			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated))
-		case modes.ModeSystemMasters:
+		case authzconfig.AuthorizerType(modes.ModeSystemMasters):
 			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
 			authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup))
 		default:
