@@ -226,7 +226,15 @@ func startRootCACertificatePublisherController(ctx context.Context, controllerCo
 	return nil, true, nil
 }
 
-func startServiceCACertPublisher(ctx context.Context, controllerContext ControllerContext) (controller.Interface, bool, error) {
+func newServiceCACertPublisher() *ControllerDescriptor {
+	return &ControllerDescriptor{
+		name:     names.ServiceCACertificatePublisherController,
+		aliases:  []string{"service-ca-cert-publisher"},
+		initFunc: startServiceCACertPublisher,
+	}
+}
+
+func startServiceCACertPublisher(ctx context.Context, controllerContext ControllerContext, controllerName string) (controller.Interface, bool, error) {
 	sac, err := servicecacertpublisher.NewPublisher(
 		controllerContext.InformerFactory.Core().V1().ConfigMaps(),
 		controllerContext.InformerFactory.Core().V1().Namespaces(),

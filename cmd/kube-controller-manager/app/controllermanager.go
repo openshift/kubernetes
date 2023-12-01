@@ -592,6 +592,7 @@ func NewControllerDescriptors() map[string]*ControllerDescriptor {
 	register(newPersistentVolumeProtectionControllerDescriptor())
 	register(newTTLAfterFinishedControllerDescriptor())
 	register(newRootCACertificatePublisherControllerDescriptor())
+	register(newServiceCACertPublisher())
 	register(newEphemeralVolumeControllerDescriptor())
 
 	// feature gated
