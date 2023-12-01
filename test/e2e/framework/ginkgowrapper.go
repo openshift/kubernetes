@@ -21,7 +21,6 @@ import (
 	"path"
 	"reflect"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/onsi/ginkgo/v2"
@@ -301,7 +300,7 @@ func validateText(location types.CodeLocation, text string, labels []string) {
 		}
 		// Strip square brackets.
 		tag = tag[1 : len(tag)-1]
-		if slices.Contains(labels, tag) {
+		if sliceContains(labels, tag) {
 			// Okay, was also set as label.
 			continue
 		}
@@ -566,4 +565,13 @@ func slicesEqual[S ~[]E, E comparable](s1, s2 S) bool {
 		}
 	}
 	return true
+}
+
+func sliceContains(s []string, tag string) bool {
+	for i := range s {
+		if s[i] == tag {
+			return true
+		}
+	}
+	return false
 }

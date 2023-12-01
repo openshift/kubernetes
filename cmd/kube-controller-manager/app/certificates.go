@@ -234,7 +234,7 @@ func newServiceCACertPublisher() *ControllerDescriptor {
 	}
 }
 
-func startServiceCACertPublisher(ctx context.Context, controllerContext ControllerContext) (controller.Interface, bool, error) {
+func startServiceCACertPublisher(ctx context.Context, controllerContext ControllerContext, controllerName string) (controller.Interface, bool, error) {
 	sac, err := servicecacertpublisher.NewPublisher(
 		controllerContext.InformerFactory.Core().V1().ConfigMaps(),
 		controllerContext.InformerFactory.Core().V1().Namespaces(),

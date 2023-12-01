@@ -155,8 +155,8 @@ func BuildGenericConfig(
 
 	enablement.SetLoopbackClientConfig(genericConfig.LoopbackClientConfig)
 
-	kubeClientConfig := genericConfig.LoopbackClientConfig
-	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
+	kubeClientConfig = genericConfig.LoopbackClientConfig
+	clientgoExternalClient, err = clientgoclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
 		lastErr = fmt.Errorf("failed to create real external clientset: %v", err)
 		return
