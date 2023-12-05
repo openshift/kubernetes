@@ -414,6 +414,10 @@ func (asw *actualStateOfWorld) IsVolumeReconstructed(volumeName v1.UniqueVolumeN
 	if !ok {
 		return false
 	}
+
+	if podName == operationexecutor.EmptyUniquePodName {
+		return true
+	}
 	_, foundPod := podMap[podName]
 	return foundPod
 }
