@@ -414,6 +414,10 @@ func (asw *actualStateOfWorld) IsVolumeReconstructed(volumeName v1.UniqueVolumeN
 	if !ok {
 		return false
 	}
+
+	if podName == operationexecutor.EmptyUniquePodName {
+		return true
+	}
 	_, foundPod := podMap[podName]
 	return foundPod
 }
@@ -809,6 +813,11 @@ func (asw *actualStateOfWorld) SetDeviceMountState(
 		if seLinuxMountContext != "" {
 			volumeObj.seLinuxMountContext = &seLinuxMountContext
 		}
+	}
+
+	// if device was globally mounted then, we shouldn't have to store the device as foundDuringReconstruction
+	if deviceMountState == operationexecutor.DeviceGloballyMounted {
+		delete(asw.foundDuringReconstruction, volumeName)
 	}
 	asw.attachedVolumes[volumeName] = volumeObj
 	return nil
