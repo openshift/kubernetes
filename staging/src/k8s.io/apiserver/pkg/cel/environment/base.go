@@ -18,13 +18,13 @@ package environment
 
 import (
 	"fmt"
+	"github.com/google/cel-go/checker"
+	"github.com/google/cel-go/interpreter"
 	"strconv"
 	"sync"
 
 	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/checker"
 	"github.com/google/cel-go/ext"
-	"github.com/google/cel-go/interpreter"
 	"golang.org/x/sync/singleflight"
 
 	"k8s.io/apimachinery/pkg/util/version"
