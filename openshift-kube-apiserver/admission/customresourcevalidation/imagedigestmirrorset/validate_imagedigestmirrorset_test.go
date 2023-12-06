@@ -47,7 +47,7 @@ func TestValidateIDMSUse(t *testing.T) {
 		},
 
 		{
-			name:   "success creating idms",
+			name:   "success creating idms objects",
 			action: "create",
 			validateErrors: func(t *testing.T, errs field.ErrorList) {
 				t.Helper()
