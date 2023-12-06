@@ -51,6 +51,7 @@ func (rc *reconciler) readyToUnmount() bool {
 // is populated.
 func (rc *reconciler) reconstructVolumes() {
 	// Get volumes information by reading the pod's directory
+	klog.Infof("********** uncertainDeviceFix starting reconstruction")
 	podVolumes, err := getVolumesFromPodDir(rc.kubeletPodsDir)
 	if err != nil {
 		klog.ErrorS(err, "Cannot get volumes from disk, skip sync states for volume reconstruction")

@@ -783,9 +783,10 @@ func (og *operationGenerator) markDeviceErrorState(volumeToMount VolumeToMount, 
 		actualStateOfWorld.GetDeviceMountState(volumeToMount.VolumeName) == DeviceMountUncertain {
 
 		if actualStateOfWorld.IsVolumeReconstructed(volumeToMount.VolumeName, EmptyUniquePodName) {
-			klog.V(3).InfoS("MountVolume.markDeviceErrorState leaving volume uncertain", "volumeName", volumeToMount.VolumeName)
+			klog.V(2).InfoS("MountVolume.markDeviceErrorState uncertainDeviceFix leaving volume uncertain", "volumeName", volumeToMount.VolumeName)
 			return
 		}
+		klog.Infof("uncertainDeviceFix marking device %q as unmounted", volumeToMount.VolumeName)
 		// Only devices which were uncertain can be marked as unmounted
 		markDeviceUnmountError := actualStateOfWorld.MarkDeviceAsUnmounted(volumeToMount.VolumeName)
 		if markDeviceUnmountError != nil {
