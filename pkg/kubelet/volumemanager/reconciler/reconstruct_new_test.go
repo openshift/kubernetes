@@ -293,8 +293,10 @@ func TestReconstructVolumesMount(t *testing.T) {
 			deviceMountPath: filepath.Join("plugins", "fake-plugin", "volumeDevices", "pluginDependentPath"),
 		},
 		{
-			name:       "reconstructed volume device map fails",
-			volumePath: filepath.Join("pod1uid", "volumeDevices", "fake-plugin", volumetesting.FailOnSetupVolumeName),
+			name:            "reconstructed volume device map fails",
+			volumePath:      filepath.Join("pod1uid", "volumeDevices", "fake-plugin", volumetesting.FailMountDeviceVolumeName),
+			volumeMode:      v1.PersistentVolumeBlock,
+			deviceMountPath: filepath.Join("plugins", "fake-plugin", "volumeDevices", "pluginDependentPath"),
 		},
 	}
 	for _, tc := range tests {
