@@ -456,30 +456,6 @@ kube::golang::create_gopath_tree() {
 #   env-var GO_VERSION is the desired go version to use, downloading it if needed (defaults to content of .go-version)
 #   env-var FORCE_HOST_GO set to a non-empty value uses the go version in the $PATH and skips ensuring $GO_VERSION is used
 kube::golang::verify_go_version() {
-<<<<<<< HEAD
-=======
-  # default GO_VERSION to content of .go-version
-  GO_VERSION="${GO_VERSION:-"$(cat "${KUBE_ROOT}/.go-version")"}"
-  if [ "${GOTOOLCHAIN:-auto}" != 'auto' ]; then
-    # no-op, just respect GOTOOLCHAIN
-    :
-  elif [ -n "${FORCE_HOST_GO:-}" ]; then
-    # ensure existing host version is used, like before GOTOOLCHAIN existed
-    export GOTOOLCHAIN='local'
-  else
-    # otherwise, we want to ensure the go version matches GO_VERSION
-    GOTOOLCHAIN="go${GO_VERSION}"
-    export GOTOOLCHAIN
-    # if go is either not installed or too old to respect GOTOOLCHAIN then use gimme
-    if ! (command -v go >/dev/null && [ "$(go version | cut -d' ' -f3)" = "${GOTOOLCHAIN}" ]); then
-      export GIMME_ENV_PREFIX=${GIMME_ENV_PREFIX:-"${KUBE_OUTPUT}/.gimme/envs"}
-      export GIMME_VERSION_PREFIX=${GIMME_VERSION_PREFIX:-"${KUBE_OUTPUT}/.gimme/versions"}
-      # eval because the output of this is shell to set PATH etc.
-      eval "$("${KUBE_ROOT}/third_party/gimme/gimme" "${GO_VERSION}")"
-    fi
-  fi
-
->>>>>>> v1.26.12
   if [[ -z "$(command -v go)" ]]; then
     kube::log::usage_from_stdin <<EOF
 Can't find 'go' in PATH, please fix and retry.
