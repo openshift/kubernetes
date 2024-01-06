@@ -527,8 +527,6 @@ EOF
 #   env-var GOBIN is unset (we want binaries in a predictable place)
 #   env-var PATH includes the local GOPATH
 kube::golang::setup_env() {
-  kube::golang::verify_go_version
-
   # Even in module mode, we need to set GOPATH for `go build` and `go install`
   # to work.  We build various tools (usually via `go install`) from a lot of
   # scripts.
@@ -558,6 +556,10 @@ kube::golang::setup_env() {
 
   # Explicitly turn on modules.
   export GO111MODULE=on
+
+  # This may try to download our specific Go version.  Do it last so it uses
+  # the above-configured environment.
+  kube::golang::internal::verify_go_version
 }
 
 kube::golang::setup_gomaxprocs() {
