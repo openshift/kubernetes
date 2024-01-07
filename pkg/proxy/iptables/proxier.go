@@ -1076,7 +1076,7 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 
 		// Capture externalIPs.
-		for _, externalIP := range svcInfo.ExternalIPStrings() {
+		for _, externalIP := range svcInfo.ExternalIPs() {
 			if hasEndpoints {
 				// Send traffic bound for external IPs to the "external
 				// destinations" chain.
@@ -1084,7 +1084,7 @@ func (proxier *Proxier) syncProxyRules() {
 					"-A", string(kubeServicesChain),
 					"-m", "comment", "--comment", fmt.Sprintf(`"%s external IP"`, svcPortNameString),
 					"-m", protocol, "-p", protocol,
-					"-d", externalIP,
+					"-d", externalIP.String(),
 					"--dport", strconv.Itoa(svcInfo.Port()),
 					"-j", string(externalTrafficChain))
 			}
@@ -1096,7 +1096,7 @@ func (proxier *Proxier) syncProxyRules() {
 					"-A", string(kubeExternalServicesChain),
 					"-m", "comment", "--comment", externalTrafficFilterComment,
 					"-m", protocol, "-p", protocol,
-					"-d", externalIP,
+					"-d", externalIP.String(),
 					"--dport", strconv.Itoa(svcInfo.Port()),
 					"-j", externalTrafficFilterTarget,
 				)
