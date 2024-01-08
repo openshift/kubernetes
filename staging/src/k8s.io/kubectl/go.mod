@@ -95,6 +95,7 @@ require (
 )
 
 replace (
+	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.43.2-0.20240108173949-69b75aa3454a
 	github.com/hashicorp/golang-lru => github.com/hashicorp/golang-lru v0.5.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 	github.com/mattn/go-colorable => github.com/mattn/go-colorable v0.0.9
