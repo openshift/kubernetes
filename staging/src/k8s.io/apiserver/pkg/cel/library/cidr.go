@@ -145,15 +145,16 @@ var cidrLibraryDecls = map[string][]cel.FunctionOpt{
 		cel.Overload("is_cidr", []*cel.Type{cel.StringType}, cel.BoolType,
 			cel.UnaryBinding(isCIDR)),
 	},
-	"string": {
-		cel.Overload("cidr_to_string", []*cel.Type{apiservercel.CIDRType}, cel.StringType,
-			cel.UnaryBinding(cidrToString)),
-	},
+	// "string": {
+	// 	cel.Overload("cidr_to_string", []*cel.Type{apiservercel.CIDRType}, cel.StringType,
+	// 		cel.UnaryBinding(cidrToString)),
+	// },
 }
 
 func (*cidrs) CompileOptions() []cel.EnvOption {
-	options := []cel.EnvOption{cel.Types(apiservercel.CIDRType),
-		cel.Variable(apiservercel.CIDRType.TypeName(), types.NewTypeTypeWithParam(apiservercel.CIDRType)),
+	options := []cel.EnvOption{
+		//cel.Types(apiservercel.CIDRType),
+		// cel.Variable(apiservercel.CIDRType.String(), apiservercel.CIDRType),
 	}
 	for name, overloads := range cidrLibraryDecls {
 		options = append(options, cel.Function(name, overloads...))

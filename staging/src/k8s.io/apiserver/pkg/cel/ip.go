@@ -33,7 +33,8 @@ type IP struct {
 }
 
 var (
-	IPType = cel.OpaqueType("net.IP")
+	IPType      = cel.ObjectType("net.IP")
+	ipTypeValue = types.NewTypeValue("net.IP")
 )
 
 // ConvertToNative implements ref.Val.ConvertToNative.
@@ -50,10 +51,10 @@ func (d IP) ConvertToNative(typeDesc reflect.Type) (any, error) {
 // ConvertToType implements ref.Val.ConvertToType.
 func (d IP) ConvertToType(typeVal ref.Type) ref.Val {
 	switch typeVal {
-	case IPType:
+	case ipTypeValue:
 		return d
 	case types.TypeType:
-		return IPType
+		return ipTypeValue
 	case types.StringType:
 		return types.String(d.Addr.String())
 	}
@@ -71,7 +72,7 @@ func (d IP) Equal(other ref.Val) ref.Val {
 
 // Type implements ref.Val.Type.
 func (d IP) Type() ref.Type {
-	return IPType
+	return ipTypeValue
 }
 
 // Value implements ref.Val.Value.

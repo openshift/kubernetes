@@ -172,15 +172,16 @@ var ipLibraryDecls = map[string][]cel.FunctionOpt{
 		cel.Overload("is_ip", []*cel.Type{cel.StringType}, cel.BoolType,
 			cel.UnaryBinding(isIP)),
 	},
-	"string": {
-		cel.Overload("ip_to_string", []*cel.Type{apiservercel.IPType}, cel.StringType,
-			cel.UnaryBinding(ipToString)),
-	},
+	// "string": {
+	// 	cel.Overload("ip_to_string", []*cel.Type{apiservercel.IPType}, cel.StringType,
+	// 		cel.UnaryBinding(ipToString)),
+	// },
 }
 
 func (*ip) CompileOptions() []cel.EnvOption {
-	options := []cel.EnvOption{cel.Types(apiservercel.IPType),
-		cel.Variable(apiservercel.IPType.TypeName(), types.NewTypeTypeWithParam(apiservercel.IPType)),
+	options := []cel.EnvOption{
+		// cel.Types(apiservercel.IPType),
+		// cel.Variable(apiservercel.IPType.String(), apiservercel.IPType),
 	}
 	for name, overloads := range ipLibraryDecls {
 		options = append(options, cel.Function(name, overloads...))

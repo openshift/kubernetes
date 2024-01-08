@@ -33,7 +33,8 @@ type CIDR struct {
 }
 
 var (
-	CIDRType = cel.OpaqueType("net.CIDR")
+	CIDRType      = cel.OpaqueType("net.CIDR")
+	cidrTypeValue = types.NewTypeValue("net.CIDR")
 )
 
 // ConvertToNative implements ref.Val.ConvertToNative.
@@ -50,10 +51,10 @@ func (d CIDR) ConvertToNative(typeDesc reflect.Type) (any, error) {
 // ConvertToType implements ref.Val.ConvertToType.
 func (d CIDR) ConvertToType(typeVal ref.Type) ref.Val {
 	switch typeVal {
-	case CIDRType:
+	case cidrTypeValue:
 		return d
 	case types.TypeType:
-		return CIDRType
+		return cidrTypeValue
 	case types.StringType:
 		return types.String(d.Prefix.String())
 	}
@@ -72,7 +73,7 @@ func (d CIDR) Equal(other ref.Val) ref.Val {
 
 // Type implements ref.Val.Type.
 func (d CIDR) Type() ref.Type {
-	return CIDRType
+	return cidrTypeValue
 }
 
 // Value implements ref.Val.Value.

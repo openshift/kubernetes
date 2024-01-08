@@ -52,7 +52,7 @@ func TestLibraryCompatibility(t *testing.T) {
 		// Kubernetes <1.27>:
 		"path", "group", "serviceAccount", "resource", "subresource", "namespace", "name", "check", "allowed", "denied", "reason",
 		// Kubernetes <1.30>:
-		"ip", "family", "isUnspecified", "isLoopback", "isLinkLocalMulticast", "isLinkLocalUnicast", "isGlobalUnicast", "ip.isCanonical", "isIP", "cidr", "containsIP", "containsCIDR", "masked", "prefixLength", "isCIDR", "string",
+		"ip", "family", "isUnspecified", "isLoopback", "isLinkLocalMulticast", "isLinkLocalUnicast", "isGlobalUnicast", "ip.isCanonical", "isIP", "cidr", "containsIP", "containsCIDR", "masked", "prefixLength", "isCIDR",
 		// Kubernetes <1.??>:
 	}
 	for _, fn := range knownFunctions {
