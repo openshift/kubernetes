@@ -135,9 +135,9 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 			// required to ensure the external cloud provider will use the same addresses to avoid the issues explained
 			// in https://github.com/kubernetes/kubernetes/issues/120720.
 			// We are already hinting the external cloud provider via the annotation AnnotationAlphaProvidedIPAddr.
-			if !nodeIPSpecified {
-				return nil
-			}
+			// if !nodeIPSpecified {
+			// 	return nil
+			// }
 		}
 		if cloud != nil {
 			cloudNodeAddresses, err := nodeAddressesFunc()
