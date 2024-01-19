@@ -790,8 +790,8 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 			if apiPrefix == APIGroupPrefix {
 				s.AggregatedDiscoveryGroupManager.AddGroupVersion(
 					groupVersion.Group,
-					apidiscoveryv2beta1.APIVersionDiscovery{
-						Freshness: apidiscoveryv2beta1.DiscoveryFreshnessCurrent,
+					apidiscoveryv2.APIVersionDiscovery{
+						Freshness: apidiscoveryv2.DiscoveryFreshnessCurrent,
 						Version:   groupVersion.Version,
 						Resources: discoveryAPIResources,
 					},
@@ -800,8 +800,8 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 				// There is only one group version for legacy resources, priority can be defaulted to 0.
 				s.AggregatedLegacyDiscoveryGroupManager.AddGroupVersion(
 					groupVersion.Group,
-					apidiscoveryv2beta1.APIVersionDiscovery{
-						Freshness: apidiscoveryv2beta1.DiscoveryFreshnessCurrent,
+					apidiscoveryv2.APIVersionDiscovery{
+						Freshness: apidiscoveryv2.DiscoveryFreshnessCurrent,
 						Version:   groupVersion.Version,
 						Resources: discoveryAPIResources,
 					},
