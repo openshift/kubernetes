@@ -1029,7 +1029,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	KubeletTracing: {Default: true, PreRelease: featuregate.Beta},
 
-	KubeProxyDrainingTerminatingNodes: {Default: false, PreRelease: featuregate.Alpha},
+	KubeProxyDrainingTerminatingNodes: {Default: true, PreRelease: featuregate.Beta},
 
 	LegacyServiceAccountTokenCleanUp: {Default: true, PreRelease: featuregate.Beta},
 
