@@ -4,6 +4,10 @@
 exclude:
   global:
     - vendor/**
+    - "*/vendor/**"
     - "**/*_test.go"
-    - **/testdata/**
+    - "*/*_test.go"
+    - "**/testdata/*"
+    - "*/testdata/*"
     - cluster/**
+    - "*/cluster/**"
