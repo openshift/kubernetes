@@ -9,7 +9,6 @@ require (
 	github.com/GoogleCloudPlatform/k8s-cloud-provider v1.18.1-0.20220218231025-f11817397a1b
 	github.com/google/go-cmp v0.6.0
 	github.com/stretchr/testify v1.8.4
-	github.com/vmware/govmomi v0.30.6
 	golang.org/x/oauth2 v0.10.0
 	google.golang.org/api v0.126.0
 	gopkg.in/gcfg.v1 v1.2.3
