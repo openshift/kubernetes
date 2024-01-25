@@ -63,6 +63,12 @@ var _ = utils.SIGDescribe("CSI Mock selinux on mount", func() {
 			Level: "s0:c98,c99",
 		}
 		seLinuxMountOption2 := "context=\"system_u:object_r:container_file_t:s0:c98,c99\""
+		seLinuxOptsEmpty := v1.SELinuxOptions{
+			User:  "",
+			Role:  "",
+			Type:  "",
+			Level: "",
+		}
 
 		tests := []struct {
 			name                       string
@@ -102,7 +108,7 @@ var _ = utils.SIGDescribe("CSI Mock selinux on mount", func() {
 			{
 				name:                      "should not pass SELinux mount option for Pod without SELinux context",
 				csiDriverSELinuxEnabled:   true,
-				firstPodSELinuxOpts:       nil,
+				firstPodSELinuxOpts:       &seLinuxOptsEmpty,
 				volumeMode:                v1.ReadWriteOncePod,
 				expectedFirstMountOptions: nil,
 			},
