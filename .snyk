@@ -3,7 +3,7 @@
 # https://docs.snyk.io/snyk-cli/commands/ignore
 exclude:
   global:
-    - vendor/**
+    - "**/vendor/**"
     - "**/*_test.go"
-    - **/testdata/**
-    - cluster/**
+    - "**/testdata/**"
+    - "**/cluster/**"
