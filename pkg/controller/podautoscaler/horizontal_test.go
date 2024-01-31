@@ -229,8 +229,11 @@ func (tc *testCase) prepareTestClient(t *testing.T) (*fake.Clientset, *metricsfa
 				LastScaleTime:   tc.lastScaleTime,
 			},
 		}
+		// jkyros: we were cheating our way through our tests by defaulting these here, we would
+		// have caught the "partially filled HPA behaviors" crashes a lot sooner otherwise
+
 		// Initialize default values
-		autoscalingapiv2.SetDefaults_HorizontalPodAutoscalerBehavior(&hpa)
+		// autoscalingapiv2.SetDefaults_HorizontalPodAutoscalerBehavior(&hpa)
 
 		obj := &autoscalingv2.HorizontalPodAutoscalerList{
 			Items: []autoscalingv2.HorizontalPodAutoscaler{hpa},
@@ -4558,4 +4561,45 @@ func TestMultipleHPAs(t *testing.T) {
 	}
 
 	assert.Equal(t, hpaCount, len(processedHPA), "Expected to process all HPAs")
+}
+
+// TestPartialBehaviors makes sure that the controller is filling in any
+// partial behaviors that are nil so we don't panic
+// See: https://issues.redhat.com/browse/OCPBUGS-12210
+func TestPartialBehaviors(t *testing.T) {
+
+	t.Run("ensure no panic if scaleDown rules are missing", func(t *testing.T) {
+		tc := testCase{
+			minReplicas:             2,
+			maxReplicas:             6,
+			specReplicas:            3,
+			statusReplicas:          3,
+			expectedDesiredReplicas: 5,
+			CPUTarget:               30,
+			verifyCPUCurrent:        true,
+			reportedLevels:          []uint64{300, 500, 700},
+			reportedCPURequests:     []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+			useMetricsAPI:           true,
+			scaleUpRules:            autoscalingapiv2.GenerateHPAScaleUpRules(nil),
+		}
+		tc.runTest(t)
+	})
+
+	t.Run("ensure no panic if scaleUp rules are missing", func(t *testing.T) {
+		tc := testCase{
+			minReplicas:             2,
+			maxReplicas:             6,
+			specReplicas:            5,
+			statusReplicas:          5,
+			expectedDesiredReplicas: 3,
+			CPUTarget:               50,
+			verifyCPUCurrent:        true,
+			reportedLevels:          []uint64{100, 300, 500, 250, 250},
+			reportedCPURequests:     []resource.Quantity{resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0"), resource.MustParse("1.0")},
+			useMetricsAPI:           true,
+			recommendations:         []timestampedRecommendation{},
+			scaleDownRules:          autoscalingapiv2.GenerateHPAScaleDownRules(nil),
+		}
+		tc.runTest(t)
+	})
 }
