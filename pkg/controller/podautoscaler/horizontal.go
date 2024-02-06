@@ -48,6 +48,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
+	autoscalingapiv2 "k8s.io/kubernetes/pkg/apis/autoscaling/v2"
 	"k8s.io/kubernetes/pkg/controller"
 	metricsclient "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	"k8s.io/kubernetes/pkg/controller/util/selectors"
@@ -678,6 +679,11 @@ func (a *HorizontalController) reconcileAutoscaler(ctx context.Context, hpaShare
 	// make a copy so that we never mutate the shared informer cache (conversion can mutate the object)
 	hpa := hpaShared.DeepCopy()
 	hpaStatusOriginal := hpa.Status.DeepCopy()
+
+	// Make sure we don't have any nil behaviors before we touch them. They can come in with old v1 objects,
+	// and it's easier here than having to nil check/default later for every calculation
+	// See: https://issues.redhat.com/browse/OCPBUGS-12210
+	a.ensureScalingBehaviorsNotPartiallyPopulated(hpa)
 
 	reference := fmt.Sprintf("%s/%s/%s", hpa.Spec.ScaleTargetRef.Kind, hpa.Namespace, hpa.Spec.ScaleTargetRef.Name)
 
@@ -1341,4 +1347,14 @@ func min(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+// ensureScalingBehaviorsNotPartiallyPopulated uses the defualters to ensure that scaling behaviors cannot
+// be partially populated, because if they are, the calculation code will potentially dereference the
+// nil pointers and panic.
+func (a *HorizontalController) ensureScalingBehaviorsNotPartiallyPopulated(hpa *autoscalingv2.HorizontalPodAutoscaler) {
+	if hpa.Spec.Behavior != nil {
+		hpa.Spec.Behavior.ScaleUp = autoscalingapiv2.GenerateHPAScaleUpRules(hpa.Spec.Behavior.ScaleUp)
+		hpa.Spec.Behavior.ScaleDown = autoscalingapiv2.GenerateHPAScaleDownRules(hpa.Spec.Behavior.ScaleDown)
+	}
 }
