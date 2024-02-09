@@ -659,6 +659,8 @@ var Annotations = map[string]string{
 
 	"[sig-autoscaling] Cluster size autoscaling [Slow] should scale up when non expendable pod is created [Feature:ClusterSizeAutoscalingScaleUp]": " [Suite:k8s]",
 
+	"[sig-autoscaling] Cluster size autoscaling [Slow] should scale up when unprocessed pod is created and is going to be unschedulable [Feature:ClusterScaleUpBypassScheduler]": " [Suite:k8s]",
+
 	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't be able to scale down when rescheduling a pod is required, but pdb doesn't allow drain [Feature:ClusterSizeAutoscalingScaleDown]": " [Suite:k8s]",
 
 	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't increase cluster size if pending pod is too large [Feature:ClusterSizeAutoscalingScaleUp]": " [Suite:k8s]",
@@ -668,6 +670,10 @@ var Annotations = map[string]string{
 	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't scale up when expendable pod is created [Feature:ClusterSizeAutoscalingScaleUp]": " [Suite:k8s]",
 
 	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't scale up when expendable pod is preempted [Feature:ClusterSizeAutoscalingScaleUp]": " [Suite:k8s]",
+
+	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't scale up when unprocessed pod is created and is going to be schedulable [Feature:ClusterScaleUpBypassScheduler]": " [Suite:k8s]",
+
+	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't scale up when unprocessed pod is created and scheduler is not specified to be bypassed [Feature:ClusterScaleUpBypassScheduler]": " [Suite:k8s]",
 
 	"[sig-autoscaling] Cluster size autoscaling [Slow] shouldn't trigger additional scale-ups during processing scale-up [Feature:ClusterSizeAutoscalingScaleUp]": " [Suite:k8s]",
 
@@ -929,6 +935,8 @@ var Annotations = map[string]string{
 
 	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Disabled:RebaseInProgress] [Suite:k8s]",
 
+	"[sig-network] Conntrack proxy implementation should not be vulnerable to the invalid conntrack state bug [Privileged]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-network] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service and client is hostNetwork": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -936,8 +944,6 @@ var Annotations = map[string]string{
 	"[sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a ClusterIP service": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Conntrack should be able to preserve UDP traffic when server pod cycles for a NodePort service": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[sig-network] Conntrack should drop INVALID conntrack entries [Privileged]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] DNS HostNetwork should resolve DNS of partial qualified names for services on hostNetwork pods with dnsPolicy: ClusterFirstWithHostNet [LinuxOnly]": " [Disabled:RebaseInProgress] [Suite:k8s]",
 
@@ -1497,6 +1503,8 @@ var Annotations = map[string]string{
 
 	"[sig-node] Kubelet when scheduling an agnhost Pod with hostAliases should write entries to /etc/hosts [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[sig-node] Kubelet with pods in a privileged namespace when scheduling an agnhost Pod with hostAliases and hostNetwork should write entries to /etc/hosts when hostNetwork is enabled [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-node] KubeletManagedEtcHosts should test kubelet managed /etc/hosts file [LinuxOnly] [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-node] Lease lease API should be available [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
@@ -1523,7 +1531,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] NodeLease NodeLease the kubelet should report node status infrequently": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] NodeProblemDetector should run without error": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] NodeProblemDetector [NodeFeature:NodeProblemDetector] should run without error": " [Disabled:SpecialConfig] [Suite:k8s]",
 
 	"[sig-node] Pod InPlace Resize Container [Feature:InPlacePodVerticalScaling] BestEffort pod - try requesting memory, expect error": " [Disabled:Alpha] [Suite:k8s]",
 
@@ -1817,63 +1825,63 @@ var Annotations = map[string]string{
 
 	"[sig-node] [Feature:PodLifecycleSleepAction] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action": " [Disabled:Alpha] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted by liveness probe because startup probe delays it": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted by liveness probe because startup probe delays it": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a /healthz http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a /healthz http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a GRPC liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a GRPC liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a exec \"cat /tmp/health\" liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a exec \"cat /tmp/health\" liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a non-local redirect http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a non-local redirect http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a tcp:8080 liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should *not* be restarted with a tcp:8080 liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be ready immediately after startupProbe succeeds": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be ready immediately after startupProbe succeeds": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted by liveness probe after startup probe enables it": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted by liveness probe after startup probe enables it": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted startup probe fails": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted startup probe fails": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a /healthz http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a /healthz http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a GRPC liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a GRPC liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a exec \"cat /tmp/health\" liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a exec \"cat /tmp/health\" liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a failing exec liveness probe that took longer than the timeout": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a failing exec liveness probe that took longer than the timeout": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a local redirect http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with a local redirect http liveness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with an exec liveness probe with timeout [MinimumKubeletVersion:1.20]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should be restarted with an exec liveness probe with timeout [MinimumKubeletVersion:1.20]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should have monotonically increasing restart count": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should have monotonically increasing restart count": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should mark readiness on pods to false and disable liveness probes while pod is in progress of terminating": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should mark readiness on pods to false and disable liveness probes while pod is in progress of terminating": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should mark readiness on pods to false while pod is in progress of terminating when a pod has a readiness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should mark readiness on pods to false while pod is in progress of terminating when a pod has a readiness probe": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should not be ready with an exec readiness probe timeout [MinimumKubeletVersion:1.20]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should not be ready with an exec readiness probe timeout [MinimumKubeletVersion:1.20]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should override timeoutGracePeriodSeconds when LivenessProbe field is set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should override timeoutGracePeriodSeconds when LivenessProbe field is set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should override timeoutGracePeriodSeconds when StartupProbe field is set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container should override timeoutGracePeriodSeconds when StartupProbe field is set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container with readiness probe should not be ready before initial delay and never restart": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container with readiness probe should not be ready before initial delay and never restart": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container with readiness probe that fails should never be ready and never restart": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Probing restartable init container with readiness probe that fails should never be ready and never restart": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart exec hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart exec hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart http hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart http hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart https hook properly [MinimumKubeletVersion:1.23]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart https hook properly [MinimumKubeletVersion:1.23]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop exec hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop exec hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop http hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop http hook properly": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [NodeAlphaFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop https hook properly [MinimumKubeletVersion:1.23]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [NodeFeature:SidecarContainers] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop https hook properly [MinimumKubeletVersion:1.23]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] [Serial] Pod InPlace Resize Container (scheduler-focused) [Feature:InPlacePodVerticalScaling] pod-resize-scheduler-tests": " [Disabled:Alpha] [Suite:k8s]",
 
@@ -1881,21 +1889,27 @@ var Annotations = map[string]string{
 
 	"[sig-node] kubelet Clean up pods on node kubelet should be able to delete 10 pods per node in 1m0s.": " [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-node] kubelet host cleanup with volume mounts [HostCleanup][Flaky] Host cleanup after disrupting NFS volume [NFS] after stopping the nfs-server and deleting the (active) client pod, the NFS mount and the pod's UID directory should be removed.": " [Suite:k8s]",
+	"[sig-node] kubelet host cleanup with volume mounts [HostCleanup] [Flaky] Host cleanup after disrupting NFS volume [NFS] after stopping the nfs-server and deleting the (active) client pod, the NFS mount and the pod's UID directory should be removed.": " [Suite:k8s]",
 
-	"[sig-node] kubelet host cleanup with volume mounts [HostCleanup][Flaky] Host cleanup after disrupting NFS volume [NFS] after stopping the nfs-server and deleting the (sleeping) client pod, the NFS mount and the pod's UID directory should be removed.": " [Suite:k8s]",
+	"[sig-node] kubelet host cleanup with volume mounts [HostCleanup] [Flaky] Host cleanup after disrupting NFS volume [NFS] after stopping the nfs-server and deleting the (sleeping) client pod, the NFS mount and the pod's UID directory should be removed.": " [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the error with an empty --query option": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the Microsoft-Windows-Security-SPP logs with the pattern Health": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs ": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the Microsoft-Windows-Security-SPP logs": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the current boot with the pattern container": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the error with an empty --query option": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs for the current boot": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the kubelet logs ": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the kubelet logs since the current date and time": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the kubelet logs for the current boot with the pattern container": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] [LinuxOnly] should return the last three lines of the kubelet logs": " [Disabled:SpecialConfig] [Suite:k8s]",
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the kubelet logs for the current boot": " [Disabled:SpecialConfig] [Suite:k8s]",
+
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the kubelet logs since the current date and time": " [Disabled:SpecialConfig] [Suite:k8s]",
+
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the last three lines of the Microsoft-Windows-Security-SPP logs": " [Disabled:SpecialConfig] [Suite:k8s]",
+
+	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the last three lines of the kubelet logs": " [Disabled:SpecialConfig] [Suite:k8s]",
 
 	"[sig-scheduling] GPUDevicePluginAcrossRecreate [Feature:Recreate] run Nvidia GPU Device Plugin tests with a recreation": " [Disabled:SpecialConfig] [Suite:k8s]",
 
@@ -2009,6 +2023,18 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure] should record target size in allocated resources": " [Disabled:Alpha] [Suite:k8s]",
 
+	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should not update fsGroup if update from File to None": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should not update fsGroup if update from detault to None": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from File to default": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from None to File": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from None to default": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy Update [LinuxOnly] should update fsGroup if update from detault to File": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=File": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Mock volume fsgroup policies CSI FSGroupPolicy [LinuxOnly] should modify fsGroup if fsGroupPolicy=default": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -2069,6 +2095,10 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Mock volume storage capacity storage capacity unlimited": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-storage] CSI Mock workload info CSI PodInfoOnMount Update should be passed when update from false to true": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock workload info CSI PodInfoOnMount Update should not be passed when update from true to false": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-storage] CSI Mock workload info CSI workload information using mock driver contain ephemeral=true when using inline volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Mock workload info CSI workload information using mock driver should be passed when podInfoOnMount=true": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -2076,8 +2106,6 @@ var Annotations = map[string]string{
 	"[sig-storage] CSI Mock workload info CSI workload information using mock driver should not be passed when CSIDriver does not exist": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Mock workload info CSI workload information using mock driver should not be passed when podInfoOnMount=false": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[sig-storage] CSI Mock workload info CSI workload information using mock driver should not be passed when podInfoOnMount=nil": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: CSI Ephemeral-volume (default fs)] ephemeral should create read-only inline ephemeral volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -14031,10 +14059,6 @@ var Annotations = map[string]string{
 
 	"[sig-storage] NFSPersistentVolumes [Disruptive] [Flaky] when kubelet restarts Should test that a volume mounted to a pod that is force deleted while the kubelet is down unmounts when the kubelet returns.": " [Serial] [Suite:k8s]",
 
-	"[sig-storage] Node Poweroff [Feature:vsphere] [Slow] [Disruptive] verify volume status after node power off": " [Disabled:Unsupported] [Serial] [Suite:k8s]",
-
-	"[sig-storage] Node Unregister [Feature:vsphere] [Slow] [Disruptive] node unregister": " [Disabled:Unsupported] [Serial] [Suite:k8s]",
-
 	"[sig-storage] PV Protection Verify \"immediate\" deletion of a PV that is not bound to a PVC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] PV Protection Verify that PV bound to a PVC is not removed immediately": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -14080,14 +14104,6 @@ var Annotations = map[string]string{
 	"[sig-storage] PersistentVolumes NFS with multiple PVs and PVCs all in same ns should create 3 PVs and 3 PVCs: test write access": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] PersistentVolumes NFS with multiple PVs and PVCs all in same ns should create 4 PVs and 2 PVCs: test write access [Slow]": " [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes [Feature:vsphere] [Feature:LabelSelector] Selector-Label Volume Binding:vsphere [Feature:vsphere] should bind volume with claim for given label": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes [Feature:vsphere] [Feature:ReclaimPolicy] persistentvolumereclaim:vsphere [Feature:vsphere] should delete persistent volume when reclaimPolicy set to delete and associated claim is deleted": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes [Feature:vsphere] [Feature:ReclaimPolicy] persistentvolumereclaim:vsphere [Feature:vsphere] should not detach and unmount PV when associated pvc with delete as reclaimPolicy is deleted when it is in use by the pod": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes [Feature:vsphere] [Feature:ReclaimPolicy] persistentvolumereclaim:vsphere [Feature:vsphere] should retain persistent volume when reclaimPolicy set to retain when associated claim is deleted": " [Disabled:Unsupported] [Suite:k8s]",
 
 	"[sig-storage] PersistentVolumes-expansion loopback local block volume should support online expansion on node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -14235,16 +14251,6 @@ var Annotations = map[string]string{
 
 	"[sig-storage] PersistentVolumes-local [Volume type: tmpfs] Two pods mounting a local volume one after the other should be able to write from pod1 and read from pod2": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that a file written to the vsphere volume mount before kubelet restart can be read after restart [Disruptive]": " [Disabled:Unsupported] [Serial] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that a vsphere volume mounted to a pod that is deleted while the kubelet is down unmounts when the kubelet returns [Disruptive]": " [Disabled:Unsupported] [Serial] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting a PVC before the pod does not cause pod deletion to fail on vsphere volume detach": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the Namespace of a PVC and Pod causes the successful detach of vsphere volume": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] PersistentVolumes:vsphere [Feature:vsphere] should test that deleting the PV before the pod does not cause pod deletion to fail on vsphere volume detach": " [Disabled:Unsupported] [Suite:k8s]",
-
 	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] Pod Disks [Feature:StorageProvider] detach in a disrupted environment [Slow] [Disruptive] when node's API object is deleted": " [Serial] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
@@ -14375,32 +14381,6 @@ var Annotations = map[string]string{
 
 	"[sig-storage] StaticPods [Feature:Kind] should run after kubelet stopped with CSI volume mounted [Disruptive] [Serial]": " [Suite:k8s]",
 
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with invalid capability name objectSpaceReserve is not honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with invalid diskStripes value is not honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with invalid hostFailuresToTolerate value is not honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with non-vsan datastore is not honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with valid diskStripes and objectSpaceReservation values and a VSAN datastore is honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with valid diskStripes and objectSpaceReservation values is honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with valid hostFailuresToTolerate and cacheReservation values is honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify VSAN storage capability with valid objectSpaceReservation and iopsLimit values is honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify an existing and compatible SPBM policy is honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify an if a SPBM policy and VSAN capabilities cannot be honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify clean up of stale dummy VM for dynamically provisioned pvc using SPBM policy": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify if a SPBM policy is not honored on a non-compatible datastore for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Storage Policy Based Volume Provisioning [Feature:vsphere] verify if a non-existing SPBM policy is not honored for dynamically provisioned pvc using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
 	"[sig-storage] StorageClasses CSI Conformance should run through the lifecycle of a StorageClass [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-storage] Subpath Atomic writer volumes should support subpaths with configmap pod [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
@@ -14415,105 +14395,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] Subpath Container restart should verify that container can restart successfully after configmaps modified": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] Verify Volume Attach Through vpxd Restart [Feature:vsphere] [Serial] [Disruptive] verify volume remains attached through vpxd restart": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Attach Verify [Feature:vsphere] [Serial] [Disruptive] verify volume remains attached after master kubelet restart": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Disk Format [Feature:vsphere] verify disk format type - eagerzeroedthick is honored for dynamically provisioned pv using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Disk Format [Feature:vsphere] verify disk format type - thin is honored for dynamically provisioned pv using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Disk Format [Feature:vsphere] verify disk format type - zeroedthick is honored for dynamically provisioned pv using storageclass": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Disk Size [Feature:vsphere] verify dynamically provisioned pv has size rounded up correctly": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume FStype [Feature:vsphere] verify fstype - default value should be ext4": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume FStype [Feature:vsphere] verify fstype - ext3 formatted volume": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume FStype [Feature:vsphere] verify invalid fstype": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Operations Storm [Feature:vsphere] should create pod with many volumes and verify no attach call fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Placement [Feature:vsphere] should create and delete pod with multiple volumes from different datastore": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Placement [Feature:vsphere] should create and delete pod with multiple volumes from same datastore": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Placement [Feature:vsphere] should create and delete pod with the same volume source attach/detach to different worker nodes": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Placement [Feature:vsphere] should create and delete pod with the same volume source on the same worker node": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Placement [Feature:vsphere] test back to back pod creation and deletion with different volume sources on the same worker node": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Provisioning On Clustered Datastore [Feature:vsphere] verify dynamic provision with default parameter on clustered datastore": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Provisioning On Clustered Datastore [Feature:vsphere] verify dynamic provision with spbm policy on clustered datastore": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Provisioning On Clustered Datastore [Feature:vsphere] verify static provisioning on clustered datastore": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Volume Provisioning on Datastore [Feature:vsphere] verify dynamically provisioned pv using storageclass fails on an invalid datastore": " [Disabled:Unsupported] [Suite:k8s]",
-
 	"[sig-storage] Volumes ConfigMap should be mountable": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] Volumes NFSv3 should be mountable for NFSv3": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] Volumes NFSv4 should be mountable for NFSv4": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation fails if no zones are specified in the storage class (No shared datastores exist among all the nodes)": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation fails if only datastore is specified in the storage class (No shared datastores exist among all the nodes)": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation fails if only storage policy is specified in the storage class (No shared datastores exist among all the nodes)": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation fails if the availability zone specified in the storage class have no shared datastores under it.": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with an invalid VSAN capability along with a compatible zone combination specified in storage class fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with compatible policy and datastore without any zones specified in the storage class fails (No shared datastores exist among all the nodes)": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with incompatible datastore and zone combination specified in storage class fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with incompatible storage policy along with compatible zone and datastore combination specified in storage class fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with incompatible storagePolicy and zone combination specified in storage class fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with incompatible zone along with compatible storagePolicy and datastore combination specified in storage class fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify PVC creation with invalid zone specified in storage class fails": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a PVC creation fails when multiple zones are specified in the storage class without shared datastores among the zones in waitForFirstConsumer binding mode": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod fails to get scheduled when conflicting volume topology (allowedTopologies) and pod scheduling constraints(nodeSelector) are specified": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV with storage policy specified in storage class in waitForFirstConsumer binding mode with allowedTopologies": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV with storage policy specified in storage class in waitForFirstConsumer binding mode with multiple allowedTopologies": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV with storage policy specified in storage class in waitForFirstConsumer binding mode": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on a VSAN capability, datastore and compatible zone specified in storage class": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on allowed zones specified in storage class ": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on multiple zones specified in storage class ": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on multiple zones specified in the storage class. (No shared datastores exist among both zones)": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on the allowed zones and datastore specified in storage class when there are multiple datastores with the same name under different zones across datacenters": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on the allowed zones and datastore specified in storage class": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on the allowed zones and storage policy specified in storage class": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on the allowed zones specified in storage class when the datastore under the zone is present in another datacenter": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created and attached to a dynamically created PV, based on the allowed zones, datastore and storage policy specified in storage class": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify a pod is created on a non-Workspace zone and attached to a dynamically created PV, based on the allowed zones and storage policy specified in storage class": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify dynamically created pv with allowed zones specified in storage class, shows the right zone information on its labels": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] Zone Support [Feature:vsphere] Verify dynamically created pv with multiple zones specified in the storage class, shows both the zones on its labels": " [Disabled:Unsupported] [Suite:k8s]",
 
 	"[sig-storage] [Feature:Flexvolumes] Detaching volumes should not work when mount is in progress [Slow]": " [Suite:k8s]",
 
@@ -14560,14 +14446,6 @@ var Annotations = map[string]string{
 	"[sig-storage] [Serial] Volume metrics PVController should create unbound pv count metrics for pvc controller after creating pv only": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] [Serial] Volume metrics PVController should create unbound pvc count metrics for pvc controller after creating pvc only": " [Suite:openshift/conformance/serial] [Suite:k8s]",
-
-	"[sig-storage] vcp at scale [Feature:vsphere] vsphere scale tests": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] vcp-performance [Feature:vsphere] vcp performance tests": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] vsphere cloud provider stress [Feature:vsphere] vsphere stress tests": " [Disabled:Unsupported] [Suite:k8s]",
-
-	"[sig-storage] vsphere statefulset [Feature:vsphere] vsphere statefulset testing": " [Disabled:Unsupported] [Suite:k8s]",
 }
 
 func init() {
