@@ -67,11 +67,9 @@ func (t *ServiceUpgradeTest) Setup(ctx context.Context, f *framework.Framework) 
 	rc, err := jig.Run(ctx, jig.AddRCAntiAffinity)
 	framework.ExpectNoError(err)
 
-	if shouldTestPDBs() {
-		ginkgo.By("creating a PodDisruptionBudget to cover the ReplicationController")
-		_, err = jig.CreatePDB(ctx, rc)
-		framework.ExpectNoError(err)
-	}
+	ginkgo.By("creating a PodDisruptionBudget to cover the ReplicationController")
+	_, err = jig.CreatePDB(ctx, rc)
+	framework.ExpectNoError(err)
 
 	// Hit it once before considering ourselves ready
 	ginkgo.By("hitting the pod through the service's LoadBalancer")
@@ -93,8 +91,7 @@ func (t *ServiceUpgradeTest) Test(ctx context.Context, f *framework.Framework, d
 	case upgrades.MasterUpgrade, upgrades.ClusterUpgrade:
 		t.test(ctx, f, done, true, true)
 	case upgrades.NodeUpgrade:
-		// Node upgrades should test during disruption only on GCE/GKE for now.
-		t.test(ctx, f, done, shouldTestPDBs(), false)
+		t.test(ctx, f, done, true, false)
 	default:
 		t.test(ctx, f, done, false, false)
 	}
