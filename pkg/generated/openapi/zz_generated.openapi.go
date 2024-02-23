@@ -873,6 +873,15 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/resource/v1alpha2.AllocationResultModel":                                                    schema_k8sio_api_resource_v1alpha2_AllocationResultModel(ref),
 		"k8s.io/api/resource/v1alpha2.DriverAllocationResult":                                                   schema_k8sio_api_resource_v1alpha2_DriverAllocationResult(ref),
 		"k8s.io/api/resource/v1alpha2.DriverRequests":                                                           schema_k8sio_api_resource_v1alpha2_DriverRequests(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesAllocationResult":                                           schema_k8sio_api_resource_v1alpha2_NamedResourcesAllocationResult(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesAttribute":                                                  schema_k8sio_api_resource_v1alpha2_NamedResourcesAttribute(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesAttributeValue":                                             schema_k8sio_api_resource_v1alpha2_NamedResourcesAttributeValue(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesFilter":                                                     schema_k8sio_api_resource_v1alpha2_NamedResourcesFilter(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesInstance":                                                   schema_k8sio_api_resource_v1alpha2_NamedResourcesInstance(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesIntSlice":                                                   schema_k8sio_api_resource_v1alpha2_NamedResourcesIntSlice(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesRequest":                                                    schema_k8sio_api_resource_v1alpha2_NamedResourcesRequest(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesResources":                                                  schema_k8sio_api_resource_v1alpha2_NamedResourcesResources(ref),
+		"k8s.io/api/resource/v1alpha2.NamedResourcesStringSlice":                                                schema_k8sio_api_resource_v1alpha2_NamedResourcesStringSlice(ref),
 		"k8s.io/api/resource/v1alpha2.NodeResourceModel":                                                        schema_k8sio_api_resource_v1alpha2_NodeResourceModel(ref),
 		"k8s.io/api/resource/v1alpha2.NodeResourceSlice":                                                        schema_k8sio_api_resource_v1alpha2_NodeResourceSlice(ref),
 		"k8s.io/api/resource/v1alpha2.NodeResourceSliceList":                                                    schema_k8sio_api_resource_v1alpha2_NodeResourceSliceList(ref),
@@ -44803,8 +44812,18 @@ func schema_k8sio_api_resource_v1alpha2_AllocationResultModel(ref common.Referen
 			SchemaProps: spec.SchemaProps{
 				Description: "AllocationResultModel must have one and only one field set.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes the allocation result when using the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesAllocationResult"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesAllocationResult"},
 	}
 }
 
@@ -44821,11 +44840,17 @@ func schema_k8sio_api_resource_v1alpha2_DriverAllocationResult(ref common.Refere
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes the allocation result when using the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesAllocationResult"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/api/resource/v1alpha2.NamedResourcesAllocationResult", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -44876,14 +44901,353 @@ func schema_k8sio_api_resource_v1alpha2_DriverRequests(ref common.ReferenceCallb
 	}
 }
 
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesAllocationResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesAllocationResult is used in AllocationResultModel.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the selected resource instance.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesAttribute(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesAttribute is a combination of an attribute name and its value.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is unique identifier among all resource instances managed by the driver on the node. It must be a DNS subdomain.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"quantity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "QuantityValue is a quantity.",
+							Ref:         ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
+						},
+					},
+					"bool": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BoolValue is a true/false value.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"int": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IntValue is a 64-bit integer.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"intSlice": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IntSliceValue is an array of 64-bit integers.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesIntSlice"),
+						},
+					},
+					"string": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StringValue is a string.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"stringSlice": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StringSliceValue is an array of strings.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesStringSlice"),
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesIntSlice", "k8s.io/api/resource/v1alpha2.NamedResourcesStringSlice", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesAttributeValue(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesAttributeValue must have one and only one field set.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"quantity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "QuantityValue is a quantity.",
+							Ref:         ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
+						},
+					},
+					"bool": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BoolValue is a true/false value.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"int": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IntValue is a 64-bit integer.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"intSlice": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IntSliceValue is an array of 64-bit integers.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesIntSlice"),
+						},
+					},
+					"string": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StringValue is a string.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"stringSlice": {
+						SchemaProps: spec.SchemaProps{
+							Description: "StringSliceValue is an array of strings.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesStringSlice"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesIntSlice", "k8s.io/api/resource/v1alpha2.NamedResourcesStringSlice", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesFilter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesFilter is used in ResourceFilterModel.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"selector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Selector is a CEL expression which must evaluate to true if a resource instance is suitable. The language is as defined in https://kubernetes.io/docs/reference/using-api/cel/\n\nIn addition, for each type NamedResourcesin AttributeValue there is a map that resolves to the corresponding value of the instance under evaluation. For example:\n\n   attributes.quantity[\"a\"].isGreaterThan(quantity(\"0\")) &&\n   attributes.stringslice[\"b\"].isSorted()",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"selector"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesInstance(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesInstance represents one individual hardware instance that can be selected based on its attributes.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is unique identifier among all resource instances managed by the driver on the node. It must be a DNS subdomain.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"attributes": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Attributes defines the attributes of this resource instance. The name of each attribute must be unique.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/resource/v1alpha2.NamedResourcesAttribute"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesAttribute"},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesIntSlice(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesIntSlice contains a slice of 64-bit integers.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"ints": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Ints is the slice of 64-bit integers.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: 0,
+										Type:    []string{"integer"},
+										Format:  "int64",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"ints"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesRequest is used in ResourceRequestModel.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"selector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Selector is a CEL expression which must evaluate to true if a resource instance is suitable. The language is as defined in https://kubernetes.io/docs/reference/using-api/cel/\n\nIn addition, for each type NamedResourcesin AttributeValue there is a map that resolves to the corresponding value of the instance under evaluation. For example:\n\n   attributes.quantity[\"a\"].isGreaterThan(quantity(\"0\")) &&\n   attributes.stringslice[\"b\"].isSorted()",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"selector"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesResources(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesResources is used in NodeResourceModel.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"instances": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "The list of all individual resources instances currently available.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/api/resource/v1alpha2.NamedResourcesInstance"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"instances"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesInstance"},
+	}
+}
+
+func schema_k8sio_api_resource_v1alpha2_NamedResourcesStringSlice(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "NamedResourcesStringSlice contains a slice of strings.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"strings": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Strings is the slice of strings.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"strings"},
+			},
+		},
+	}
+}
+
 func schema_k8sio_api_resource_v1alpha2_NodeResourceModel(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "NodeResourceModel must have one and only one field set.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes available resources using the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesResources"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesResources"},
 	}
 }
 
@@ -44931,12 +45295,18 @@ func schema_k8sio_api_resource_v1alpha2_NodeResourceSlice(ref common.ReferenceCa
 							Format:      "",
 						},
 					},
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes available resources using the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesResources"),
+						},
+					},
 				},
 				Required: []string{"nodeName", "driverName"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"k8s.io/api/resource/v1alpha2.NamedResourcesResources", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -46038,9 +46408,17 @@ func schema_k8sio_api_resource_v1alpha2_ResourceFilter(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes a resource filter using the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesFilter"),
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesFilter"},
 	}
 }
 
@@ -46050,8 +46428,18 @@ func schema_k8sio_api_resource_v1alpha2_ResourceFilterModel(ref common.Reference
 			SchemaProps: spec.SchemaProps{
 				Description: "ResourceFilterModel must have one and only one field set.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes a resource filter using the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesFilter"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesFilter"},
 	}
 }
 
@@ -46103,11 +46491,17 @@ func schema_k8sio_api_resource_v1alpha2_ResourceRequest(ref common.ReferenceCall
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes a request for resources with the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesRequest"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/api/resource/v1alpha2.NamedResourcesRequest", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -46117,8 +46511,18 @@ func schema_k8sio_api_resource_v1alpha2_ResourceRequestModel(ref common.Referenc
 			SchemaProps: spec.SchemaProps{
 				Description: "ResourceRequestModel must have one and only one field set.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namedResources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NamedResources describes a request for resources with the named resources model.",
+							Ref:         ref("k8s.io/api/resource/v1alpha2.NamedResourcesRequest"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/resource/v1alpha2.NamedResourcesRequest"},
 	}
 }
 
