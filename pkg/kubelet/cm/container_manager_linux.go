@@ -311,7 +311,7 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 	// initialize DRA manager
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.DynamicResourceAllocation) {
 		klog.InfoS("Creating Dynamic Resource Allocation (DRA) manager")
-		cm.draManager, err = dra.NewManagerImpl(kubeClient, nodeConfig.KubeletRootDir)
+		cm.draManager, err = dra.NewManagerImpl(kubeClient, nodeConfig.KubeletRootDir, nodeConfig.NodeName)
 		if err != nil {
 			return nil, err
 		}
