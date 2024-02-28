@@ -2,30 +2,25 @@ package features
 
 import (
 	"k8s.io/apimachinery/pkg/util/runtime"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/component-base/featuregate"
+	feature "k8s.io/apiserver/pkg/util/feature"
 
 	configv1 "github.com/openshift/api/config/v1"
+	openshiftfeatures "github.com/openshift/library-go/pkg/features"
 )
 
+// OpenShiftFeatureGates contains list of feature gates that will
+// be collectively honored by each of openshift's hyperkube binaries
 var OpenshiftFeatureGates = []configv1.FeatureGateName{
 	configv1.FeatureGateRouteExternalCertificate,
 }
 
 func init() {
-	registerOpenshiftFeatures()
+	runtime.Must(registerOpenshiftFeatures())
 }
 
-func registerOpenshiftFeatures() {
-	osKubeFeatureGates := map[featuregate.Feature]featuregate.FeatureSpec{}
-
-	for _, featureGateName := range OpenshiftFeatureGates {
-		osFeature := featuregate.Feature(featureGateName)
-
-		osKubeFeatureGates[osFeature] = featuregate.FeatureSpec{
-			Default: false, PreRelease: featuregate.Alpha,
-		}
-	}
-
-	runtime.Must(utilfeature.DefaultMutableFeatureGate.Add(osKubeFeatureGates))
+func registerOpenshiftFeatures() error {
+	return openshiftfeatures.InitializeFeatureGates(
+		feature.DefaultMutableFeatureGate,
+		OpenshiftFeatureGates...,
+	)
 }
