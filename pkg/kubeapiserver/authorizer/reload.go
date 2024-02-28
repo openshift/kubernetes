@@ -40,6 +40,8 @@ import (
 	"k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	webhookmetrics "k8s.io/apiserver/plugin/pkg/authorizer/webhook/metrics"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/browsersafe"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/scopeauthorizer"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
 	"k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
 	"k8s.io/kubernetes/pkg/util/filesystem"
@@ -156,8 +158,21 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			if r.rbacAuthorizer == nil {
 				return nil, nil, fmt.Errorf("authorizer type RBAC is not allowed if it was not enabled at initial server startup")
 			}
-			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, r.rbacAuthorizer))
+			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+			rbacAuthorizerWrapper := browsersafe.NewBrowserSafeAuthorizer(r.rbacAuthorizer, user.AllAuthenticated)
+			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, rbacAuthorizerWrapper))
 			ruleResolvers = append(ruleResolvers, r.rbacAuthorizer)
+		case authzconfig.AuthorizerType(modes.ModeScope):
+			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+			clusterRolesLister := r.initialConfig.VersionedInformerFactory.Rbac().V1().ClusterRoles().Lister()
+			scopeLimitedAuthorizer := scopeauthorizer.NewAuthorizer(clusterRolesLister)
+			wrapper := browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated)
+			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, wrapper))
+		case authzconfig.AuthorizerType(modes.ModeSystemMasters):
+			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
+			wrapper := authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup)
+			authorizers = append(authorizers, authorizationmetrics.InstrumentedAuthorizer(string(configuredAuthorizer.Type), configuredAuthorizer.Name, wrapper))
+
 		default:
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
 		}
