@@ -11049,6 +11049,26 @@ func TestValidatePod(t *testing.T) {
 				DNSPolicy:     core.DNSDefault,
 			},
 		},
+		"matching AppArmor pod field and annotations": {
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "123",
+				Namespace: "ns",
+				Annotations: map[string]string{
+					core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileLocalhostPrefix + "foo",
+				},
+			},
+			Spec: core.PodSpec{
+				SecurityContext: &core.PodSecurityContext{
+					AppArmorProfile: &core.AppArmorProfile{
+						Type:             core.AppArmorProfileTypeLocalhost,
+						LocalhostProfile: ptr.To("foo"),
+					},
+				},
+				Containers:    []core.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File"}},
+				RestartPolicy: core.RestartPolicyAlways,
+				DNSPolicy:     core.DNSDefault,
+			},
+		},
 		"syntactically valid sysctls": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "123",
@@ -12760,6 +12780,28 @@ func TestValidatePod(t *testing.T) {
 							},
 						},
 					}},
+					RestartPolicy: core.RestartPolicyAlways,
+					DNSPolicy:     core.DNSDefault,
+				},
+			},
+		},
+		"mismatched AppArmor pod field and annotation types": {
+			expectedError: "Forbidden: apparmor type in annotation and field must match",
+			spec: core.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "123",
+					Namespace: "ns",
+					Annotations: map[string]string{
+						core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileRuntimeDefault,
+					},
+				},
+				Spec: core.PodSpec{
+					SecurityContext: &core.PodSecurityContext{
+						AppArmorProfile: &core.AppArmorProfile{
+							Type: core.AppArmorProfileTypeUnconfined,
+						},
+					},
+					Containers:    []core.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File"}},
 					RestartPolicy: core.RestartPolicyAlways,
 					DNSPolicy:     core.DNSDefault,
 				},
