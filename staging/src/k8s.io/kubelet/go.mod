@@ -70,4 +70,5 @@ replace (
 	k8s.io/component-base => ../component-base
 	k8s.io/cri-api => ../cri-api
 	k8s.io/kms => ../kms
+	k8s.io/kubelet => ../kubelet
 )
