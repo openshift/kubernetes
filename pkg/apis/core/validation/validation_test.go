@@ -10897,7 +10897,7 @@ func TestValidatePod(t *testing.T) {
 				Name:      "123",
 				Namespace: "ns",
 				Annotations: map[string]string{
-					v1.AppArmorBetaContainerAnnotationKeyPrefix + "ctr": v1.AppArmorBetaProfileRuntimeDefault,
+					v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "ctr": v1.DeprecatedAppArmorBetaProfileRuntimeDefault,
 				},
 			},
 			Spec: validPodSpec(nil),
@@ -10907,7 +10907,7 @@ func TestValidatePod(t *testing.T) {
 				Name:      "123",
 				Namespace: "ns",
 				Annotations: map[string]string{
-					v1.AppArmorBetaContainerAnnotationKeyPrefix + "init-ctr": v1.AppArmorBetaProfileRuntimeDefault,
+					v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "init-ctr": v1.DeprecatedAppArmorBetaProfileRuntimeDefault,
 				},
 			},
 			Spec: core.PodSpec{
@@ -10922,7 +10922,7 @@ func TestValidatePod(t *testing.T) {
 				Name:      "123",
 				Namespace: "ns",
 				Annotations: map[string]string{
-					v1.AppArmorBetaContainerAnnotationKeyPrefix + "ctr": v1.AppArmorBetaProfileNamePrefix + "foo",
+					v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "ctr": v1.DeprecatedAppArmorBetaProfileNamePrefix + "foo",
 				},
 			},
 			Spec: validPodSpec(nil),
@@ -12586,9 +12586,9 @@ func TestValidatePod(t *testing.T) {
 					Name:      "123",
 					Namespace: "ns",
 					Annotations: map[string]string{
-						v1.AppArmorBetaContainerAnnotationKeyPrefix + "ctr":      v1.AppArmorBetaProfileRuntimeDefault,
-						v1.AppArmorBetaContainerAnnotationKeyPrefix + "init-ctr": v1.AppArmorBetaProfileRuntimeDefault,
-						v1.AppArmorBetaContainerAnnotationKeyPrefix + "fake-ctr": v1.AppArmorBetaProfileRuntimeDefault,
+						v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "ctr":      v1.DeprecatedAppArmorBetaProfileRuntimeDefault,
+						v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "init-ctr": v1.DeprecatedAppArmorBetaProfileRuntimeDefault,
+						v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "fake-ctr": v1.DeprecatedAppArmorBetaProfileRuntimeDefault,
 					},
 				},
 				Spec: core.PodSpec{
@@ -12606,7 +12606,7 @@ func TestValidatePod(t *testing.T) {
 					Name:      "123",
 					Namespace: "ns",
 					Annotations: map[string]string{
-						v1.AppArmorBetaContainerAnnotationKeyPrefix + "ctr": "bad-name",
+						v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "ctr": "bad-name",
 					},
 				},
 				Spec: validPodSpec(nil),
@@ -12619,7 +12619,7 @@ func TestValidatePod(t *testing.T) {
 					Name:      "123",
 					Namespace: "ns",
 					Annotations: map[string]string{
-						v1.AppArmorBetaContainerAnnotationKeyPrefix + "ctr": "runtime/foo",
+						v1.DeprecatedAppArmorBetaContainerAnnotationKeyPrefix + "ctr": "runtime/foo",
 					},
 				},
 				Spec: validPodSpec(nil),
@@ -12757,6 +12757,26 @@ func TestValidatePod(t *testing.T) {
 						AppArmorProfile: &core.AppArmorProfile{
 							Type:             core.AppArmorProfileTypeLocalhost,
 							LocalhostProfile: ptr.To("foo-bar "),
+						},
+					},
+				},
+			},
+		},
+		"too long AppArmor localhost profile": {
+			expectedError: "Too long: may not be longer than 4095",
+			spec: core.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "123",
+					Namespace: "ns",
+				},
+				Spec: core.PodSpec{
+					Containers:    []core.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent", TerminationMessagePolicy: "File"}},
+					RestartPolicy: core.RestartPolicyAlways,
+					DNSPolicy:     core.DNSDefault,
+					SecurityContext: &core.PodSecurityContext{
+						AppArmorProfile: &core.AppArmorProfile{
+							Type:             core.AppArmorProfileTypeLocalhost,
+							LocalhostProfile: ptr.To(strings.Repeat("a", 4096)),
 						},
 					},
 				},
@@ -25789,11 +25809,11 @@ func TestValidateAppArmorProfileFormat(t *testing.T) {
 		expectValid bool
 	}{
 		{"", true},
-		{v1.AppArmorBetaProfileRuntimeDefault, true},
-		{v1.AppArmorBetaProfileNameUnconfined, true},
+		{v1.DeprecatedAppArmorBetaProfileRuntimeDefault, true},
+		{v1.DeprecatedAppArmorBetaProfileNameUnconfined, true},
 		{"baz", false}, // Missing local prefix.
-		{v1.AppArmorBetaProfileNamePrefix + "/usr/sbin/ntpd", true},
-		{v1.AppArmorBetaProfileNamePrefix + "foo-bar", true},
+		{v1.DeprecatedAppArmorBetaProfileNamePrefix + "/usr/sbin/ntpd", true},
+		{v1.DeprecatedAppArmorBetaProfileNamePrefix + "foo-bar", true},
 	}
 
 	for _, test := range tests {
