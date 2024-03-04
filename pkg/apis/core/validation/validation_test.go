@@ -11033,7 +11033,7 @@ func TestValidatePod(t *testing.T) {
 				Name:      "123",
 				Namespace: "ns",
 				Annotations: map[string]string{
-					core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileLocalhostPrefix + "foo",
+					core.DeprecatedAppArmorAnnotationKeyPrefix + "ctr": core.DeprecatedAppArmorAnnotationValueLocalhostPrefix + "foo",
 				},
 			},
 			Spec: core.PodSpec{
@@ -11054,7 +11054,7 @@ func TestValidatePod(t *testing.T) {
 				Name:      "123",
 				Namespace: "ns",
 				Annotations: map[string]string{
-					core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileLocalhostPrefix + "foo",
+					core.DeprecatedAppArmorAnnotationKeyPrefix + "ctr": core.DeprecatedAppArmorAnnotationValueLocalhostPrefix + "foo",
 				},
 			},
 			Spec: core.PodSpec{
@@ -12769,7 +12769,7 @@ func TestValidatePod(t *testing.T) {
 					Name:      "123",
 					Namespace: "ns",
 					Annotations: map[string]string{
-						core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileRuntimeDefault,
+						core.DeprecatedAppArmorAnnotationKeyPrefix + "ctr": core.DeprecatedAppArmorAnnotationValueRuntimeDefault,
 					},
 				},
 				Spec: core.PodSpec{
@@ -12792,7 +12792,7 @@ func TestValidatePod(t *testing.T) {
 					Name:      "123",
 					Namespace: "ns",
 					Annotations: map[string]string{
-						core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileRuntimeDefault,
+						core.DeprecatedAppArmorAnnotationKeyPrefix + "ctr": core.DeprecatedAppArmorAnnotationValueRuntimeDefault,
 					},
 				},
 				Spec: core.PodSpec{
@@ -12814,7 +12814,7 @@ func TestValidatePod(t *testing.T) {
 					Name:      "123",
 					Namespace: "ns",
 					Annotations: map[string]string{
-						core.AppArmorContainerAnnotationKeyPrefix + "ctr": core.AppArmorProfileLocalhostPrefix + "foo",
+						core.DeprecatedAppArmorAnnotationKeyPrefix + "ctr": core.DeprecatedAppArmorAnnotationValueLocalhostPrefix + "foo",
 					},
 				},
 				Spec: core.PodSpec{
