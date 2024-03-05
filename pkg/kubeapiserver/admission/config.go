@@ -70,7 +70,7 @@ func (c *Config) New(proxyTransport *http.Transport, egressSelector *egressselec
 		cloudConfig,
 		NewAdmissionRESTMapper(discoveryRESTMapper),
 		quotainstall.NewQuotaConfigurationForAdmission(),
-		exclusion.NewFilter(),
+		exclusion.Excluded(),
 	)
 
 	admissionPostStartHook := func(context genericapiserver.PostStartHookContext) error {
