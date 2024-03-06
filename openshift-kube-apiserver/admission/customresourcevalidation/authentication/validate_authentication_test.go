@@ -13,6 +13,13 @@ func TestFailValidateAuthenticationSpec(t *testing.T) {
 		errorType  field.ErrorType
 		errorField string
 	}{
+		"invalid authn type": {
+			spec: configv1.AuthenticationSpec{
+				Type: "MyCoolOAuthSrv",
+			},
+			errorType:  field.ErrorTypeNotSupported,
+			errorField: "spec.type",
+		},
 		"invalid metadata ref": {
 			spec: configv1.AuthenticationSpec{
 				Type: "",
@@ -25,36 +32,39 @@ func TestFailValidateAuthenticationSpec(t *testing.T) {
 		},
 		"invalid webhook ref": {
 			spec: configv1.AuthenticationSpec{
-				WebhookTokenAuthenticator: &configv1.WebhookTokenAuthenticator{
-					KubeConfig: configv1.SecretNameReference{Name: "this+that"},
+				WebhookTokenAuthenticators: []configv1.DeprecatedWebhookTokenAuthenticator{
+					{KubeConfig: configv1.SecretNameReference{Name: "this+that"}},
 				},
 			},
 			errorType:  field.ErrorTypeInvalid,
-			errorField: "spec.webhookTokenAuthenticator.kubeConfig.name",
+			errorField: "spec.webhookTokenAuthenticators[0].kubeConfig.name",
 		},
-		"valid webhook ref": {
+		"invalid webhook ref - multiple webhooks": {
 			spec: configv1.AuthenticationSpec{
-				WebhookTokenAuthenticator: &configv1.WebhookTokenAuthenticator{
-					KubeConfig: configv1.SecretNameReference{Name: "this"},
-				},
-			},
-		},
-		"invalid webhook ref for a Type": {
-			spec: configv1.AuthenticationSpec{
-				Type: "OIDC",
-				WebhookTokenAuthenticator: &configv1.WebhookTokenAuthenticator{
-					KubeConfig: configv1.SecretNameReference{Name: "this"},
+				WebhookTokenAuthenticators: []configv1.DeprecatedWebhookTokenAuthenticator{
+					{KubeConfig: configv1.SecretNameReference{Name: "that.now"}},
+					{KubeConfig: configv1.SecretNameReference{Name: "this+that"}},
+					{KubeConfig: configv1.SecretNameReference{Name: "this.then"}},
 				},
 			},
 			errorType:  field.ErrorTypeInvalid,
-			errorField: "spec.webhookTokenAuthenticator",
+			errorField: "spec.webhookTokenAuthenticators[1].kubeConfig.name",
+		},
+		"empty webhook name": {
+			spec: configv1.AuthenticationSpec{
+				WebhookTokenAuthenticators: []configv1.DeprecatedWebhookTokenAuthenticator{
+					{KubeConfig: configv1.SecretNameReference{Name: ""}},
+				},
+			},
+			errorType:  field.ErrorTypeRequired,
+			errorField: "spec.webhookTokenAuthenticators[0].kubeConfig.name",
 		},
 	}
 
 	for tcName, tc := range errorCases {
 		errs := validateAuthenticationSpec(tc.spec)
-		if (len(errs) > 0) != (len(tc.errorType) != 0) {
-			t.Errorf("'%s': expected failure: %t, got: %t", tcName, len(tc.errorType) != 0, len(errs) > 0)
+		if len(errs) == 0 {
+			t.Errorf("'%s': should have failed but did not", tcName)
 		}
 
 		for _, e := range errs {

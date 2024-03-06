@@ -312,43 +312,24 @@ func TestGetPodQOS(t *testing.T) {
 	}
 }
 
-func TestWaitingForGatesCondition(t *testing.T) {
+func TestSchedulingGatedCondition(t *testing.T) {
 	tests := []struct {
-		name           string
-		pod            *api.Pod
-		featureEnabled bool
-		want           api.PodCondition
+		name string
+		pod  *api.Pod
+		want api.PodCondition
 	}{
 		{
-			name:           "pod without .spec.schedulingGates, feature disabled",
-			pod:            &api.Pod{},
-			featureEnabled: false,
-			want:           api.PodCondition{},
+			name: "pod without .spec.schedulingGates",
+			pod:  &api.Pod{},
+			want: api.PodCondition{},
 		},
 		{
-			name:           "pod without .spec.schedulingGates, feature enabled",
-			pod:            &api.Pod{},
-			featureEnabled: true,
-			want:           api.PodCondition{},
-		},
-		{
-			name: "pod with .spec.schedulingGates, feature disabled",
+			name: "pod with .spec.schedulingGates",
 			pod: &api.Pod{
 				Spec: api.PodSpec{
 					SchedulingGates: []api.PodSchedulingGate{{Name: "foo"}},
 				},
 			},
-			featureEnabled: false,
-			want:           api.PodCondition{},
-		},
-		{
-			name: "pod with .spec.schedulingGates, feature enabled",
-			pod: &api.Pod{
-				Spec: api.PodSpec{
-					SchedulingGates: []api.PodSchedulingGate{{Name: "foo"}},
-				},
-			},
-			featureEnabled: true,
 			want: api.PodCondition{
 				Type:    api.PodScheduled,
 				Status:  api.ConditionFalse,
@@ -360,8 +341,6 @@ func TestWaitingForGatesCondition(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodSchedulingReadiness, tt.featureEnabled)()
-
 			Strategy.PrepareForCreate(genericapirequest.NewContext(), tt.pod)
 			var got api.PodCondition
 			for _, condition := range tt.pod.Status.Conditions {
@@ -2027,6 +2006,102 @@ func Test_mutatePodAffinity(t *testing.T) {
 			mutatePodAffinity(pod)
 			if diff := cmp.Diff(tc.wantPod.Spec.Affinity, pod.Spec.Affinity); diff != "" {
 				t.Errorf("unexpected affinity (-want, +got): %s\n", diff)
+			}
+		})
+	}
+}
+
+func TestPodLifecycleSleepActionEnablement(t *testing.T) {
+	getLifecycle := func(pod *api.Pod) *api.Lifecycle {
+		return pod.Spec.Containers[0].Lifecycle
+	}
+
+	defaultTerminationGracePeriodSeconds := int64(30)
+
+	podWithHandler := func() *api.Pod {
+		return &api.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:       "default",
+				Name:            "foo",
+				ResourceVersion: "1",
+			},
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSDefault,
+				Containers: []api.Container{
+					{
+						Name:                     "container",
+						Image:                    "image",
+						ImagePullPolicy:          "IfNotPresent",
+						TerminationMessagePolicy: "File",
+						Lifecycle: &api.Lifecycle{
+							PreStop: &api.LifecycleHandler{
+								Sleep: &api.SleepAction{Seconds: 1},
+							},
+						},
+					},
+				},
+				TerminationGracePeriodSeconds: &defaultTerminationGracePeriodSeconds,
+			},
+		}
+	}
+
+	podWithoutHandler := func() *api.Pod {
+		return &api.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:       "default",
+				Name:            "foo",
+				ResourceVersion: "1",
+			},
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSDefault,
+				Containers: []api.Container{
+					{
+						Name:                     "container",
+						Image:                    "image",
+						ImagePullPolicy:          "IfNotPresent",
+						TerminationMessagePolicy: "File",
+					},
+				},
+				TerminationGracePeriodSeconds: &defaultTerminationGracePeriodSeconds,
+			},
+		}
+	}
+
+	testCases := []struct {
+		description string
+		gateEnabled bool
+		newPod      *api.Pod
+		wantPod     *api.Pod
+	}{
+		{
+			description: "gate enabled, creating pods with sleep action",
+			gateEnabled: true,
+			newPod:      podWithHandler(),
+			wantPod:     podWithHandler(),
+		},
+		{
+			description: "gate disabled, creating pods with sleep action",
+			gateEnabled: false,
+			newPod:      podWithHandler(),
+			wantPod:     podWithoutHandler(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodLifecycleSleepAction, tc.gateEnabled)()
+
+			newPod := tc.newPod
+
+			Strategy.PrepareForCreate(genericapirequest.NewContext(), newPod)
+			if errs := Strategy.Validate(genericapirequest.NewContext(), newPod); len(errs) != 0 {
+				t.Errorf("Unexpected error: %v", errs.ToAggregate())
+			}
+
+			if diff := cmp.Diff(getLifecycle(newPod), getLifecycle(tc.wantPod)); diff != "" {
+				t.Fatalf("Unexpected modification to life cycle; diff (-got +want)\n%s", diff)
 			}
 		})
 	}

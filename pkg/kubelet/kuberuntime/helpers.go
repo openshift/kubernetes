@@ -92,11 +92,18 @@ func (m *kubeGenericRuntimeManager) toKubeContainer(c *runtimeapi.Container) (*k
 		return nil, fmt.Errorf("unable to convert a nil pointer to a runtime container")
 	}
 
+	// Keep backwards compatibility to older runtimes, c.ImageId has been added in v1.30
+	imageID := c.ImageRef
+	if c.ImageId != "" {
+		imageID = c.ImageId
+	}
+
 	annotatedInfo := getContainerInfoFromAnnotations(c.Annotations)
 	return &kubecontainer.Container{
 		ID:                   kubecontainer.ContainerID{Type: m.runtimeName, ID: c.Id},
 		Name:                 c.GetMetadata().GetName(),
-		ImageID:              c.ImageRef,
+		ImageID:              imageID,
+		ImageRef:             c.ImageRef,
 		ImageRuntimeHandler:  c.Image.RuntimeHandler,
 		Image:                c.Image.Image,
 		Hash:                 annotatedInfo.Hash,
@@ -181,13 +188,13 @@ func buildContainerLogsPath(containerName string, restartCount int) string {
 }
 
 // BuildContainerLogsDirectory builds absolute log directory path for a container in pod.
-func BuildContainerLogsDirectory(podNamespace, podName string, podUID types.UID, containerName string) string {
-	return filepath.Join(BuildPodLogsDirectory(podNamespace, podName, podUID), containerName)
+func BuildContainerLogsDirectory(podLogsDir, podNamespace, podName string, podUID types.UID, containerName string) string {
+	return filepath.Join(BuildPodLogsDirectory(podLogsDir, podNamespace, podName, podUID), containerName)
 }
 
 // BuildPodLogsDirectory builds absolute log directory path for a pod sandbox.
-func BuildPodLogsDirectory(podNamespace, podName string, podUID types.UID) string {
-	return filepath.Join(podLogsRootDirectory, strings.Join([]string{podNamespace, podName,
+func BuildPodLogsDirectory(podLogsDir, podNamespace, podName string, podUID types.UID) string {
+	return filepath.Join(podLogsDir, strings.Join([]string{podNamespace, podName,
 		string(podUID)}, logPathDelimiter))
 }
 
@@ -200,7 +207,7 @@ func parsePodUIDFromLogsDirectory(name string) types.UID {
 }
 
 // toKubeRuntimeStatus converts the runtimeapi.RuntimeStatus to kubecontainer.RuntimeStatus.
-func toKubeRuntimeStatus(status *runtimeapi.RuntimeStatus) *kubecontainer.RuntimeStatus {
+func toKubeRuntimeStatus(status *runtimeapi.RuntimeStatus, handlers []*runtimeapi.RuntimeHandler) *kubecontainer.RuntimeStatus {
 	conditions := []kubecontainer.RuntimeCondition{}
 	for _, c := range status.GetConditions() {
 		conditions = append(conditions, kubecontainer.RuntimeCondition{
@@ -210,7 +217,18 @@ func toKubeRuntimeStatus(status *runtimeapi.RuntimeStatus) *kubecontainer.Runtim
 			Message: c.Message,
 		})
 	}
-	return &kubecontainer.RuntimeStatus{Conditions: conditions}
+	retHandlers := make(map[string]kubecontainer.RuntimeHandler)
+	for _, h := range handlers {
+		supportsUserns := false
+		if h.Features != nil {
+			supportsUserns = h.Features.UserNamespaces
+		}
+		retHandlers[h.Name] = kubecontainer.RuntimeHandler{
+			Name:                   h.Name,
+			SupportsUserNamespaces: supportsUserns,
+		}
+	}
+	return &kubecontainer.RuntimeStatus{Conditions: conditions, Handlers: retHandlers}
 }
 
 func fieldSeccompProfile(scmp *v1.SeccompProfile, profileRootPath string, fallbackToRuntimeDefault bool) (*runtimeapi.SecurityProfile, error) {

@@ -18,6 +18,8 @@ package oidc
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -35,11 +37,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apiserver/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
@@ -103,6 +107,15 @@ var (
 // authenticationConfigFunc is a function that returns a string representation of an authentication config.
 type authenticationConfigFunc func(t *testing.T, issuerURL, caCert string) string
 
+type apiServerOIDCConfig struct {
+	oidcURL                  string
+	oidcClientID             string
+	oidcCAFilePath           string
+	oidcUsernamePrefix       string
+	oidcUsernameClaim        string
+	authenticationConfigYAML string
+}
+
 func TestOIDC(t *testing.T) {
 	t.Log("Testing OIDC authenticator with --oidc-* flags")
 	runTests(t, false)
@@ -116,39 +129,59 @@ func TestStructuredAuthenticationConfig(t *testing.T) {
 }
 
 func runTests(t *testing.T, useAuthenticationConfig bool) {
-	var tests = []struct {
-		name                    string
-		configureInfrastructure func(t *testing.T, fn authenticationConfigFunc) (
-			oidcServer *utilsoidc.TestServer,
-			apiServer *kubeapiserverapptesting.TestServer,
-			signingPrivateKey *rsa.PrivateKey,
-			caCertContent []byte,
-			caFilePath string,
-		)
-		configureOIDCServerBehaviour func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey)
-		configureClient              func(
-			t *testing.T,
-			restCfg *rest.Config,
-			caCert []byte,
-			certPath,
-			oidcServerURL,
-			oidcServerTokenURL string,
-		) kubernetes.Interface
-		assertErrFn func(t *testing.T, errorToCheck error)
-	}{
+	var tests = []singleTest[*rsa.PrivateKey, *rsa.PublicKey]{
 		{
-			name:                    "ID token is ok",
-			configureInfrastructure: configureTestInfrastructure,
-			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
+			name: "ID token is ok",
+			configureInfrastructure: func(t *testing.T, fn authenticationConfigFunc, keyFunc func(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey)) (
+				oidcServer *utilsoidc.TestServer,
+				apiServer *kubeapiserverapptesting.TestServer,
+				signingPrivateKey *rsa.PrivateKey,
+				caCertContent []byte,
+				caFilePath string,
+			) {
+				caCertContent, _, caFilePath, caKeyFilePath := generateCert(t)
+				signingPrivateKey, publicKey := keyFunc(t)
+				oidcServer = utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath, "")
+
+				if useAuthenticationConfig {
+					authenticationConfig := fmt.Sprintf(`
+apiVersion: apiserver.config.k8s.io/v1alpha1
+kind: AuthenticationConfiguration
+jwt:
+- issuer:
+    url: %s
+    audiences:
+    - %s
+    certificateAuthority: |
+        %s
+  claimMappings:
+    username:
+      claim: user
+      prefix: %s
+`, oidcServer.URL(), defaultOIDCClientID, indentCertificateAuthority(string(caCertContent)), defaultOIDCUsernamePrefix)
+					apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{authenticationConfigYAML: authenticationConfig}, &signingPrivateKey.PublicKey)
+				} else {
+					apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{oidcURL: oidcServer.URL(), oidcClientID: defaultOIDCClientID,
+						oidcCAFilePath: caFilePath, oidcUsernamePrefix: defaultOIDCUsernamePrefix, oidcUsernameClaim: "user"}, &signingPrivateKey.PublicKey)
+				}
+				oidcServer.JwksHandler().EXPECT().KeySet().AnyTimes().DoAndReturn(utilsoidc.DefaultJwksHandlerBehavior(t, publicKey))
+
+				adminClient := kubernetes.NewForConfigOrDie(apiServer.ClientConfig)
+				configureRBAC(t, adminClient, defaultRole, defaultRoleBinding)
+
+				return oidcServer, apiServer, signingPrivateKey, caCertContent, caFilePath
+			}, configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
 					t,
 					signingPrivateKey,
+					// This asserts the minimum valid claims for an ID token required by the authenticator.
+					// "iss", "aud", "exp" and a claim for the username.
 					map[string]interface{}{
-						"iss": oidcServer.URL(),
-						"sub": defaultOIDCClaimedUsername,
-						"aud": defaultOIDCClientID,
-						"exp": time.Now().Add(idTokenLifetime).Unix(),
+						"iss":  oidcServer.URL(),
+						"user": defaultOIDCClaimedUsername,
+						"aud":  defaultOIDCClientID,
+						"exp":  time.Now().Add(idTokenLifetime).Unix(),
 					},
 					defaultStubAccessToken,
 					defaultStubRefreshToken,
@@ -161,7 +194,7 @@ func runTests(t *testing.T, useAuthenticationConfig bool) {
 		},
 		{
 			name:                    "ID token is expired",
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				configureOIDCServerToReturnExpiredIDToken(t, 2, oidcServer, signingPrivateKey)
 			},
@@ -172,7 +205,7 @@ func runTests(t *testing.T, useAuthenticationConfig bool) {
 		},
 		{
 			name:                    "wrong client ID",
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, _ *rsa.PrivateKey) {
 				oidcServer.TokenHandler().EXPECT().Token().Times(2).Return(utilsoidc.Token{}, utilsoidc.ErrBadClientID)
 			},
@@ -189,7 +222,7 @@ func runTests(t *testing.T, useAuthenticationConfig bool) {
 		},
 		{
 			name:                         "client has wrong CA",
-			configureInfrastructure:      configureTestInfrastructure,
+			configureInfrastructure:      configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, _ *rsa.PrivateKey) {},
 			configureClient: func(t *testing.T, restCfg *rest.Config, caCert []byte, _, oidcServerURL, oidcServerTokenURL string) kubernetes.Interface {
 				tempDir := t.TempDir()
@@ -207,7 +240,7 @@ func runTests(t *testing.T, useAuthenticationConfig bool) {
 		},
 		{
 			name:                    "refresh flow does not return ID Token",
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				configureOIDCServerToReturnExpiredIDToken(t, 1, oidcServer, signingPrivateKey)
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).Return(utilsoidc.Token{
@@ -230,7 +263,7 @@ func runTests(t *testing.T, useAuthenticationConfig bool) {
 		},
 		{
 			name: "ID token signature can not be verified due to wrong JWKs",
-			configureInfrastructure: func(t *testing.T, fn authenticationConfigFunc) (
+			configureInfrastructure: func(t *testing.T, fn authenticationConfigFunc, keyFunc func(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey)) (
 				oidcServer *utilsoidc.TestServer,
 				apiServer *kubeapiserverapptesting.TestServer,
 				signingPrivateKey *rsa.PrivateKey,
@@ -239,10 +272,9 @@ func runTests(t *testing.T, useAuthenticationConfig bool) {
 			) {
 				caCertContent, _, caFilePath, caKeyFilePath := generateCert(t)
 
-				signingPrivateKey, wantErr := rsa.GenerateKey(rand.Reader, rsaKeyBitSize)
-				require.NoError(t, wantErr)
+				signingPrivateKey, _ = keyFunc(t)
 
-				oidcServer = utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath)
+				oidcServer = utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath, "")
 
 				if useAuthenticationConfig {
 					authenticationConfig := fmt.Sprintf(`
@@ -260,16 +292,16 @@ jwt:
       claim: sub
       prefix: %s
 `, oidcServer.URL(), defaultOIDCClientID, indentCertificateAuthority(string(caCertContent)), defaultOIDCUsernamePrefix)
-					apiServer = startTestAPIServerForOIDC(t, "", "", "", authenticationConfig)
+					apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{authenticationConfigYAML: authenticationConfig}, &signingPrivateKey.PublicKey)
 				} else {
-					apiServer = startTestAPIServerForOIDC(t, oidcServer.URL(), defaultOIDCClientID, caFilePath, "")
+					apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{oidcURL: oidcServer.URL(), oidcClientID: defaultOIDCClientID, oidcCAFilePath: caFilePath, oidcUsernamePrefix: defaultOIDCUsernamePrefix}, &signingPrivateKey.PublicKey)
 				}
 
 				adminClient := kubernetes.NewForConfigOrDie(apiServer.ClientConfig)
 				configureRBAC(t, adminClient, defaultRole, defaultRoleBinding)
 
-				anotherSigningPrivateKey, wantErr := rsa.GenerateKey(rand.Reader, rsaKeyBitSize)
-				require.NoError(t, wantErr)
+				anotherSigningPrivateKey, _ := keyFunc(t)
+
 				oidcServer.JwksHandler().EXPECT().KeySet().AnyTimes().DoAndReturn(utilsoidc.DefaultJwksHandlerBehavior(t, &anotherSigningPrivateKey.PublicKey))
 
 				return oidcServer, apiServer, signingPrivateKey, caCertContent, caFilePath
@@ -293,14 +325,143 @@ jwt:
 				assert.True(t, apierrors.IsUnauthorized(errorToCheck), errorToCheck)
 			},
 		},
+		{
+			name: "ID token is okay but username is empty",
+			configureInfrastructure: func(t *testing.T, fn authenticationConfigFunc, keyFunc func(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey)) (
+				oidcServer *utilsoidc.TestServer,
+				apiServer *kubeapiserverapptesting.TestServer,
+				signingPrivateKey *rsa.PrivateKey,
+				caCertContent []byte,
+				caFilePath string,
+			) {
+				caCertContent, _, caFilePath, caKeyFilePath := generateCert(t)
+
+				signingPrivateKey, _ = keyFunc(t)
+
+				oidcServer = utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath, "")
+
+				if useAuthenticationConfig {
+					authenticationConfig := fmt.Sprintf(`
+apiVersion: apiserver.config.k8s.io/v1alpha1
+kind: AuthenticationConfiguration
+jwt:
+- issuer:
+    url: %s
+    audiences:
+    - %s
+    certificateAuthority: |
+        %s
+  claimMappings:
+    username:
+      expression: claims.sub
+`, oidcServer.URL(), defaultOIDCClientID, indentCertificateAuthority(string(caCertContent)))
+					apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{authenticationConfigYAML: authenticationConfig}, &signingPrivateKey.PublicKey)
+				} else {
+					apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{
+						oidcURL: oidcServer.URL(), oidcClientID: defaultOIDCClientID, oidcCAFilePath: caFilePath, oidcUsernamePrefix: "-",
+					},
+						&signingPrivateKey.PublicKey)
+				}
+
+				oidcServer.JwksHandler().EXPECT().KeySet().AnyTimes().DoAndReturn(utilsoidc.DefaultJwksHandlerBehavior(t, &signingPrivateKey.PublicKey))
+
+				return oidcServer, apiServer, signingPrivateKey, caCertContent, caFilePath
+			},
+			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
+				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
+					t,
+					signingPrivateKey,
+					map[string]interface{}{
+						"iss": oidcServer.URL(),
+						"sub": "",
+						"aud": defaultOIDCClientID,
+						"exp": time.Now().Add(time.Second * 1200).Unix(),
+					},
+					defaultStubAccessToken,
+					defaultStubRefreshToken,
+				))
+			},
+			configureClient: configureClientFetchingOIDCCredentials,
+			assertErrFn: func(t *testing.T, errorToCheck error) {
+				if useAuthenticationConfig { // since the config uses a CEL expression
+					assert.True(t, apierrors.IsUnauthorized(errorToCheck), errorToCheck)
+				} else {
+					// the claim based approach is still allowed to use empty usernames
+					_ = assert.True(t, apierrors.IsForbidden(errorToCheck), errorToCheck) &&
+						assert.Equal(
+							t,
+							`pods is forbidden: User "" cannot list resource "pods" in API group "" in the namespace "default"`,
+							errorToCheck.Error(),
+						)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fn := func(t *testing.T, issuerURL, caCert string) string { return "" }
-			if useAuthenticationConfig {
-				fn = func(t *testing.T, issuerURL, caCert string) string {
-					return fmt.Sprintf(`
+		t.Run(tt.name, singleTestRunner(useAuthenticationConfig, rsaGenerateKey, tt))
+	}
+
+	for _, tt := range []singleTest[*ecdsa.PrivateKey, *ecdsa.PublicKey]{
+		{
+			name:                    "ID token is ok",
+			configureInfrastructure: configureTestInfrastructure[*ecdsa.PrivateKey, *ecdsa.PublicKey],
+			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *ecdsa.PrivateKey) {
+				idTokenLifetime := time.Second * 1200
+				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
+					t,
+					signingPrivateKey,
+					map[string]interface{}{
+						"iss": oidcServer.URL(),
+						"sub": defaultOIDCClaimedUsername,
+						"aud": defaultOIDCClientID,
+						"exp": time.Now().Add(idTokenLifetime).Unix(),
+					},
+					defaultStubAccessToken,
+					defaultStubRefreshToken,
+				))
+			},
+			configureClient: configureClientFetchingOIDCCredentials,
+			assertErrFn: func(t *testing.T, errorToCheck error) {
+				assert.NoError(t, errorToCheck)
+			},
+		},
+	} {
+		t.Run(tt.name, singleTestRunner(useAuthenticationConfig, ecdsaGenerateKey, tt))
+	}
+}
+
+type singleTest[K utilsoidc.JosePrivateKey, L utilsoidc.JosePublicKey] struct {
+	name                    string
+	configureInfrastructure func(t *testing.T, fn authenticationConfigFunc, keyFunc func(t *testing.T) (K, L)) (
+		oidcServer *utilsoidc.TestServer,
+		apiServer *kubeapiserverapptesting.TestServer,
+		signingPrivateKey K,
+		caCertContent []byte,
+		caFilePath string,
+	)
+	configureOIDCServerBehaviour func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey K)
+	configureClient              func(
+		t *testing.T,
+		restCfg *rest.Config,
+		caCert []byte,
+		certPath,
+		oidcServerURL,
+		oidcServerTokenURL string,
+	) kubernetes.Interface
+	assertErrFn func(t *testing.T, errorToCheck error)
+}
+
+func singleTestRunner[K utilsoidc.JosePrivateKey, L utilsoidc.JosePublicKey](
+	useAuthenticationConfig bool,
+	keyFunc func(t *testing.T) (K, L),
+	tt singleTest[K, L],
+) func(t *testing.T) {
+	return func(t *testing.T) {
+		fn := func(t *testing.T, issuerURL, caCert string) string { return "" }
+		if useAuthenticationConfig {
+			fn = func(t *testing.T, issuerURL, caCert string) string {
+				return fmt.Sprintf(`
 apiVersion: apiserver.config.k8s.io/v1alpha1
 kind: AuthenticationConfiguration
 jwt:
@@ -315,31 +476,32 @@ jwt:
       claim: sub
       prefix: %s
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert), defaultOIDCUsernamePrefix)
-				}
 			}
-			oidcServer, apiServer, signingPrivateKey, caCert, certPath := tt.configureInfrastructure(t, fn)
+		}
+		oidcServer, apiServer, signingPrivateKey, caCert, certPath := tt.configureInfrastructure(t, fn, keyFunc)
 
-			tt.configureOIDCServerBehaviour(t, oidcServer, signingPrivateKey)
+		tt.configureOIDCServerBehaviour(t, oidcServer, signingPrivateKey)
 
-			tokenURL, err := oidcServer.TokenURL()
-			require.NoError(t, err)
+		tokenURL, err := oidcServer.TokenURL()
+		require.NoError(t, err)
 
-			client := tt.configureClient(t, apiServer.ClientConfig, caCert, certPath, oidcServer.URL(), tokenURL)
+		client := tt.configureClient(t, apiServer.ClientConfig, caCert, certPath, oidcServer.URL(), tokenURL)
 
-			ctx := testContext(t)
-			_, err = client.CoreV1().Pods(defaultNamespace).List(ctx, metav1.ListOptions{})
+		ctx := testContext(t)
+		_, err = client.CoreV1().Pods(defaultNamespace).List(ctx, metav1.ListOptions{})
 
-			tt.assertErrFn(t, err)
-		})
+		tt.assertErrFn(t, err)
 	}
 }
 
 func TestUpdatingRefreshTokenInCaseOfExpiredIDToken(t *testing.T) {
-	var tests = []struct {
+	type testRun[K utilsoidc.JosePrivateKey] struct {
 		name                            string
-		configureUpdatingTokenBehaviour func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey)
+		configureUpdatingTokenBehaviour func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey K)
 		assertErrFn                     func(t *testing.T, errorToCheck error)
-	}{
+	}
+
+	var tests = []testRun[*rsa.PrivateKey]{
 		{
 			name: "cache returns stale client if refresh token is not updated in config",
 			configureUpdatingTokenBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
@@ -369,7 +531,7 @@ func TestUpdatingRefreshTokenInCaseOfExpiredIDToken(t *testing.T) {
 		},
 	}
 
-	oidcServer, apiServer, signingPrivateKey, caCert, certPath := configureTestInfrastructure(t, func(t *testing.T, _, _ string) string { return "" })
+	oidcServer, apiServer, signingPrivateKey, caCert, certPath := configureTestInfrastructure(t, func(t *testing.T, _, _ string) string { return "" }, rsaGenerateKey)
 
 	tokenURL, err := oidcServer.TokenURL()
 	require.NoError(t, err)
@@ -399,17 +561,17 @@ func TestUpdatingRefreshTokenInCaseOfExpiredIDToken(t *testing.T) {
 func TestStructuredAuthenticationConfigCEL(t *testing.T) {
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StructuredAuthenticationConfiguration, true)()
 
-	tests := []struct {
+	type testRun[K utilsoidc.JosePrivateKey, L utilsoidc.JosePublicKey] struct {
 		name                    string
 		authConfigFn            authenticationConfigFunc
-		configureInfrastructure func(t *testing.T, fn authenticationConfigFunc) (
+		configureInfrastructure func(t *testing.T, fn authenticationConfigFunc, keyFunc func(t *testing.T) (K, L)) (
 			oidcServer *utilsoidc.TestServer,
 			apiServer *kubeapiserverapptesting.TestServer,
 			signingPrivateKey *rsa.PrivateKey,
 			caCertContent []byte,
 			caFilePath string,
 		)
-		configureOIDCServerBehaviour func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey)
+		configureOIDCServerBehaviour func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey K)
 		configureClient              func(
 			t *testing.T,
 			restCfg *rest.Config,
@@ -420,7 +582,9 @@ func TestStructuredAuthenticationConfigCEL(t *testing.T) {
 		) kubernetes.Interface
 		assertErrFn func(t *testing.T, errorToCheck error)
 		wantUser    *authenticationv1.UserInfo
-	}{
+	}
+
+	tests := []testRun[*rsa.PrivateKey, *rsa.PublicKey]{
 		{
 			name: "username CEL expression is ok",
 			authConfigFn: func(t *testing.T, issuerURL, caCert string) string {
@@ -432,6 +596,8 @@ jwt:
     url: %s
     audiences:
     - %s
+    - another-audience
+    audienceMatchPolicy: MatchAny
     certificateAuthority: |
         %s
   claimMappings:
@@ -439,7 +605,7 @@ jwt:
       expression: "'k8s-' + claims.sub"
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert))
 			},
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
@@ -475,6 +641,8 @@ jwt:
     url: %s
     audiences:
     - %s
+    - another-audience
+    audienceMatchPolicy: MatchAny
     certificateAuthority: |
         %s
   claimMappings:
@@ -484,7 +652,7 @@ jwt:
       expression: '(claims.roles.split(",") + claims.other_roles.split(",")).map(role, "prefix:" + role)'
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert))
 			},
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
@@ -522,6 +690,8 @@ jwt:
     url: %s
     audiences:
     - %s
+    - another-audience
+    audienceMatchPolicy: MatchAny
     certificateAuthority: |
         %s
   claimMappings:
@@ -532,7 +702,7 @@ jwt:
     message: "the hd claim must be set to example.com"
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert))
 			},
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
@@ -565,6 +735,8 @@ jwt:
     url: %s
     audiences:
     - %s
+    - another-audience
+    audienceMatchPolicy: MatchAny
     certificateAuthority: |
         %s
   claimMappings:
@@ -580,7 +752,7 @@ jwt:
     message: "example.org/foo must be bar and example.org/baz must be qux"
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert))
 			},
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
@@ -621,6 +793,8 @@ jwt:
     url: %s
     audiences:
     - %s
+    - another-audience
+    audienceMatchPolicy: MatchAny
     certificateAuthority: |
         %s
   claimMappings:
@@ -630,7 +804,7 @@ jwt:
       expression: "claims.uid"
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert))
 			},
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
@@ -668,6 +842,8 @@ jwt:
     url: %s
     audiences:
     - %s
+    - another-audience
+    audienceMatchPolicy: MatchAny
     certificateAuthority: |
         %s
   claimMappings:
@@ -680,7 +856,7 @@ jwt:
     message: "groups cannot used reserved system: prefix"
 `, issuerURL, defaultOIDCClientID, indentCertificateAuthority(caCert))
 			},
-			configureInfrastructure: configureTestInfrastructure,
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
 			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
 				idTokenLifetime := time.Second * 1200
 				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
@@ -704,11 +880,63 @@ jwt:
 			},
 			wantUser: nil,
 		},
+		{
+			name: "multiple audiences check with claim validation rule is ok",
+			authConfigFn: func(t *testing.T, issuerURL, caCert string) string {
+				return fmt.Sprintf(`
+apiVersion: apiserver.config.k8s.io/v1alpha1
+kind: AuthenticationConfiguration
+jwt:
+- issuer:
+    url: %s
+    audiences:
+    - baz
+    - foo
+    audienceMatchPolicy: MatchAny
+    certificateAuthority: |
+        %s
+  claimMappings:
+    username:
+      expression: "'k8s-' + claims.sub"
+    uid:
+      expression: "claims.uid"
+  claimValidationRules:
+  - expression: 'sets.equivalent(claims.aud, ["bar", "foo", "baz"])'
+    message: 'aud claim must be exactly match list ["bar", "foo", "baz"]'
+`, issuerURL, indentCertificateAuthority(caCert))
+			},
+			configureInfrastructure: configureTestInfrastructure[*rsa.PrivateKey, *rsa.PublicKey],
+			configureOIDCServerBehaviour: func(t *testing.T, oidcServer *utilsoidc.TestServer, signingPrivateKey *rsa.PrivateKey) {
+				idTokenLifetime := time.Second * 1200
+				oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
+					t,
+					signingPrivateKey,
+					map[string]interface{}{
+						"iss": oidcServer.URL(),
+						"sub": defaultOIDCClaimedUsername,
+						"aud": []string{"foo", "bar", "baz"},
+						"exp": time.Now().Add(idTokenLifetime).Unix(),
+						"uid": "1234",
+					},
+					defaultStubAccessToken,
+					defaultStubRefreshToken,
+				))
+			},
+			configureClient: configureClientFetchingOIDCCredentials,
+			assertErrFn: func(t *testing.T, errorToCheck error) {
+				assert.NoError(t, errorToCheck)
+			},
+			wantUser: &authenticationv1.UserInfo{
+				Username: "k8s-john_doe",
+				Groups:   []string{"system:authenticated"},
+				UID:      "1234",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oidcServer, apiServer, signingPrivateKey, caCert, certPath := tt.configureInfrastructure(t, tt.authConfigFn)
+			oidcServer, apiServer, signingPrivateKey, caCert, certPath := tt.configureInfrastructure(t, tt.authConfigFn, rsaGenerateKey)
 
 			tt.configureOIDCServerBehaviour(t, oidcServer, signingPrivateKey)
 
@@ -731,10 +959,126 @@ jwt:
 	}
 }
 
-func configureTestInfrastructure(t *testing.T, fn authenticationConfigFunc) (
+// TestStructuredAuthenticationDiscoveryURL tests that the discovery URL configured in jwt.issuer.discoveryURL is used to
+// fetch the discovery document and the issuer in jwt.issuer.url is used to validate the ID token.
+func TestStructuredAuthenticationDiscoveryURL(t *testing.T) {
+	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StructuredAuthenticationConfiguration, true)()
+
+	tests := []struct {
+		name         string
+		issuerURL    string
+		discoveryURL func(baseURL string) string
+	}{
+		{
+			name:         "discovery url and issuer url with no path",
+			issuerURL:    "https://example.com",
+			discoveryURL: func(baseURL string) string { return baseURL },
+		},
+		{
+			name:         "discovery url has path, issuer url has no path",
+			issuerURL:    "https://example.com",
+			discoveryURL: func(baseURL string) string { return fmt.Sprintf("%s/c/d/bar", baseURL) },
+		},
+		{
+			name:         "discovery url has no path, issuer url has path",
+			issuerURL:    "https://example.com/a/b/foo",
+			discoveryURL: func(baseURL string) string { return baseURL },
+		},
+		{
+			name:      "discovery url and issuer url have paths",
+			issuerURL: "https://example.com/a/b/foo",
+			discoveryURL: func(baseURL string) string {
+				return fmt.Sprintf("%s/c/d/bar", baseURL)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			caCertContent, _, caFilePath, caKeyFilePath := generateCert(t)
+			signingPrivateKey, publicKey := rsaGenerateKey(t)
+			// set the issuer in the discovery document to issuer url (different from the discovery URL) to assert
+			// 1. discovery URL is used to fetch the discovery document and
+			// 2. issuer in the discovery document is used to validate the ID token
+			oidcServer := utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath, tt.issuerURL)
+			discoveryURL := strings.TrimSuffix(tt.discoveryURL(oidcServer.URL()), "/") + "/.well-known/openid-configuration"
+
+			authenticationConfig := fmt.Sprintf(`
+apiVersion: apiserver.config.k8s.io/v1alpha1
+kind: AuthenticationConfiguration
+jwt:
+- issuer:
+    url: %s
+    discoveryURL: %s
+    audiences:
+    - foo
+    audienceMatchPolicy: MatchAny
+    certificateAuthority: |
+        %s
+  claimMappings:
+    username:
+      expression: "'k8s-' + claims.sub"
+  claimValidationRules:
+  - expression: 'claims.hd == "example.com"'
+    message: "the hd claim must be set to example.com"
+`, tt.issuerURL, discoveryURL, indentCertificateAuthority(string(caCertContent)))
+
+			oidcServer.JwksHandler().EXPECT().KeySet().AnyTimes().DoAndReturn(utilsoidc.DefaultJwksHandlerBehavior(t, publicKey))
+
+			apiServer := startTestAPIServerForOIDC(t, apiServerOIDCConfig{authenticationConfigYAML: authenticationConfig}, publicKey)
+
+			idTokenLifetime := time.Second * 1200
+			oidcServer.TokenHandler().EXPECT().Token().Times(1).DoAndReturn(utilsoidc.TokenHandlerBehaviorReturningPredefinedJWT(
+				t,
+				signingPrivateKey,
+				map[string]interface{}{
+					"iss": tt.issuerURL, // issuer in the discovery document is used to validate the ID token
+					"sub": defaultOIDCClaimedUsername,
+					"aud": "foo",
+					"exp": time.Now().Add(idTokenLifetime).Unix(),
+					"hd":  "example.com",
+				},
+				defaultStubAccessToken,
+				defaultStubRefreshToken,
+			))
+
+			tokenURL, err := oidcServer.TokenURL()
+			require.NoError(t, err)
+
+			client := configureClientFetchingOIDCCredentials(t, apiServer.ClientConfig, caCertContent, caFilePath, oidcServer.URL(), tokenURL)
+			ctx := testContext(t)
+			res, err := client.AuthenticationV1().SelfSubjectReviews().Create(ctx, &authenticationv1.SelfSubjectReview{}, metav1.CreateOptions{})
+			require.NoError(t, err)
+			assert.Equal(t, authenticationv1.UserInfo{
+				Username: "k8s-john_doe",
+				Groups:   []string{"system:authenticated"},
+			}, res.Status.UserInfo)
+		})
+	}
+}
+
+func rsaGenerateKey(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey) {
+	t.Helper()
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, rsaKeyBitSize)
+	require.NoError(t, err)
+
+	return privateKey, &privateKey.PublicKey
+}
+
+func ecdsaGenerateKey(t *testing.T) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
+	t.Helper()
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	return privateKey, &privateKey.PublicKey
+}
+
+func configureTestInfrastructure[K utilsoidc.JosePrivateKey, L utilsoidc.JosePublicKey](t *testing.T, fn authenticationConfigFunc, keyFunc func(t *testing.T) (K, L)) (
 	oidcServer *utilsoidc.TestServer,
 	apiServer *kubeapiserverapptesting.TestServer,
-	signingPrivateKey *rsa.PrivateKey,
+	signingPrivateKey K,
 	caCertContent []byte,
 	caFilePath string,
 ) {
@@ -742,19 +1086,18 @@ func configureTestInfrastructure(t *testing.T, fn authenticationConfigFunc) (
 
 	caCertContent, _, caFilePath, caKeyFilePath := generateCert(t)
 
-	signingPrivateKey, err := rsa.GenerateKey(rand.Reader, rsaKeyBitSize)
-	require.NoError(t, err)
+	signingPrivateKey, publicKey := keyFunc(t)
 
-	oidcServer = utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath)
+	oidcServer = utilsoidc.BuildAndRunTestServer(t, caFilePath, caKeyFilePath, "")
 
 	authenticationConfig := fn(t, oidcServer.URL(), string(caCertContent))
 	if len(authenticationConfig) > 0 {
-		apiServer = startTestAPIServerForOIDC(t, "", "", "", authenticationConfig)
+		apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{authenticationConfigYAML: authenticationConfig}, publicKey)
 	} else {
-		apiServer = startTestAPIServerForOIDC(t, oidcServer.URL(), defaultOIDCClientID, caFilePath, "")
+		apiServer = startTestAPIServerForOIDC(t, apiServerOIDCConfig{oidcURL: oidcServer.URL(), oidcClientID: defaultOIDCClientID, oidcCAFilePath: caFilePath, oidcUsernamePrefix: defaultOIDCUsernamePrefix}, publicKey)
 	}
 
-	oidcServer.JwksHandler().EXPECT().KeySet().AnyTimes().DoAndReturn(utilsoidc.DefaultJwksHandlerBehavior(t, &signingPrivateKey.PublicKey))
+	oidcServer.JwksHandler().EXPECT().KeySet().AnyTimes().DoAndReturn(utilsoidc.DefaultJwksHandlerBehavior(t, publicKey))
 
 	adminClient := kubernetes.NewForConfigOrDie(apiServer.ClientConfig)
 	configureRBAC(t, adminClient, defaultRole, defaultRoleBinding)
@@ -803,19 +1146,23 @@ func configureClientConfigForOIDC(t *testing.T, config *rest.Config, clientID, c
 	return cfg
 }
 
-func startTestAPIServerForOIDC(t *testing.T, oidcURL, oidcClientID, oidcCAFilePath, authenticationConfigYAML string) *kubeapiserverapptesting.TestServer {
+func startTestAPIServerForOIDC[L utilsoidc.JosePublicKey](t *testing.T, c apiServerOIDCConfig, publicKey L) *kubeapiserverapptesting.TestServer {
 	t.Helper()
 
 	var customFlags []string
-	if authenticationConfigYAML != "" {
-		customFlags = []string{fmt.Sprintf("--authentication-config=%s", writeTempFile(t, authenticationConfigYAML))}
+	if len(c.authenticationConfigYAML) > 0 {
+		customFlags = []string{fmt.Sprintf("--authentication-config=%s", writeTempFile(t, c.authenticationConfigYAML))}
 	} else {
 		customFlags = []string{
-			fmt.Sprintf("--oidc-issuer-url=%s", oidcURL),
-			fmt.Sprintf("--oidc-client-id=%s", oidcClientID),
-			fmt.Sprintf("--oidc-ca-file=%s", oidcCAFilePath),
-			fmt.Sprintf("--oidc-username-prefix=%s", defaultOIDCUsernamePrefix),
+			fmt.Sprintf("--oidc-issuer-url=%s", c.oidcURL),
+			fmt.Sprintf("--oidc-client-id=%s", c.oidcClientID),
+			fmt.Sprintf("--oidc-ca-file=%s", c.oidcCAFilePath),
+			fmt.Sprintf("--oidc-username-prefix=%s", c.oidcUsernamePrefix),
 		}
+		if len(c.oidcUsernameClaim) > 0 {
+			customFlags = append(customFlags, fmt.Sprintf("--oidc-username-claim=%s", c.oidcUsernameClaim))
+		}
+		customFlags = append(customFlags, maybeSetSigningAlgs(publicKey)...)
 	}
 	customFlags = append(customFlags, "--authorization-mode=RBAC")
 
@@ -831,6 +1178,18 @@ func startTestAPIServerForOIDC(t *testing.T, oidcURL, oidcClientID, oidcCAFilePa
 
 	return &server
 }
+
+func maybeSetSigningAlgs[K utilsoidc.JoseKey](key K) []string {
+	alg := utilsoidc.GetSignatureAlgorithm(key)
+	if alg == jose.RS256 && randomBool() {
+		return nil // check the default case of RS256 by not always setting the flag
+	}
+	return []string{
+		fmt.Sprintf("--oidc-signing-algs=%s", alg), // all other algs need to be manually set
+	}
+}
+
+func randomBool() bool { return utilrand.Int()%2 == 1 }
 
 func fetchOIDCCredentials(t *testing.T, oidcTokenURL string, caCertContent []byte) (idToken, refreshToken string) {
 	t.Helper()

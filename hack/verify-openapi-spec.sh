@@ -27,9 +27,11 @@ KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
-# kube::etcd::install
+kube::etcd::install
 
-make -C "${KUBE_ROOT}" WHAT=cmd/kube-apiserver
+# We use `make` here intead of `go install` to ensure that all of the
+# linker-defined values are set.
+make -C "${KUBE_ROOT}" WHAT=./cmd/kube-apiserver
 
 SPECROOT="${KUBE_ROOT}/api/openapi-spec"
 SPECV3PATH="${SPECROOT}/v3"

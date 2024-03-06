@@ -42,17 +42,37 @@ EXCLUDED_PATTERNS=(
 # Excluded checks for openshift/kubernetes fork that are always skipped.
 EXCLUDED_PATTERNS+=(
   "verify-boilerplate.sh"            # Carries do not require boilerplate
+  "verify-bazel.sh"                  # Bazel is not used downstream
   "verify-no-vendor-cycles.sh"       # Incompatible with the way many carries are specified
   "verify-publishing-bot.py"         # Verifies the upstream rules, which are not maintained in o/k
+  "verify-staging-meta-files.sh"     # Staging meta files are not maintained downstream
 )
 
 # Skipped checks for openshift/kubernetes fork that need to be fixed.
+#
+# Where a check is excluded due to 'inconsistent behavior between
+# local and ci execution', the fix will require finding a way to
+# compare current and generated results without 'cp -a' since this
+# command does not execute without error in downstream ci.
 EXCLUDED_PATTERNS+=(
-  "verify-openapi-spec.sh"                  # TODO(soltysh) Fails in CI during trap phase
-  "verify-golangci-lint.sh"                 # TODO(soltysh) Fails to build required tooling
-  "verify-shellcheck.sh"                    # TODO(soltysh) Requires either docker or local shellcheck
-  "verify-spelling.sh"                      # TODO(soltysh) Need to ensure installation of misspell command
+  "verify-codegen.sh"                       # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-conformance-yaml.sh"              # TODO(soltysh) I don't expect us needing this
+  "verify-e2e-test-ownership.sh"            # TODO(soltysh) Is it worth fixing this check?
+  "verify-external-dependencies-version.sh" # TODO(soltysh) I don't expect us needing this
+  "verify-generated-files-remake.sh"        # TODO(marun) Is it worth fixing this check?
+  "verify-generated-protobuf.sh"            # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-golangci-lint.sh"                 # TODO(soltysh) Need golangci-lint
+  "verify-golint.sh"                        # TODO(marun) Cleanup carried code
+  "verify-hack-tools.sh"                    # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-internal-modules.sh"              # TODO(soltysh) Currently fails on our ginkgo dependency
+  "verify-openapi-spec.sh"                  # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-shellcheck.sh"                    # TODO(soltysh) Fix problems in openshift-hack shells
+  "verify-spelling.sh"                      # TODO(marun) Need to ensure installation of misspell command
+  "verify-staticcheck.sh"                   # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-vendor-licenses.sh"               # TODO(marun) Fix inconsistent behavior between local and ci execution
+  "verify-structured-logging.sh"            # TODO(soltysh) I don't expect us needed it now
   "verify-mocks.sh"                         # TODO(soltysh) I don't expect us needed mocks re-generation
+  "verify-govulncheck.sh"                   # TODO(sairameshv) Newly added check, needs a go package to be installed on the fly
 )
 
 # Exclude typecheck in certain cases, if they're running in a separate job.
@@ -74,6 +94,13 @@ if [[ ${EXCLUDE_GODEP:-} =~ ^[yY]$ ]]; then
     )
 fi
 
+# Exclude golangci-lint if requested, for example in pull-kubernetes-verify.
+if [[ ${EXCLUDE_GOLANGCI_LINT:-} =~ ^[yY]$ ]]; then
+  EXCLUDED_PATTERNS+=(
+    "verify-golangci-lint.sh"              # runs in separate pull-kubernetes-verify-lint
+    )
+fi
+
 # Exclude readonly package check in certain cases, aka, in periodic jobs we don't care and a readonly package won't be touched
 if [[ ${EXCLUDE_READONLY_PACKAGE:-} =~ ^[yY]$ ]]; then
   EXCLUDED_PATTERNS+=(
@@ -87,7 +114,7 @@ QUICK_PATTERNS+=(
   "verify-api-groups.sh"
   "verify-boilerplate.sh"
   "verify-external-dependencies-version.sh"
-  "verify-vendor-licenses.sh"
+  "verify-fieldname-docs.sh"
   "verify-gofmt.sh"
   "verify-imports.sh"
   "verify-non-mutating-validation.sh"
@@ -98,6 +125,7 @@ QUICK_PATTERNS+=(
   "verify-staging-meta-files.sh"
   "verify-test-featuregates.sh"
   "verify-test-images.sh"
+  "verify-vendor-licenses.sh"
 )
 
 while IFS='' read -r line; do EXCLUDED_CHECKS+=("$line"); done < <(ls "${EXCLUDED_PATTERNS[@]/#/${KUBE_ROOT}/hack/}" 2>/dev/null || true)
@@ -129,7 +157,7 @@ function is-explicitly-chosen {
   index=0
   for e in "${TARGET_LIST[@]}"; do
     if [[ "${e}" == "${name}" ]]; then
-      TARGET_LIST[${index}]=""
+      TARGET_LIST[index]=""
       return
     fi
     index=$((index + 1))

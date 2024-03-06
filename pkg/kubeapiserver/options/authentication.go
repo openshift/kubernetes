@@ -40,6 +40,7 @@ import (
 	"k8s.io/apiserver/pkg/server/egressselector"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/apiserver/plugin/pkg/authenticator/token/oidc"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	v1listers "k8s.io/client-go/listers/core/v1"
@@ -260,6 +261,11 @@ func (o *BuiltInAuthenticationOptions) Validate() []error {
 		}
 	}
 
+	// verify that if ServiceAccountTokenNodeBinding is enabled, ServiceAccountTokenNodeBindingValidation is also enabled.
+	if utilfeature.DefaultFeatureGate.Enabled(features.ServiceAccountTokenNodeBinding) && !utilfeature.DefaultFeatureGate.Enabled(features.ServiceAccountTokenNodeBindingValidation) {
+		allErrors = append(allErrors, fmt.Errorf("the %q feature gate can only be enabled if the %q feature gate is also enabled", features.ServiceAccountTokenNodeBinding, features.ServiceAccountTokenNodeBindingValidation))
+	}
+
 	if o.WebHook != nil {
 		retryBackoff := o.WebHook.RetryBackoff
 		if retryBackoff != nil && retryBackoff.Steps <= 0 {
@@ -461,6 +467,9 @@ func (o *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		if ret.AuthenticationConfig, err = loadAuthenticationConfig(o.AuthenticationConfigFile); err != nil {
 			return kubeauthenticator.Config{}, err
 		}
+		// all known signing algs are allowed when using authentication config
+		// TODO: what we really want to express is 'any alg is fine as long it matches a public key'
+		ret.OIDCSigningAlgs = oidc.AllValidSigningAlgorithms()
 	} else if o.OIDC != nil && len(o.OIDC.IssuerURL) > 0 && len(o.OIDC.ClientID) > 0 {
 		usernamePrefix := o.OIDC.UsernamePrefix
 
@@ -524,7 +533,7 @@ func (o *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 	}
 
 	if ret.AuthenticationConfig != nil {
-		if err := apiservervalidation.ValidateAuthenticationConfiguration(ret.AuthenticationConfig).ToAggregate(); err != nil {
+		if err := apiservervalidation.ValidateAuthenticationConfiguration(ret.AuthenticationConfig, ret.ServiceAccountIssuers).ToAggregate(); err != nil {
 			return kubeauthenticator.Config{}, err
 		}
 	}

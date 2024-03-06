@@ -38,11 +38,13 @@ fi
 BASH_TARGETS=(
 	update-kubensenter
 	update-test-annotations
+	update-go-workspace
 	update-codegen
 	update-generated-api-compatibility-data
 	update-generated-docs
 	update-openapi-spec
 	update-gofmt
+	update-golangci-lint-config
 )
 
 for t in "${BASH_TARGETS[@]}"; do

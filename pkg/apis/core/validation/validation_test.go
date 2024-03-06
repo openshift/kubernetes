@@ -50,10 +50,11 @@ import (
 )
 
 const (
-	dnsLabelErrMsg          = "a lowercase RFC 1123 label must consist of"
-	dnsSubdomainLabelErrMsg = "a lowercase RFC 1123 subdomain"
-	envVarNameErrMsg        = "a valid environment variable name must consist of"
-	defaultGracePeriod      = int64(30)
+	dnsLabelErrMsg                    = "a lowercase RFC 1123 label must consist of"
+	dnsSubdomainLabelErrMsg           = "a lowercase RFC 1123 subdomain"
+	envVarNameErrMsg                  = "a valid environment variable name must consist of"
+	relaxedEnvVarNameFmtErrMsg string = "a valid environment variable names must be printable ASCII characters other than '=' character"
+	defaultGracePeriod                = int64(30)
 )
 
 var (
@@ -5981,6 +5982,361 @@ func TestHugePagesEnv(t *testing.T) {
 	}
 }
 
+func TestRelaxedValidateEnv(t *testing.T) {
+	successCase := []core.EnvVar{
+		{Name: "!\"#$%&'()", Value: "value"},
+		{Name: "* +,-./0123456789", Value: "value"},
+		{Name: ":;<>?@", Value: "value"},
+		{Name: "ABCDEFG", Value: "value"},
+		{Name: "abcdefghijklmn", Value: "value"},
+		{Name: "[\\]^_`{}|~", Value: "value"},
+		{
+			Name: "!\"#$%&'()",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.annotations['key']",
+				},
+			},
+		}, {
+			Name: "!\"#$%&'()",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.labels['key']",
+				},
+			},
+		}, {
+			Name: "* +,-./0123456789",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+			},
+		}, {
+			Name: "* +,-./0123456789",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace",
+				},
+			},
+		}, {
+			Name: "* +,-./0123456789",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.uid",
+				},
+			},
+		}, {
+			Name: ":;<>?@",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "spec.nodeName",
+				},
+			},
+		}, {
+			Name: ":;<>?@",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "spec.serviceAccountName",
+				},
+			},
+		}, {
+			Name: ":;<>?@",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "status.hostIP",
+				},
+			},
+		}, {
+			Name: ":;<>?@",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "status.podIP",
+				},
+			},
+		}, {
+			Name: "abcdefghijklmn",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "status.podIPs",
+				},
+			},
+		},
+		{
+			Name: "abcdefghijklmn",
+			ValueFrom: &core.EnvVarSource{
+				SecretKeyRef: &core.SecretKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "some-secret",
+					},
+					Key: "secret-key",
+				},
+			},
+		}, {
+			Name: "!\"#$%&'()",
+			ValueFrom: &core.EnvVarSource{
+				ConfigMapKeyRef: &core.ConfigMapKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "some-config-map",
+					},
+					Key: "some-key",
+				},
+			},
+		},
+	}
+	if errs := ValidateEnv(successCase, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) != 0 {
+		t.Errorf("expected success, got: %v", errs)
+	}
+
+	errorCases := []struct {
+		name          string
+		envs          []core.EnvVar
+		expectedError string
+	}{{
+		name:          "illegal character",
+		envs:          []core.EnvVar{{Name: "=abc"}},
+		expectedError: `[0].name: Invalid value: "=abc": ` + relaxedEnvVarNameFmtErrMsg,
+	}, {
+		name:          "zero-length name",
+		envs:          []core.EnvVar{{Name: ""}},
+		expectedError: "[0].name: Required value",
+	}, {
+		name: "value and valueFrom specified",
+		envs: []core.EnvVar{{
+			Name:  "abc",
+			Value: "foo",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+			},
+		}},
+		expectedError: "[0].valueFrom: Invalid value: \"\": may not be specified when `value` is not empty",
+	}, {
+		name: "valueFrom without a source",
+		envs: []core.EnvVar{{
+			Name:      "abc",
+			ValueFrom: &core.EnvVarSource{},
+		}},
+		expectedError: "[0].valueFrom: Invalid value: \"\": must specify one of: `fieldRef`, `resourceFieldRef`, `configMapKeyRef` or `secretKeyRef`",
+	}, {
+		name: "valueFrom.fieldRef and valueFrom.secretKeyRef specified",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+				SecretKeyRef: &core.SecretKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "a-secret",
+					},
+					Key: "a-key",
+				},
+			},
+		}},
+		expectedError: "[0].valueFrom: Invalid value: \"\": may not have more than one field specified at a time",
+	}, {
+		name: "valueFrom.fieldRef and valueFrom.configMapKeyRef set",
+		envs: []core.EnvVar{{
+			Name: "some_var_name",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+				ConfigMapKeyRef: &core.ConfigMapKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "some-config-map",
+					},
+					Key: "some-key",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom: Invalid value: "": may not have more than one field specified at a time`,
+	}, {
+		name: "valueFrom.fieldRef and valueFrom.secretKeyRef specified",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+				SecretKeyRef: &core.SecretKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "a-secret",
+					},
+					Key: "a-key",
+				},
+				ConfigMapKeyRef: &core.ConfigMapKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "some-config-map",
+					},
+					Key: "some-key",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom: Invalid value: "": may not have more than one field specified at a time`,
+	}, {
+		name: "valueFrom.secretKeyRef.name invalid",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				SecretKeyRef: &core.SecretKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "$%^&*#",
+					},
+					Key: "a-key",
+				},
+			},
+		}},
+	}, {
+		name: "valueFrom.configMapKeyRef.name invalid",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				ConfigMapKeyRef: &core.ConfigMapKeySelector{
+					LocalObjectReference: core.LocalObjectReference{
+						Name: "$%^&*#",
+					},
+					Key: "some-key",
+				},
+			},
+		}},
+	}, {
+		name: "missing FieldPath on ObjectFieldSelector",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Required value`,
+	}, {
+		name: "missing APIVersion on ObjectFieldSelector",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.apiVersion: Required value`,
+	}, {
+		name: "invalid fieldPath",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.whoops",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Invalid value: "metadata.whoops": error converting fieldPath`,
+	}, {
+		name: "metadata.name with subscript",
+		envs: []core.EnvVar{{
+			Name: "labels",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.name['key']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Invalid value: "metadata.name['key']": error converting fieldPath: field label does not support subscript`,
+	}, {
+		name: "metadata.labels without subscript",
+		envs: []core.EnvVar{{
+			Name: "labels",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.labels",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.labels": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+	}, {
+		name: "metadata.annotations without subscript",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.annotations",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `[0].valueFrom.fieldRef.fieldPath: Unsupported value: "metadata.annotations": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+	}, {
+		name: "metadata.annotations with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.annotations['invalid~key']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "invalid~key"`,
+	}, {
+		name: "metadata.labels with invalid key",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "metadata.labels['Www.k8s.io/test']",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `field[0].valueFrom.fieldRef: Invalid value: "Www.k8s.io/test"`,
+	}, {
+		name: "unsupported fieldPath",
+		envs: []core.EnvVar{{
+			Name: "abc",
+			ValueFrom: &core.EnvVarSource{
+				FieldRef: &core.ObjectFieldSelector{
+					FieldPath:  "status.phase",
+					APIVersion: "v1",
+				},
+			},
+		}},
+		expectedError: `valueFrom.fieldRef.fieldPath: Unsupported value: "status.phase": supported values: "metadata.name", "metadata.namespace", "metadata.uid", "spec.nodeName", "spec.serviceAccountName", "status.hostIP", "status.hostIPs", "status.podIP", "status.podIPs"`,
+	},
+	}
+	for _, tc := range errorCases {
+		if errs := ValidateEnv(tc.envs, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) == 0 {
+			t.Errorf("expected failure for %s", tc.name)
+		} else {
+			for i := range errs {
+				str := errs[i].Error()
+				if str != "" && !strings.Contains(str, tc.expectedError) {
+					t.Errorf("%s: expected error detail either empty or %q, got %q", tc.name, tc.expectedError, str)
+				}
+			}
+		}
+	}
+}
+
 func TestValidateEnv(t *testing.T) {
 	successCase := []core.EnvVar{
 		{Name: "abc", Value: "value"},
@@ -6094,6 +6450,67 @@ func TestValidateEnv(t *testing.T) {
 		t.Errorf("expected success, got: %v", errs)
 	}
 
+	updateSuccessCase := []core.EnvVar{
+		{Name: "!\"#$%&'()", Value: "value"},
+		{Name: "* +,-./0123456789", Value: "value"},
+		{Name: ":;<>?@", Value: "value"},
+		{Name: "ABCDEFG", Value: "value"},
+		{Name: "abcdefghijklmn", Value: "value"},
+		{Name: "[\\]^_`{}|~", Value: "value"},
+	}
+
+	if errs := ValidateEnv(updateSuccessCase, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) != 0 {
+		t.Errorf("expected success, got: %v", errs)
+	}
+
+	updateErrorCase := []struct {
+		name          string
+		envs          []core.EnvVar
+		expectedError string
+	}{
+		{
+			name: "invalid name a",
+			envs: []core.EnvVar{
+				{Name: "!\"#$%&'()", Value: "value"},
+			},
+			expectedError: `field[0].name: Invalid value: ` + "\"!\\\"#$%&'()\": " + envVarNameErrMsg,
+		},
+		{
+			name: "invalid name b",
+			envs: []core.EnvVar{
+				{Name: "* +,-./0123456789", Value: "value"},
+			},
+			expectedError: `field[0].name: Invalid value: ` + "\"* +,-./0123456789\": " + envVarNameErrMsg,
+		},
+		{
+			name: "invalid name c",
+			envs: []core.EnvVar{
+				{Name: ":;<>?@", Value: "value"},
+			},
+			expectedError: `field[0].name: Invalid value: ` + "\":;<>?@\": " + envVarNameErrMsg,
+		},
+		{
+			name: "invalid name d",
+			envs: []core.EnvVar{
+				{Name: "[\\]^_{}|~", Value: "value"},
+			},
+			expectedError: `field[0].name: Invalid value: ` + "\"[\\\\]^_{}|~\": " + envVarNameErrMsg,
+		},
+	}
+
+	for _, tc := range updateErrorCase {
+		if errs := ValidateEnv(tc.envs, field.NewPath("field"), PodValidationOptions{}); len(errs) == 0 {
+			t.Errorf("expected failure for %s", tc.name)
+		} else {
+			for i := range errs {
+				str := errs[i].Error()
+				if str != "" && !strings.Contains(str, tc.expectedError) {
+					t.Errorf("%s: expected error detail either empty or %q, got %q", tc.name, tc.expectedError, str)
+				}
+			}
+		}
+	}
+
 	errorCases := []struct {
 		name          string
 		envs          []core.EnvVar
@@ -6102,22 +6519,6 @@ func TestValidateEnv(t *testing.T) {
 		name:          "zero-length name",
 		envs:          []core.EnvVar{{Name: ""}},
 		expectedError: "[0].name: Required value",
-	}, {
-		name:          "illegal character",
-		envs:          []core.EnvVar{{Name: "a!b"}},
-		expectedError: `[0].name: Invalid value: "a!b": ` + envVarNameErrMsg,
-	}, {
-		name:          "dot only",
-		envs:          []core.EnvVar{{Name: "."}},
-		expectedError: `[0].name: Invalid value: ".": must not be`,
-	}, {
-		name:          "double dots only",
-		envs:          []core.EnvVar{{Name: ".."}},
-		expectedError: `[0].name: Invalid value: "..": must not be`,
-	}, {
-		name:          "leading double dots",
-		envs:          []core.EnvVar{{Name: "..abc"}},
-		expectedError: `[0].name: Invalid value: "..abc": must not start with`,
 	}, {
 		name: "value and valueFrom specified",
 		envs: []core.EnvVar{{
@@ -6377,8 +6778,110 @@ func TestValidateEnvFrom(t *testing.T) {
 		},
 	},
 	}
-	if errs := ValidateEnvFrom(successCase, field.NewPath("field")); len(errs) != 0 {
+	if errs := ValidateEnvFrom(successCase, nil, PodValidationOptions{}); len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
+	}
+
+	updateSuccessCase := []core.EnvFromSource{{
+		ConfigMapRef: &core.ConfigMapEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: "* +,-./0123456789",
+		ConfigMapRef: &core.ConfigMapEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: ":;<>?@",
+		ConfigMapRef: &core.ConfigMapEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		SecretRef: &core.SecretEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: "abcdefghijklmn",
+		SecretRef: &core.SecretEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: "[\\]^_`{}|~",
+		SecretRef: &core.SecretEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}}
+
+	if errs := ValidateEnvFrom(updateSuccessCase, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) != 0 {
+		t.Errorf("expected success, got: %v", errs)
+	}
+
+	updateErrorCase := []struct {
+		name          string
+		envs          []core.EnvFromSource
+		expectedError string
+	}{
+		{
+			name: "invalid name a",
+			envs: []core.EnvFromSource{
+				{
+					Prefix: "!\"#$%&'()",
+					SecretRef: &core.SecretEnvSource{
+						LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+					},
+				},
+			},
+			expectedError: `field[0].prefix: Invalid value: ` + "\"!\\\"#$%&'()\": " + envVarNameErrMsg,
+		},
+		{
+			name: "invalid name b",
+			envs: []core.EnvFromSource{
+				{
+					Prefix: "* +,-./0123456789",
+					SecretRef: &core.SecretEnvSource{
+						LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+					},
+				},
+			},
+			expectedError: `field[0].prefix: Invalid value: ` + "\"* +,-./0123456789\": " + envVarNameErrMsg,
+		},
+		{
+			name: "invalid name c",
+			envs: []core.EnvFromSource{
+				{
+					Prefix: ":;<>?@",
+					SecretRef: &core.SecretEnvSource{
+						LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+					},
+				},
+			},
+			expectedError: `field[0].prefix: Invalid value: ` + "\":;<>?@\": " + envVarNameErrMsg,
+		},
+		{
+			name: "invalid name d",
+			envs: []core.EnvFromSource{
+				{
+					Prefix: "[\\]^_{}|~",
+					SecretRef: &core.SecretEnvSource{
+						LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+					},
+				},
+			},
+			expectedError: `field[0].prefix: Invalid value: ` + "\"[\\\\]^_{}|~\": " + envVarNameErrMsg,
+		},
+	}
+
+	for _, tc := range updateErrorCase {
+		if errs := ValidateEnvFrom(tc.envs, field.NewPath("field"), PodValidationOptions{}); len(errs) == 0 {
+			t.Errorf("expected failure for %s", tc.name)
+		} else {
+			for i := range errs {
+				str := errs[i].Error()
+				if str != "" && !strings.Contains(str, tc.expectedError) {
+					t.Errorf("%s: expected error detail either empty or %q, got %q", tc.name, tc.expectedError, str)
+				}
+			}
+		}
 	}
 
 	errorCases := []struct {
@@ -6400,14 +6903,6 @@ func TestValidateEnvFrom(t *testing.T) {
 		}},
 		expectedError: "field[0].configMapRef.name: Invalid value",
 	}, {
-		name: "invalid prefix",
-		envs: []core.EnvFromSource{{
-			Prefix: "a!b",
-			ConfigMapRef: &core.ConfigMapEnvSource{
-				LocalObjectReference: core.LocalObjectReference{Name: "abc"}},
-		}},
-		expectedError: `field[0].prefix: Invalid value: "a!b": ` + envVarNameErrMsg,
-	}, {
 		name: "zero-length name",
 		envs: []core.EnvFromSource{{
 			SecretRef: &core.SecretEnvSource{
@@ -6421,14 +6916,6 @@ func TestValidateEnvFrom(t *testing.T) {
 				LocalObjectReference: core.LocalObjectReference{Name: "&"}},
 		}},
 		expectedError: "field[0].secretRef.name: Invalid value",
-	}, {
-		name: "invalid prefix",
-		envs: []core.EnvFromSource{{
-			Prefix: "a!b",
-			SecretRef: &core.SecretEnvSource{
-				LocalObjectReference: core.LocalObjectReference{Name: "abc"}},
-		}},
-		expectedError: `field[0].prefix: Invalid value: "a!b": ` + envVarNameErrMsg,
 	}, {
 		name: "no refs",
 		envs: []core.EnvFromSource{
@@ -6461,7 +6948,123 @@ func TestValidateEnvFrom(t *testing.T) {
 	},
 	}
 	for _, tc := range errorCases {
-		if errs := ValidateEnvFrom(tc.envs, field.NewPath("field")); len(errs) == 0 {
+		if errs := ValidateEnvFrom(tc.envs, field.NewPath("field"), PodValidationOptions{}); len(errs) == 0 {
+			t.Errorf("expected failure for %s", tc.name)
+		} else {
+			for i := range errs {
+				str := errs[i].Error()
+				if str != "" && !strings.Contains(str, tc.expectedError) {
+					t.Errorf("%s: expected error detail either empty or %q, got %q", tc.name, tc.expectedError, str)
+				}
+			}
+		}
+	}
+}
+
+func TestRelaxedValidateEnvFrom(t *testing.T) {
+	successCase := []core.EnvFromSource{{
+		ConfigMapRef: &core.ConfigMapEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: "!\"#$%&'()",
+		ConfigMapRef: &core.ConfigMapEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: "* +,-./0123456789",
+		ConfigMapRef: &core.ConfigMapEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		SecretRef: &core.SecretEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: ":;<>?@",
+		SecretRef: &core.SecretEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	}, {
+		Prefix: "[\\]^_`{}|~",
+		SecretRef: &core.SecretEnvSource{
+			LocalObjectReference: core.LocalObjectReference{Name: "abc"},
+		},
+	},
+	}
+	if errs := ValidateEnvFrom(successCase, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+
+	errorCases := []struct {
+		name          string
+		envs          []core.EnvFromSource
+		expectedError string
+	}{
+		{
+			name: "zero-length name",
+			envs: []core.EnvFromSource{{
+				ConfigMapRef: &core.ConfigMapEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: ""}},
+			}},
+			expectedError: "field[0].configMapRef.name: Required value",
+		},
+		{
+			name: "invalid prefix",
+			envs: []core.EnvFromSource{{
+				Prefix: "=abc",
+				ConfigMapRef: &core.ConfigMapEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: "abc"}},
+			}},
+			expectedError: `field[0].prefix: Invalid value: "=abc": ` + relaxedEnvVarNameFmtErrMsg,
+		},
+		{
+			name: "zero-length name",
+			envs: []core.EnvFromSource{{
+				SecretRef: &core.SecretEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: ""}},
+			}},
+			expectedError: "field[0].secretRef.name: Required value",
+		}, {
+			name: "invalid name",
+			envs: []core.EnvFromSource{{
+				SecretRef: &core.SecretEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: "&"}},
+			}},
+			expectedError: "field[0].secretRef.name: Invalid value",
+		}, {
+			name: "no refs",
+			envs: []core.EnvFromSource{
+				{},
+			},
+			expectedError: "field: Invalid value: \"\": must specify one of: `configMapRef` or `secretRef`",
+		}, {
+			name: "multiple refs",
+			envs: []core.EnvFromSource{{
+				SecretRef: &core.SecretEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: "abc"}},
+				ConfigMapRef: &core.ConfigMapEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: "abc"}},
+			}},
+			expectedError: "field: Invalid value: \"\": may not have more than one field specified at a time",
+		}, {
+			name: "invalid secret ref name",
+			envs: []core.EnvFromSource{{
+				SecretRef: &core.SecretEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: "$%^&*#"}},
+			}},
+			expectedError: "field[0].secretRef.name: Invalid value: \"$%^&*#\": " + dnsSubdomainLabelErrMsg,
+		}, {
+			name: "invalid config ref name",
+			envs: []core.EnvFromSource{{
+				ConfigMapRef: &core.ConfigMapEnvSource{
+					LocalObjectReference: core.LocalObjectReference{Name: "$%^&*#"}},
+			}},
+			expectedError: "field[0].configMapRef.name: Invalid value: \"$%^&*#\": " + dnsSubdomainLabelErrMsg,
+		},
+	}
+	for _, tc := range errorCases {
+		if errs := ValidateEnvFrom(tc.envs, field.NewPath("field"), PodValidationOptions{AllowRelaxedEnvironmentVariableValidation: true}); len(errs) == 0 {
 			t.Errorf("expected failure for %s", tc.name)
 		} else {
 			for i := range errs {
@@ -12298,22 +12901,8 @@ func TestValidatePodCreateWithSchedulingGates(t *testing.T) {
 	tests := []struct {
 		name            string
 		pod             *core.Pod
-		featureEnabled  bool
 		wantFieldErrors field.ErrorList
 	}{{
-		name: "create a Pod with nodeName and schedulingGates, feature disabled",
-		pod: &core.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "pod", Namespace: "ns"},
-			Spec: core.PodSpec{
-				NodeName: "node",
-				SchedulingGates: []core.PodSchedulingGate{
-					{Name: "foo"},
-				},
-			},
-		},
-		featureEnabled:  false,
-		wantFieldErrors: []*field.Error{field.Forbidden(fldPath.Child("nodeName"), "cannot be set until all schedulingGates have been cleared")},
-	}, {
 		name: "create a Pod with nodeName and schedulingGates, feature enabled",
 		pod: &core.Pod{
 			ObjectMeta: metav1.ObjectMeta{Name: "pod", Namespace: "ns"},
@@ -12324,20 +12913,7 @@ func TestValidatePodCreateWithSchedulingGates(t *testing.T) {
 				},
 			},
 		},
-		featureEnabled:  true,
 		wantFieldErrors: []*field.Error{field.Forbidden(fldPath.Child("nodeName"), "cannot be set until all schedulingGates have been cleared")},
-	}, {
-		name: "create a Pod with schedulingGates, feature disabled",
-		pod: &core.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "pod", Namespace: "ns"},
-			Spec: core.PodSpec{
-				SchedulingGates: []core.PodSchedulingGate{
-					{Name: "foo"},
-				},
-			},
-		},
-		featureEnabled:  false,
-		wantFieldErrors: nil,
 	}, {
 		name: "create a Pod with schedulingGates, feature enabled",
 		pod: &core.Pod{
@@ -12348,15 +12924,12 @@ func TestValidatePodCreateWithSchedulingGates(t *testing.T) {
 				},
 			},
 		},
-		featureEnabled:  true,
 		wantFieldErrors: nil,
 	},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodSchedulingReadiness, tt.featureEnabled)()
-
 			applyEssentials(tt.pod)
 			errs := ValidatePodCreate(tt.pod, PodValidationOptions{})
 			if diff := cmp.Diff(tt.wantFieldErrors, errs); diff != "" {
@@ -12383,7 +12956,6 @@ func TestValidatePodUpdate(t *testing.T) {
 	tests := []struct {
 		new  core.Pod
 		old  core.Pod
-		opts PodValidationOptions
 		err  string
 		test string
 	}{
@@ -13716,25 +14288,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			err:  "Forbidden: pod updates may not change fields other than `spec.containers[*].image",
-			test: "node selector is immutable when AllowMutableNodeSelector is false",
-		}, {
-			old: core.Pod{
-				Spec: core.PodSpec{
-					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
-				},
-			},
-			new: core.Pod{
-				Spec: core.PodSpec{
-					NodeSelector: map[string]string{
-						"foo": "bar",
-					},
-					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
-				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			test: "adding node selector is allowed for gated pods",
 		}, {
 			old: core.Pod{
@@ -13752,9 +14305,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "Forbidden: pod updates may not change fields other than `spec.containers[*].image",
 			test: "adding node selector is not allowed for non-gated pods",
 		}, {
@@ -13771,9 +14321,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "spec.nodeSelector: Invalid value:",
 			test: "removing node selector is not allowed for gated pods",
 		}, {
@@ -13784,10 +14331,7 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 				},
 			},
-			new: core.Pod{},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
+			new:  core.Pod{},
 			err:  "Forbidden: pod updates may not change fields other than `spec.containers[*].image",
 			test: "removing node selector is not allowed for non-gated pods",
 		}, {
@@ -13807,9 +14351,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			test: "old pod spec has scheduling gate, new pod spec does not, and node selector is added",
 		}, {
 			old: core.Pod{
@@ -13827,9 +14368,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "spec.nodeSelector: Invalid value:",
 			test: "modifying value of existing node selector is not allowed",
@@ -13880,9 +14418,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			test: "addition to nodeAffinity is allowed for gated pods",
 		}, {
 			old: core.Pod{
@@ -13910,9 +14445,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms: Invalid value:",
 			test: "old RequiredDuringSchedulingIgnoredDuringExecution is non-nil, new RequiredDuringSchedulingIgnoredDuringExecution is nil, pod is gated",
@@ -13960,9 +14492,6 @@ func TestValidatePodUpdate(t *testing.T) {
 						},
 					},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "Forbidden: pod updates may not change fields other than `spec.containers[*].image",
 			test: "addition to nodeAffinity is not allowed for non-gated pods",
@@ -14012,9 +14541,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			test: "old pod spec has scheduling gate, new pod spec does not, and node affinity addition occurs",
 		}, {
 			old: core.Pod{
@@ -14052,9 +14578,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0]: Invalid value:",
 			test: "nodeAffinity deletion from MatchExpressions not allowed",
@@ -14100,9 +14623,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0]: Invalid value:",
 			test: "nodeAffinity deletion from MatchFields not allowed",
@@ -14154,9 +14674,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0]: Invalid value:",
 			test: "nodeAffinity modification of item in MatchExpressions not allowed",
 		}, {
@@ -14205,9 +14722,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0]: Invalid value:",
 			test: "nodeAffinity modification of item in MatchFields not allowed",
@@ -14269,9 +14783,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms: Invalid value:",
 			test: "nodeSelectorTerms addition on gated pod should fail",
 		}, {
@@ -14312,9 +14823,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			test: "preferredDuringSchedulingIgnoredDuringExecution can modified for gated pods",
 		}, {
@@ -14365,9 +14873,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			test: "preferredDuringSchedulingIgnoredDuringExecution can have additions for gated pods",
 		}, {
 			old: core.Pod{
@@ -14393,9 +14898,6 @@ func TestValidatePodUpdate(t *testing.T) {
 				Spec: core.PodSpec{
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			test: "preferredDuringSchedulingIgnoredDuringExecution can have removals for gated pods",
 		}, {
@@ -14423,9 +14925,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms: Invalid value:",
 			test: "new node affinity is nil",
 		}, {
@@ -14452,9 +14951,6 @@ func TestValidatePodUpdate(t *testing.T) {
 				Spec: core.PodSpec{
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			test: "preferredDuringSchedulingIgnoredDuringExecution can have removals for gated pods",
 		}, {
@@ -14490,9 +14986,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0]: Invalid value:",
 			test: "empty NodeSelectorTerm (selects nothing) cannot become populated (selects something)",
 		}, {
@@ -14519,9 +15012,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			test: "nil affinity can be mutated for gated pods",
 		},
@@ -14559,9 +15049,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					},
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
-			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
 			},
 			err:  "pod updates may not change fields other than",
 			test: "the podAffinity cannot be updated on gated pods",
@@ -14601,9 +15088,6 @@ func TestValidatePodUpdate(t *testing.T) {
 					SchedulingGates: []core.PodSchedulingGate{{Name: "baz"}},
 				},
 			},
-			opts: PodValidationOptions{
-				AllowMutableNodeSelectorAndNodeAffinity: true,
-			},
 			err:  "pod updates may not change fields other than",
 			test: "the podAntiAffinity cannot be updated on gated pods",
 		},
@@ -14634,7 +15118,7 @@ func TestValidatePodUpdate(t *testing.T) {
 			test.old.Spec.RestartPolicy = "Always"
 		}
 
-		errs := ValidatePodUpdate(&test.new, &test.old, test.opts)
+		errs := ValidatePodUpdate(&test.new, &test.old, PodValidationOptions{})
 		if test.err == "" {
 			if len(errs) != 0 {
 				t.Errorf("unexpected invalid: %s (%+v)\nA: %+v\nB: %+v", test.test, errs, test.new, test.old)
@@ -15248,6 +15732,387 @@ func TestValidatePodStatusUpdate(t *testing.T) {
 		},
 		"",
 		"ResourceClaimStatuses okay",
+	}, {
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name: "init",
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "init",
+					Ready:       true,
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name: "init",
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyNever,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "init",
+					Ready:       false,
+					State: core.ContainerState{
+						Terminated: &core.ContainerStateTerminated{
+							ContainerID: "docker://numbers",
+							Reason:      "Completed",
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		`status.initContainerStatuses[0].state: Forbidden: may not be transitioned to non-terminated state`,
+		"init container cannot restart if RestartPolicyNever",
+	}, {
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name:          "restartable-init",
+						RestartPolicy: &containerRestartPolicyAlways,
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyNever,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "restartable-init",
+					Ready:       true,
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name:          "restartable-init",
+						RestartPolicy: &containerRestartPolicyAlways,
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyNever,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "restartable-init",
+					Ready:       false,
+					State: core.ContainerState{
+						Terminated: &core.ContainerStateTerminated{
+							ContainerID: "docker://numbers",
+							Reason:      "Completed",
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		"",
+		"restartable init container can restart if RestartPolicyNever",
+	}, {
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name:          "restartable-init",
+						RestartPolicy: &containerRestartPolicyAlways,
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyOnFailure,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "restartable-init",
+					Ready:       true,
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name:          "restartable-init",
+						RestartPolicy: &containerRestartPolicyAlways,
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyOnFailure,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "restartable-init",
+					Ready:       false,
+					State: core.ContainerState{
+						Terminated: &core.ContainerStateTerminated{
+							ContainerID: "docker://numbers",
+							Reason:      "Completed",
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		"",
+		"restartable init container can restart if RestartPolicyOnFailure",
+	}, {
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name:          "restartable-init",
+						RestartPolicy: &containerRestartPolicyAlways,
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyAlways,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "restartable-init",
+					Ready:       true,
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		core.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "foo",
+			},
+			Spec: core.PodSpec{
+				InitContainers: []core.Container{
+					{
+						Name:          "restartable-init",
+						RestartPolicy: &containerRestartPolicyAlways,
+					},
+				},
+				Containers: []core.Container{
+					{
+						Name: "nginx",
+					},
+				},
+				RestartPolicy: core.RestartPolicyAlways,
+			},
+			Status: core.PodStatus{
+				InitContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "restartable-init",
+					Ready:       false,
+					State: core.ContainerState{
+						Terminated: &core.ContainerStateTerminated{
+							ContainerID: "docker://numbers",
+							Reason:      "Completed",
+						},
+					},
+				}},
+				ContainerStatuses: []core.ContainerStatus{{
+					ContainerID: "docker://numbers",
+					Image:       "nginx:alpine",
+					ImageID:     "docker-pullable://nginx@sha256:d0gf00d",
+					Name:        "nginx",
+					Ready:       true,
+					Started:     proto.Bool(true),
+					State: core.ContainerState{
+						Running: &core.ContainerStateRunning{
+							StartedAt: metav1.NewTime(time.Now()),
+						},
+					},
+				}},
+			},
+		},
+		"",
+		"restartable init container can restart if RestartPolicyAlways",
 	},
 	}
 
@@ -16154,11 +17019,11 @@ func TestValidateServiceCreate(t *testing.T) {
 			s.Spec.Type = core.ServiceTypeLoadBalancer
 			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
 			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
-			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = "1.2.3.4/8,  5.6.7.8/16"
+			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = "1.2.3.0/24,  5.6.0.0/16"
 		},
 		numErrs: 0,
 	}, {
-		name: "empty LoadBalancer source range annotation",
+		name: "valid empty LoadBalancer source range annotation",
 		tweakSvc: func(s *core.Service) {
 			s.Spec.Type = core.ServiceTypeLoadBalancer
 			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
@@ -16167,11 +17032,23 @@ func TestValidateServiceCreate(t *testing.T) {
 		},
 		numErrs: 0,
 	}, {
+		name: "valid whitespace-only LoadBalancer source range annotation",
+		tweakSvc: func(s *core.Service) {
+			s.Spec.Type = core.ServiceTypeLoadBalancer
+			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
+			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
+			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = "  "
+		},
+		numErrs: 0,
+	}, {
 		name: "invalid LoadBalancer source range annotation (hostname)",
 		tweakSvc: func(s *core.Service) {
+			s.Spec.Type = core.ServiceTypeLoadBalancer
+			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
+			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
 			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = "foo.bar"
 		},
-		numErrs: 2,
+		numErrs: 1,
 	}, {
 		name: "invalid LoadBalancer source range annotation (invalid CIDR)",
 		tweakSvc: func(s *core.Service) {
@@ -16182,9 +17059,15 @@ func TestValidateServiceCreate(t *testing.T) {
 		},
 		numErrs: 1,
 	}, {
-		name: "invalid source range for non LoadBalancer type service",
+		name: "invalid LoadBalancer source range annotation for non LoadBalancer type service",
 		tweakSvc: func(s *core.Service) {
-			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.4/8", "5.6.7.8/16"}
+			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = "1.2.3.0/24"
+		},
+		numErrs: 1,
+	}, {
+		name: "invalid empty-but-set LoadBalancer source range annotation for non LoadBalancer type service",
+		tweakSvc: func(s *core.Service) {
+			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = ""
 		},
 		numErrs: 1,
 	}, {
@@ -16193,11 +17076,20 @@ func TestValidateServiceCreate(t *testing.T) {
 			s.Spec.Type = core.ServiceTypeLoadBalancer
 			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
 			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
-			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.4/8", "5.6.7.8/16"}
+			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.0/24", "5.6.0.0/16"}
 		},
 		numErrs: 0,
 	}, {
-		name: "empty LoadBalancer source range",
+		name: "valid LoadBalancer source range with whitespace",
+		tweakSvc: func(s *core.Service) {
+			s.Spec.Type = core.ServiceTypeLoadBalancer
+			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
+			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
+			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.0/24  ", " 5.6.0.0/16"}
+		},
+		numErrs: 0,
+	}, {
+		name: "invalid empty LoadBalancer source range",
 		tweakSvc: func(s *core.Service) {
 			s.Spec.Type = core.ServiceTypeLoadBalancer
 			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
@@ -16206,7 +17098,7 @@ func TestValidateServiceCreate(t *testing.T) {
 		},
 		numErrs: 1,
 	}, {
-		name: "invalid LoadBalancer source range",
+		name: "invalid LoadBalancer source range (hostname)",
 		tweakSvc: func(s *core.Service) {
 			s.Spec.Type = core.ServiceTypeLoadBalancer
 			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
@@ -16214,6 +17106,31 @@ func TestValidateServiceCreate(t *testing.T) {
 			s.Spec.LoadBalancerSourceRanges = []string{"foo.bar"}
 		},
 		numErrs: 1,
+	}, {
+		name: "invalid LoadBalancer source range (invalid CIDR)",
+		tweakSvc: func(s *core.Service) {
+			s.Spec.Type = core.ServiceTypeLoadBalancer
+			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
+			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
+			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.4/33"}
+		},
+		numErrs: 1,
+	}, {
+		name: "invalid source range for non LoadBalancer type service",
+		tweakSvc: func(s *core.Service) {
+			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.0/24", "5.6.0.0/16"}
+		},
+		numErrs: 1,
+	}, {
+		name: "invalid source range annotation ignored with valid source range field",
+		tweakSvc: func(s *core.Service) {
+			s.Spec.Type = core.ServiceTypeLoadBalancer
+			s.Spec.ExternalTrafficPolicy = core.ServiceExternalTrafficPolicyCluster
+			s.Spec.AllocateLoadBalancerNodePorts = utilpointer.Bool(true)
+			s.Annotations[core.AnnotationLoadBalancerSourceRangesKey] = "foo.bar"
+			s.Spec.LoadBalancerSourceRanges = []string{"1.2.3.0/24", "5.6.0.0/16"}
+		},
+		numErrs: 0,
 	}, {
 		name: "valid ExternalName",
 		tweakSvc: func(s *core.Service) {
@@ -16805,6 +17722,18 @@ func TestValidateServiceCreate(t *testing.T) {
 			tweakSvc: func(s *core.Service) {
 				s.Annotations[core.DeprecatedAnnotationTopologyAwareHints] = "original"
 				s.Annotations[core.AnnotationTopologyMode] = "different"
+			},
+			numErrs: 1,
+		}, {
+			name: "valid: trafficDistribution field set to PreferClose",
+			tweakSvc: func(s *core.Service) {
+				s.Spec.TrafficDistribution = utilpointer.String("PreferClose")
+			},
+			numErrs: 0,
+		}, {
+			name: "invalid: trafficDistribution field set to Random",
+			tweakSvc: func(s *core.Service) {
+				s.Spec.TrafficDistribution = utilpointer.String("Random")
 			},
 			numErrs: 1,
 		},
@@ -24536,18 +25465,6 @@ func TestValidateDownwardAPIHostIPs(t *testing.T) {
 			name:           "has hostIPs field, featuregate enabled",
 			expectError:    false,
 			featureEnabled: true,
-			fieldSel:       &core.ObjectFieldSelector{FieldPath: "status.hostIPs"},
-		},
-		{
-			name:           "has no hostIPs field, featuregate disabled",
-			expectError:    false,
-			featureEnabled: false,
-			fieldSel:       &core.ObjectFieldSelector{FieldPath: "status.hostIP"},
-		},
-		{
-			name:           "has hostIPs field, featuregate disabled",
-			expectError:    true,
-			featureEnabled: false,
 			fieldSel:       &core.ObjectFieldSelector{FieldPath: "status.hostIPs"},
 		},
 	}

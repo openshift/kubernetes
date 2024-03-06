@@ -50,9 +50,10 @@ func TestValidateAuthenticationConfiguration(t *testing.T) {
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StructuredAuthenticationConfiguration, true)()
 
 	testCases := []struct {
-		name string
-		in   *api.AuthenticationConfiguration
-		want string
+		name              string
+		in                *api.AuthenticationConfiguration
+		disallowedIssuers []string
+		want              string
 	}{
 		{
 			name: "jwt authenticator is empty",
@@ -175,6 +176,33 @@ func TestValidateAuthenticationConfiguration(t *testing.T) {
 			want: `jwt[0].userValidationRules[1].expression: Duplicate value: "user.username == 'foo'"`,
 		},
 		{
+			name: "valid authentication configuration with disallowed issuer",
+			in: &api.AuthenticationConfiguration{
+				JWT: []api.JWTAuthenticator{
+					{
+						Issuer: api.Issuer{
+							URL:       "https://issuer-url",
+							Audiences: []string{"audience"},
+						},
+						ClaimValidationRules: []api.ClaimValidationRule{
+							{
+								Claim:         "foo",
+								RequiredValue: "bar",
+							},
+						},
+						ClaimMappings: api.ClaimMappings{
+							Username: api.PrefixedClaimOrExpression{
+								Claim:  "sub",
+								Prefix: pointer.String("prefix"),
+							},
+						},
+					},
+				},
+			},
+			disallowedIssuers: []string{"a", "b", "https://issuer-url", "c"},
+			want:              `jwt[0].issuer.url: Invalid value: "https://issuer-url": URL must not overlap with disallowed issuers: [a b c https://issuer-url]`,
+		},
+		{
 			name: "valid authentication configuration",
 			in: &api.AuthenticationConfiguration{
 				JWT: []api.JWTAuthenticator{
@@ -204,7 +232,7 @@ func TestValidateAuthenticationConfiguration(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ValidateAuthenticationConfiguration(tt.in).ToAggregate()
+			got := ValidateAuthenticationConfiguration(tt.in, tt.disallowedIssuers).ToAggregate()
 			if d := cmp.Diff(tt.want, errString(got)); d != "" {
 				t.Fatalf("AuthenticationConfiguration validation mismatch (-want +got):\n%s", d)
 			}
@@ -212,13 +240,14 @@ func TestValidateAuthenticationConfiguration(t *testing.T) {
 	}
 }
 
-func TestValidateURL(t *testing.T) {
+func TestValidateIssuerURL(t *testing.T) {
 	fldPath := field.NewPath("issuer", "url")
 
 	testCases := []struct {
-		name string
-		in   string
-		want string
+		name              string
+		in                string
+		disallowedIssuers sets.Set[string]
+		want              string
 	}{
 		{
 			name: "url is empty",
@@ -251,6 +280,12 @@ func TestValidateURL(t *testing.T) {
 			want: `issuer.url: Invalid value: "https://issuer-url#fragment": URL must not contain a fragment`,
 		},
 		{
+			name:              "valid url that is disallowed",
+			in:                "https://issuer-url",
+			disallowedIssuers: sets.New("https://issuer-url"),
+			want:              `issuer.url: Invalid value: "https://issuer-url": URL must not overlap with disallowed issuers: [https://issuer-url]`,
+		},
+		{
 			name: "valid url",
 			in:   "https://issuer-url",
 			want: "",
@@ -259,7 +294,92 @@ func TestValidateURL(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got := validateURL(tt.in, fldPath).ToAggregate()
+			got := validateIssuerURL(tt.in, tt.disallowedIssuers, fldPath).ToAggregate()
+			if d := cmp.Diff(tt.want, errString(got)); d != "" {
+				t.Fatalf("URL validation mismatch (-want +got):\n%s", d)
+			}
+		})
+	}
+}
+
+func TestValidateIssuerDiscoveryURL(t *testing.T) {
+	fldPath := field.NewPath("issuer", "discoveryURL")
+
+	testCases := []struct {
+		name      string
+		in        string
+		issuerURL string
+		want      string
+	}{
+		{
+			name: "url is empty",
+			in:   "",
+			want: "",
+		},
+		{
+			name: "url parse error",
+			in:   "https://oidc.oidc-namespace.svc:invalid-port",
+			want: `issuer.discoveryURL: Invalid value: "https://oidc.oidc-namespace.svc:invalid-port": parse "https://oidc.oidc-namespace.svc:invalid-port": invalid port ":invalid-port" after host`,
+		},
+		{
+			name: "url is not https",
+			in:   "http://oidc.oidc-namespace.svc",
+			want: `issuer.discoveryURL: Invalid value: "http://oidc.oidc-namespace.svc": URL scheme must be https`,
+		},
+		{
+			name: "url user info is not allowed",
+			in:   "https://user:pass@oidc.oidc-namespace.svc",
+			want: `issuer.discoveryURL: Invalid value: "https://user:pass@oidc.oidc-namespace.svc": URL must not contain a username or password`,
+		},
+		{
+			name: "url raw query is not allowed",
+			in:   "https://oidc.oidc-namespace.svc?query",
+			want: `issuer.discoveryURL: Invalid value: "https://oidc.oidc-namespace.svc?query": URL must not contain a query`,
+		},
+		{
+			name: "url fragment is not allowed",
+			in:   "https://oidc.oidc-namespace.svc#fragment",
+			want: `issuer.discoveryURL: Invalid value: "https://oidc.oidc-namespace.svc#fragment": URL must not contain a fragment`,
+		},
+		{
+			name: "valid url",
+			in:   "https://oidc.oidc-namespace.svc",
+			want: "",
+		},
+		{
+			name: "valid url with path",
+			in:   "https://oidc.oidc-namespace.svc/path",
+			want: "",
+		},
+		{
+			name:      "discovery url same as issuer url",
+			issuerURL: "https://issuer-url",
+			in:        "https://issuer-url",
+			want:      `issuer.discoveryURL: Invalid value: "https://issuer-url": discoveryURL must be different from URL`,
+		},
+		{
+			name:      "discovery url same as issuer url, with trailing slash",
+			issuerURL: "https://issuer-url",
+			in:        "https://issuer-url/",
+			want:      `issuer.discoveryURL: Invalid value: "https://issuer-url/": discoveryURL must be different from URL`,
+		},
+		{
+			name:      "discovery url same as issuer url, with multiple trailing slashes",
+			issuerURL: "https://issuer-url",
+			in:        "https://issuer-url///",
+			want:      `issuer.discoveryURL: Invalid value: "https://issuer-url///": discoveryURL must be different from URL`,
+		},
+		{
+			name:      "discovery url same as issuer url, issuer url with trailing slash",
+			issuerURL: "https://issuer-url/",
+			in:        "https://issuer-url",
+			want:      `issuer.discoveryURL: Invalid value: "https://issuer-url": discoveryURL must be different from URL`,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validateIssuerDiscoveryURL(tt.issuerURL, tt.in, fldPath).ToAggregate()
 			if d := cmp.Diff(tt.want, errString(got)); d != "" {
 				t.Fatalf("URL validation mismatch (-want +got):\n%s", d)
 			}
