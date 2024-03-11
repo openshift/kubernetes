@@ -1,4 +1,4 @@
-package admission
+package options
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
