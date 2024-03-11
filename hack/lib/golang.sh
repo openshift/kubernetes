@@ -318,20 +318,7 @@ readonly KUBE_ALL_TARGETS=(
 )
 readonly KUBE_ALL_BINARIES=("${KUBE_ALL_TARGETS[@]##*/}")
 
-readonly KUBE_STATIC_BINARIES=(
-  apiextensions-apiserver
-  kube-aggregator
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
-  kube-proxy
-  kube-log-runner
-  kubeadm
-  kubectl
-  kubectl-convert
-  kubemark
-  mounter
-)
+readonly KUBE_STATIC_BINARIES=()
 
 # Fully-qualified package names that we want to instrument for coverage information.
 readonly KUBE_COVERAGE_INSTRUMENTED_PACKAGES=(
@@ -509,7 +496,7 @@ kube::golang::set_platform_envs() {
 # Inputs:
 #   env-var GO_VERSION is the desired go version to use, downloading it if needed (defaults to content of .go-version)
 #   env-var FORCE_HOST_GO set to a non-empty value uses the go version in the $PATH and skips ensuring $GO_VERSION is used
-kube::golang::verify_go_version() {
+kube::golang::internal::verify_go_version() {
   if [[ -z "$(command -v go)" ]]; then
     kube::log::usage_from_stdin <<EOF
 Can't find 'go' in PATH, please fix and retry.
@@ -582,7 +569,7 @@ kube::golang::setup_gomaxprocs() {
   # when running in a container, please see https://github.com/golang/go/issues/33803
   if [[ -z "${GOMAXPROCS:-}" ]]; then
     if ! command -v ncpu >/dev/null 2>&1; then
-      go -C "${KUBE_ROOT}/hack/tools" install ./ncpu || echo "Will not automatically set GOMAXPROCS"
+      go -C "${KUBE_ROOT}/hack/tools" -modreadonly install ./ncpu || echo "Will not automatically set GOMAXPROCS"
     fi
     if command -v ncpu >/dev/null 2>&1; then
       GOMAXPROCS=$(ncpu)
