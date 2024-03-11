@@ -155,8 +155,8 @@ func (pb *prober) runProbe(ctx context.Context, probeType probeType, p *v1.Probe
 			klogV4.InfoS("HTTP-Probe", "scheme", scheme, "host", host, "port", port, "path", path, "timeout", timeout, "headers", headers)
 		}
 		return pb.maybeProbeForBody(pb.http, req, timeout, pod, container, probeType)
-	}
-	if p.TCPSocket != nil {
+
+	case p.TCPSocket != nil:
 		port, err := probe.ResolveContainerPort(p.TCPSocket.Port, &container)
 		if err != nil {
 			return probe.Unknown, "", err
