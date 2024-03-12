@@ -21,6 +21,8 @@ set -o pipefail
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/../..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
+export GOFLAGS=-mod=readonly
+
 kube::golang::setup_env
 kube::golang::setup_gomaxprocs
 
