@@ -661,7 +661,7 @@ func CreateControllerContext(ctx context.Context, s *config.CompletedConfig, roo
 		return ControllerContext{}, err
 	}
 
-	ctx := ControllerContext{
+	controllerContext := ControllerContext{
 		OpenShiftContext:                s.OpenShiftContext,
 		ClientBuilder:                   clientBuilder,
 		InformerFactory:                 sharedInformers,
