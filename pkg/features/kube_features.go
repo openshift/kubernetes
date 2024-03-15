@@ -1878,6 +1878,7 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 }
 
 func init() {
+	registerOpenshiftFeatures()
 	runtime.Must(utilfeature.DefaultMutableFeatureGate.AddVersioned(defaultVersionedKubernetesFeatureGates))
 	runtime.Must(zpagesfeatures.AddFeatureGates(utilfeature.DefaultMutableFeatureGate))
 
