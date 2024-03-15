@@ -30,6 +30,8 @@ func TestLibraryCompatibility(t *testing.T) {
 		listsLib: listsLibraryDecls,
 		regexLib: regexLibraryDecls,
 		authzLib: authzLibraryDecls,
+		ipLib:    ipLibraryDecls,
+		cidrsLib: cidrLibraryDecls,
 	}
 	if len(k8sExtensionLibs) != len(decls) {
 		t.Errorf("Expected the same number of libraries in the ExtensionLibs as are tested for compatibility")
@@ -49,6 +51,8 @@ func TestLibraryCompatibility(t *testing.T) {
 		"getPort", "getEscapedPath", "getQuery", "isURL",
 		// Kubernetes <1.27>:
 		"path", "group", "serviceAccount", "resource", "subresource", "namespace", "name", "check", "allowed", "denied", "reason",
+		// Kubernetes <1.30>:
+		"ip", "family", "isUnspecified", "isLoopback", "isLinkLocalMulticast", "isLinkLocalUnicast", "isGlobalUnicast", "ip.isCanonical", "isIP", "cidr", "containsIP", "containsCIDR", "masked", "prefixLength", "isCIDR",
 		// Kubernetes <1.??>:
 	}
 	for _, fn := range knownFunctions {
