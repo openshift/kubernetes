@@ -416,6 +416,7 @@ func (vm *volumeManager) WaitForAttachAndMount(pod *v1.Pod) error {
 		vm.verifyVolumesMountedFunc(uniquePodName, expectedVolumes))
 
 	if err != nil {
+		klog.Infof("WaitForAttachAndMount pod %s error: %s", uniquePodName, err)
 		unmountedVolumes :=
 			vm.getUnmountedVolumes(uniquePodName, expectedVolumes)
 		// Also get unattached volumes and volumes not in dsw for error message
@@ -532,6 +533,7 @@ func (vm *volumeManager) verifyVolumesUnmountedFunc(podName types.UniquePodName)
 func (vm *volumeManager) getUnmountedVolumes(podName types.UniquePodName, expectedVolumes []string) []string {
 	mountedVolumes := sets.NewString()
 	for _, mountedVolume := range vm.actualStateOfWorld.GetMountedVolumesForPod(podName) {
+		klog.V(4).Infof("GetMountedVolumesForPod pod %s volume %s outerName %s", podName, mountedVolume.VolumeName, mountedVolume.OuterVolumeSpecName)
 		mountedVolumes.Insert(mountedVolume.OuterVolumeSpecName)
 	}
 	return filterUnmountedVolumes(mountedVolumes, expectedVolumes)
@@ -546,6 +548,9 @@ func filterUnmountedVolumes(mountedVolumes sets.String, expectedVolumes []string
 			unmountedVolumes = append(unmountedVolumes, expectedVolume)
 		}
 	}
+	klog.V(4).Infof("filterUnmountedVolumes mounted: %+v", mountedVolumes)
+	klog.V(4).Infof("filterUnmountedVolumes expected: %+v", expectedVolumes)
+	klog.V(4).Infof("filterUnmountedVolumes filtered unmounted: %+v", unmountedVolumes)
 	return unmountedVolumes
 }
 

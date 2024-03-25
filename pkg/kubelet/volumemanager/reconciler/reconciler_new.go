@@ -72,4 +72,6 @@ func (rc *reconciler) reconcileNew() {
 		rc.desiredStateOfWorld.MarkVolumesReportedInUse(rc.volumesNeedReportedInUse)
 		rc.volumesNeedReportedInUse = nil
 	}
+	rc.desiredStateOfWorld.Dump()
+	rc.actualStateOfWorld.Dump()
 }

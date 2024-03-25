@@ -66,6 +66,8 @@ func (rc *reconciler) reconcile() {
 	if len(rc.skippedDuringReconstruction) > 0 {
 		rc.processReconstructedVolumes()
 	}
+	rc.desiredStateOfWorld.Dump()
+	rc.actualStateOfWorld.Dump()
 }
 
 // processReconstructedVolumes checks volumes which were skipped during the reconstruction

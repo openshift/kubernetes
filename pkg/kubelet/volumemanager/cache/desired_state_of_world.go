@@ -134,6 +134,8 @@ type DesiredStateOfWorld interface {
 	// so as it can be compared against actual size and volume expansion performed
 	// if necessary
 	UpdatePersistentVolumeSize(volumeName v1.UniqueVolumeName, size *resource.Quantity)
+
+	Dump()
 }
 
 // VolumeToMount represents a volume that is attached to this node and needs to
@@ -656,4 +658,16 @@ func handleSELinuxMetricError(err error, seLinuxSupported bool, warningMetric, e
 	warningMetric.Add(1.0)
 	klog.V(4).ErrorS(err, "Please report this error in https://github.com/kubernetes/enhancements/issues/1710, together with full Pod yaml file")
 	return nil
+}
+
+func (dsw *desiredStateOfWorld) Dump() {
+	dsw.RLock()
+	defer dsw.RUnlock()
+
+	klog.V(4).Info("Desired State of World DUMP:")
+	for volumeName, volumeObj := range dsw.volumesToMount {
+		for podName, _ := range volumeObj.podsToMount {
+			klog.V(4).Infof("Desired State of World DUMP: volume %q - Pod %q", volumeName, podName)
+		}
+	}
 }
