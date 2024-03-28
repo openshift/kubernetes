@@ -6,7 +6,7 @@ go 1.19
 
 require (
 	github.com/gogo/protobuf v1.3.2
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.14.0
 	google.golang.org/grpc v1.56.3
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
@@ -47,6 +47,7 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.4.1-0.20221214150008-e73634cb3870
+	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328080036-60d0f00ca866
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go
