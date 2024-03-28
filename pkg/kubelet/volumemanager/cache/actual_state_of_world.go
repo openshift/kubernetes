@@ -1298,6 +1298,8 @@ func IsSELinuxMountMismatchError(err error) bool {
 }
 
 func (asw *actualStateOfWorld) Dump() {
+	asw.RLock()
+	defer asw.RUnlock()
 	klog.V(4).Info("Actual State of World DUMP:")
 	for volumeName, volumeObj := range asw.attachedVolumes {
 		for podName, podObj := range volumeObj.mountedPods {
