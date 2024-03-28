@@ -7,8 +7,8 @@ go 1.22.0
 require (
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/square/go-jose.v2 v2.6.0
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.30.0-rc.0
+	k8s.io/apimachinery v0.30.0-rc.0
 	k8s.io/klog/v2 v2.120.1
 )
 
@@ -33,6 +33,7 @@ require (
 )
 
 replace (
+	github.com/onsi/ginkgo/v2 => github.com/soltysh/ginkgo/v2 v2.1.5-0.20240209144154-7bbda43b8ce6
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/cluster-bootstrap => ../cluster-bootstrap
