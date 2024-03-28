@@ -25,6 +25,7 @@ import (
 	"time"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/component-base/version"
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
 
@@ -430,7 +431,7 @@ func (vm *volumeManager) WaitForAttachAndMount(pod *v1.Pod) error {
 		}
 
 		return fmt.Errorf(
-			"unmounted volumes=%v, unattached volumes=%v, failed to process volumes=%v: %s",
+			"(this is a test build %s) unmounted volumes=%v, unattached volumes=%v, failed to process volumes=%v: %s", version.Get(),
 			unmountedVolumes,
 			unattachedVolumes,
 			volumesNotInDSW,
