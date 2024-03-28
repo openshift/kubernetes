@@ -25,3 +25,5 @@ replace (
 	k8s.io/apimachinery => ../../../../apimachinery
 	k8s.io/kms => ../../../../kms
 )
+
+replace golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328074913-6c33ef4f7dac

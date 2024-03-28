@@ -25,4 +25,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace k8s.io/cri-api => ../cri-api
+replace (
+	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328074913-6c33ef4f7dac
+	k8s.io/cri-api => ../cri-api
+)
