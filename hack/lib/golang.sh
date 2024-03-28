@@ -496,7 +496,7 @@ kube::golang::set_platform_envs() {
 # Inputs:
 #   env-var GO_VERSION is the desired go version to use, downloading it if needed (defaults to content of .go-version)
 #   env-var FORCE_HOST_GO set to a non-empty value uses the go version in the $PATH and skips ensuring $GO_VERSION is used
-kube::golang::verify_go_version() {
+kube::golang::internal::verify_go_version() {
   if [[ -z "$(command -v go)" ]]; then
     kube::log::usage_from_stdin <<EOF
 Can't find 'go' in PATH, please fix and retry.
