@@ -41,13 +41,8 @@ require (
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230525234020-1aefcd67740a
 	google.golang.org/grpc v1.56.3
-<<<<<<< HEAD
-	google.golang.org/protobuf v1.31.0
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-=======
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
->>>>>>> v1.27.12
 	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.27.1
 	k8s.io/apimachinery v0.27.1
