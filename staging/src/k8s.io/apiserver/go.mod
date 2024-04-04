@@ -35,7 +35,7 @@ require (
 	go.uber.org/atomic v1.7.0
 	go.uber.org/zap v1.19.0
 	golang.org/x/crypto v0.14.0
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.14.0
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.13.0
 	golang.org/x/time v0.3.0
@@ -126,6 +126,7 @@ require (
 replace (
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.46.0-openshift-4.13
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.4.1-0.20221214150008-e73634cb3870
+	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328080036-60d0f00ca866
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

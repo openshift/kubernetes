@@ -19,7 +19,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.14.0
 	gopkg.in/inf.v0 v0.9.1
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
@@ -49,5 +49,6 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.4.1-0.20221214150008-e73634cb3870
+	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328080036-60d0f00ca866
 	k8s.io/apimachinery => ../apimachinery
 )
