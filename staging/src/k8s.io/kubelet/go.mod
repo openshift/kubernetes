@@ -6,7 +6,7 @@ go 1.19
 
 require (
 	github.com/gogo/protobuf v1.3.2
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.23.0
 	google.golang.org/grpc v1.47.0
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
@@ -24,8 +24,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -41,9 +41,12 @@ replace (
 	github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
 	github.com/matttproud/golang_protobuf_extensions => github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221005160638-5fa9cd70cd8c
+	golang.org/x/crypto => golang.org/x/crypto v0.14.0
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328080036-60d0f00ca866
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	golang.org/x/sys => golang.org/x/sys v0.13.0
+	golang.org/x/term => golang.org/x/term v0.13.0
+	golang.org/x/text => golang.org/x/text v0.13.0
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go
