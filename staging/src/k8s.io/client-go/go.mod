@@ -9,7 +9,7 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/google/gnostic v0.5.7-v3refs
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gofuzz v1.2.0
@@ -23,9 +23,15 @@ require (
 	golang.org/x/oauth2 v0.7.0
 	golang.org/x/term v0.13.0
 	golang.org/x/time v0.3.0
+<<<<<<< HEAD
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
+=======
+	google.golang.org/protobuf v1.33.0
+	k8s.io/api v0.0.0
+	k8s.io/apimachinery v0.0.0
+>>>>>>> v1.26.15
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d
