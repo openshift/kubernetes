@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.3.0
-	github.com/openshift/api v0.0.0-20240207185517-ae973131190e
+	github.com/openshift/api v0.0.0-20240328155559-547493af8eaf
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
@@ -130,7 +130,9 @@ require (
 )
 
 replace (
+	github.com/danwinship/knftables => sigs.k8s.io/knftables v0.0.13
 	github.com/onsi/ginkgo/v2 => github.com/openshift/ginkgo/v2 v2.6.1-0.20231031162821-c5e24be53ea7
+	github.com/openshift/api => github.com/sanchezl/api v0.0.0-20240328155559-547493af8eaf
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

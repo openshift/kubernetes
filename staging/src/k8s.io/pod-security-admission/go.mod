@@ -109,6 +109,7 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/ginkgo/v2 v2.6.1-0.20231031162821-c5e24be53ea7
+	github.com/openshift/api => github.com/sanchezl/api v0.0.0-20240328155559-547493af8eaf
 	k8s.io/api => ../api
 	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery

@@ -22,3 +22,7 @@ require (
 )
 
 replace k8s.io/kms => ../../../../kms
+
+replace github.com/danwinship/knftables => sigs.k8s.io/knftables v0.0.13
+
+replace github.com/openshift/api => github.com/sanchezl/api v0.0.0-20240328155559-547493af8eaf

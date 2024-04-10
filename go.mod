@@ -55,7 +55,7 @@ require (
 	github.com/onsi/gomega v1.29.0
 	github.com/opencontainers/runc v1.1.10
 	github.com/opencontainers/selinux v1.11.0
-	github.com/openshift/api v0.0.0-20240207185517-ae973131190e
+	github.com/openshift/api v0.0.0-20240328155559-547493af8eaf
 	github.com/openshift/apiserver-library-go v0.0.0-20231218150122-47b436d2f389
 	github.com/openshift/client-go v0.0.0-20231218155125-ff7d9f9bf415
 	github.com/openshift/library-go v0.0.0-20240207105404-126b47137408
@@ -257,7 +257,9 @@ require (
 )
 
 replace (
+	github.com/danwinship/knftables => sigs.k8s.io/knftables v0.0.13
 	github.com/onsi/ginkgo/v2 => github.com/openshift/ginkgo/v2 v2.6.1-0.20231031162821-c5e24be53ea7
+	github.com/openshift/api => github.com/sanchezl/api v0.0.0-20240328155559-547493af8eaf
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery
