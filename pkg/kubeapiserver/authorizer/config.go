@@ -126,8 +126,6 @@ func (config Config) New(ctx context.Context, serverID string) (authorizer.Autho
 		case authzconfig.AuthorizerType(modes.ModeScope):
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 			r.scopeLimitedAuthorizer = scopeauthorizer.NewAuthorizer(config.VersionedInformerFactory.Rbac().V1().ClusterRoles().Lister())
-		default:
-			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
 		}
 	}
 
