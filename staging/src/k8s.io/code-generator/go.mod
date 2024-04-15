@@ -35,9 +35,9 @@ require (
 	github.com/onsi/gomega v1.20.1 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
@@ -47,9 +47,12 @@ require (
 replace (
 	github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221005160638-5fa9cd70cd8c
+	golang.org/x/crypto => golang.org/x/crypto v0.14.0
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328080036-60d0f00ca866
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	golang.org/x/sys => golang.org/x/sys v0.13.0
+	golang.org/x/term => golang.org/x/term v0.13.0
+	golang.org/x/text => golang.org/x/text v0.13.0
 	k8s.io/code-generator => ../code-generator
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.70.1
 	k8s.io/utils => k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
