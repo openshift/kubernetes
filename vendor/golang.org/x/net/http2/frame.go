@@ -1577,26 +1577,6 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 	var hc headersOrContinuation = hf
 	for {
 		frag := hc.HeaderBlockFragment()
-<<<<<<< HEAD
-		// Avoid parsing large amounts of headers that we will then discard.
-		// If the sender exceeds the max header list size by too much,
-		// skip parsing the fragment and close the connection.
-		//
-		// "Too much" is either any CONTINUATION frame after we've already
-		// exceeded the max header list size (in which case remainSize is 0),
-		// or a frame whose encoded size is more than twice the remaining
-		// header list bytes we're willing to accept.
-		if int64(len(frag)) > int64(2*remainSize) {
-			if VerboseLogs {
-				log.Printf("http2: header list too large")
-			}
-			// It would be nice to send a RST_STREAM before sending the GOAWAY,
-			// but the struture of the server's frame writer makes this difficult.
-			return nil, ConnectionError(ErrCodeProtocol)
-		}
-
-||||||| fc11ff34c34
-=======
 
 		// Avoid parsing large amounts of headers that we will then discard.
 		// If the sender exceeds the max header list size by too much,
@@ -1627,7 +1607,6 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 			return nil, ConnectionError(ErrCodeProtocol)
 		}
 
->>>>>>> v1.28.9
 		if _, err := hdec.Write(frag); err != nil {
 			return nil, ConnectionError(ErrCodeCompression)
 		}
