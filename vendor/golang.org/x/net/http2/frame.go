@@ -1577,10 +1577,6 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 	var hc headersOrContinuation = hf
 	for {
 		frag := hc.HeaderBlockFragment()
-<<<<<<< HEAD
-=======
-
->>>>>>> v1.27.13
 		// Avoid parsing large amounts of headers that we will then discard.
 		// If the sender exceeds the max header list size by too much,
 		// skip parsing the fragment and close the connection.
@@ -1594,9 +1590,6 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 				log.Printf("http2: header list too large")
 			}
 			// It would be nice to send a RST_STREAM before sending the GOAWAY,
-<<<<<<< HEAD
-			// but the struture of the server's frame writer makes this difficult.
-=======
 			// but the structure of the server's frame writer makes this difficult.
 			return nil, ConnectionError(ErrCodeProtocol)
 		}
@@ -1610,7 +1603,6 @@ func (fr *Framer) readMetaFrame(hf *HeadersFrame) (*MetaHeadersFrame, error) {
 			}
 			// It would be nice to send a RST_STREAM before sending the GOAWAY,
 			// but the structure of the server's frame writer makes this difficult.
->>>>>>> v1.27.13
 			return nil, ConnectionError(ErrCodeProtocol)
 		}
 
