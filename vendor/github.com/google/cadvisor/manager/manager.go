@@ -1004,7 +1004,9 @@ func (m *manager) createContainerLocked(containerName string, watchSource watche
 }
 
 func (m *manager) destroyContainer(containerName string) error {
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer getting lock containerName", containerName)
 	m.containersLock.Lock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer GOT lock containerName", containerName)
 	defer m.containersLock.Unlock()
 
 	return m.destroyContainerLocked(containerName)

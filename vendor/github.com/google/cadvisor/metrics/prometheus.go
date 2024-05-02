@@ -1748,6 +1748,7 @@ func (c *PrometheusCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- versionInfoDesc
 }
 
+
 // Collect fetches the stats from all containers and delivers them as
 // Prometheus metrics. It implements prometheus.PrometheusCollector.
 func (c *PrometheusCollector) Collect(ch chan<- prometheus.Metric) {
@@ -1819,7 +1820,9 @@ func BaseContainerLabels(whiteList []string) func(container *info.ContainerInfo)
 }
 
 func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric) {
+	fmt.Println(time.Now(), "DEBBUG cadvisor collectContainersInfo start")
 	containers, err := c.infoProvider.GetRequestedContainersInfo("/", c.opts)
+	fmt.Println(time.Now(), "DEBBUG cadvisor collectContainersInfo after GetRequestedContainersInfo", "len(containers)", len(containers))
 	if err != nil {
 		c.errors.Set(1)
 		klog.Warningf("Couldn't get containers: %s", err)
@@ -1909,6 +1912,7 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 			}
 		}
 	}
+	fmt.Println(time.Now(), "DEBBUG cadvisor collectContainersInfo END")
 }
 
 func (c *PrometheusCollector) collectVersionInfo(ch chan<- prometheus.Metric) {
