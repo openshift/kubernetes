@@ -124,7 +124,9 @@ func HandlerForTransactional(reg prometheus.TransactionalGatherer, opts HandlerO
 
 	h := http.HandlerFunc(func(rsp http.ResponseWriter, req *http.Request) {
 		debuguuid := req.Header.Get("DEBUG-UUID")
-		fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID", debuguuid, "nowaiting as inFlightSem==nil", inFlightSem==nil)
+		if debuguuid != "" {
+			fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID", debuguuid, "nowaiting as inFlightSem==nil", inFlightSem==nil)
+		}
 
 		if !opts.ProcessStartTime.IsZero() {
 			rsp.Header().Set(processStartTimeHeader, strconv.FormatInt(opts.ProcessStartTime.Unix(), 10))
@@ -141,9 +143,13 @@ func HandlerForTransactional(reg prometheus.TransactionalGatherer, opts HandlerO
 			}
 		}
 
-		fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID start reg.Gather()", debuguuid)
+		if debuguuid != "" {
+			fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID start reg.Gather()", debuguuid)
+		}
 		mfs, done, err := reg.Gather()
-		fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID DONE reg.Gather()", debuguuid, "err==nil", err==nil, "len(mfs)", len(mfs))
+		if debuguuid != "" {
+			fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID DONE reg.Gather()", debuguuid, "err==nil", err==nil, "len(mfs)", len(mfs))
+		}
 		defer done()
 		if err != nil {
 			if opts.ErrorLog != nil {
@@ -212,7 +218,9 @@ func HandlerForTransactional(reg prometheus.TransactionalGatherer, opts HandlerO
 			return false
 		}
 
-		fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID start encoding", debuguuid)
+		if debuguuid != "" {
+			fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID start encoding", debuguuid)
+		}
 
 		for _, mf := range mfs {
 			if handleError(enc.Encode(mf)) {
@@ -220,7 +228,9 @@ func HandlerForTransactional(reg prometheus.TransactionalGatherer, opts HandlerO
 			}
 		}
 
-		fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID end encoding", debuguuid)
+		if debuguuid != "" {
+			fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID end encoding", debuguuid)
+		}
 
 		if closer, ok := enc.(expfmt.Closer); ok {
 			// This in particular takes care of the final "# EOF\n" line for OpenMetrics.
@@ -228,8 +238,9 @@ func HandlerForTransactional(reg prometheus.TransactionalGatherer, opts HandlerO
 				return
 			}
 		}
-
-		fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID DONE", debuguuid)
+		if debuguuid != "" {
+			fmt.Println(time.Now(), "DEBBUG HandlerForTransactional http.HandlerFunc for request UUID DONE", debuguuid)
+		}
 	})
 
 	if opts.Timeout <= 0 {

@@ -26,6 +26,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"math/rand"
 
 	"github.com/google/cadvisor/cache/memory"
 	"github.com/google/cadvisor/collector"
@@ -904,7 +905,10 @@ func (m *manager) registerCollectors(collectorConfigs map[string]string, cont *c
 
 // Create a container.
 func (m *manager) createContainer(containerName string, watchSource watcher.ContainerWatchSource) error {
+	maybeID := rand.Float64()
+	fmt.Println(time.Now(), "DEBBUG cadvisor createContainer getting lock containerName", containerName, maybeID)
 	m.containersLock.Lock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor createContainer GOT lock containerName", containerName, maybeID)
 	defer m.containersLock.Unlock()
 
 	return m.createContainerLocked(containerName, watchSource)
@@ -1004,15 +1008,16 @@ func (m *manager) createContainerLocked(containerName string, watchSource watche
 }
 
 func (m *manager) destroyContainer(containerName string) error {
-	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer getting lock containerName", containerName)
+	maybeID := rand.Float64()
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer getting lock containerName", containerName, maybeID)
 	m.containersLock.Lock()
-	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer GOT lock containerName", containerName)
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer GOT lock containerName", containerName, maybeID)
 	defer m.containersLock.Unlock()
 
-	return m.destroyContainerLocked(containerName)
+	return m.destroyContainerLocked(containerName, maybeID)
 }
 
-func (m *manager) destroyContainerLocked(containerName string) error {
+func (m *manager) destroyContainerLocked(containerName string, maybeID float64) error {
 	namespacedName := namespacedContainerName{
 		Name: containerName,
 	}
@@ -1022,11 +1027,15 @@ func (m *manager) destroyContainerLocked(containerName string) error {
 		return nil
 	}
 
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainerLocked before Stop", containerName, maybeID)
+
 	// Tell the container to stop.
 	err := cont.Stop()
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainerLocked after Stop", containerName, maybeID)
 
 	// Remove the container from our records (and all its aliases).
 	delete(m.containers, namespacedName)
@@ -1052,6 +1061,7 @@ func (m *manager) destroyContainerLocked(containerName string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainerLocked END", containerName, maybeID)
 	return nil
 }
 
