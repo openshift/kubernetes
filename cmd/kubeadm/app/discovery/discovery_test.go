@@ -73,9 +73,7 @@ func TestFor(t *testing.T) {
 	for _, rt := range tests {
 		t.Run(rt.name, func(t *testing.T) {
 			config := rt.d
-			config.Timeouts = &kubeadm.Timeouts{
-				Discovery: &metav1.Duration{Duration: 1 * time.Minute},
-			}
+			config.Discovery.Timeout = &metav1.Duration{Duration: 5 * time.Minute}
 			_, actual := For(&config)
 			if (actual == nil) != rt.expect {
 				t.Errorf(

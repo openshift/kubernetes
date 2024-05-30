@@ -417,9 +417,7 @@ func waitForDelete(params waitForDeleteParams) ([]corev1.Pod, error) {
 		pendingPods := []corev1.Pod{}
 		for i, pod := range pods {
 			p, err := params.getPodFn(pod.Namespace, pod.Name)
-			// The implementation of getPodFn that uses client-go returns an empty Pod struct when there is an error,
-			// so we need to check that err == nil and p != nil to know that a pod was found successfully.
-			if apierrors.IsNotFound(err) || (err == nil && p != nil && p.ObjectMeta.UID != pod.ObjectMeta.UID) {
+			if apierrors.IsNotFound(err) || (p != nil && p.ObjectMeta.UID != pod.ObjectMeta.UID) {
 				if params.onFinishFn != nil {
 					params.onFinishFn(&pod, params.usingEviction, nil)
 				} else if params.onDoneFn != nil {

@@ -102,10 +102,7 @@ var (
 			Name:      "endpointslices_changed_per_sync",
 			Help:      "Number of EndpointSlices changed on each Service sync",
 		},
-		[]string{
-			"topology",             // either "Auto" or "Disabled"
-			"traffic_distribution", // "PreferClose" or <empty>
-		},
+		[]string{"topology"}, // either "Auto" or "Disabled"
 	)
 
 	// EndpointSliceSyncs tracks the number of sync operations the controller
@@ -118,18 +115,6 @@ var (
 			StabilityLevel: metrics.ALPHA,
 		},
 		[]string{"result"}, // either "success", "stale", or "error"
-	)
-
-	// ServicesCountByTrafficDistribution tracks the number of Services using some
-	// specific trafficDistribution
-	ServicesCountByTrafficDistribution = metrics.NewGaugeVec(
-		&metrics.GaugeOpts{
-			Subsystem:      EndpointSliceSubsystem,
-			Name:           "services_count_by_traffic_distribution",
-			Help:           "Number of Services using some specific trafficDistribution",
-			StabilityLevel: metrics.ALPHA,
-		},
-		[]string{"traffic_distribution"}, // One of ["PreferClose", "ImplementationSpecific"]
 	)
 )
 
@@ -146,6 +131,5 @@ func RegisterMetrics() {
 		legacyregistry.MustRegister(EndpointSliceChanges)
 		legacyregistry.MustRegister(EndpointSlicesChangedPerSync)
 		legacyregistry.MustRegister(EndpointSliceSyncs)
-		legacyregistry.MustRegister(ServicesCountByTrafficDistribution)
 	})
 }

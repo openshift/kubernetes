@@ -195,7 +195,7 @@ func (f *persistentVolumeClaimNamespaceLister) Get(name string) (*v1.PersistentV
 			return pvc, nil
 		}
 	}
-	return nil, errors.NewNotFound(v1.Resource("persistentvolumeclaims"), name)
+	return nil, fmt.Errorf("persistentvolumeclaim %q not found", name)
 }
 
 func (f persistentVolumeClaimNamespaceLister) List(selector labels.Selector) (ret []*v1.PersistentVolumeClaim, err error) {
@@ -266,7 +266,7 @@ func (n CSINodeLister) Get(name string) (*storagev1.CSINode, error) {
 			return &cn, nil
 		}
 	}
-	return nil, errors.NewNotFound(storagev1.Resource("csinodes"), name)
+	return nil, fmt.Errorf("csiNode %q not found", name)
 }
 
 // List lists all CSINodes in the indexer.
@@ -286,7 +286,7 @@ func (pvs PersistentVolumeLister) Get(pvID string) (*v1.PersistentVolume, error)
 			return &pv, nil
 		}
 	}
-	return nil, errors.NewNotFound(v1.Resource("persistentvolumes"), pvID)
+	return nil, fmt.Errorf("unable to find persistent volume: %s", pvID)
 }
 
 // List lists all PersistentVolumes in the indexer.
@@ -306,7 +306,12 @@ func (classes StorageClassLister) Get(name string) (*storagev1.StorageClass, err
 			return &sc, nil
 		}
 	}
-	return nil, errors.NewNotFound(storagev1.Resource("storageclasses"), name)
+	return nil, &errors.StatusError{
+		ErrStatus: metav1.Status{
+			Reason:  metav1.StatusReasonNotFound,
+			Message: fmt.Sprintf("unable to find storage class: %s", name),
+		},
+	}
 }
 
 // List lists all StorageClass in the indexer.

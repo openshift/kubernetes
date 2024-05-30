@@ -31,7 +31,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -51,7 +50,7 @@ import (
 type PortForwardOptions struct {
 	Namespace     string
 	PodName       string
-	RESTClient    restclient.Interface
+	RESTClient    *restclient.RESTClient
 	Config        *restclient.Config
 	PodClient     corev1client.PodsGetter
 	Address       []string
@@ -100,7 +99,11 @@ const (
 )
 
 func NewCmdPortForward(f cmdutil.Factory, streams genericiooptions.IOStreams) *cobra.Command {
-	opts := NewDefaultPortForwardOptions(streams)
+	opts := &PortForwardOptions{
+		PortForwarder: &defaultPortForwarder{
+			IOStreams: streams,
+		},
+	}
 	cmd := &cobra.Command{
 		Use:                   "port-forward TYPE/NAME [options] [LOCAL_PORT:]REMOTE_PORT [...[LOCAL_PORT_N:]REMOTE_PORT_N]",
 		DisableFlagsInUseLine: true,
@@ -120,14 +123,6 @@ func NewCmdPortForward(f cmdutil.Factory, streams genericiooptions.IOStreams) *c
 	return cmd
 }
 
-func NewDefaultPortForwardOptions(streams genericiooptions.IOStreams) *PortForwardOptions {
-	return &PortForwardOptions{
-		PortForwarder: &defaultPortForwarder{
-			IOStreams: streams,
-		},
-	}
-}
-
 type portForwarder interface {
 	ForwardPorts(method string, url *url.URL, opts PortForwardOptions) error
 }
@@ -142,14 +137,6 @@ func (f *defaultPortForwarder) ForwardPorts(method string, url *url.URL, opts Po
 		return err
 	}
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, method, url)
-	if cmdutil.PortForwardWebsockets.IsEnabled() {
-		tunnelingDialer, err := portforward.NewSPDYOverWebsocketDialer(url, opts.Config)
-		if err != nil {
-			return err
-		}
-		// First attempt tunneling (websocket) dialer, then fallback to spdy dialer.
-		dialer = portforward.NewFallbackDialer(tunnelingDialer, dialer, httpstream.IsUpgradeFailure)
-	}
 	fw, err := portforward.NewOnAddresses(dialer, opts.Address, opts.Ports, opts.StopChannel, opts.ReadyChannel, f.Out, f.ErrOut)
 	if err != nil {
 		return err
@@ -398,17 +385,9 @@ func (o PortForwardOptions) Validate() error {
 	return nil
 }
 
-// Deprecated: Use RunPortForwardContext instead, which allows canceling.
 // RunPortForward implements all the necessary functionality for port-forward cmd.
 func (o PortForwardOptions) RunPortForward() error {
-	return o.RunPortForwardContext(context.Background())
-}
-
-// RunPortForwardContext implements all the necessary functionality for port-forward cmd.
-// It ends portforwarding when an error is received from the backend, or an os.Interrupt
-// signal is received, or the provided context is done.
-func (o PortForwardOptions) RunPortForwardContext(ctx context.Context) error {
-	pod, err := o.PodClient.Pods(o.Namespace).Get(ctx, o.PodName, metav1.GetOptions{})
+	pod, err := o.PodClient.Pods(o.Namespace).Get(context.TODO(), o.PodName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -421,14 +400,8 @@ func (o PortForwardOptions) RunPortForwardContext(ctx context.Context) error {
 	signal.Notify(signals, os.Interrupt)
 	defer signal.Stop(signals)
 
-	returnCtx, returnCtxCancel := context.WithCancel(ctx)
-	defer returnCtxCancel()
-
 	go func() {
-		select {
-		case <-signals:
-		case <-returnCtx.Done():
-		}
+		<-signals
 		if o.StopChannel != nil {
 			close(o.StopChannel)
 		}

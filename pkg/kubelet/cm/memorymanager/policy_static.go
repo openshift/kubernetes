@@ -34,7 +34,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/memorymanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
-	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
@@ -96,7 +95,7 @@ func (p *staticPolicy) Start(s state.State) error {
 }
 
 // Allocate call is idempotent
-func (p *staticPolicy) Allocate(s state.State, pod *v1.Pod, container *v1.Container) (rerr error) {
+func (p *staticPolicy) Allocate(s state.State, pod *v1.Pod, container *v1.Container) error {
 	// allocate the memory only for guaranteed pods
 	if v1qos.GetPodQOS(pod) != v1.PodQOSGuaranteed {
 		return nil
@@ -104,13 +103,6 @@ func (p *staticPolicy) Allocate(s state.State, pod *v1.Pod, container *v1.Contai
 
 	podUID := string(pod.UID)
 	klog.InfoS("Allocate", "pod", klog.KObj(pod), "containerName", container.Name)
-	// container belongs in an exclusively allocated pool
-	metrics.MemoryManagerPinningRequestTotal.Inc()
-	defer func() {
-		if rerr != nil {
-			metrics.MemoryManagerPinningErrorsTotal.Inc()
-		}
-	}()
 	if blocks := s.GetMemoryBlocks(podUID, container.Name); blocks != nil {
 		p.updatePodReusableMemory(pod, container, blocks)
 

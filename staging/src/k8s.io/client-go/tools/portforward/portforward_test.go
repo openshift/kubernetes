@@ -430,8 +430,7 @@ func TestGetListener(t *testing.T) {
 
 func TestGetPortsReturnsDynamicallyAssignedLocalPort(t *testing.T) {
 	dialer := &fakeDialer{
-		conn:               newFakeConnection(),
-		negotiatedProtocol: PortForwardProtocolV1Name,
+		conn: newFakeConnection(),
 	}
 
 	stopChan := make(chan struct{})
@@ -571,8 +570,7 @@ func TestWaitForConnectionExitsOnStreamConnClosed(t *testing.T) {
 
 func TestForwardPortsReturnsErrorWhenConnectionIsLost(t *testing.T) {
 	dialer := &fakeDialer{
-		conn:               newFakeConnection(),
-		negotiatedProtocol: PortForwardProtocolV1Name,
+		conn: newFakeConnection(),
 	}
 
 	stopChan := make(chan struct{})
@@ -603,8 +601,7 @@ func TestForwardPortsReturnsErrorWhenConnectionIsLost(t *testing.T) {
 
 func TestForwardPortsReturnsNilWhenStopChanIsClosed(t *testing.T) {
 	dialer := &fakeDialer{
-		conn:               newFakeConnection(),
-		negotiatedProtocol: PortForwardProtocolV1Name,
+		conn: newFakeConnection(),
 	}
 
 	stopChan := make(chan struct{})

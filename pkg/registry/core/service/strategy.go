@@ -120,11 +120,7 @@ func (svcStrategy) AllowUnconditionalUpdate() bool {
 //	    newSvc.Spec.MyFeature = nil
 //	}
 func dropServiceDisabledFields(newSvc *api.Service, oldSvc *api.Service) {
-	// Drop condition for TrafficDistribution field.
-	isTrafficDistributionInUse := (oldSvc != nil && oldSvc.Spec.TrafficDistribution != nil)
-	if !utilfeature.DefaultFeatureGate.Enabled(features.ServiceTrafficDistribution) && !isTrafficDistributionInUse {
-		newSvc.Spec.TrafficDistribution = nil
-	}
+
 }
 
 type serviceStatusStrategy struct {

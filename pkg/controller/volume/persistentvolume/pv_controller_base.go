@@ -72,13 +72,18 @@ type ControllerParameters struct {
 	ClassInformer             storageinformers.StorageClassInformer
 	PodInformer               coreinformers.PodInformer
 	NodeInformer              coreinformers.NodeInformer
+	EventRecorder             record.EventRecorder
 	EnableDynamicProvisioning bool
 }
 
 // NewController creates a new PersistentVolume controller
 func NewController(ctx context.Context, p ControllerParameters) (*PersistentVolumeController, error) {
-	eventBroadcaster := record.NewBroadcaster(record.WithContext(ctx))
-	eventRecorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "persistentvolume-controller"})
+	eventRecorder := p.EventRecorder
+	var eventBroadcaster record.EventBroadcaster
+	if eventRecorder == nil {
+		eventBroadcaster = record.NewBroadcaster()
+		eventRecorder = eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "persistentvolume-controller"})
+	}
 
 	controller := &PersistentVolumeController{
 		volumes:                       newPersistentVolumeOrderedIndex(),
@@ -305,10 +310,11 @@ func (ctrl *PersistentVolumeController) Run(ctx context.Context) {
 	defer ctrl.volumeQueue.ShutDown()
 
 	// Start events processing pipeline.
-	ctrl.eventBroadcaster.StartStructuredLogging(3)
-	ctrl.eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: ctrl.kubeClient.CoreV1().Events("")})
-	defer ctrl.eventBroadcaster.Shutdown()
-
+	if ctrl.eventBroadcaster != nil {
+		ctrl.eventBroadcaster.StartStructuredLogging(0)
+		ctrl.eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: ctrl.kubeClient.CoreV1().Events("")})
+		defer ctrl.eventBroadcaster.Shutdown()
+	}
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting persistent volume controller")
 	defer logger.Info("Shutting down persistent volume controller")

@@ -1,6 +1,3 @@
-//go:build linux
-// +build linux
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -23,19 +20,19 @@ import (
 	"testing"
 
 	"github.com/lithammer/dedent"
-
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func checkChains(t *testing.T, save []byte, expected sets.Set[Chain]) {
+func checkChains(t *testing.T, save []byte, expected map[Chain]struct{}) {
 	chains := GetChainsFromTable(save)
-	missing := expected.Difference(chains)
-	if len(missing) != 0 {
-		t.Errorf("GetChainsFromTable expected chains not present: %v", missing.UnsortedList())
+	for chain := range expected {
+		if _, exists := chains[chain]; !exists {
+			t.Errorf("GetChainsFromTable expected chain not present: %s", chain)
+		}
 	}
-	extra := chains.Difference(expected)
-	if len(extra) != 0 {
-		t.Errorf("GetChainsFromTable expected chains unexpectedly present: %v", extra.UnsortedList())
+	for chain := range chains {
+		if _, exists := expected[chain]; !exists {
+			t.Errorf("GetChainsFromTable chain unexpectedly present: %s", chain)
+		}
 	}
 }
 
@@ -80,23 +77,22 @@ func TestGetChainsFromTable(t *testing.T) {
 		-A KUBE-SVC-6666666666666666 -m comment --comment "kube-system/kube-dns:dns" -j KUBE-SVC-1111111111111111
 		COMMIT
 		`)
-
-	expected := sets.New(
-		ChainPrerouting,
-		Chain("INPUT"),
-		Chain("OUTPUT"),
-		ChainPostrouting,
-		Chain("DOCKER"),
-		Chain("KUBE-NODEPORT-CONTAINER"),
-		Chain("KUBE-NODEPORT-HOST"),
-		Chain("KUBE-PORTALS-CONTAINER"),
-		Chain("KUBE-PORTALS-HOST"),
-		Chain("KUBE-SVC-1111111111111111"),
-		Chain("KUBE-SVC-2222222222222222"),
-		Chain("KUBE-SVC-3333333333333333"),
-		Chain("KUBE-SVC-4444444444444444"),
-		Chain("KUBE-SVC-5555555555555555"),
-		Chain("KUBE-SVC-6666666666666666"),
-	)
+	expected := map[Chain]struct{}{
+		ChainPrerouting:                    {},
+		Chain("INPUT"):                     {},
+		Chain("OUTPUT"):                    {},
+		ChainPostrouting:                   {},
+		Chain("DOCKER"):                    {},
+		Chain("KUBE-NODEPORT-CONTAINER"):   {},
+		Chain("KUBE-NODEPORT-HOST"):        {},
+		Chain("KUBE-PORTALS-CONTAINER"):    {},
+		Chain("KUBE-PORTALS-HOST"):         {},
+		Chain("KUBE-SVC-1111111111111111"): {},
+		Chain("KUBE-SVC-2222222222222222"): {},
+		Chain("KUBE-SVC-3333333333333333"): {},
+		Chain("KUBE-SVC-4444444444444444"): {},
+		Chain("KUBE-SVC-5555555555555555"): {},
+		Chain("KUBE-SVC-6666666666666666"): {},
+	}
 	checkChains(t, []byte(iptablesSave), expected)
 }

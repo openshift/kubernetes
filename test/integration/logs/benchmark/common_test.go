@@ -18,8 +18,6 @@ package benchmark
 
 import (
 	"flag"
-	"os"
-	"testing"
 
 	"k8s.io/klog/v2"
 )
@@ -36,25 +34,12 @@ func init() {
 	flag.Set("stderrthreshold", "FATAL")
 }
 
-func newBytesWritten(tb testing.TB, filename string) *bytesWritten {
-	out, err := os.Create(filename)
-	if err != nil {
-		tb.Fatalf("open fake output: %v", err)
-	}
-	tb.Cleanup(func() { _ = out.Close() })
-	return &bytesWritten{
-		out: out,
-	}
-}
-
-type bytesWritten struct {
-	out          *os.File
-	bytesWritten int64
-}
+type bytesWritten int64
 
 func (b *bytesWritten) Write(data []byte) (int, error) {
-	b.bytesWritten += int64(len(data))
-	return b.out.Write(data)
+	l := len(data)
+	*b += bytesWritten(l)
+	return l, nil
 }
 
 func printf(item logMessage) {

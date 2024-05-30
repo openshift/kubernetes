@@ -31,11 +31,9 @@ func TestValidation(t *testing.T) {
 		Format: "text",
 		Options: FormatOptions{
 			JSON: JSONOptions{
-				OutputRoutingOptions: OutputRoutingOptions{
-					SplitStream: true,
-					InfoBufferSize: resource.QuantityValue{
-						Quantity: *resource.NewQuantity(1024, resource.DecimalSI),
-					},
+				SplitStream: true,
+				InfoBufferSize: resource.QuantityValue{
+					Quantity: *resource.NewQuantity(1024, resource.DecimalSI),
 				},
 			},
 		},

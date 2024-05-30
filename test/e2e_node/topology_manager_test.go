@@ -239,7 +239,7 @@ func configureTopologyManagerInKubelet(oldCfg *kubeletconfig.KubeletConfiguratio
 		}
 	}
 	// Dump the config -- debug
-	framework.Logf("New kubelet config is %s", newCfg.String())
+	framework.Logf("New kubelet config is %s", *newCfg)
 
 	return newCfg, newCfg.ReservedSystemCPUs
 }

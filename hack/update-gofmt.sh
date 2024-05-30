@@ -23,7 +23,7 @@ set -o pipefail
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
-kube::golang::setup_env
+kube::golang::verify_go_version
 
 cd "${KUBE_ROOT}"
 
@@ -36,7 +36,6 @@ function git_find() {
         ':!:*/vendor/*'      `# catches any subdir/vendor/...` \
         ':!:third_party/*'   `# catches third_party/...` \
         ':!:*/third_party/*' `# catches third_party/...` \
-        ':!:*/testdata/*'    `# catches any subdir/testdata/...` \
         ':(glob)**/*.go' \
         "$@"
 }

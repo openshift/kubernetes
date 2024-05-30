@@ -165,11 +165,6 @@
             "priority": 5,
             "jsonPath": "jsonPathValue"
           }
-        ],
-        "selectableFields": [
-          {
-            "jsonPath": "jsonPathValue"
-          }
         ]
       }
     ],

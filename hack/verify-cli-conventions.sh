@@ -27,9 +27,14 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
 
-GOPROXY=off go install ./cmd/clicheck
+BINS=(
+	cmd/clicheck
+)
+make -C "${KUBE_ROOT}" WHAT="${BINS[*]}"
 
-if ! output=$(clicheck 2>&1)
+clicheck=$(kube::util::find-binary "clicheck")
+
+if ! output=$($clicheck 2>&1)
 then
 	echo "$output"
 	echo

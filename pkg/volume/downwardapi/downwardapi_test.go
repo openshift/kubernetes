@@ -18,6 +18,7 @@ package downwardapi
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -319,7 +320,7 @@ type stepName struct {
 func (step stepName) getName() string { return step.name }
 
 func doVerifyLinesInFile(t *testing.T, volumePath, filename string, expected string) {
-	data, err := os.ReadFile(filepath.Join(volumePath, filename))
+	data, err := ioutil.ReadFile(filepath.Join(volumePath, filename))
 	if err != nil {
 		t.Errorf(err.Error())
 		return

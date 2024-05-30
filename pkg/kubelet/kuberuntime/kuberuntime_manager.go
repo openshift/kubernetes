@@ -70,6 +70,8 @@ import (
 const (
 	// The api version of kubelet runtime api
 	kubeRuntimeAPIVersion = "0.1.0"
+	// The root directory for pod logs
+	podLogsRootDirectory = "/var/log/pods"
 	// A minimal shutdown window for avoiding unnecessary SIGKILLs
 	minimumGracePeriodInSeconds = 2
 
@@ -167,9 +169,6 @@ type kubeGenericRuntimeManager struct {
 
 	// Memory throttling factor for MemoryQoS
 	memoryThrottlingFactor float64
-
-	// Root directory used to store pod logs
-	podLogsDirectory string
 }
 
 // KubeGenericRuntime is a interface contains interfaces for container runtime and command.
@@ -186,7 +185,6 @@ func NewKubeGenericRuntimeManager(
 	readinessManager proberesults.Manager,
 	startupManager proberesults.Manager,
 	rootDirectory string,
-	podLogsDirectory string,
 	machineInfo *cadvisorapi.MachineInfo,
 	podStateProvider podStateProvider,
 	osInterface kubecontainer.OSInterface,
@@ -239,7 +237,6 @@ func NewKubeGenericRuntimeManager(
 		memorySwapBehavior:     memorySwapBehavior,
 		getNodeAllocatable:     getNodeAllocatable,
 		memoryThrottlingFactor: memoryThrottlingFactor,
-		podLogsDirectory:       podLogsDirectory,
 	}
 
 	typedVersion, err := kubeRuntimeManager.getTypedVersion(ctx)
@@ -262,6 +259,15 @@ func NewKubeGenericRuntimeManager(
 		"containerRuntime", typedVersion.RuntimeName,
 		"version", typedVersion.RuntimeVersion,
 		"apiVersion", typedVersion.RuntimeApiVersion)
+
+	// If the container logs directory does not exist, create it.
+	// TODO: create podLogsRootDirectory at kubelet.go when kubelet is refactored to
+	// new runtime interface
+	if _, err := osInterface.Stat(podLogsRootDirectory); os.IsNotExist(err) {
+		if err := osInterface.MkdirAll(podLogsRootDirectory, 0755); err != nil {
+			klog.ErrorS(err, "Failed to create pod log directory", "path", podLogsRootDirectory)
+		}
+	}
 
 	if imageCredentialProviderConfigFile != "" || imageCredentialProviderBinDir != "" {
 		if err := plugin.RegisterCredentialProviderPlugins(imageCredentialProviderConfigFile, imageCredentialProviderBinDir); err != nil {
@@ -347,7 +353,7 @@ func (m *kubeGenericRuntimeManager) Status(ctx context.Context) (*kubecontainer.
 	if resp.GetStatus() == nil {
 		return nil, errors.New("runtime status is nil")
 	}
-	return toKubeRuntimeStatus(resp.GetStatus(), resp.GetRuntimeHandlers()), nil
+	return toKubeRuntimeStatus(resp.GetStatus()), nil
 }
 
 // GetPods returns a list of containers grouped by pods. The boolean parameter

@@ -244,10 +244,6 @@ func TestJSONPatch(t *testing.T) {
 			expectedError:     "the server rejected our request due to an error in our request",
 			expectedErrorType: metav1.StatusReasonInvalid,
 		},
-		{
-			name:  "valid-negative-index-patch",
-			patch: `[{"op": "test", "value": "foo", "path": "/metadata/finalizers/-1"}]`,
-		},
 	} {
 		p := &patcher{
 			patchType:  types.JSONPatchType,
@@ -257,7 +253,6 @@ func TestJSONPatch(t *testing.T) {
 		codec := codecs.LegacyCodec(examplev1.SchemeGroupVersion)
 		pod := &examplev1.Pod{}
 		pod.Name = "podA"
-		pod.ObjectMeta.Finalizers = []string{"foo"}
 		versionedJS, err := runtime.Encode(codec, pod)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

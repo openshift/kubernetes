@@ -49,13 +49,13 @@ const BootstrapUser = "token-bootstrap-client"
 // RetrieveValidatedConfigInfo connects to the API Server and tries to fetch the cluster-info ConfigMap
 // It then makes sure it can trust the API Server by looking at the JWS-signed tokens and (if CACertHashes is not empty)
 // validating the cluster CA against a set of pinned public keys
-func RetrieveValidatedConfigInfo(cfg *kubeadmapi.Discovery, timeout time.Duration) (*clientcmdapi.Config, error) {
-	return retrieveValidatedConfigInfo(nil, cfg, constants.DiscoveryRetryInterval, timeout)
+func RetrieveValidatedConfigInfo(cfg *kubeadmapi.Discovery) (*clientcmdapi.Config, error) {
+	return retrieveValidatedConfigInfo(nil, cfg, constants.DiscoveryRetryInterval)
 }
 
 // retrieveValidatedConfigInfo is a private implementation of RetrieveValidatedConfigInfo.
 // It accepts an optional clientset that can be used for testing purposes.
-func retrieveValidatedConfigInfo(client clientset.Interface, cfg *kubeadmapi.Discovery, interval, timeout time.Duration) (*clientcmdapi.Config, error) {
+func retrieveValidatedConfigInfo(client clientset.Interface, cfg *kubeadmapi.Discovery, interval time.Duration) (*clientcmdapi.Config, error) {
 	token, err := bootstraptokenv1.NewBootstrapTokenString(cfg.BootstrapToken.Token)
 	if err != nil {
 		return nil, err
@@ -67,9 +67,10 @@ func retrieveValidatedConfigInfo(client clientset.Interface, cfg *kubeadmapi.Dis
 		return nil, errors.Wrap(err, "invalid discovery token CA certificate hash")
 	}
 
+	duration := cfg.Timeout.Duration
 	// Make sure the interval is not bigger than the duration
-	if interval > timeout {
-		interval = timeout
+	if interval > duration {
+		interval = duration
 	}
 
 	endpoint := cfg.BootstrapToken.APIServerEndpoint
@@ -77,7 +78,7 @@ func retrieveValidatedConfigInfo(client clientset.Interface, cfg *kubeadmapi.Dis
 	clusterName := insecureBootstrapConfig.Contexts[insecureBootstrapConfig.CurrentContext].Cluster
 
 	klog.V(1).Infof("[discovery] Created cluster-info discovery client, requesting info from %q", endpoint)
-	insecureClusterInfo, err := getClusterInfo(client, insecureBootstrapConfig, token, interval, timeout)
+	insecureClusterInfo, err := getClusterInfo(client, insecureBootstrapConfig, token, interval, duration)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func retrieveValidatedConfigInfo(client clientset.Interface, cfg *kubeadmapi.Dis
 	secureBootstrapConfig := buildSecureBootstrapKubeConfig(endpoint, clusterCABytes, clusterName)
 
 	klog.V(1).Infof("[discovery] Requesting info from %q again to validate TLS against the pinned public key", endpoint)
-	secureClusterInfo, err := getClusterInfo(client, secureBootstrapConfig, token, interval, timeout)
+	secureClusterInfo, err := getClusterInfo(client, secureBootstrapConfig, token, interval, duration)
 	if err != nil {
 		return nil, err
 	}
@@ -207,31 +208,28 @@ func getClusterInfo(client clientset.Interface, kubeconfig *clientcmdapi.Config,
 		}
 	}
 
-	klog.V(1).Infof("[discovery] Waiting for the cluster-info ConfigMap to receive a JWS signature"+
-		"for token ID %q", token.ID)
+	ctx, cancel := context.WithTimeout(context.TODO(), duration)
+	defer cancel()
 
-	var lastError error
-	err = wait.PollUntilContextTimeout(context.Background(),
-		interval, duration, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err = client.CoreV1().ConfigMaps(metav1.NamespacePublic).
-				Get(ctx, bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
-			if err != nil {
-				lastError = errors.Wrapf(err, "failed to request the cluster-info ConfigMap")
-				klog.V(1).Infof("[discovery] Retrying due to error: %v", lastError)
-				return false, nil
-			}
-			// Even if the ConfigMap is available the JWS signature is patched-in a bit later.
-			if _, ok := cm.Data[bootstrapapi.JWSSignatureKeyPrefix+token.ID]; !ok {
-				lastError = errors.Errorf("could not find a JWS signature in the cluster-info ConfigMap"+
-					" for token ID %q", token.ID)
-				klog.V(1).Infof("[discovery] Retrying due to error: %v", lastError)
-				return false, nil
-			}
-			return true, nil
-		})
+	wait.JitterUntil(func() {
+		cm, err = client.CoreV1().ConfigMaps(metav1.NamespacePublic).Get(context.TODO(), bootstrapapi.ConfigMapClusterInfo, metav1.GetOptions{})
+		if err != nil {
+			klog.V(1).Infof("[discovery] Failed to request cluster-info, will try again: %v", err)
+			return
+		}
+		// Even if the ConfigMap is available the JWS signature is patched-in a bit later.
+		// Make sure we retry util then.
+		if _, ok := cm.Data[bootstrapapi.JWSSignatureKeyPrefix+token.ID]; !ok {
+			klog.V(1).Infof("[discovery] The cluster-info ConfigMap does not yet contain a JWS signature for token ID %q, will try again", token.ID)
+			err = errors.Errorf("could not find a JWS signature in the cluster-info ConfigMap for token ID %q", token.ID)
+			return
+		}
+		// Cancel the context on success
+		cancel()
+	}, interval, 0.3, true, ctx.Done())
+
 	if err != nil {
-		return nil, lastError
+		return nil, err
 	}
 
 	return cm, nil

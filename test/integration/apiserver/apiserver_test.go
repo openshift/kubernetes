@@ -75,10 +75,11 @@ func setup(t *testing.T, groupVersions ...schema.GroupVersion) (context.Context,
 	return setupWithResources(t, groupVersions, nil)
 }
 
-func setupWithResources(t *testing.T, groupVersions []schema.GroupVersion, resources []schema.GroupVersionResource) (context.Context, clientset.Interface /* TODO (pohly): return ktesting.TContext */, *restclient.Config, framework.TearDownFunc) {
-	tCtx := ktesting.Init(t)
+func setupWithResources(t *testing.T, groupVersions []schema.GroupVersion, resources []schema.GroupVersionResource) (context.Context, clientset.Interface, *restclient.Config, framework.TearDownFunc) {
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
 
-	client, config, teardown := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	client, config, teardown := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerConfig: func(config *controlplane.Config) {
 			if len(groupVersions) > 0 || len(resources) > 0 {
 				resourceConfig := controlplane.DefaultAPIResourceConfigSource()
@@ -90,11 +91,11 @@ func setupWithResources(t *testing.T, groupVersions []schema.GroupVersion, resou
 	})
 
 	newTeardown := func() {
-		tCtx.Cancel("tearing down apiserver")
+		cancel()
 		teardown()
 	}
 
-	return tCtx, client, config, newTeardown
+	return ctx, client, config, newTeardown
 }
 
 func verifyStatusCode(t *testing.T, transport http.RoundTripper, verb, URL, body string, expectedStatusCode int) {
@@ -374,10 +375,12 @@ func TestListOptions(t *testing.T) {
 
 	for _, watchCacheEnabled := range []bool{true, false} {
 		t.Run(fmt.Sprintf("watchCacheEnabled=%t", watchCacheEnabled), func(t *testing.T) {
-			tCtx := ktesting.Init(t)
+			_, ctx := ktesting.NewTestContext(t)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 
 			var storageTransport *storagebackend.TransportConfig
-			clientSet, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+			clientSet, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 				ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 					opts.Etcd.EnableWatchCache = watchCacheEnabled
 					storageTransport = &opts.Etcd.StorageConfig.Transport
@@ -394,7 +397,7 @@ func TestListOptions(t *testing.T) {
 			for i := 0; i < 15; i++ {
 				rs := newRS(ns.Name)
 				rs.Name = fmt.Sprintf("test-%d", i)
-				created, err := rsClient.Create(tCtx, rs, metav1.CreateOptions{})
+				created, err := rsClient.Create(context.Background(), rs, metav1.CreateOptions{})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -404,7 +407,7 @@ func TestListOptions(t *testing.T) {
 				// delete the first 5, and then compact them
 				if i < 5 {
 					var zero int64
-					if err := rsClient.Delete(tCtx, rs.Name, metav1.DeleteOptions{GracePeriodSeconds: &zero}); err != nil {
+					if err := rsClient.Delete(context.Background(), rs.Name, metav1.DeleteOptions{GracePeriodSeconds: &zero}); err != nil {
 						t.Fatal(err)
 					}
 					oldestUncompactedRv = created.ResourceVersion
@@ -424,12 +427,12 @@ func TestListOptions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = kvClient.Compact(tCtx, int64(revision))
+			_, err = kvClient.Compact(context.Background(), int64(revision))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			listObj, err := rsClient.List(tCtx, metav1.ListOptions{
+			listObj, err := rsClient.List(context.Background(), metav1.ListOptions{
 				Limit: 6,
 			})
 			if err != nil {
@@ -615,9 +618,11 @@ func TestListResourceVersion0(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
+			_, ctx := ktesting.NewTestContext(t)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 
-			clientSet, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+			clientSet, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 				ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 					opts.Etcd.EnableWatchCache = tc.watchCacheEnabled
 				},
@@ -632,7 +637,7 @@ func TestListResourceVersion0(t *testing.T) {
 			for i := 0; i < 10; i++ {
 				rs := newRS(ns.Name)
 				rs.Name = fmt.Sprintf("test-%d", i)
-				if _, err := rsClient.Create(tCtx, rs, metav1.CreateOptions{}); err != nil {
+				if _, err := rsClient.Create(ctx, rs, metav1.CreateOptions{}); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -640,7 +645,7 @@ func TestListResourceVersion0(t *testing.T) {
 			if tc.watchCacheEnabled {
 				// poll until the watch cache has the full list in memory
 				err := wait.PollImmediate(time.Second, wait.ForeverTestTimeout, func() (bool, error) {
-					list, err := clientSet.AppsV1().ReplicaSets(ns.Name).List(tCtx, metav1.ListOptions{ResourceVersion: "0"})
+					list, err := clientSet.AppsV1().ReplicaSets(ns.Name).List(ctx, metav1.ListOptions{ResourceVersion: "0"})
 					if err != nil {
 						return false, err
 					}
@@ -652,12 +657,12 @@ func TestListResourceVersion0(t *testing.T) {
 			}
 
 			pagerFn := func(opts metav1.ListOptions) (runtime.Object, error) {
-				return rsClient.List(tCtx, opts)
+				return rsClient.List(ctx, opts)
 			}
 
 			p := pager.New(pager.SimplePageFunc(pagerFn))
 			p.PageSize = 3
-			listObj, _, err := p.List(tCtx, metav1.ListOptions{ResourceVersion: "0"})
+			listObj, _, err := p.List(ctx, metav1.ListOptions{ResourceVersion: "0"})
 			if err != nil {
 				t.Fatalf("Unexpected list error: %v", err)
 			}

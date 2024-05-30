@@ -24,7 +24,7 @@ import (
 )
 
 // unmountKubeletDirectory is a NOOP on all but linux.
-func unmountKubeletDirectory(kubeletRunDirectory string, flags []string) error {
+func unmountKubeletDirectory(absoluteKubeletRunDirectory string) error {
 	klog.Warning("Cannot unmount filesystems on current OS, all mounted file systems will need to be manually unmounted")
 	return nil
 }

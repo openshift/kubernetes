@@ -33,7 +33,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controlplane/controller/defaultservicecidr"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
-	"k8s.io/kubernetes/test/utils/ktesting"
 	netutils "k8s.io/utils/net"
 	"k8s.io/utils/ptr"
 )
@@ -44,7 +43,7 @@ type testController struct {
 	ipaddressesStore  cache.Store
 }
 
-func newController(ctx context.Context, t *testing.T, cidrs []*networkingapiv1alpha1.ServiceCIDR, ips []*networkingapiv1alpha1.IPAddress) (*fake.Clientset, *testController) {
+func newController(t *testing.T, cidrs []*networkingapiv1alpha1.ServiceCIDR, ips []*networkingapiv1alpha1.IPAddress) (*fake.Clientset, *testController) {
 	client := fake.NewSimpleClientset()
 
 	informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
@@ -66,7 +65,6 @@ func newController(ctx context.Context, t *testing.T, cidrs []*networkingapiv1al
 		}
 	}
 	controller := NewController(
-		ctx,
 		serviceCIDRInformer,
 		ipAddressInformer,
 		client)
@@ -235,12 +233,11 @@ func TestControllerSync(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
-			client, controller := newController(tCtx, t, tc.cidrs, tc.ips)
+			client, controller := newController(t, tc.cidrs, tc.ips)
 			// server side apply does not play well with fake client go
 			// so we skup the errors and only assert on the actions
 			// https://github.com/kubernetes/kubernetes/issues/99953
-			_ = controller.sync(tCtx, tc.cidrSynced)
+			_ = controller.sync(context.Background(), tc.cidrSynced)
 			expectAction(t, client.Actions(), tc.actions)
 
 		})
@@ -426,14 +423,13 @@ func TestController_canDeleteCIDR(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
-			_, controller := newController(tCtx, t, tc.cidrs, tc.ips)
+			_, controller := newController(t, tc.cidrs, tc.ips)
 			err := controller.syncCIDRs()
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			got, err := controller.canDeleteCIDR(tCtx, tc.cidrSynced)
+			got, err := controller.canDeleteCIDR(context.Background(), tc.cidrSynced)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -532,8 +528,7 @@ func TestController_ipToCidrs(t *testing.T) {
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
-			_, controller := newController(tCtx, t, tt.cidrs, nil)
+			_, controller := newController(t, tt.cidrs, nil)
 			err := controller.syncCIDRs()
 			if err != nil {
 				t.Fatal(err)
@@ -589,8 +584,7 @@ func TestController_cidrToCidrs(t *testing.T) {
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
-			_, controller := newController(tCtx, t, tt.cidrs, nil)
+			_, controller := newController(t, tt.cidrs, nil)
 			err := controller.syncCIDRs()
 			if err != nil {
 				t.Fatal(err)

@@ -76,7 +76,6 @@ type ephemeralController struct {
 
 // NewController creates an ephemeral volume controller.
 func NewController(
-	ctx context.Context,
 	kubeClient clientset.Interface,
 	podInformer coreinformers.PodInformer,
 	pvcInformer coreinformers.PersistentVolumeClaimInformer) (Controller, error) {
@@ -93,7 +92,7 @@ func NewController(
 
 	ephemeralvolumemetrics.RegisterMetrics()
 
-	eventBroadcaster := record.NewBroadcaster(record.WithContext(ctx))
+	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
 	ec.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "ephemeral_volume"})

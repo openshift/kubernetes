@@ -30,11 +30,11 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	clientbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog/v2/ktesting"
 	kubeapiservertesting "k8s.io/kubernetes/cmd/kube-apiserver/app/testing"
 	"k8s.io/kubernetes/pkg/controller/cronjob"
 	"k8s.io/kubernetes/pkg/controller/job"
 	"k8s.io/kubernetes/test/integration/framework"
-	"k8s.io/kubernetes/test/utils/ktesting"
 )
 
 func setup(ctx context.Context, t *testing.T) (kubeapiservertesting.TearDownFunc, *cronjob.ControllerV2, *job.Controller, informers.SharedInformerFactory, clientset.Interface) {
@@ -148,13 +148,16 @@ func validateJobAndPod(t *testing.T, clientSet clientset.Interface, namespace st
 }
 
 func TestCronJobLaunchesPodAndCleansUp(t *testing.T) {
-	tCtx := ktesting.Init(t)
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	closeFn, cjc, jc, informerSet, clientSet := setup(tCtx, t)
+	closeFn, cjc, jc, informerSet, clientSet := setup(ctx, t)
 	defer closeFn()
 
 	// When shutting down, cancel must be called before closeFn.
-	defer tCtx.Cancel("test has completed")
+	// We simply call it multiple times.
+	defer cancel()
 
 	cronJobName := "foo"
 	namespaceName := "simple-cronjob-test"
@@ -164,11 +167,11 @@ func TestCronJobLaunchesPodAndCleansUp(t *testing.T) {
 
 	cjClient := clientSet.BatchV1().CronJobs(ns.Name)
 
-	informerSet.Start(tCtx.Done())
-	go cjc.Run(tCtx, 1)
-	go jc.Run(tCtx, 1)
+	informerSet.Start(ctx.Done())
+	go cjc.Run(ctx, 1)
+	go jc.Run(ctx, 1)
 
-	_, err := cjClient.Create(tCtx, newCronJob(cronJobName, ns.Name, "* * * * ?"), metav1.CreateOptions{})
+	_, err := cjClient.Create(context.TODO(), newCronJob(cronJobName, ns.Name, "* * * * ?"), metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Failed to create CronJob: %v", err)
 	}

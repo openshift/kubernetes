@@ -44,8 +44,11 @@ func TestServiceAlloc(t *testing.T) {
 	// Create an IPv4 single stack control-plane
 	serviceCIDR := "192.168.0.0/29"
 
-	tCtx := ktesting.Init(t)
-	client, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	client, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			opts.ServiceClusterIPRanges = serviceCIDR
 		},
@@ -117,8 +120,11 @@ func TestServiceAllocIPAddress(t *testing.T) {
 	serviceCIDR := "2001:db8::/64"
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.MultiCIDRServiceAllocator, true)()
 
-	tCtx := ktesting.Init(t)
-	client, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	client, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			opts.ServiceClusterIPRanges = serviceCIDR
 			opts.GenericServerRunOptions.AdvertiseAddress = netutils.ParseIPSloppy("2001:db8::10")
@@ -143,7 +149,7 @@ func TestServiceAllocIPAddress(t *testing.T) {
 
 	// Wait until the default "kubernetes" service is created.
 	if err := wait.Poll(250*time.Millisecond, time.Minute, func() (bool, error) {
-		_, err := client.CoreV1().Services(metav1.NamespaceDefault).Get(tCtx, "kubernetes", metav1.GetOptions{})
+		_, err := client.CoreV1().Services(metav1.NamespaceDefault).Get(ctx, "kubernetes", metav1.GetOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return false, err
 		}
@@ -154,11 +160,11 @@ func TestServiceAllocIPAddress(t *testing.T) {
 
 	// create 5 random services and check that the Services have an IP associated
 	for i := 0; i < 5; i++ {
-		svc, err := client.CoreV1().Services(metav1.NamespaceDefault).Create(tCtx, svc(i), metav1.CreateOptions{})
+		svc, err := client.CoreV1().Services(metav1.NamespaceDefault).Create(ctx, svc(i), metav1.CreateOptions{})
 		if err != nil {
 			t.Error(err)
 		}
-		_, err = client.NetworkingV1alpha1().IPAddresses().Get(tCtx, svc.Spec.ClusterIP, metav1.GetOptions{})
+		_, err = client.NetworkingV1alpha1().IPAddresses().Get(ctx, svc.Spec.ClusterIP, metav1.GetOptions{})
 		if err != nil {
 			t.Error(err)
 		}

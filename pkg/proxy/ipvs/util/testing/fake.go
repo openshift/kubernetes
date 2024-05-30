@@ -1,6 +1,3 @@
-//go:build linux
-// +build linux
-
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -22,7 +19,6 @@ package testing
 import (
 	"fmt"
 	"net"
-	"sort"
 	"strconv"
 	"time"
 
@@ -55,19 +51,6 @@ type RealServerKey struct {
 
 func (r *RealServerKey) String() string {
 	return net.JoinHostPort(r.Address.String(), strconv.Itoa(int(r.Port)))
-}
-
-// Implement https://pkg.go.dev/sort#Interface
-type byAddress []*utilipvs.RealServer
-
-func (a byAddress) Len() int {
-	return len(a)
-}
-func (a byAddress) Less(i, j int) bool {
-	return a[i].String() < a[j].String()
-}
-func (a byAddress) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
 }
 
 // NewFake creates a fake ipvs implementation - a cache store.
@@ -172,8 +155,6 @@ func (f *FakeIPVS) AddRealServer(serv *utilipvs.VirtualServer, dest *utilipvs.Re
 		f.Destinations[key] = dests
 	}
 	f.Destinations[key] = append(f.Destinations[key], dest)
-	// The tests assumes that the slice is sorted
-	sort.Sort(byAddress(f.Destinations[key]))
 	return nil
 }
 

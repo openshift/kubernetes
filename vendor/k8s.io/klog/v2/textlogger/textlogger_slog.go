@@ -23,7 +23,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/slogr"
 
 	"k8s.io/klog/v2/internal/serialize"
 	"k8s.io/klog/v2/internal/sloghandler"
@@ -33,13 +33,13 @@ func (l *tlogger) Handle(ctx context.Context, record slog.Record) error {
 	return sloghandler.Handle(ctx, record, l.groups, l.printWithInfos)
 }
 
-func (l *tlogger) WithAttrs(attrs []slog.Attr) logr.SlogSink {
+func (l *tlogger) WithAttrs(attrs []slog.Attr) slogr.SlogSink {
 	clone := *l
 	clone.values = serialize.WithValues(l.values, sloghandler.Attrs2KVList(l.groups, attrs))
 	return &clone
 }
 
-func (l *tlogger) WithGroup(name string) logr.SlogSink {
+func (l *tlogger) WithGroup(name string) slogr.SlogSink {
 	clone := *l
 	if clone.groups != "" {
 		clone.groups += "." + name
@@ -49,4 +49,4 @@ func (l *tlogger) WithGroup(name string) logr.SlogSink {
 	return &clone
 }
 
-var _ logr.SlogSink = &tlogger{}
+var _ slogr.SlogSink = &tlogger{}

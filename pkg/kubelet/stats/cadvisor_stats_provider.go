@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/kubelet/leaky"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	"k8s.io/kubernetes/pkg/kubelet/status"
 )
@@ -122,7 +123,7 @@ func (p *cadvisorStatsProvider) ListPodStats(_ context.Context) ([]statsapi.PodS
 		// Update the PodStats entry with the stats from the container by
 		// adding it to podStats.Containers.
 		containerName := kubetypes.GetContainerName(cinfo.Spec.Labels)
-		if containerName == kubetypes.PodInfraContainerName {
+		if containerName == leaky.PodInfraContainerName {
 			// Special case for infrastructure container which is hidden from
 			// the user and has network stats.
 			podStats.Network = cadvisorInfoToNetworkStats(&cinfo)
@@ -210,7 +211,7 @@ func (p *cadvisorStatsProvider) ListPodCPUAndMemoryStats(_ context.Context) ([]s
 		// Update the PodStats entry with the stats from the container by
 		// adding it to podStats.Containers.
 		containerName := kubetypes.GetContainerName(cinfo.Spec.Labels)
-		if containerName == kubetypes.PodInfraContainerName {
+		if containerName == leaky.PodInfraContainerName {
 			// Special case for infrastructure container which is hidden from
 			// the user and has network stats.
 			podStats.StartTime = metav1.NewTime(cinfo.Spec.CreationTime)

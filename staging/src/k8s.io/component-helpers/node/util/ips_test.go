@@ -165,19 +165,23 @@ func TestParseNodeIPArgument(t *testing.T) {
 	}
 
 	configurations := []struct {
-		cloudProvider      string
-		dualStackSupported bool
+		cloudProvider       string
+		allowCloudDualStack bool
+		dualStackSupported  bool
 	}{
-		{cloudProviderNone, true},
-		{cloudProviderExternal, true},
-		{"gce", false},
+		{cloudProviderNone, false, true},
+		{cloudProviderNone, true, true},
+		{cloudProviderExternal, false, false},
+		{cloudProviderExternal, true, true},
+		{"gce", false, false},
+		{"gce", true, false},
 	}
 
 	for _, tc := range testCases {
 		for _, conf := range configurations {
-			desc := fmt.Sprintf("%s, cloudProvider=%q", tc.desc, conf.cloudProvider)
+			desc := fmt.Sprintf("%s, cloudProvider=%q, allowCloudDualStack=%v", tc.desc, conf.cloudProvider, conf.allowCloudDualStack)
 			t.Run(desc, func(t *testing.T) {
-				parsed, err := ParseNodeIPArgument(tc.in, conf.cloudProvider)
+				parsed, err := ParseNodeIPArgument(tc.in, conf.cloudProvider, conf.allowCloudDualStack)
 
 				expectedOut := tc.out
 				expectedErr := tc.err
@@ -335,24 +339,36 @@ func TestParseNodeIPAnnotation(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			parsed, err := ParseNodeIPAnnotation(tc.in)
+		for _, allowDualStack := range []bool{false, true} {
+			desc := fmt.Sprintf("%s, allowDualStack=%v", tc.desc, allowDualStack)
+			t.Run(desc, func(t *testing.T) {
+				parsed, err := ParseNodeIPAnnotation(tc.in, allowDualStack)
 
-			expectedOut := tc.out
-			expectedErr := tc.err
+				expectedOut := tc.out
+				expectedErr := tc.err
 
-			if !reflect.DeepEqual(parsed, expectedOut) {
-				t.Errorf("expected %#v, got %#v", expectedOut, parsed)
-			}
-			if err != nil {
-				if expectedErr == "" {
-					t.Errorf("unexpected error %v", err)
-				} else if !strings.Contains(err.Error(), expectedErr) {
-					t.Errorf("expected error with %q, got %v", expectedErr, err)
+				if !allowDualStack {
+					if len(tc.out) == 2 {
+						expectedOut = nil
+					}
+					if tc.ssErr != "" {
+						expectedErr = tc.ssErr
+					}
 				}
-			} else if expectedErr != "" {
-				t.Errorf("expected error with %q, got no error", expectedErr)
-			}
-		})
+
+				if !reflect.DeepEqual(parsed, expectedOut) {
+					t.Errorf("expected %#v, got %#v", expectedOut, parsed)
+				}
+				if err != nil {
+					if expectedErr == "" {
+						t.Errorf("unexpected error %v", err)
+					} else if !strings.Contains(err.Error(), expectedErr) {
+						t.Errorf("expected error with %q, got %v", expectedErr, err)
+					}
+				} else if expectedErr != "" {
+					t.Errorf("expected error with %q, got no error", expectedErr)
+				}
+			})
+		}
 	}
 }

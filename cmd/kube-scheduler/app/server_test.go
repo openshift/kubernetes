@@ -121,19 +121,6 @@ profiles:
 		t.Fatal(err)
 	}
 
-	// plugin config
-	simplifiedPluginConfigFilev1 := filepath.Join(tmpDir, "simplifiedPluginv1.yaml")
-	if err := os.WriteFile(simplifiedPluginConfigFilev1, []byte(fmt.Sprintf(`
-apiVersion: kubescheduler.config.k8s.io/v1
-kind: KubeSchedulerConfiguration
-clientConnection:
-  kubeconfig: '%s'
-profiles:
-- schedulerName: simplified-scheduler
-`, configKubeconfig)), os.FileMode(0600)); err != nil {
-		t.Fatal(err)
-	}
-
 	// out-of-tree plugin config v1
 	outOfTreePluginConfigFilev1 := filepath.Join(tmpDir, "outOfTreePluginv1.yaml")
 	if err := os.WriteFile(outOfTreePluginConfigFilev1, []byte(fmt.Sprintf(`
@@ -230,13 +217,20 @@ leaderElection:
 			},
 		},
 		{
-			name: "component configuration v1 with only scheduler name configured",
+			name: "default config with a beta feature disabled",
 			flags: []string{
-				"--config", simplifiedPluginConfigFilev1,
 				"--kubeconfig", configKubeconfig,
+				"--feature-gates=PodSchedulingReadiness=false",
 			},
 			wantPlugins: map[string]*config.Plugins{
-				"simplified-scheduler": defaults.ExpandedPluginsV1,
+				"default-scheduler": func() *config.Plugins {
+					plugins := defaults.ExpandedPluginsV1.DeepCopy()
+					plugins.PreEnqueue = config.PluginSet{}
+					return plugins
+				}(),
+			},
+			restoreFeatures: map[featuregate.Feature]bool{
+				features.PodSchedulingReadiness: true,
 			},
 		},
 		{
@@ -266,7 +260,6 @@ leaderElection:
 						{Name: "NodePorts"},
 					}
 					plugins.PreScore.Enabled = []config.Plugin{
-						{Name: "VolumeBinding"},
 						{Name: "NodeResourcesFit"},
 						{Name: "InterPodAffinity"},
 						{Name: "TaintToleration"},

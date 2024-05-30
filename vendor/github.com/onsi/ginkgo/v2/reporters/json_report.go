@@ -18,7 +18,6 @@ func GenerateJSONReport(report types.Report, destination string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	err = enc.Encode([]types.Report{
@@ -27,7 +26,7 @@ func GenerateJSONReport(report types.Report, destination string) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return f.Close()
 }
 
 // MergeJSONReports produces a single JSON-formatted report at the passed in destination by merging the JSON-formatted reports provided in sources
@@ -58,12 +57,11 @@ func MergeAndCleanupJSONReports(sources []string, destination string) ([]string,
 	if err != nil {
 		return messages, err
 	}
-	defer f.Close()
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
 	err = enc.Encode(allReports)
 	if err != nil {
 		return messages, err
 	}
-	return messages, nil
+	return messages, f.Close()
 }

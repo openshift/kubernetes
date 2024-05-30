@@ -648,11 +648,7 @@ func needsClusterIP(svc *api.Service) bool {
 }
 
 func needsNodePort(svc *api.Service) bool {
-	if svc.Spec.Type == api.ServiceTypeNodePort {
-		return true
-	}
-	if svc.Spec.Type == api.ServiceTypeLoadBalancer &&
-		(svc.Spec.AllocateLoadBalancerNodePorts == nil || *svc.Spec.AllocateLoadBalancerNodePorts) {
+	if svc.Spec.Type == api.ServiceTypeNodePort || svc.Spec.Type == api.ServiceTypeLoadBalancer {
 		return true
 	}
 	return false

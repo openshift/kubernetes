@@ -28,13 +28,19 @@ source "${KUBE_ROOT}/hack/lib/util.sh"
 
 kube::golang::setup_env
 
-GOPROXY=off go install ./cmd/fieldnamedocscheck
+make -C "${KUBE_ROOT}" WHAT=cmd/fieldnamedocscheck
+
+# Find binary
+fieldnamedocscheck=$(kube::util::find-binary "fieldnamedocscheck")
+
+result=0
 
 find_files() {
   find . -not \( \
       \( \
-        -wholename '.git' \
+        -wholename './output' \
         -o -wholename './_output' \
+        -o -wholename './_gopath' \
         -o -wholename './release' \
         -o -wholename './target' \
         -o -wholename '*/third_party/*' \
@@ -50,11 +56,10 @@ find_files() {
 
 versioned_api_files=$(find_files) || true
 
-result=0
 for file in ${versioned_api_files}; do
   package="${file%"/types.go"}"
   echo "Checking ${package}"
-  fieldnamedocscheck -s "${file}" || result=$?
+  ${fieldnamedocscheck} -s "${file}" || result=$?
 done
 
 exit ${result}

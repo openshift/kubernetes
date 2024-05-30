@@ -32,8 +32,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	golangproto "google.golang.org/protobuf/proto"
-	apidiscovery "k8s.io/api/apidiscovery/v2"
-	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
+	apidiscovery "k8s.io/api/apidiscovery/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -59,8 +58,7 @@ func TestGetServerVersion(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(output)
-		require.NoError(t, err)
+		w.Write(output)
 	}))
 	defer server.Close()
 	client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
@@ -106,8 +104,7 @@ func TestGetServerGroupsWithV1Server(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(output)
-		require.NoError(t, err)
+		w.Write(output)
 	}))
 	defer server.Close()
 	client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
@@ -147,8 +144,7 @@ func TestDiscoveryToleratesMissingCoreGroup(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(output)
-		require.NoError(t, err)
+		w.Write(output)
 	}))
 	defer server.Close()
 	client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
@@ -184,8 +180,7 @@ func TestDiscoveryFailsWhenNonCoreGroupsMissing(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(output)
-		require.NoError(t, err)
+		w.Write(output)
 	}))
 	defer server.Close()
 	client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
@@ -385,8 +380,7 @@ func TestGetServerResourcesForGroupVersion(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(output)
-		require.NoError(t, err)
+		w.Write(output)
 	}))
 	defer server.Close()
 	for _, test := range tests {
@@ -1300,8 +1294,6 @@ func TestAggregatedServerGroups(t *testing.T) {
 
 	for _, test := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var output []byte
-			var err error
 			var agg *apidiscovery.APIGroupDiscoveryList
 			switch req.URL.Path {
 			case "/api":
@@ -1312,14 +1304,13 @@ func TestAggregatedServerGroups(t *testing.T) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			output, err = json.Marshal(agg)
+			output, err := json.Marshal(agg)
 			require.NoError(t, err)
 			// Content-Type is "aggregated" discovery format. Add extra parameter
 			// to ensure we are resilient to these extra parameters.
-			w.Header().Set("Content-Type", AcceptV2+"; charset=utf-8")
+			w.Header().Set("Content-Type", AcceptV2Beta1+"; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
-			_, err = w.Write(output)
-			require.NoError(t, err)
+			w.Write(output)
 		}))
 		defer server.Close()
 		client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
@@ -1347,9 +1338,7 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 	tests := []struct {
 		name                  string
 		corev1                *apidiscovery.APIGroupDiscoveryList
-		corev1DiscoveryBeta   *apidiscoveryv2beta1.APIGroupDiscoveryList
 		apis                  *apidiscovery.APIGroupDiscoveryList
-		apisDiscoveryBeta     *apidiscoveryv2beta1.APIGroupDiscoveryList
 		expectedGroupNames    []string
 		expectedGroupVersions []string
 		expectedGVKs          []string
@@ -1379,28 +1368,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 					},
 				},
 			},
-			corev1DiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "pods",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Pod",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			apis: &apidiscovery.APIGroupDiscoveryList{
 				Items: []apidiscovery.APIGroupDiscovery{
 					{
@@ -1419,31 +1386,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 											Kind:    "Deployment",
 										},
 										Scope: apidiscovery.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			apisDiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "apps",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
 									},
 								},
 							},
@@ -1482,28 +1424,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 					},
 				},
 			},
-			corev1DiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "pods",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Pod",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			apis: &apidiscovery.APIGroupDiscoveryList{
 				Items: []apidiscovery.APIGroupDiscovery{
 					{
@@ -1543,45 +1463,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 					},
 				},
 			},
-			apisDiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "apps",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-							{
-								Version: "v2",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v2",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			expectedGroupNames:    []string{"", "apps"},
 			expectedGroupVersions: []string{"v1", "apps/v1", "apps/v2"},
 			expectedGVKs: []string{
@@ -1607,28 +1488,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 											Kind:    "Pod",
 										},
 										Scope: apidiscovery.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			corev1DiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "pods",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Pod",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
 									},
 								},
 							},
@@ -1671,46 +1530,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 									},
 								},
 								Freshness: apidiscovery.DiscoveryFreshnessStale,
-							},
-						},
-					},
-				},
-			},
-			apisDiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "apps",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-							{
-								Version: "v2",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v2",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-								Freshness: apidiscoveryv2beta1.DiscoveryFreshnessStale,
 							},
 						},
 					},
@@ -1757,37 +1576,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 					},
 				},
 			},
-			corev1DiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "pods",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Pod",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "services",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Service",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			apis: &apidiscovery.APIGroupDiscoveryList{
 				Items: []apidiscovery.APIGroupDiscovery{
 					{
@@ -1840,65 +1628,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 											Kind:    "StatefulSet",
 										},
 										Scope: apidiscovery.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			apisDiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "apps",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							// Stale "v2" version not included.
-							{
-								Version: "v2",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v2",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "statefulsets",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v2",
-											Kind:    "StatefulSet",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-								Freshness: apidiscoveryv2beta1.DiscoveryFreshnessStale,
-							},
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "statefulsets",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "StatefulSet",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
 									},
 								},
 							},
@@ -1949,37 +1678,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 					},
 				},
 			},
-			corev1DiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "pods",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Pod",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "services",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "",
-											Version: "v1",
-											Kind:    "Service",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			apis: &apidiscovery.APIGroupDiscoveryList{
 				Items: []apidiscovery.APIGroupDiscovery{
 					{
@@ -2062,95 +1760,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 											Kind:    "CronJob",
 										},
 										Scope: apidiscovery.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			apisDiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "apps",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "statefulsets",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "StatefulSet",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "batch",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							// Stale Group/Version is not included
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "jobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1",
-											Kind:    "Job",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "cronjobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1",
-											Kind:    "CronJob",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-								Freshness: apidiscoveryv2beta1.DiscoveryFreshnessStale,
-							},
-							{
-								Version: "v1beta1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "jobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1beta1",
-											Kind:    "Job",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "cronjobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1beta1",
-											Kind:    "CronJob",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
 									},
 								},
 							},
@@ -2171,9 +1780,8 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 			expectedFailedGVs: []string{"batch/v1"},
 		},
 		{
-			name:                "Aggregated discovery: /api returns nothing, 2 groups/2 resources at /apis",
-			corev1:              &apidiscovery.APIGroupDiscoveryList{},
-			corev1DiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{},
+			name:   "Aggregated discovery: /api returns nothing, 2 groups/2 resources at /apis",
+			corev1: &apidiscovery.APIGroupDiscoveryList{},
 			apis: &apidiscovery.APIGroupDiscoveryList{
 				Items: []apidiscovery.APIGroupDiscovery{
 					{
@@ -2263,95 +1871,6 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 					},
 				},
 			},
-			apisDiscoveryBeta: &apidiscoveryv2beta1.APIGroupDiscoveryList{
-				Items: []apidiscoveryv2beta1.APIGroupDiscovery{
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "apps",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "deployments",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "Deployment",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "statefulsets",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "apps",
-											Version: "v1",
-											Kind:    "StatefulSet",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-						},
-					},
-					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "batch",
-						},
-						Versions: []apidiscoveryv2beta1.APIVersionDiscovery{
-							{
-								Version: "v1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "jobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1",
-											Kind:    "Job",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "cronjobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1",
-											Kind:    "CronJob",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-							},
-							{
-								// Stale "v1beta1" not included.
-								Version: "v1beta1",
-								Resources: []apidiscoveryv2beta1.APIResourceDiscovery{
-									{
-										Resource: "jobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1beta1",
-											Kind:    "Job",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-									{
-										Resource: "cronjobs",
-										ResponseKind: &metav1.GroupVersionKind{
-											Group:   "batch",
-											Version: "v1beta1",
-											Kind:    "CronJob",
-										},
-										Scope: apidiscoveryv2beta1.ScopeNamespace,
-									},
-								},
-								Freshness: apidiscoveryv2beta1.DiscoveryFreshnessStale,
-							},
-						},
-					},
-				},
-			},
 			expectedGroupNames:    []string{"apps", "batch"},
 			expectedGroupVersions: []string{"apps/v1", "batch/v1"},
 			expectedGVKs: []string{
@@ -2364,84 +1883,61 @@ func TestAggregatedServerGroupsAndResources(t *testing.T) {
 		},
 	}
 
-	// Ensure that client can parse both V2Beta1 and V2 types from server
-	serverAccepts := []string{AcceptV2Beta1, AcceptV2}
 	for _, test := range tests {
-		for _, accept := range serverAccepts {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				var output []byte
-				var err error
-				if accept == AcceptV2 {
-					var agg *apidiscovery.APIGroupDiscoveryList
-					switch req.URL.Path {
-					case "/api":
-						agg = test.corev1
-					case "/apis":
-						agg = test.apis
-					default:
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-					output, err = json.Marshal(agg)
-					require.NoError(t, err)
-				} else {
-					var agg *apidiscoveryv2beta1.APIGroupDiscoveryList
-					switch req.URL.Path {
-					case "/api":
-						agg = test.corev1DiscoveryBeta
-					case "/apis":
-						agg = test.apisDiscoveryBeta
-					default:
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-					output, err = json.Marshal(&agg)
-					require.NoError(t, err)
-				}
-				// Content-Type is "aggregated" discovery format. Add extra parameter
-				// to ensure we are resilient to these extra parameters.
-				w.Header().Set("Content-Type", accept+"; charset=utf-8")
-				w.WriteHeader(http.StatusOK)
-				_, err = w.Write(output)
-				require.NoError(t, err)
-
-			}))
-			defer server.Close()
-			client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
-			apiGroups, resources, err := client.ServerGroupsAndResources()
-			if len(test.expectedFailedGVs) > 0 {
-				require.Error(t, err)
-				expectedFailedGVs := sets.NewString(test.expectedFailedGVs...)
-				actualFailedGVs := sets.NewString(failedGroupVersions(err)...)
-				assert.True(t, expectedFailedGVs.Equal(actualFailedGVs),
-					"%s: Expected Failed GVs (%s), got (%s)", test.name, expectedFailedGVs, actualFailedGVs)
-			} else {
-				require.NoError(t, err)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			var agg *apidiscovery.APIGroupDiscoveryList
+			switch req.URL.Path {
+			case "/api":
+				agg = test.corev1
+			case "/apis":
+				agg = test.apis
+			default:
+				w.WriteHeader(http.StatusNotFound)
+				return
 			}
-			// Test the expected groups are returned for the aggregated format.
-			expectedGroupNames := sets.NewString(test.expectedGroupNames...)
-			actualGroupNames := sets.NewString(groupNames(apiGroups)...)
-			assert.True(t, expectedGroupNames.Equal(actualGroupNames),
-				"%s: Expected GVKs (%s), got (%s)", test.name, expectedGroupNames.List(), actualGroupNames.List())
-			// If the core V1 group is returned from /api, it should be the first group.
-			if expectedGroupNames.Has("") {
-				assert.True(t, len(apiGroups) > 0)
-				actualFirstGroup := apiGroups[0]
-				assert.True(t, len(actualFirstGroup.Versions) > 0)
-				actualFirstGroupVersion := actualFirstGroup.Versions[0].GroupVersion
-				assert.Equal(t, "v1", actualFirstGroupVersion)
-			}
-			// Test the expected group/versions are returned from the aggregated discovery.
-			expectedGroupVersions := sets.NewString(test.expectedGroupVersions...)
-			actualGroupVersions := sets.NewString(groupVersions(resources)...)
-			assert.True(t, expectedGroupVersions.Equal(actualGroupVersions),
-				"%s: Expected GroupVersions(%s), got (%s)", test.name, expectedGroupVersions.List(), actualGroupVersions.List())
-			// Test the expected GVKs are returned from the aggregated discovery.
-			expectedGVKs := sets.NewString(test.expectedGVKs...)
-			actualGVKs := sets.NewString(groupVersionKinds(resources)...)
-			assert.True(t, expectedGVKs.Equal(actualGVKs),
-				"%s: Expected GVKs (%s), got (%s)", test.name, expectedGVKs.List(), actualGVKs.List())
+			output, err := json.Marshal(agg)
+			require.NoError(t, err)
+			// Content-type is "aggregated" discovery format. Add extra parameter
+			// to ensure we are resilient to these extra parameters.
+			w.Header().Set("Content-Type", AcceptV2Beta1+"; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			w.Write(output)
+		}))
+		defer server.Close()
+		client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
+		apiGroups, resources, err := client.ServerGroupsAndResources()
+		if len(test.expectedFailedGVs) > 0 {
+			require.Error(t, err)
+			expectedFailedGVs := sets.NewString(test.expectedFailedGVs...)
+			actualFailedGVs := sets.NewString(failedGroupVersions(err)...)
+			assert.True(t, expectedFailedGVs.Equal(actualFailedGVs),
+				"%s: Expected Failed GVs (%s), got (%s)", test.name, expectedFailedGVs, actualFailedGVs)
+		} else {
+			require.NoError(t, err)
 		}
+		// Test the expected groups are returned for the aggregated format.
+		expectedGroupNames := sets.NewString(test.expectedGroupNames...)
+		actualGroupNames := sets.NewString(groupNames(apiGroups)...)
+		assert.True(t, expectedGroupNames.Equal(actualGroupNames),
+			"%s: Expected GVKs (%s), got (%s)", test.name, expectedGroupNames.List(), actualGroupNames.List())
+		// If the core V1 group is returned from /api, it should be the first group.
+		if expectedGroupNames.Has("") {
+			assert.True(t, len(apiGroups) > 0)
+			actualFirstGroup := apiGroups[0]
+			assert.True(t, len(actualFirstGroup.Versions) > 0)
+			actualFirstGroupVersion := actualFirstGroup.Versions[0].GroupVersion
+			assert.Equal(t, "v1", actualFirstGroupVersion)
+		}
+		// Test the expected group/versions are returned from the aggregated discovery.
+		expectedGroupVersions := sets.NewString(test.expectedGroupVersions...)
+		actualGroupVersions := sets.NewString(groupVersions(resources)...)
+		assert.True(t, expectedGroupVersions.Equal(actualGroupVersions),
+			"%s: Expected GroupVersions(%s), got (%s)", test.name, expectedGroupVersions.List(), actualGroupVersions.List())
+		// Test the expected GVKs are returned from the aggregated discovery.
+		expectedGVKs := sets.NewString(test.expectedGVKs...)
+		actualGVKs := sets.NewString(groupVersionKinds(resources)...)
+		assert.True(t, expectedGVKs.Equal(actualGVKs),
+			"%s: Expected GVKs (%s), got (%s)", test.name, expectedGVKs.List(), actualGVKs.List())
 	}
 }
 
@@ -2527,10 +2023,8 @@ func TestAggregatedServerGroupsAndResourcesWithErrors(t *testing.T) {
 
 	for _, test := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var output []byte
-			var err error
-			var status int
 			var agg *apidiscovery.APIGroupDiscoveryList
+			var status int
 			switch req.URL.Path {
 			case "/api":
 				agg = test.corev1
@@ -2542,17 +2036,15 @@ func TestAggregatedServerGroupsAndResourcesWithErrors(t *testing.T) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			output, err = json.Marshal(agg)
+			output, err := json.Marshal(agg)
 			require.NoError(t, err)
-			// Content-Type is "aggregated" discovery format. Add extra parameter
+			// Content-type is "aggregated" discovery format. Add extra parameter
 			// to ensure we are resilient to these extra parameters.
-			w.Header().Set("Content-Type", AcceptV2+"; charset=utf-8")
+			w.Header().Set("Content-Type", AcceptV2Beta1+"; charset=utf-8")
 			w.WriteHeader(status)
-			_, err = w.Write(output)
-			require.NoError(t, err)
+			w.Write(output)
 		}))
 		defer server.Close()
-
 		client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
 		apiGroups, resources, err := client.ServerGroupsAndResources()
 		if test.expectedErr {
@@ -3143,8 +2635,6 @@ func TestAggregatedServerPreferredResources(t *testing.T) {
 
 	for _, test := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var output []byte
-			var err error
 			var agg *apidiscovery.APIGroupDiscoveryList
 			switch req.URL.Path {
 			case "/api":
@@ -3155,14 +2645,13 @@ func TestAggregatedServerPreferredResources(t *testing.T) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			output, err = json.Marshal(agg)
+			output, err := json.Marshal(agg)
 			require.NoError(t, err)
-			// Content-Type is "aggregated" discovery format. Add extra parameter
+			// Content-type is "aggregated" discovery format. Add extra parameter
 			// to ensure we are resilient to these extra parameters.
-			w.Header().Set("Content-Type", AcceptV2+"; charset=utf-8")
+			w.Header().Set("Content-Type", AcceptV2Beta1+"; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
-			_, err = w.Write(output)
-			require.NoError(t, err)
+			w.Write(output)
 		}))
 		defer server.Close()
 		client := NewDiscoveryClientForConfigOrDie(&restclient.Config{Host: server.URL})
@@ -3185,7 +2674,7 @@ func TestAggregatedServerPreferredResources(t *testing.T) {
 }
 
 func TestDiscoveryContentTypeVersion(t *testing.T) {
-	v2 := schema.GroupVersionKind{Group: "apidiscovery.k8s.io", Version: "v2", Kind: "APIGroupDiscoveryList"}
+	v2beta1 := schema.GroupVersionKind{Group: "apidiscovery.k8s.io", Version: "v2beta1", Kind: "APIGroupDiscoveryList"}
 	tests := []struct {
 		contentType string
 		gvk         schema.GroupVersionKind
@@ -3193,59 +2682,59 @@ func TestDiscoveryContentTypeVersion(t *testing.T) {
 		expectErr   bool
 	}{
 		{
-			contentType: "application/json; g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList",
-			gvk:         v2,
+			contentType: "application/json; g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList",
+			gvk:         v2beta1,
 			match:       true,
 			expectErr:   false,
 		},
 		{
 			// content-type parameters are not in correct order, but comparison ignores order.
-			contentType: "application/json; v=v2;as=APIGroupDiscoveryList;g=apidiscovery.k8s.io",
-			gvk:         v2,
+			contentType: "application/json; v=v2beta1;as=APIGroupDiscoveryList;g=apidiscovery.k8s.io",
+			gvk:         v2beta1,
 			match:       true,
 			expectErr:   false,
 		},
 		{
 			// content-type parameters are not in correct order, but comparison ignores order.
-			contentType: "application/json; as=APIGroupDiscoveryList;g=apidiscovery.k8s.io;v=v2",
-			gvk:         v2,
+			contentType: "application/json; as=APIGroupDiscoveryList;g=apidiscovery.k8s.io;v=v2beta1",
+			gvk:         v2beta1,
 			match:       true,
 			expectErr:   false,
 		},
 		{
 			// Ignores extra parameter "charset=utf-8"
-			contentType: "application/json; g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList;charset=utf-8",
-			gvk:         v2,
+			contentType: "application/json; g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList;charset=utf-8",
+			gvk:         v2beta1,
 			match:       true,
 			expectErr:   false,
 		},
 		{
 			contentType: "application/json",
-			gvk:         v2,
+			gvk:         v2beta1,
 			match:       false,
 			expectErr:   false,
 		},
 		{
 			contentType: "application/json; charset=UTF-8",
-			gvk:         v2,
+			gvk:         v2beta1,
 			match:       false,
 			expectErr:   false,
 		},
 		{
 			contentType: "text/json",
-			gvk:         v2,
+			gvk:         v2beta1,
 			match:       false,
 			expectErr:   false,
 		},
 		{
 			contentType: "text/html",
-			gvk:         v2,
+			gvk:         v2beta1,
 			match:       false,
 			expectErr:   false,
 		},
 		{
 			contentType: "",
-			gvk:         v2,
+			gvk:         v2beta1,
 			match:       false,
 			expectErr:   true,
 		},

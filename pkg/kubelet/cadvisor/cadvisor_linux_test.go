@@ -68,7 +68,7 @@ func TestContainerFsInfoLabel(t *testing.T) {
 	}{{
 		description:     "LabelCrioWriteableImages should be returned",
 		runtimeEndpoint: crio.CrioSocket,
-		expectedLabel:   cadvisorfs.LabelCrioContainers,
+		expectedLabel:   LabelCrioContainers,
 		expectedError:   nil,
 	}, {
 		description:     "Cannot find valid imagefs label",

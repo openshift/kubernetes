@@ -62,10 +62,6 @@ func LoadFromManifests(files ...string) ([]interface{}, error) {
 		if err := runtime.DecodeInto(scheme.Codecs.UniversalDecoder(), data, &what); err != nil {
 			return fmt.Errorf("decode TypeMeta: %w", err)
 		}
-		// Ignore empty documents.
-		if what.Kind == "" {
-			return nil
-		}
 
 		factory := factories[what]
 		if factory == nil {

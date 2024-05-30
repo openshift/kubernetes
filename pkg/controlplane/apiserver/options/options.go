@@ -33,6 +33,7 @@ import (
 	logsapi "k8s.io/component-base/logs/api/v1"
 	"k8s.io/component-base/metrics"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/integer"
 	netutil "k8s.io/utils/net"
 
 	_ "k8s.io/kubernetes/pkg/features"
@@ -298,7 +299,7 @@ func ServiceIPRange(passedServiceClusterIPRange net.IPNet) (net.IPNet, net.IP, e
 		serviceClusterIPRange = kubeoptions.DefaultServiceIPCIDR
 	}
 
-	size := min(netutil.RangeSize(&serviceClusterIPRange), 1<<16)
+	size := integer.Int64Min(netutil.RangeSize(&serviceClusterIPRange), 1<<16)
 	if size < 8 {
 		return net.IPNet{}, net.IP{}, fmt.Errorf("the service cluster IP range must be at least %d IP addresses", 8)
 	}

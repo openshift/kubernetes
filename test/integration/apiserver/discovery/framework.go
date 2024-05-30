@@ -36,7 +36,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	aggregator "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 
-	apidiscoveryv2 "k8s.io/api/apidiscovery/v2"
 	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,8 +43,7 @@ import (
 )
 
 const acceptV1JSON = "application/json"
-const acceptV2Beta1JSON = "application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList"
-const acceptV2JSON = "application/json;g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList"
+const acceptV2JSON = "application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList"
 
 const maxTimeout = 10 * time.Second
 
@@ -95,14 +93,8 @@ type waitForAbsentGroupVersionsV1 []metav1.GroupVersion
 // Wait for groupversions to appear in v2 discovery
 type waitForGroupVersionsV2 []metav1.GroupVersion
 
-// Wait for groupversions to appear in v2beta1 discovery
-type waitForGroupVersionsV2Beta1 []metav1.GroupVersion
-
 // Wait for groupversions to disappear from v2 discovery
 type waitForAbsentGroupVersionsV2 []metav1.GroupVersion
-
-// Wait for groupversions to disappear from v2beta1 discovery
-type waitForAbsentGroupVersionsV2Beta1 []metav1.GroupVersion
 
 type waitForStaleGroupVersionsV2 []metav1.GroupVersion
 type waitForFreshGroupVersionsV2 []metav1.GroupVersion
@@ -152,11 +144,10 @@ func (a applyAPIService) Cleanup(ctx context.Context, client testClient) error {
 		return err
 	}
 
-	err = wait.PollUntilContextTimeout(
+	err = wait.PollWithContext(
 		ctx,
 		250*time.Millisecond,
 		maxTimeout,
-		true,
 		func(ctx context.Context) (done bool, err error) {
 			_, err = client.ApiregistrationV1().APIServices().Get(ctx, name, metav1.GetOptions{})
 			if err == nil {
@@ -221,11 +212,10 @@ func (a applyCRD) Cleanup(ctx context.Context, client testClient) error {
 		return err
 	}
 
-	err = wait.PollUntilContextTimeout(
+	err = wait.PollWithContext(
 		ctx,
 		250*time.Millisecond,
 		maxTimeout,
-		true,
 		func(ctx context.Context) (done bool, err error) {
 			_, err = client.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
 			if err == nil {
@@ -258,9 +248,9 @@ func (d deleteObject) Do(ctx context.Context, client testClient) error {
 }
 
 func (w waitForStaleGroupVersionsV2) Do(ctx context.Context, client testClient) error {
-	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2.APIGroupDiscoveryList) bool {
+	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, gv := range w {
-			if info := FindGroupVersionV2(result, gv); info == nil || info.Freshness != apidiscoveryv2.DiscoveryFreshnessStale {
+			if info := FindGroupVersionV2(result, gv); info == nil || info.Freshness != apidiscoveryv2beta1.DiscoveryFreshnessStale {
 				return false
 			}
 		}
@@ -275,9 +265,9 @@ func (w waitForStaleGroupVersionsV2) Do(ctx context.Context, client testClient) 
 }
 
 func (w waitForFreshGroupVersionsV2) Do(ctx context.Context, client testClient) error {
-	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2.APIGroupDiscoveryList) bool {
+	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, gv := range w {
-			if info := FindGroupVersionV2(result, gv); info == nil || info.Freshness != apidiscoveryv2.DiscoveryFreshnessCurrent {
+			if info := FindGroupVersionV2(result, gv); info == nil || info.Freshness != apidiscoveryv2beta1.DiscoveryFreshnessCurrent {
 				return false
 			}
 		}
@@ -292,7 +282,7 @@ func (w waitForFreshGroupVersionsV2) Do(ctx context.Context, client testClient) 
 }
 
 func (w waitForGroupVersionsV2) Do(ctx context.Context, client testClient) error {
-	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2.APIGroupDiscoveryList) bool {
+	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, gv := range w {
 			if FindGroupVersionV2(result, gv) == nil {
 				return false
@@ -308,44 +298,10 @@ func (w waitForGroupVersionsV2) Do(ctx context.Context, client testClient) error
 	return nil
 }
 
-func (w waitForGroupVersionsV2Beta1) Do(ctx context.Context, client testClient) error {
-	err := WaitForV2Beta1ResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
-		for _, gv := range w {
-			if FindGroupVersionV2Beta1(result, gv) == nil {
-				return false
-			}
-		}
-
-		return true
-	})
-
-	if err != nil {
-		return fmt.Errorf("waiting for groupversions v2 (%v): %w", w, err)
-	}
-	return nil
-}
-
 func (w waitForAbsentGroupVersionsV2) Do(ctx context.Context, client testClient) error {
-	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2.APIGroupDiscoveryList) bool {
+	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, gv := range w {
 			if FindGroupVersionV2(result, gv) != nil {
-				return false
-			}
-		}
-
-		return true
-	})
-
-	if err != nil {
-		return fmt.Errorf("waiting for absent groupversions v2 (%v): %w", w, err)
-	}
-	return nil
-}
-
-func (w waitForAbsentGroupVersionsV2Beta1) Do(ctx context.Context, client testClient) error {
-	err := WaitForV2Beta1ResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
-		for _, gv := range w {
-			if FindGroupVersionV2Beta1(result, gv) != nil {
 				return false
 			}
 		}
@@ -473,7 +429,7 @@ func (w waitForResourcesAbsentV1) Do(ctx context.Context, client testClient) err
 }
 
 func (w waitForResourcesV2) Do(ctx context.Context, client testClient) error {
-	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2.APIGroupDiscoveryList) bool {
+	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, gvr := range w {
 			if info := FindGroupVersionV2(result, metav1.GroupVersion{Group: gvr.Group, Version: gvr.Version}); info == nil {
 				return false
@@ -502,7 +458,7 @@ func (w waitForResourcesV2) Do(ctx context.Context, client testClient) error {
 }
 
 func (w waitForResourcesAbsentV2) Do(ctx context.Context, client testClient) error {
-	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2.APIGroupDiscoveryList) bool {
+	err := WaitForResultWithCondition(ctx, client, func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, gvr := range w {
 			if info := FindGroupVersionV2(result, metav1.GroupVersion{Group: gvr.Group, Version: gvr.Version}); info == nil {
 				return false
@@ -528,36 +484,13 @@ func (i inlineAction) Do(ctx context.Context, client testClient) error {
 	return i(ctx, client)
 }
 
-func FetchV2Discovery(ctx context.Context, client testClient) (apidiscoveryv2.APIGroupDiscoveryList, error) {
+func FetchV2Discovery(ctx context.Context, client testClient) (apidiscoveryv2beta1.APIGroupDiscoveryList, error) {
 	result, err := client.
 		Discovery().
 		RESTClient().
 		Get().
 		AbsPath("/apis").
 		SetHeader("Accept", acceptV2JSON).
-		Do(ctx).
-		Raw()
-
-	if err != nil {
-		return apidiscoveryv2.APIGroupDiscoveryList{}, fmt.Errorf("failed to fetch v2 discovery: %w", err)
-	}
-
-	groupList := apidiscoveryv2.APIGroupDiscoveryList{}
-	err = json.Unmarshal(result, &groupList)
-	if err != nil {
-		return apidiscoveryv2.APIGroupDiscoveryList{}, fmt.Errorf("failed to parse v2 discovery: %w", err)
-	}
-
-	return groupList, nil
-}
-
-func FetchV2Beta1Discovery(ctx context.Context, client testClient) (apidiscoveryv2beta1.APIGroupDiscoveryList, error) {
-	result, err := client.
-		Discovery().
-		RESTClient().
-		Get().
-		AbsPath("/apis").
-		SetHeader("Accept", acceptV2Beta1JSON).
 		Do(ctx).
 		Raw()
 
@@ -629,7 +562,7 @@ func FetchV1DiscoveryResource(ctx context.Context, client testClient, gv metav1.
 }
 
 func WaitForGroupsAbsent(ctx context.Context, client testClient, groups ...string) error {
-	return WaitForResultWithCondition(ctx, client, func(groupList apidiscoveryv2.APIGroupDiscoveryList) bool {
+	return WaitForResultWithCondition(ctx, client, func(groupList apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, searchGroup := range groups {
 			for _, docGroup := range groupList.Items {
 				if docGroup.Name == searchGroup {
@@ -665,56 +598,28 @@ func WaitForRootPaths(t *testing.T, ctx context.Context, client testClient, requ
 	})
 }
 
-func WaitForGroups(ctx context.Context, client testClient, groups ...apidiscoveryv2.APIGroupDiscovery) error {
-	return WaitForResultWithCondition(ctx, client, func(groupList apidiscoveryv2.APIGroupDiscoveryList) bool {
+func WaitForGroups(ctx context.Context, client testClient, groups ...apidiscoveryv2beta1.APIGroupDiscovery) error {
+	return WaitForResultWithCondition(ctx, client, func(groupList apidiscoveryv2beta1.APIGroupDiscoveryList) bool {
 		for _, searchGroup := range groups {
-			found := false
 			for _, docGroup := range groupList.Items {
 				if reflect.DeepEqual(searchGroup, docGroup) {
-					found = true
-					break
+					return true
 				}
 			}
-			if !found {
-				return false
-			}
 		}
-		return true
+		return false
 	})
 }
 
-func WaitForResultWithCondition(ctx context.Context, client testClient, condition func(result apidiscoveryv2.APIGroupDiscoveryList) bool) error {
+func WaitForResultWithCondition(ctx context.Context, client testClient, condition func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool) error {
 	// Keep repeatedly fetching document from aggregator.
 	// Check to see if it contains our service within a reasonable amount of time
-	return wait.PollUntilContextTimeout(
+	return wait.PollWithContext(
 		ctx,
 		250*time.Millisecond,
 		maxTimeout,
-		true,
 		func(ctx context.Context) (done bool, err error) {
 			groupList, err := FetchV2Discovery(ctx, client)
-			if err != nil {
-				return false, err
-			}
-
-			if condition(groupList) {
-				return true, nil
-			}
-
-			return false, nil
-		})
-}
-
-func WaitForV2Beta1ResultWithCondition(ctx context.Context, client testClient, condition func(result apidiscoveryv2beta1.APIGroupDiscoveryList) bool) error {
-	// Keep repeatedly fetching document from aggregator.
-	// Check to see if it contains our service within a reasonable amount of time
-	return wait.PollUntilContextTimeout(
-		ctx,
-		250*time.Millisecond,
-		maxTimeout,
-		true,
-		func(ctx context.Context) (done bool, err error) {
-			groupList, err := FetchV2Beta1Discovery(ctx, client)
 			if err != nil {
 				return false, err
 			}
@@ -730,11 +635,10 @@ func WaitForV2Beta1ResultWithCondition(ctx context.Context, client testClient, c
 func WaitForV1GroupsWithCondition(ctx context.Context, client testClient, condition func(result metav1.APIGroupList) bool) error {
 	// Keep repeatedly fetching document from aggregator.
 	// Check to see if it contains our service within a reasonable amount of time
-	return wait.PollUntilContextTimeout(
+	return wait.PollWithContext(
 		ctx,
 		250*time.Millisecond,
 		maxTimeout,
-		true,
 		func(ctx context.Context) (done bool, err error) {
 			groupList, err := FetchV1DiscoveryGroups(ctx, client)
 
@@ -753,11 +657,10 @@ func WaitForV1GroupsWithCondition(ctx context.Context, client testClient, condit
 func WaitForV1ResourcesWithCondition(ctx context.Context, client testClient, gv metav1.GroupVersion, condition func(result metav1.APIResourceList) bool) error {
 	// Keep repeatedly fetching document from aggregator.
 	// Check to see if it contains our service within a reasonable amount of time
-	return wait.PollUntilContextTimeout(
+	return wait.PollWithContext(
 		ctx,
 		250*time.Millisecond,
 		maxTimeout,
-		true,
 		func(ctx context.Context) (done bool, err error) {
 			resourceList, err := FetchV1DiscoveryResource(ctx, client, gv)
 
@@ -789,23 +692,7 @@ func FindGroupVersionV1(discovery metav1.APIGroupList, gv metav1.GroupVersion) b
 	return false
 }
 
-func FindGroupVersionV2(discovery apidiscoveryv2.APIGroupDiscoveryList, gv metav1.GroupVersion) *apidiscoveryv2.APIVersionDiscovery {
-	for _, documentGroup := range discovery.Items {
-		if documentGroup.Name != gv.Group {
-			continue
-		}
-
-		for _, documentVersion := range documentGroup.Versions {
-			if documentVersion.Version == gv.Version {
-				return &documentVersion
-			}
-		}
-	}
-
-	return nil
-}
-
-func FindGroupVersionV2Beta1(discovery apidiscoveryv2beta1.APIGroupDiscoveryList, gv metav1.GroupVersion) *apidiscoveryv2beta1.APIVersionDiscovery {
+func FindGroupVersionV2(discovery apidiscoveryv2beta1.APIGroupDiscoveryList, gv metav1.GroupVersion) *apidiscoveryv2beta1.APIVersionDiscovery {
 	for _, documentGroup := range discovery.Items {
 		if documentGroup.Name != gv.Group {
 			continue

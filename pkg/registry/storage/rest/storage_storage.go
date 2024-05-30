@@ -64,6 +64,15 @@ func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorag
 func (p RESTStorageProvider) v1alpha1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (map[string]rest.Storage, error) {
 	storage := map[string]rest.Storage{}
 
+	// register csistoragecapacities
+	if resource := "csistoragecapacities"; apiResourceConfigSource.ResourceEnabled(storageapiv1alpha1.SchemeGroupVersion.WithResource(resource)) {
+		csiStorageStorage, err := csistoragecapacitystore.NewStorage(restOptionsGetter)
+		if err != nil {
+			return storage, err
+		}
+		storage[resource] = csiStorageStorage.CSIStorageCapacity
+	}
+
 	// register volumeattributesclasses
 	if resource := "volumeattributesclasses"; apiResourceConfigSource.ResourceEnabled(storageapiv1alpha1.SchemeGroupVersion.WithResource(resource)) {
 		volumeAttributesClassStorage, err := volumeattributesclassstore.NewREST(restOptionsGetter)
@@ -78,6 +87,15 @@ func (p RESTStorageProvider) v1alpha1Storage(apiResourceConfigSource serverstora
 
 func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (map[string]rest.Storage, error) {
 	storage := map[string]rest.Storage{}
+
+	// register csistoragecapacities
+	if resource := "csistoragecapacities"; apiResourceConfigSource.ResourceEnabled(storageapiv1beta1.SchemeGroupVersion.WithResource(resource)) {
+		csiStorageStorage, err := csistoragecapacitystore.NewStorage(restOptionsGetter)
+		if err != nil {
+			return storage, err
+		}
+		storage[resource] = csiStorageStorage.CSIStorageCapacity
+	}
 
 	return storage, nil
 }

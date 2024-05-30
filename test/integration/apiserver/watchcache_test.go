@@ -85,8 +85,11 @@ func multiEtcdSetup(ctx context.Context, t *testing.T) (clientset.Interface, fra
 }
 
 func TestWatchCacheUpdatedByEtcd(t *testing.T) {
-	tCtx := ktesting.Init(t)
-	c, closeFn := multiEtcdSetup(tCtx, t)
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	c, closeFn := multiEtcdSetup(ctx, t)
 	defer closeFn()
 
 	makeConfigMap := func(name string) *v1.ConfigMap {
@@ -99,11 +102,11 @@ func TestWatchCacheUpdatedByEtcd(t *testing.T) {
 		return &v1.Event{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	}
 
-	cm, err := c.CoreV1().ConfigMaps("default").Create(tCtx, makeConfigMap("name"), metav1.CreateOptions{})
+	cm, err := c.CoreV1().ConfigMaps("default").Create(ctx, makeConfigMap("name"), metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("Couldn't create configmap: %v", err)
 	}
-	ev, err := c.CoreV1().Events("default").Create(tCtx, makeEvent("name"), metav1.CreateOptions{})
+	ev, err := c.CoreV1().Events("default").Create(ctx, makeEvent("name"), metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("Couldn't create event: %v", err)
 	}
@@ -117,7 +120,7 @@ func TestWatchCacheUpdatedByEtcd(t *testing.T) {
 	// resources (being the last updates).
 	t.Logf("Waiting for configmaps watchcache synced to %s", cm.ResourceVersion)
 	if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
-		res, err := c.CoreV1().ConfigMaps("default").List(tCtx, listOptions)
+		res, err := c.CoreV1().ConfigMaps("default").List(ctx, listOptions)
 		if err != nil {
 			return false, nil
 		}
@@ -127,7 +130,7 @@ func TestWatchCacheUpdatedByEtcd(t *testing.T) {
 	}
 	t.Logf("Waiting for events watchcache synced to %s", ev.ResourceVersion)
 	if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
-		res, err := c.CoreV1().Events("default").List(tCtx, listOptions)
+		res, err := c.CoreV1().Events("default").List(ctx, listOptions)
 		if err != nil {
 			return false, nil
 		}
@@ -138,14 +141,14 @@ func TestWatchCacheUpdatedByEtcd(t *testing.T) {
 
 	// Create a secret, that is stored in the same etcd as configmap, but
 	// different than events.
-	se, err := c.CoreV1().Secrets("default").Create(tCtx, makeSecret("name"), metav1.CreateOptions{})
+	se, err := c.CoreV1().Secrets("default").Create(ctx, makeSecret("name"), metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("Couldn't create secret: %v", err)
 	}
 
 	t.Logf("Waiting for configmaps watchcache synced to %s", se.ResourceVersion)
 	if err := wait.Poll(100*time.Millisecond, wait.ForeverTestTimeout, func() (bool, error) {
-		res, err := c.CoreV1().ConfigMaps("default").List(tCtx, listOptions)
+		res, err := c.CoreV1().ConfigMaps("default").List(ctx, listOptions)
 		if err != nil {
 			return false, nil
 		}
@@ -155,7 +158,7 @@ func TestWatchCacheUpdatedByEtcd(t *testing.T) {
 	}
 	t.Logf("Waiting for events watchcache NOT synced to %s", se.ResourceVersion)
 	if err := wait.Poll(100*time.Millisecond, 5*time.Second, func() (bool, error) {
-		res, err := c.CoreV1().Events("default").List(tCtx, listOptions)
+		res, err := c.CoreV1().Events("default").List(ctx, listOptions)
 		if err != nil {
 			return false, nil
 		}
@@ -166,8 +169,11 @@ func TestWatchCacheUpdatedByEtcd(t *testing.T) {
 }
 
 func BenchmarkListFromWatchCache(b *testing.B) {
-	tCtx := ktesting.Init(b)
-	c, _, tearDownFn := framework.StartTestServer(tCtx, b, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(b)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	c, _, tearDownFn := framework.StartTestServer(ctx, b, framework.TestServerSetup{
 		ModifyServerConfig: func(config *controlplane.Config) {
 			// Switch off endpoints reconciler to avoid unnecessary operations.
 			config.ExtraConfig.EndpointReconcilerType = reconcilers.NoneEndpointReconcilerType
@@ -188,7 +194,7 @@ func BenchmarkListFromWatchCache(b *testing.B) {
 			ns := &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("namespace-%d", index)},
 			}
-			ns, err := c.CoreV1().Namespaces().Create(tCtx, ns, metav1.CreateOptions{})
+			ns, err := c.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 			if err != nil {
 				errCh <- err
 				return
@@ -200,7 +206,7 @@ func BenchmarkListFromWatchCache(b *testing.B) {
 						Name: fmt.Sprintf("secret-%d", j),
 					},
 				}
-				_, err := c.CoreV1().Secrets(ns.Name).Create(tCtx, secret, metav1.CreateOptions{})
+				_, err := c.CoreV1().Secrets(ns.Name).Create(ctx, secret, metav1.CreateOptions{})
 				if err != nil {
 					errCh <- err
 					return
@@ -221,7 +227,7 @@ func BenchmarkListFromWatchCache(b *testing.B) {
 		ResourceVersion: "0",
 	}
 	for i := 0; i < b.N; i++ {
-		secrets, err := c.CoreV1().Secrets("").List(tCtx, opts)
+		secrets, err := c.CoreV1().Secrets("").List(ctx, opts)
 		if err != nil {
 			b.Errorf("failed to list secrets: %v", err)
 		}

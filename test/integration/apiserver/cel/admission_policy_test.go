@@ -37,6 +37,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/admissionregistration"
 	admissionregistrationv1alpha1apis "k8s.io/kubernetes/pkg/apis/admissionregistration/v1alpha1"
 	admissionregistrationv1beta1apis "k8s.io/kubernetes/pkg/apis/admissionregistration/v1beta1"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/test/integration/etcd"
 	"k8s.io/kubernetes/test/integration/framework"
 
@@ -410,6 +411,7 @@ func createV1alpha1ValidatingPolicyAndBinding(client clientset.Interface, conver
 // test/integration/apiserver/admissionwebhook/admission_test.go testWebhookAdmission
 func TestPolicyAdmission(t *testing.T) {
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, genericfeatures.ValidatingAdmissionPolicy, true)()
+	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.APISelfSubjectReview, true)()
 
 	holder := &policyExpectationHolder{
 		holder: holder{

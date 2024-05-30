@@ -84,5 +84,4 @@ const (
 	LegacyServiceAccountTokenCleanerController   = "legacy-serviceaccount-token-cleaner-controller"
 	ValidatingAdmissionPolicyStatusController    = "validatingadmissionpolicy-status-controller"
 	ServiceCIDRController                        = "service-cidr-controller"
-	StorageVersionMigratorController             = "storage-version-migrator-controller"
 )

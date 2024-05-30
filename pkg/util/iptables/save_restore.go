@@ -1,6 +1,3 @@
-//go:build linux
-// +build linux
-
 /*
 Copyright 2014 The Kubernetes Authors.
 
@@ -22,8 +19,6 @@ package iptables
 import (
 	"bytes"
 	"fmt"
-
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // MakeChainLine return an iptables-save/restore formatted chain line given a Chain
@@ -32,10 +27,10 @@ func MakeChainLine(chain Chain) string {
 }
 
 // GetChainsFromTable parses iptables-save data to find the chains that are defined. It
-// assumes that save contains a single table's data, and returns a set with keys for every
+// assumes that save contains a single table's data, and returns a map with keys for every
 // chain defined in that table.
-func GetChainsFromTable(save []byte) sets.Set[Chain] {
-	chainsSet := sets.New[Chain]()
+func GetChainsFromTable(save []byte) map[Chain]struct{} {
+	chainsMap := make(map[Chain]struct{})
 
 	for {
 		i := bytes.Index(save, []byte("\n:"))
@@ -45,13 +40,13 @@ func GetChainsFromTable(save []byte) sets.Set[Chain] {
 		start := i + 2
 		save = save[start:]
 		end := bytes.Index(save, []byte(" "))
-		if end == -1 {
+		if i == -1 {
 			// shouldn't happen, but...
 			break
 		}
 		chain := Chain(save[:end])
-		chainsSet.Insert(chain)
+		chainsMap[chain] = struct{}{}
 		save = save[end:]
 	}
-	return chainsSet
+	return chainsMap
 }

@@ -32,16 +32,11 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	apidiscoveryv2 "k8s.io/api/apidiscovery/v2"
 	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/version"
-	apidiscoveryv2conversion "k8s.io/apiserver/pkg/apis/apidiscovery/v2"
 	discoveryendpoint "k8s.io/apiserver/pkg/endpoints/discovery/aggregated"
 )
 
@@ -51,23 +46,21 @@ var codecs = runtimeserializer.NewCodecFactory(scheme)
 const discoveryPath = "/apis"
 
 func init() {
-	utilruntime.Must(apidiscoveryv2.AddToScheme(scheme))
-	utilruntime.Must(apidiscoveryv2beta1.AddToScheme(scheme))
-	// Register conversion for apidiscovery
-	utilruntime.Must(apidiscoveryv2conversion.RegisterConversions(scheme))
+	// Add all builtin types to scheme
+	apidiscoveryv2beta1.AddToScheme(scheme)
 	codecs = runtimeserializer.NewCodecFactory(scheme)
 }
 
-func fuzzAPIGroups(atLeastNumGroups, maxNumGroups int, seed int64) apidiscoveryv2.APIGroupDiscoveryList {
+func fuzzAPIGroups(atLeastNumGroups, maxNumGroups int, seed int64) apidiscoveryv2beta1.APIGroupDiscoveryList {
 	fuzzer := fuzz.NewWithSeed(seed)
 	fuzzer.NumElements(atLeastNumGroups, maxNumGroups)
 	fuzzer.NilChance(0)
-	fuzzer.Funcs(func(o *apidiscoveryv2.APIGroupDiscovery, c fuzz.Continue) {
+	fuzzer.Funcs(func(o *apidiscoveryv2beta1.APIGroupDiscovery, c fuzz.Continue) {
 		c.FuzzNoCustom(o)
 
 		// The ResourceManager will just not serve the group if its versions
 		// list is empty
-		atLeastOne := apidiscoveryv2.APIVersionDiscovery{}
+		atLeastOne := apidiscoveryv2beta1.APIVersionDiscovery{}
 		c.Fuzz(&atLeastOne)
 		o.Versions = append(o.Versions, atLeastOne)
 		sort.Slice(o.Versions[:], func(i, j int) bool {
@@ -82,58 +75,28 @@ func fuzzAPIGroups(atLeastNumGroups, maxNumGroups int, seed int64) apidiscoveryv
 		}
 	})
 
-	var apis []apidiscoveryv2.APIGroupDiscovery
+	var apis []apidiscoveryv2beta1.APIGroupDiscovery
 	fuzzer.Fuzz(&apis)
 	sort.Slice(apis[:], func(i, j int) bool {
 		return apis[i].Name < apis[j].Name
 	})
 
-	return apidiscoveryv2.APIGroupDiscoveryList{
+	return apidiscoveryv2beta1.APIGroupDiscoveryList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "APIGroupDiscoveryList",
-			APIVersion: "apidiscovery.k8s.io/v2",
+			APIVersion: "apidiscovery.k8s.io/v2beta1",
 		},
 		Items: apis,
 	}
 }
 
-func fetchPathV2Beta1(handler http.Handler, acceptPrefix string, path string, etag string) (*http.Response, []byte, *apidiscoveryv2beta1.APIGroupDiscoveryList) {
-	acceptSuffix := ";g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList"
-	r, bytes := fetchPathHelper(handler, acceptPrefix+acceptSuffix, path, etag)
-	var decoded *apidiscoveryv2beta1.APIGroupDiscoveryList
-	if len(bytes) > 0 {
-		decoded = &apidiscoveryv2beta1.APIGroupDiscoveryList{}
-		err := runtime.DecodeInto(codecs.UniversalDecoder(), bytes, decoded)
-		if err != nil {
-			panic(fmt.Sprintf("failed to decode response: %v", err))
-		}
-
-	}
-	return r, bytes, decoded
-}
-
-func fetchPath(handler http.Handler, acceptPrefix string, path string, etag string) (*http.Response, []byte, *apidiscoveryv2.APIGroupDiscoveryList) {
-	acceptSuffix := ";g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList,"
-	acceptSuffixV2Beta1 := ";g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,"
-	r, bytes := fetchPathHelper(handler, acceptPrefix+acceptSuffix+","+acceptPrefix+acceptSuffixV2Beta1, path, etag)
-	var decoded *apidiscoveryv2.APIGroupDiscoveryList
-	if len(bytes) > 0 {
-		decoded = &apidiscoveryv2.APIGroupDiscoveryList{}
-		err := runtime.DecodeInto(codecs.UniversalDecoder(), bytes, decoded)
-		if err != nil {
-			panic(fmt.Sprintf("failed to decode response: %v", err))
-		}
-	}
-	return r, bytes, decoded
-}
-
-func fetchPathHelper(handler http.Handler, accept string, path string, etag string) (*http.Response, []byte) {
+func fetchPath(handler http.Handler, acceptPrefix string, path string, etag string) (*http.Response, []byte, *apidiscoveryv2beta1.APIGroupDiscoveryList) {
 	// Expect json-formatted apis group list
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", discoveryPath, nil)
 
 	// Ask for JSON response
-	req.Header.Set("Accept", accept)
+	req.Header.Set("Accept", acceptPrefix+";g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList")
 
 	if etag != "" {
 		// Quote provided etag if unquoted
@@ -147,7 +110,13 @@ func fetchPathHelper(handler http.Handler, accept string, path string, etag stri
 	handler.ServeHTTP(w, req)
 
 	bytes := w.Body.Bytes()
-	return w.Result(), bytes
+	var decoded *apidiscoveryv2beta1.APIGroupDiscoveryList
+	if len(bytes) > 0 {
+		decoded = &apidiscoveryv2beta1.APIGroupDiscoveryList{}
+		runtime.DecodeInto(codecs.UniversalDecoder(), bytes, decoded)
+	}
+
+	return w.Result(), bytes, decoded
 }
 
 // Add all builtin APIServices to the manager and check the output
@@ -163,7 +132,7 @@ func TestBasicResponse(t *testing.T) {
 	require.NoError(t, err, "json marshal should always succeed")
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "response should be 200 OK")
-	assert.Equal(t, "application/json;g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList", response.Header.Get("Content-Type"), "Content-Type response header should be as requested in Accept header if supported")
+	assert.Equal(t, "application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList", response.Header.Get("Content-Type"), "Content-Type response header should be as requested in Accept header if supported")
 	assert.NotEmpty(t, response.Header.Get("ETag"), "E-Tag should be set")
 
 	assert.NoError(t, err, "decode should always succeed")
@@ -180,37 +149,9 @@ func TestBasicResponseProtobuf(t *testing.T) {
 
 	response, _, decoded := fetchPath(manager, "application/vnd.kubernetes.protobuf", discoveryPath, "")
 	assert.Equal(t, http.StatusOK, response.StatusCode, "response should be 200 OK")
-	assert.Equal(t, "application/vnd.kubernetes.protobuf;g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList", response.Header.Get("Content-Type"), "Content-Type response header should be as requested in Accept header if supported")
+	assert.Equal(t, "application/vnd.kubernetes.protobuf;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList", response.Header.Get("Content-Type"), "Content-Type response header should be as requested in Accept header if supported")
 	assert.NotEmpty(t, response.Header.Get("ETag"), "E-Tag should be set")
 	assert.EqualValues(t, &apis, decoded, "decoded value should equal input")
-}
-
-// V2Beta1 should still be served
-func TestV2Beta1SkewSupport(t *testing.T) {
-	manager := discoveryendpoint.NewResourceManager("apis")
-
-	apis := fuzzAPIGroups(1, 3, 10)
-	manager.SetGroups(apis.Items)
-
-	converted, err := scheme.ConvertToVersion(&apis, &schema.GroupVersion{Group: "apidiscovery.k8s.io", Version: "v2beta1"})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	v2beta1apis := converted.(*apidiscoveryv2beta1.APIGroupDiscoveryList)
-
-	response, body, decoded := fetchPathV2Beta1(manager, "application/json", discoveryPath, "")
-
-	jsonFormatted, err := json.Marshal(v2beta1apis)
-	require.NoError(t, err, "json marshal should always succeed")
-
-	assert.Equal(t, http.StatusOK, response.StatusCode, "response should be 200 OK")
-	assert.Equal(t, "application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList", response.Header.Get("Content-Type"), "Content-Type response header should be as requested in Accept header if supported")
-	assert.NotEmpty(t, response.Header.Get("ETag"), "E-Tag should be set")
-
-	assert.NoError(t, err, "decode should always succeed")
-	assert.EqualValues(t, v2beta1apis, decoded, "decoded value should equal input")
-	assert.Equal(t, string(jsonFormatted)+"\n", string(body), "response should be the api group list")
 }
 
 // Test that an etag associated with the service only depends on the apiresources
@@ -407,7 +348,7 @@ func TestUpdateService(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	var newapis apidiscoveryv2.APIGroupDiscoveryList
+	var newapis apidiscoveryv2beta1.APIGroupDiscoveryList
 	err = json.Unmarshal(b, &newapis)
 	if err != nil {
 		t.Error(err)
@@ -428,7 +369,7 @@ func TestUpdateService(t *testing.T) {
 func TestMultipleSources(t *testing.T) {
 	type pair struct {
 		manager discoveryendpoint.ResourceManager
-		apis    apidiscoveryv2.APIGroupDiscoveryList
+		apis    apidiscoveryv2beta1.APIGroupDiscoveryList
 	}
 
 	pairs := []pair{}
@@ -447,7 +388,7 @@ func TestMultipleSources(t *testing.T) {
 		pairs = append(pairs, pair{manager, apis})
 	}
 
-	expectedResult := []apidiscoveryv2.APIGroupDiscovery{}
+	expectedResult := []apidiscoveryv2beta1.APIGroupDiscovery{}
 
 	groupCounter := 0
 	for _, p := range pairs {
@@ -481,7 +422,7 @@ func TestSourcePrecedence(t *testing.T) {
 	apis := fuzzAPIGroups(1, 3, int64(15))
 	for _, g := range apis.Items {
 		for i, v := range g.Versions {
-			v.Freshness = apidiscoveryv2.DiscoveryFreshnessCurrent
+			v.Freshness = apidiscoveryv2beta1.DiscoveryFreshnessCurrent
 			g.Versions[i] = v
 			otherManager.AddGroupVersion(g.Name, v)
 		}
@@ -493,12 +434,12 @@ func TestSourcePrecedence(t *testing.T) {
 	// Add the first groupversion under default.
 	// No versions should appear in discovery document except this one
 	overrideVersion := initialDocument.Items[0].Versions[0]
-	overrideVersion.Freshness = apidiscoveryv2.DiscoveryFreshnessStale
+	overrideVersion.Freshness = apidiscoveryv2beta1.DiscoveryFreshnessStale
 	defaultManager.AddGroupVersion(initialDocument.Items[0].Name, overrideVersion)
 
 	_, _, maskedDocument := fetchPath(defaultManager, "application/json", discoveryPath, "")
 	masked := initialDocument.DeepCopy()
-	masked.Items[0].Versions[0].Freshness = apidiscoveryv2.DiscoveryFreshnessStale
+	masked.Items[0].Versions[0].Freshness = apidiscoveryv2beta1.DiscoveryFreshnessStale
 
 	require.Equal(t, masked.Items, maskedDocument.Items)
 
@@ -652,19 +593,19 @@ func TestAbuse(t *testing.T) {
 func TestVersionSortingNoPriority(t *testing.T) {
 	manager := discoveryendpoint.NewResourceManager("apis")
 
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1alpha1",
 	})
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v2beta1",
 	})
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1",
 	})
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1beta1",
 	})
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v2",
 	})
 
@@ -684,11 +625,11 @@ func TestVersionSortingNoPriority(t *testing.T) {
 func TestVersionSortingWithPriority(t *testing.T) {
 	manager := discoveryendpoint.NewResourceManager("apis")
 
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: "default", Version: "v1"}, 1000, 100)
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1alpha1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: "default", Version: "v1alpha1"}, 1000, 200)
@@ -707,15 +648,15 @@ func TestVersionSortingWithPriority(t *testing.T) {
 func TestGroupVersionSortingConflictingPriority(t *testing.T) {
 	manager := discoveryendpoint.NewResourceManager("apis")
 
-	manager.AddGroupVersion("default", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("default", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: "default", Version: "v1"}, 1000, 100)
-	manager.AddGroupVersion("test", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("test", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1alpha1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: "test", Version: "v1alpha1"}, 500, 100)
-	manager.AddGroupVersion("test", apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion("test", apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1alpha2",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: "test", Version: "v1alpha1"}, 2000, 100)
@@ -738,17 +679,17 @@ func TestStatelessGroupPriorityMinimum(t *testing.T) {
 	stableGroup := "stable.example.com"
 	experimentalGroup := "experimental.example.com"
 
-	manager.AddGroupVersion(stableGroup, apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion(stableGroup, apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: stableGroup, Version: "v1"}, 1000, 100)
 
-	manager.AddGroupVersion(experimentalGroup, apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion(experimentalGroup, apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: experimentalGroup, Version: "v1"}, 100, 100)
 
-	manager.AddGroupVersion(experimentalGroup, apidiscoveryv2.APIVersionDiscovery{
+	manager.AddGroupVersion(experimentalGroup, apidiscoveryv2beta1.APIVersionDiscovery{
 		Version: "v1alpha1",
 	})
 	manager.SetGroupVersionPriority(metav1.GroupVersion{Group: experimentalGroup, Version: "v1alpha1"}, 10000, 100)

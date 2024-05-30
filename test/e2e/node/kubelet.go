@@ -23,7 +23,6 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -386,7 +385,7 @@ var _ = SIGDescribe("kubelet", func() {
 	})
 
 	// Test host cleanup when disrupting the volume environment.
-	f.Describe("host cleanup with volume mounts [HostCleanup]", f.WithFlaky(), func() {
+	ginkgo.Describe("host cleanup with volume mounts [HostCleanup][Flaky]", func() {
 
 		type hostCleanupTest struct {
 			itDescr string
@@ -458,32 +457,16 @@ var _ = SIGDescribe("kubelet", func() {
 	})
 
 	// Tests for NodeLogQuery feature
-	f.Describe("kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here>", feature.NodeLogQuery, func() {
+	f.Describe("kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here>", feature.NodeLogQuery, "[LinuxOnly]", func() {
 		var linuxNodeName string
-		var windowsNodeName string
 
 		ginkgo.BeforeEach(func(ctx context.Context) {
-			allNodes, err := e2enode.GetReadyNodesIncludingTainted(ctx, c)
+			nodes, err := e2enode.GetReadyNodesIncludingTainted(ctx, c)
 			framework.ExpectNoError(err)
-			if len(allNodes.Items) == 0 {
-				framework.Fail("Expected at least one node to be present")
-			}
-			// Make a copy of the node list as getLinuxNodes will filter out the Windows nodes
-			nodes := allNodes.DeepCopy()
-
-			linuxNodes := getLinuxNodes(nodes)
-			if len(linuxNodes.Items) == 0 {
+			if len(nodes.Items) == 0 {
 				framework.Fail("Expected at least one Linux node to be present")
 			}
-			linuxNodeName = linuxNodes.Items[0].Name
-
-			windowsNodes := getWindowsNodes(allNodes)
-			if len(windowsNodes.Items) == 0 {
-				framework.Logf("No Windows node found")
-			} else {
-				windowsNodeName = windowsNodes.Items[0].Name
-			}
-
+			linuxNodeName = nodes.Items[0].Name
 		})
 
 		/*
@@ -506,7 +489,7 @@ var _ = SIGDescribe("kubelet", func() {
 		})
 
 		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-linux-node-name-here>/proxy/logs/?query=kubelet"
+			Test if kubectl get --raw "/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=kubelet"
 			returns the kubelet logs
 		*/
 
@@ -521,7 +504,7 @@ var _ = SIGDescribe("kubelet", func() {
 		})
 
 		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-linux-node-name-here>/proxy/logs/?query=kubelet&boot=0"
+			Test if kubectl get --raw "/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=kubelet&boot=0"
 			returns kubelet logs from the current boot
 		*/
 
@@ -536,7 +519,7 @@ var _ = SIGDescribe("kubelet", func() {
 		})
 
 		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-linux-node-name-here>/proxy/logs/?query=kubelet&tailLines=3"
+			Test if kubectl get --raw "/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=kubelet&tailLines=3"
 			returns the last three lines of the kubelet log
 		*/
 
@@ -555,7 +538,7 @@ var _ = SIGDescribe("kubelet", func() {
 		})
 
 		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-linux-node-name-here>/proxy/logs/?query=kubelet&pattern=container"
+			Test if kubectl get --raw "/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=kubelet&pattern=kubelet"
 			returns kubelet logs for the current boot with the pattern container
 		*/
 
@@ -574,8 +557,8 @@ var _ = SIGDescribe("kubelet", func() {
 		})
 
 		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-linux-node-name-here>/proxy/logs/?query=kubelet&sinceTime=<now>"
-			returns the kubelet logs since the current date and time. This can be "-- No entries --" which is correct.
+			Test if kubectl get --raw "/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=kubelet&sinceTime=<now>"
+			returns the kubelet since the current date and time. This can be "-- No entries --" which is correct.
 		*/
 
 		ginkgo.It("should return the kubelet logs since the current date and time", func() {
@@ -593,96 +576,8 @@ var _ = SIGDescribe("kubelet", func() {
 				framework.Failf("Failed to receive the correct kubelet logs or the correct amount of lines of logs")
 			}
 		})
-
-		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-windows-node-name-here>/proxy/logs/?query="Microsoft-Windows-Security-SPP"
-			returns the Microsoft-Windows-Security-SPP log
-		*/
-
-		ginkgo.It("should return the Microsoft-Windows-Security-SPP logs", func(ctx context.Context) {
-			if len(windowsNodeName) == 0 {
-				ginkgo.Skip("No Windows node found")
-			}
-			ginkgo.By("Starting the command")
-			tk := e2ekubectl.NewTestKubeconfig(framework.TestContext.CertDir, framework.TestContext.Host, framework.TestContext.KubeConfig, framework.TestContext.KubeContext, framework.TestContext.KubectlPath, ns)
-
-			queryCommand := fmt.Sprintf("/api/v1/nodes/%s/proxy/logs/?query=Microsoft-Windows-Security-SPP", windowsNodeName)
-			cmd := tk.KubectlCmd("get", "--raw", queryCommand)
-			result := runKubectlCommand(cmd)
-			assertContains("ProviderName: Microsoft-Windows-Security-SPP", result)
-		})
-
-		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-windows-node-name-here>/proxy/logs/?query=Microsoft-Windows-Security-SPP&tailLines=3"
-			returns the last three lines of the Microsoft-Windows-Security-SPP log
-		*/
-
-		ginkgo.It("should return the last three lines of the Microsoft-Windows-Security-SPP logs", func(ctx context.Context) {
-			e2eskipper.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
-			if len(windowsNodeName) == 0 {
-				ginkgo.Skip("No Windows node found")
-			}
-			ginkgo.By("Starting the command")
-			tk := e2ekubectl.NewTestKubeconfig(framework.TestContext.CertDir, framework.TestContext.Host, framework.TestContext.KubeConfig, framework.TestContext.KubeContext, framework.TestContext.KubectlPath, ns)
-
-			queryCommand := fmt.Sprintf("/api/v1/nodes/%s/proxy/logs/?query=Microsoft-Windows-Security-SPP&tailLines=3", windowsNodeName)
-			cmd := tk.KubectlCmd("get", "--raw", queryCommand)
-			result := runKubectlCommand(cmd)
-			logs := getWinEventCommandOnNode(windowsNodeName, "Microsoft-Windows-Security-SPP", " -MaxEvents 3")
-			if trimSpaceNewlineInString(result) != trimSpaceNewlineInString(logs) {
-				framework.Failf("Failed to receive the correct Microsoft-Windows-Security-SPP logs or the correct amount of lines of logs")
-			}
-		})
-
-		/*
-			Test if kubectl get --raw "/api/v1/nodes/<insert-windows-node-name-here>/proxy/logs/?query=Microsoft-Windows-Security-SPP&pattern=Health"
-			returns the lines of the Microsoft-Windows-Security-SPP log with the pattern Health
-		*/
-
-		ginkgo.It("should return the Microsoft-Windows-Security-SPP logs with the pattern Health", func(ctx context.Context) {
-			e2eskipper.SkipUnlessProviderIs(framework.ProvidersWithSSH...)
-			if len(windowsNodeName) == 0 {
-				ginkgo.Skip("No Windows node found")
-			}
-			ginkgo.By("Starting the command")
-			tk := e2ekubectl.NewTestKubeconfig(framework.TestContext.CertDir, framework.TestContext.Host, framework.TestContext.KubeConfig, framework.TestContext.KubeContext, framework.TestContext.KubectlPath, ns)
-
-			queryCommand := fmt.Sprintf("/api/v1/nodes/%s/proxy/logs/?query=Microsoft-Windows-Security-SPP&pattern=Health", windowsNodeName)
-			cmd := tk.KubectlCmd("get", "--raw", queryCommand)
-			result := runKubectlCommand(cmd)
-			logs := getWinEventCommandOnNode(windowsNodeName, "Microsoft-Windows-Security-SPP", "  | Where-Object -Property Message -Match Health")
-			if trimSpaceNewlineInString(result) != trimSpaceNewlineInString(logs) {
-				framework.Failf("Failed to receive the correct Microsoft-Windows-Security-SPP logs or the correct amount of lines of logs")
-			}
-		})
 	})
 })
-
-func getLinuxNodes(nodes *v1.NodeList) *v1.NodeList {
-	filteredNodes := nodes
-	e2enode.Filter(filteredNodes, func(node v1.Node) bool {
-		return isNode(&node, "linux")
-	})
-	return filteredNodes
-}
-
-func getWindowsNodes(nodes *v1.NodeList) *v1.NodeList {
-	filteredNodes := nodes
-	e2enode.Filter(filteredNodes, func(node v1.Node) bool {
-		return isNode(&node, "windows")
-	})
-	return filteredNodes
-}
-
-func isNode(node *v1.Node, os string) bool {
-	if node == nil {
-		return false
-	}
-	if foundOS, found := node.Labels[v1.LabelOSStable]; found {
-		return (os == foundOS)
-	}
-	return false
-}
 
 func runKubectlCommand(cmd *exec.Cmd) (result string) {
 	stdout, stderr, err := framework.StartCmdAndStreamOutput(cmd)
@@ -714,26 +609,10 @@ func assertContains(expectedString string, result string) {
 	framework.Failf("Failed to find \"%s\"", expectedString)
 }
 
-func commandOnNode(nodeName string, cmd string) string {
-	result, err := e2essh.NodeExec(context.Background(), nodeName, cmd, framework.TestContext.Provider)
+func journalctlCommandOnNode(nodeName string, args string) string {
+	result, err := e2essh.NodeExec(context.Background(), nodeName,
+		"journalctl --utc --no-pager --output=short-precise "+args, framework.TestContext.Provider)
 	framework.ExpectNoError(err)
 	e2essh.LogResult(result)
 	return result.Stdout
-}
-
-func journalctlCommandOnNode(nodeName string, args string) string {
-	return commandOnNode(nodeName, "journalctl --utc --no-pager --output=short-precise "+args)
-}
-
-func getWinEventCommandOnNode(nodeName string, providerName, args string) string {
-	output := commandOnNode(nodeName, "Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='"+providerName+"'}"+args+" | Sort-Object TimeCreated | Format-Table -AutoSize -Wrap")
-	return output
-}
-
-func trimSpaceNewlineInString(s string) string {
-	// Remove Windows newlines
-	re := regexp.MustCompile(` +\r?\n +`)
-	s = re.ReplaceAllString(s, "")
-	// Replace spaces to account for cases like "\r\n " that could lead to false negatives
-	return strings.ReplaceAll(s, " ", "")
 }

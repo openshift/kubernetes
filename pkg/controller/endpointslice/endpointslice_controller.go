@@ -86,7 +86,7 @@ func NewController(ctx context.Context, podInformer coreinformers.PodInformer,
 	client clientset.Interface,
 	endpointUpdatesBatchPeriod time.Duration,
 ) *Controller {
-	broadcaster := record.NewBroadcaster(record.WithContext(ctx))
+	broadcaster := record.NewBroadcaster()
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "endpoint-slice-controller"})
 
 	endpointslicemetrics.RegisterMetrics()
@@ -175,7 +175,6 @@ func NewController(ctx context.Context, podInformer coreinformers.PodInformer,
 		c.topologyCache,
 		c.eventRecorder,
 		controllerName,
-		endpointslicerec.WithTrafficDistributionEnabled(utilfeature.DefaultFeatureGate.Enabled(features.ServiceTrafficDistribution)),
 	)
 
 	return c

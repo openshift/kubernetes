@@ -37,14 +37,13 @@ func TestApplyFeatureGates(t *testing.T) {
 		wantConfig *v1.Plugins
 	}{
 		{
-			name: "Feature gate DynamicResourceAllocation disabled",
+			name: "Feature gates disabled",
 			features: map[featuregate.Feature]bool{
-				features.DynamicResourceAllocation: false,
+				features.PodSchedulingReadiness: false,
 			},
 			wantConfig: &v1.Plugins{
 				MultiPoint: v1.PluginSet{
 					Enabled: []v1.Plugin{
-						{Name: names.SchedulingGates},
 						{Name: names.PrioritySort},
 						{Name: names.NodeUnschedulable},
 						{Name: names.NodeName},
@@ -70,6 +69,39 @@ func TestApplyFeatureGates(t *testing.T) {
 			},
 		},
 		{
+			name: "Feature gate PodSchedulingReadiness enabled",
+			features: map[featuregate.Feature]bool{
+				features.PodSchedulingReadiness: true,
+			},
+			wantConfig: &v1.Plugins{
+				MultiPoint: v1.PluginSet{
+					Enabled: []v1.Plugin{
+						{Name: names.PrioritySort},
+						{Name: names.NodeUnschedulable},
+						{Name: names.NodeName},
+						{Name: names.TaintToleration, Weight: ptr.To[int32](3)},
+						{Name: names.NodeAffinity, Weight: ptr.To[int32](2)},
+						{Name: names.NodePorts},
+						{Name: names.NodeResourcesFit, Weight: ptr.To[int32](1)},
+						{Name: names.VolumeRestrictions},
+						{Name: names.EBSLimits},
+						{Name: names.GCEPDLimits},
+						{Name: names.NodeVolumeLimits},
+						{Name: names.AzureDiskLimits},
+						{Name: names.VolumeBinding},
+						{Name: names.VolumeZone},
+						{Name: names.PodTopologySpread, Weight: ptr.To[int32](2)},
+						{Name: names.InterPodAffinity, Weight: ptr.To[int32](2)},
+						{Name: names.DefaultPreemption},
+						{Name: names.NodeResourcesBalancedAllocation, Weight: ptr.To[int32](1)},
+						{Name: names.ImageLocality, Weight: ptr.To[int32](1)},
+						{Name: names.DefaultBinder},
+						{Name: names.SchedulingGates},
+					},
+				},
+			},
+		},
+		{
 			name: "Feature gate DynamicResourceAllocation enabled",
 			features: map[featuregate.Feature]bool{
 				features.DynamicResourceAllocation: true,
@@ -77,7 +109,6 @@ func TestApplyFeatureGates(t *testing.T) {
 			wantConfig: &v1.Plugins{
 				MultiPoint: v1.PluginSet{
 					Enabled: []v1.Plugin{
-						{Name: names.SchedulingGates},
 						{Name: names.PrioritySort},
 						{Name: names.NodeUnschedulable},
 						{Name: names.NodeName},
@@ -99,6 +130,7 @@ func TestApplyFeatureGates(t *testing.T) {
 						{Name: names.NodeResourcesBalancedAllocation, Weight: ptr.To[int32](1)},
 						{Name: names.ImageLocality, Weight: ptr.To[int32](1)},
 						{Name: names.DefaultBinder},
+						{Name: names.SchedulingGates},
 					},
 				},
 			},

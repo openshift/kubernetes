@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/lithammer/dedent"
 	"github.com/pkg/errors"
@@ -206,14 +205,8 @@ func runKubeletStartJoinPhase(c workflow.RunData) (returnErr error) {
 	// Now the kubelet will perform the TLS Bootstrap, transforming /etc/kubernetes/bootstrap-kubelet.conf to /etc/kubernetes/kubelet.conf
 	// Wait for the kubelet to create the /etc/kubernetes/kubelet.conf kubeconfig file. If this process
 	// times out, display a somewhat user-friendly message.
-	waiter := apiclient.NewKubeWaiter(nil, 0, os.Stdout)
-	waiter.SetTimeout(cfg.Timeouts.KubeletHealthCheck.Duration)
-	if err := waiter.WaitForKubelet(); err != nil {
-		fmt.Printf(kubeadmJoinFailMsg, err)
-		return err
-	}
-
-	if err := waitForTLSBootstrappedClient(cfg.Timeouts.TLSBootstrap.Duration); err != nil {
+	waiter := apiclient.NewKubeWaiter(nil, kubeadmconstants.TLSBootstrapTimeout, os.Stdout)
+	if err := waiter.WaitForKubeletAndFunc(waitForTLSBootstrappedClient); err != nil {
 		fmt.Printf(kubeadmJoinFailMsg, err)
 		return err
 	}
@@ -233,17 +226,15 @@ func runKubeletStartJoinPhase(c workflow.RunData) (returnErr error) {
 }
 
 // waitForTLSBootstrappedClient waits for the /etc/kubernetes/kubelet.conf file to be available
-func waitForTLSBootstrappedClient(timeout time.Duration) error {
-	fmt.Println("[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap")
+func waitForTLSBootstrappedClient() error {
+	fmt.Println("[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...")
 
 	// Loop on every falsy return. Return with an error if raised. Exit successfully if true is returned.
-	return wait.PollUntilContextTimeout(context.Background(),
-		kubeadmconstants.TLSBootstrapRetryInterval, timeout,
-		true, func(_ context.Context) (bool, error) {
-			// Check that we can create a client set out of the kubelet kubeconfig. This ensures not
-			// only that the kubeconfig file exists, but that other files required by it also exist (like
-			// client certificate and key)
-			_, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetKubeletKubeConfigPath())
-			return (err == nil), nil
-		})
+	return wait.PollImmediate(kubeadmconstants.TLSBootstrapRetryInterval, kubeadmconstants.TLSBootstrapTimeout, func() (bool, error) {
+		// Check that we can create a client set out of the kubelet kubeconfig. This ensures not
+		// only that the kubeconfig file exists, but that other files required by it also exist (like
+		// client certificate and key)
+		_, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetKubeletKubeConfigPath())
+		return (err == nil), nil
+	})
 }

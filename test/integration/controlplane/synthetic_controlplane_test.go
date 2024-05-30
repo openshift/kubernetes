@@ -190,8 +190,11 @@ func TestStatus(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
-			_, kubeConfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+			_, ctx := ktesting.NewTestContext(t)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			_, kubeConfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 				ModifyServerRunOptions: func(options *options.ServerRunOptions) {
 					if tc.modifyOptions != nil {
 						tc.modifyOptions(options)

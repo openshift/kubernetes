@@ -246,18 +246,18 @@ func convertToMetaVictims(
 // unresolvable.
 func (h *HTTPExtender) Filter(
 	pod *v1.Pod,
-	nodes []*framework.NodeInfo,
-) (filteredList []*framework.NodeInfo, failedNodes, failedAndUnresolvableNodes extenderv1.FailedNodesMap, err error) {
+	nodes []*v1.Node,
+) (filteredList []*v1.Node, failedNodes, failedAndUnresolvableNodes extenderv1.FailedNodesMap, err error) {
 	var (
 		result     extenderv1.ExtenderFilterResult
 		nodeList   *v1.NodeList
 		nodeNames  *[]string
-		nodeResult []*framework.NodeInfo
+		nodeResult []*v1.Node
 		args       *extenderv1.ExtenderArgs
 	)
-	fromNodeName := make(map[string]*framework.NodeInfo)
+	fromNodeName := make(map[string]*v1.Node)
 	for _, n := range nodes {
-		fromNodeName[n.Node().Name] = n
+		fromNodeName[n.Name] = n
 	}
 
 	if h.filterVerb == "" {
@@ -267,13 +267,13 @@ func (h *HTTPExtender) Filter(
 	if h.nodeCacheCapable {
 		nodeNameSlice := make([]string, 0, len(nodes))
 		for _, node := range nodes {
-			nodeNameSlice = append(nodeNameSlice, node.Node().Name)
+			nodeNameSlice = append(nodeNameSlice, node.Name)
 		}
 		nodeNames = &nodeNameSlice
 	} else {
 		nodeList = &v1.NodeList{}
 		for _, node := range nodes {
-			nodeList.Items = append(nodeList.Items, *node.Node())
+			nodeList.Items = append(nodeList.Items, *node)
 		}
 	}
 
@@ -291,7 +291,7 @@ func (h *HTTPExtender) Filter(
 	}
 
 	if h.nodeCacheCapable && result.NodeNames != nil {
-		nodeResult = make([]*framework.NodeInfo, len(*result.NodeNames))
+		nodeResult = make([]*v1.Node, len(*result.NodeNames))
 		for i, nodeName := range *result.NodeNames {
 			if n, ok := fromNodeName[nodeName]; ok {
 				nodeResult[i] = n
@@ -302,10 +302,9 @@ func (h *HTTPExtender) Filter(
 			}
 		}
 	} else if result.Nodes != nil {
-		nodeResult = make([]*framework.NodeInfo, len(result.Nodes.Items))
+		nodeResult = make([]*v1.Node, len(result.Nodes.Items))
 		for i := range result.Nodes.Items {
-			nodeResult[i] = framework.NewNodeInfo()
-			nodeResult[i].SetNode(&result.Nodes.Items[i])
+			nodeResult[i] = &result.Nodes.Items[i]
 		}
 	}
 
@@ -315,7 +314,7 @@ func (h *HTTPExtender) Filter(
 // Prioritize based on extender implemented priority functions. Weight*priority is added
 // up for each such priority function. The returned score is added to the score computed
 // by Kubernetes scheduler. The total score is used to do the host selection.
-func (h *HTTPExtender) Prioritize(pod *v1.Pod, nodes []*framework.NodeInfo) (*extenderv1.HostPriorityList, int64, error) {
+func (h *HTTPExtender) Prioritize(pod *v1.Pod, nodes []*v1.Node) (*extenderv1.HostPriorityList, int64, error) {
 	var (
 		result    extenderv1.HostPriorityList
 		nodeList  *v1.NodeList
@@ -326,7 +325,7 @@ func (h *HTTPExtender) Prioritize(pod *v1.Pod, nodes []*framework.NodeInfo) (*ex
 	if h.prioritizeVerb == "" {
 		result := extenderv1.HostPriorityList{}
 		for _, node := range nodes {
-			result = append(result, extenderv1.HostPriority{Host: node.Node().Name, Score: 0})
+			result = append(result, extenderv1.HostPriority{Host: node.Name, Score: 0})
 		}
 		return &result, 0, nil
 	}
@@ -334,13 +333,13 @@ func (h *HTTPExtender) Prioritize(pod *v1.Pod, nodes []*framework.NodeInfo) (*ex
 	if h.nodeCacheCapable {
 		nodeNameSlice := make([]string, 0, len(nodes))
 		for _, node := range nodes {
-			nodeNameSlice = append(nodeNameSlice, node.Node().Name)
+			nodeNameSlice = append(nodeNameSlice, node.Name)
 		}
 		nodeNames = &nodeNameSlice
 	} else {
 		nodeList = &v1.NodeList{}
 		for _, node := range nodes {
-			nodeList.Items = append(nodeList.Items, *node.Node())
+			nodeList.Items = append(nodeList.Items, *node)
 		}
 	}
 
@@ -381,16 +380,6 @@ func (h *HTTPExtender) Bind(binding *v1.Binding) error {
 // IsBinder returns whether this extender is configured for the Bind method.
 func (h *HTTPExtender) IsBinder() bool {
 	return h.bindVerb != ""
-}
-
-// IsPrioritizer returns whether this extender is configured for the Prioritize method.
-func (h *HTTPExtender) IsPrioritizer() bool {
-	return h.prioritizeVerb != ""
-}
-
-// IsFilter returns whether this extender is configured for the Filter method.
-func (h *HTTPExtender) IsFilter() bool {
-	return h.filterVerb != ""
 }
 
 // Helper function to send messages to the extender

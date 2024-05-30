@@ -72,27 +72,10 @@ func TestDeletePods(t *testing.T) {
 						newPod := newPodMap[name]
 						return &newPod, nil
 					}
-					return &corev1.Pod{}, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
+					return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
+
 				}
-				return &corev1.Pod{}, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
-			},
-		},
-		{
-			description:       "Pod found with same name but different UID",
-			interval:          100 * time.Millisecond,
-			timeout:           10 * time.Second,
-			expectPendingPods: false,
-			expectError:       false,
-			expectedError:     nil,
-			getPodFn: func(namespace, name string) (*corev1.Pod, error) {
-				// Return a pod with the same name, but different UID
-				return &corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: namespace,
-						Name:      name,
-						UID:       "SOME_OTHER_UID",
-					},
-				}, nil
+				return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
 			},
 		},
 		{
@@ -107,7 +90,7 @@ func TestDeletePods(t *testing.T) {
 				if oldPod, found := oldPodMap[name]; found {
 					return &oldPod, nil
 				}
-				return &corev1.Pod{}, fmt.Errorf("%q: not found", name)
+				return nil, fmt.Errorf("%q: not found", name)
 			},
 		},
 		{
@@ -123,7 +106,7 @@ func TestDeletePods(t *testing.T) {
 				if oldPod, found := oldPodMap[name]; found {
 					return &oldPod, nil
 				}
-				return &corev1.Pod{}, fmt.Errorf("%q: not found", name)
+				return nil, fmt.Errorf("%q: not found", name)
 			},
 		},
 		{
@@ -140,7 +123,7 @@ func TestDeletePods(t *testing.T) {
 					oldPod.ObjectMeta.SetDeletionTimestamp(dTime)
 					return &oldPod, nil
 				}
-				return &corev1.Pod{}, fmt.Errorf("%q: not found", name)
+				return nil, fmt.Errorf("%q: not found", name)
 			},
 		},
 		{
@@ -151,7 +134,7 @@ func TestDeletePods(t *testing.T) {
 			expectError:       true,
 			expectedError:     nil,
 			getPodFn: func(namespace, name string) (*corev1.Pod, error) {
-				return &corev1.Pod{}, errors.New("This is a random error for testing")
+				return nil, errors.New("This is a random error for testing")
 			},
 		},
 	}

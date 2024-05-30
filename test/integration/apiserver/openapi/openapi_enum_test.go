@@ -17,6 +17,7 @@ limitations under the License.
 package openapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -55,7 +56,10 @@ func TestEnablingOpenAPIEnumTypes(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			tCtx := ktesting.Init(t)
+			_, ctx := ktesting.NewTestContext(t)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
 			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.OpenAPIEnums, tc.featureEnabled)()
 
 			getDefinitionsFn := openapi.GetOpenAPIDefinitionsWithoutDisabledFeatures(func(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
@@ -75,7 +79,7 @@ func TestEnablingOpenAPIEnumTypes(t *testing.T) {
 				return defs
 			})
 
-			_, kubeConfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+			_, kubeConfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 				ModifyServerConfig: func(config *controlplane.Config) {
 					config.GenericConfig.OpenAPIConfig = framework.DefaultOpenAPIConfig()
 					config.GenericConfig.OpenAPIConfig.GetDefinitions = getDefinitionsFn

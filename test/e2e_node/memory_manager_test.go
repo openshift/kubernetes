@@ -174,20 +174,20 @@ func getAllocatableMemoryFromStateFile(s *state.MemoryManagerCheckpoint) []state
 	return allocatableMemory
 }
 
-type memoryManagerKubeletParams struct {
-	policy               string
+type kubeletParams struct {
+	memoryManagerPolicy  string
 	systemReservedMemory []kubeletconfig.MemoryReservation
 	systemReserved       map[string]string
 	kubeReserved         map[string]string
 	evictionHard         map[string]string
 }
 
-func updateKubeletConfigWithMemoryManagerParams(initialCfg *kubeletconfig.KubeletConfiguration, params *memoryManagerKubeletParams) {
+func updateKubeletConfigWithMemoryManagerParams(initialCfg *kubeletconfig.KubeletConfiguration, params *kubeletParams) {
 	if initialCfg.FeatureGates == nil {
 		initialCfg.FeatureGates = map[string]bool{}
 	}
 
-	initialCfg.MemoryManagerPolicy = params.policy
+	initialCfg.MemoryManagerPolicy = params.memoryManagerPolicy
 
 	// update system-reserved
 	if initialCfg.SystemReserved == nil {
@@ -256,7 +256,7 @@ var _ = SIGDescribe("Memory Manager", framework.WithDisruptive(), framework.With
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 	memoryQuantity := resource.MustParse("1100Mi")
-	defaultKubeParams := &memoryManagerKubeletParams{
+	defaultKubeParams := &kubeletParams{
 		systemReservedMemory: []kubeletconfig.MemoryReservation{
 			{
 				NumaNode: 0,
@@ -366,7 +366,7 @@ var _ = SIGDescribe("Memory Manager", framework.WithDisruptive(), framework.With
 	ginkgo.Context("with static policy", func() {
 		tempSetCurrentKubeletConfig(f, func(ctx context.Context, initialConfig *kubeletconfig.KubeletConfiguration) {
 			kubeParams := *defaultKubeParams
-			kubeParams.policy = staticPolicy
+			kubeParams.memoryManagerPolicy = staticPolicy
 			updateKubeletConfigWithMemoryManagerParams(initialConfig, &kubeParams)
 		})
 
@@ -644,7 +644,7 @@ var _ = SIGDescribe("Memory Manager", framework.WithDisruptive(), framework.With
 	ginkgo.Context("with none policy", func() {
 		tempSetCurrentKubeletConfig(f, func(ctx context.Context, initialConfig *kubeletconfig.KubeletConfiguration) {
 			kubeParams := *defaultKubeParams
-			kubeParams.policy = nonePolicy
+			kubeParams.memoryManagerPolicy = nonePolicy
 			updateKubeletConfigWithMemoryManagerParams(initialConfig, &kubeParams)
 		})
 

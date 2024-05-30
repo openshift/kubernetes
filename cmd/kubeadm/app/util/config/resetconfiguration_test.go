@@ -22,9 +22,6 @@ import (
 	"testing"
 
 	"github.com/lithammer/dedent"
-	"github.com/stretchr/testify/assert"
-
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 )
 
 func TestLoadResetConfigurationFromFile(t *testing.T) {
@@ -98,56 +95,6 @@ func TestLoadResetConfigurationFromFile(t *testing.T) {
 					t.Error("Unexpected nil return value")
 				}
 			}
-		})
-	}
-}
-
-func TestSetResetDynamicDefaults(t *testing.T) {
-	type args struct {
-		cfg           *kubeadmapi.ResetConfiguration
-		skipCRIDetect bool
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "CRISocket is empty and skipCRIDetect is true",
-			args: args{
-				cfg:           &kubeadmapi.ResetConfiguration{},
-				skipCRIDetect: true,
-			},
-		},
-		{
-			name: "CRISocket is empty and skipCRIDetect is false",
-			args: args{
-				cfg:           &kubeadmapi.ResetConfiguration{},
-				skipCRIDetect: false,
-			},
-		},
-		{
-			name: "CRISocket is valid",
-			args: args{
-				cfg: &kubeadmapi.ResetConfiguration{
-					CRISocket: "unix:///var/run/containerd/containerd.sock",
-				},
-				skipCRIDetect: false,
-			},
-		},
-		{
-			name: "CRISocket is invalid",
-			args: args{
-				cfg: &kubeadmapi.ResetConfiguration{
-					CRISocket: "var/run/containerd/containerd.sock",
-				},
-				skipCRIDetect: false,
-			},
-		},
-	}
-	for _, rt := range tests {
-		t.Run(rt.name, func(t *testing.T) {
-			err := SetResetDynamicDefaults(rt.args.cfg, rt.args.skipCRIDetect)
-			assert.NoError(t, err)
 		})
 	}
 }

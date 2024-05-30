@@ -87,14 +87,13 @@ type cloudCIDRAllocator struct {
 var _ CIDRAllocator = (*cloudCIDRAllocator)(nil)
 
 // NewCloudCIDRAllocator creates a new cloud CIDR allocator.
-func NewCloudCIDRAllocator(ctx context.Context, client clientset.Interface, cloud cloudprovider.Interface, nodeInformer informers.NodeInformer) (CIDRAllocator, error) {
-	logger := klog.FromContext(ctx)
+func NewCloudCIDRAllocator(logger klog.Logger, client clientset.Interface, cloud cloudprovider.Interface, nodeInformer informers.NodeInformer) (CIDRAllocator, error) {
 	if client == nil {
 		logger.Error(nil, "kubeClient is nil when starting cloud CIDR allocator")
 		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}
 
-	eventBroadcaster := record.NewBroadcaster(record.WithContext(ctx))
+	eventBroadcaster := record.NewBroadcaster()
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "cidrAllocator"})
 
 	gceCloud, ok := cloud.(*gce.Cloud)
@@ -144,7 +143,7 @@ func (ca *cloudCIDRAllocator) Run(ctx context.Context) {
 	defer utilruntime.HandleCrash()
 
 	// Start event processing pipeline.
-	ca.broadcaster.StartStructuredLogging(3)
+	ca.broadcaster.StartStructuredLogging(0)
 	logger := klog.FromContext(ctx)
 	logger.Info("Sending events to api server")
 	ca.broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: ca.client.CoreV1().Events("")})

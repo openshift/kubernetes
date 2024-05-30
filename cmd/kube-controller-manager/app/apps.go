@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/controller-manager/controller"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/names"
 	"k8s.io/kubernetes/pkg/controller/daemon"
 	"k8s.io/kubernetes/pkg/controller/deployment"
@@ -89,7 +90,7 @@ func newReplicaSetControllerDescriptor() *ControllerDescriptor {
 
 func startReplicaSetController(ctx context.Context, controllerContext ControllerContext, controllerName string) (controller.Interface, bool, error) {
 	go replicaset.NewReplicaSetController(
-		ctx,
+		klog.FromContext(ctx),
 		controllerContext.InformerFactory.Apps().V1().ReplicaSets(),
 		controllerContext.InformerFactory.Core().V1().Pods(),
 		controllerContext.ClientBuilder.ClientOrDie("replicaset-controller"),

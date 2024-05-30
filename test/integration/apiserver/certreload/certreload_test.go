@@ -136,7 +136,9 @@ func TestClientCARecreate(t *testing.T) {
 }
 
 func testClientCA(t *testing.T, recreate bool) {
-	tCtx := ktesting.Init(t)
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	frontProxyCA, err := newTestCAWithClient(
 		pkix.Name{
@@ -173,7 +175,7 @@ func testClientCA(t *testing.T, recreate bool) {
 	clientCAFilename := ""
 	frontProxyCAFilename := ""
 
-	kubeClient, kubeconfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	kubeClient, kubeconfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			opts.GenericServerRunOptions.MaxRequestBodyBytes = 1024 * 1024
 			clientCAFilename = opts.Authentication.ClientCert.ClientCA
@@ -303,7 +305,7 @@ func testClientCA(t *testing.T, recreate bool) {
 	}
 
 	// Call an endpoint to make sure we are authenticated
-	_, err = testClient.CoreV1().Nodes().List(tCtx, metav1.ListOptions{})
+	_, err = testClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -471,11 +473,13 @@ func TestServingCertRecreate(t *testing.T) {
 }
 
 func testServingCert(t *testing.T, recreate bool) {
-	tCtx := ktesting.Init(t)
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	var servingCertPath string
 
-	_, kubeconfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, kubeconfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			opts.GenericServerRunOptions.MaxRequestBodyBytes = 1024 * 1024
 			servingCertPath = opts.SecureServing.ServerCert.CertDirectory
@@ -514,9 +518,11 @@ func testServingCert(t *testing.T, recreate bool) {
 func TestSNICert(t *testing.T) {
 	var servingCertPath string
 
-	tCtx := ktesting.Init(t)
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	_, kubeconfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, kubeconfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			opts.GenericServerRunOptions.MaxRequestBodyBytes = 1024 * 1024
 			servingCertPath = opts.SecureServing.ServerCert.CertDirectory

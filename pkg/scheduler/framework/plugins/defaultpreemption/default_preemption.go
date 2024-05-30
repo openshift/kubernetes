@@ -177,7 +177,8 @@ func (pl *DefaultPreemption) SelectVictimsOnNode(
 
 	// No potential victims are found, and so we don't need to evaluate the node again since its state didn't change.
 	if len(potentialVictims) == 0 {
-		return nil, 0, framework.NewStatus(framework.UnschedulableAndUnresolvable, "No preemption victims found for incoming pod")
+		message := fmt.Sprintf("No preemption victims found for incoming pod")
+		return nil, 0, framework.NewStatus(framework.UnschedulableAndUnresolvable, message)
 	}
 
 	// If the new pod does not fit after removing all the lower priority pods,

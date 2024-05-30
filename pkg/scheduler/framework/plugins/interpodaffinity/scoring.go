@@ -128,7 +128,7 @@ func (pl *InterPodAffinity) PreScore(
 	pCtx context.Context,
 	cycleState *framework.CycleState,
 	pod *v1.Pod,
-	nodes []*framework.NodeInfo,
+	nodes []*v1.Node,
 ) *framework.Status {
 	if len(nodes) == 0 {
 		// No nodes to score.

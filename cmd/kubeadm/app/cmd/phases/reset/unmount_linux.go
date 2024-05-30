@@ -24,56 +24,30 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/pkg/errors"
-	"golang.org/x/sys/unix"
-
 	"k8s.io/klog/v2"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 )
 
-var flagMap = map[string]int{
-	kubeadmapi.UnmountFlagMNTForce:       unix.MNT_FORCE,
-	kubeadmapi.UnmountFlagMNTDetach:      unix.MNT_DETACH,
-	kubeadmapi.UnmountFlagMNTExpire:      unix.MNT_EXPIRE,
-	kubeadmapi.UnmountFlagUmountNoFollow: unix.UMOUNT_NOFOLLOW,
-}
-
-func flagsToInt(flags []string) int {
-	res := 0
-	for _, f := range flags {
-		res |= flagMap[f]
-	}
-	return res
-}
-
 // unmountKubeletDirectory unmounts all paths that contain KubeletRunDirectory
-func unmountKubeletDirectory(kubeletRunDirectory string, flags []string) error {
+func unmountKubeletDirectory(absoluteKubeletRunDirectory string) error {
 	raw, err := os.ReadFile("/proc/mounts")
 	if err != nil {
 		return err
 	}
 
-	if !strings.HasSuffix(kubeletRunDirectory, "/") {
+	if !strings.HasSuffix(absoluteKubeletRunDirectory, "/") {
 		// trailing "/" is needed to ensure that possibly mounted /var/lib/kubelet is skipped
-		kubeletRunDirectory += "/"
+		absoluteKubeletRunDirectory += "/"
 	}
 
-	var errList []error
 	mounts := strings.Split(string(raw), "\n")
-	flagsInt := flagsToInt(flags)
 	for _, mount := range mounts {
 		m := strings.Split(mount, " ")
-		if len(m) < 2 || !strings.HasPrefix(m[1], kubeletRunDirectory) {
+		if len(m) < 2 || !strings.HasPrefix(m[1], absoluteKubeletRunDirectory) {
 			continue
 		}
-		klog.V(5).Infof("[reset] Unmounting %q", m[1])
-		if err := syscall.Unmount(m[1], flagsInt); err != nil {
-			errList = append(errList, errors.WithMessagef(err, "failed to unmount %q", m[1]))
+		if err := syscall.Unmount(m[1], 0); err != nil {
+			klog.Warningf("[reset] Failed to unmount mounted directory in %s: %s", absoluteKubeletRunDirectory, m[1])
 		}
 	}
-	return errors.Wrapf(utilerrors.NewAggregate(errList),
-		"encountered the following errors while unmounting directories in %q", kubeletRunDirectory)
+	return nil
 }

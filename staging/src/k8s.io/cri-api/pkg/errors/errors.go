@@ -29,9 +29,6 @@ var (
 
 	// ErrSignatureValidationFailed - Unable to validate the image signature on the PullImage RPC call.
 	ErrSignatureValidationFailed = errors.New("SignatureValidationFailed")
-
-	// ErrRROUnsupported - Unable to enforce recursive readonly mounts
-	ErrRROUnsupported = errors.New("RROUnsupported")
 )
 
 // IsNotFound returns a boolean indicating whether the error

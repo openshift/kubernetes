@@ -27,6 +27,7 @@ import (
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 )
 
 type fakeController struct {
@@ -37,7 +38,7 @@ func (f *fakeController) Run(ctx context.Context) {
 }
 
 func createLegacyIPAM(
-	ctx context.Context,
+	logger klog.Logger,
 	ic *Controller,
 	nodeInformer coreinformers.NodeInformer,
 	cloud cloudprovider.Interface,

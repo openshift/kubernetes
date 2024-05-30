@@ -31,7 +31,6 @@ func getDefaultPlugins() *v1.Plugins {
 	plugins := &v1.Plugins{
 		MultiPoint: v1.PluginSet{
 			Enabled: []v1.Plugin{
-				{Name: names.SchedulingGates},
 				{Name: names.PrioritySort},
 				{Name: names.NodeUnschedulable},
 				{Name: names.NodeName},
@@ -61,6 +60,9 @@ func getDefaultPlugins() *v1.Plugins {
 }
 
 func applyFeatureGates(config *v1.Plugins) {
+	if utilfeature.DefaultFeatureGate.Enabled(features.PodSchedulingReadiness) {
+		config.MultiPoint.Enabled = append(config.MultiPoint.Enabled, v1.Plugin{Name: names.SchedulingGates})
+	}
 	if utilfeature.DefaultFeatureGate.Enabled(features.DynamicResourceAllocation) {
 		// This plugin should come before DefaultPreemption because if
 		// there is a problem with a Pod and PostFilter gets called to

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/ktesting"
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -1120,7 +1121,8 @@ func initPVController(t *testing.T, testCtx *testutil.TestContext, provisionDela
 		NodeInformer:              informerFactory.Core().V1().Nodes(),
 		EnableDynamicProvisioning: true,
 	}
-	ctrl, err := persistentvolume.NewController(testCtx.Ctx, params)
+	_, ctx := ktesting.NewTestContext(t)
+	ctrl, err := persistentvolume.NewController(ctx, params)
 	if err != nil {
 		return nil, nil, err
 	}

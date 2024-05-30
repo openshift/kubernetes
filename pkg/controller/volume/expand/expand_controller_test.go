@@ -42,7 +42,6 @@ import (
 	"k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/pkg/volume/util/operationexecutor"
 	volumetypes "k8s.io/kubernetes/pkg/volume/util/types"
-	"k8s.io/kubernetes/test/utils/ktesting"
 )
 
 func TestSyncHandler(t *testing.T) {
@@ -92,7 +91,6 @@ func TestSyncHandler(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tCtx := ktesting.Init(t)
 		test := tc
 		fakeKubeClient := controllervolumetesting.CreateTestClient()
 		informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, controller.NoResyncPeriodFunc())
@@ -108,7 +106,7 @@ func TestSyncHandler(t *testing.T) {
 		}
 		allPlugins := []volume.VolumePlugin{}
 		translator := csitrans.New()
-		expc, err := NewExpandController(tCtx, fakeKubeClient, pvcInformer, nil, allPlugins, translator, csimigration.NewPluginManager(translator, utilfeature.DefaultFeatureGate))
+		expc, err := NewExpandController(fakeKubeClient, pvcInformer, nil, allPlugins, translator, csimigration.NewPluginManager(translator, utilfeature.DefaultFeatureGate))
 		if err != nil {
 			t.Fatalf("error creating expand controller : %v", err)
 		}

@@ -48,8 +48,10 @@ export PATH=${GOPATH}/bin:${PWD}/third_party/etcd:/usr/local/go/bin:${PATH}
 export GO111MODULE=off
 
 # Install tools we need
-GO111MODULE=on go -C "${KUBE_ROOT}/hack/tools" install github.com/cespare/prettybench
-GO111MODULE=on go -C "${KUBE_ROOT}/hack/tools" install gotest.tools/gotestsum
+pushd "${KUBE_ROOT}/hack/tools" >/dev/null
+  GO111MODULE=on go install github.com/cespare/prettybench
+  GO111MODULE=on go install gotest.tools/gotestsum
+popd >/dev/null
 
 # Disable the Go race detector.
 export KUBE_RACE=" "

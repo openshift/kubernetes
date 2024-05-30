@@ -18,7 +18,6 @@ package monitoring
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	gcm "google.golang.org/api/monitoring/v3"
@@ -113,9 +112,6 @@ func testCustomMetrics(ctx context.Context, f *framework.Framework, kubeClient c
 	// Set up a cluster: create a custom metric and set up k8s-sd adapter
 	err = CreateDescriptors(gcmService, projectID)
 	if err != nil {
-		if strings.Contains(err.Error(), "Request throttled") {
-			e2eskipper.Skipf("Skipping...hitting rate limits on creating and updating metrics/labels")
-		}
 		framework.Failf("Failed to create metric descriptor: %s", err)
 	}
 	ginkgo.DeferCleanup(CleanupDescriptors, gcmService, projectID)
@@ -162,9 +158,6 @@ func testExternalMetrics(ctx context.Context, f *framework.Framework, kubeClient
 	// Set up a cluster: create a custom metric and set up k8s-sd adapter
 	err = CreateDescriptors(gcmService, projectID)
 	if err != nil {
-		if strings.Contains(err.Error(), "Request throttled") {
-			e2eskipper.Skipf("Skipping...hitting rate limits on creating and updating metrics/labels")
-		}
 		framework.Failf("Failed to create metric descriptor: %s", err)
 	}
 	ginkgo.DeferCleanup(CleanupDescriptors, gcmService, projectID)

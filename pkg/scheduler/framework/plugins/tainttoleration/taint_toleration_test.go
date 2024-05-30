@@ -27,7 +27,6 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/runtime"
 	"k8s.io/kubernetes/pkg/scheduler/internal/cache"
-	tf "k8s.io/kubernetes/pkg/scheduler/testing/framework"
 )
 
 func nodeWithTaints(nodeName string, taints []v1.Taint) *v1.Node {
@@ -242,7 +241,7 @@ func TestTaintTolerationScore(t *testing.T) {
 			if err != nil {
 				t.Fatalf("creating plugin: %v", err)
 			}
-			status := p.(framework.PreScorePlugin).PreScore(ctx, state, test.pod, tf.BuildNodeInfos(test.nodes))
+			status := p.(framework.PreScorePlugin).PreScore(ctx, state, test.pod, test.nodes)
 			if !status.IsSuccess() {
 				t.Errorf("unexpected error: %v", status)
 			}

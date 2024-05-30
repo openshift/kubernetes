@@ -74,21 +74,14 @@ func BenchmarkEncoding(b *testing.B) {
 				state := klog.CaptureState()
 				defer state.Restore()
 
-				// To make the tests a bit more realistic, at
-				// least do system calls during each write.
-				output := newBytesWritten(b, "/dev/null")
+				var output bytesWritten
 				c := logsapi.NewLoggingConfiguration()
 				c.Format = format
 				o := logsapi.LoggingOptions{
-					ErrorStream: output,
-					InfoStream:  output,
+					ErrorStream: &output,
+					InfoStream:  &output,
 				}
-				klog.SetOutput(output)
-				defer func() {
-					if err := logsapi.ResetForTest(nil); err != nil {
-						b.Errorf("error resetting logsapi: %v", err)
-					}
-				}()
+				klog.SetOutput(&output)
 				if err := logsapi.ValidateAndApplyWithOptions(c, &o, nil); err != nil {
 					b.Fatalf("Unexpected error configuring logging: %v", err)
 				}
@@ -110,7 +103,7 @@ func BenchmarkEncoding(b *testing.B) {
 				// Report messages/s instead of ns/op because "op" varies.
 				b.ReportMetric(0, "ns/op")
 				b.ReportMetric(float64(total)/duration.Seconds(), "msgs/s")
-				fileSizes[filepath.Base(b.Name())] = int(output.bytesWritten)
+				fileSizes[filepath.Base(b.Name())] = int(output)
 			}
 
 			b.Run("printf", func(b *testing.B) {
@@ -215,10 +208,6 @@ func benchmarkOutputFormatStream(b *testing.B, config loadGeneratorConfig, disca
 		if err := c.Options.JSON.InfoBufferSize.Set("64Ki"); err != nil {
 			b.Fatalf("Error setting buffer size: %v", err)
 		}
-		c.Options.Text.SplitStream = true
-		if err := c.Options.Text.InfoBufferSize.Set("64Ki"); err != nil {
-			b.Fatalf("Error setting buffer size: %v", err)
-		}
 	}
 	var files []*os.File
 	if discard {
@@ -248,11 +237,6 @@ func benchmarkOutputFormatStream(b *testing.B, config loadGeneratorConfig, disca
 	}
 
 	klog.SetOutput(o.ErrorStream)
-	defer func() {
-		if err := logsapi.ResetForTest(nil); err != nil {
-			b.Errorf("error resetting logsapi: %v", err)
-		}
-	}()
 	if err := logsapi.ValidateAndApplyWithOptions(c, &o, featureGate); err != nil {
 		b.Fatalf("Unexpected error configuring logging: %v", err)
 	}

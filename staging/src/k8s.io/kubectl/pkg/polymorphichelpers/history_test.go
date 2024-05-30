@@ -159,8 +159,6 @@ func TestViewDeploymentHistory(t *testing.T) {
     Environment:	<none>
     Mounts:	<none>
   Volumes:	<none>
-  Node-Selectors:	<none>
-  Tolerations:	<none>
 `
 		if result != expected {
 			t.Fatalf("unexpected output  (%v was expected but got %v)", expected, result)
@@ -269,8 +267,6 @@ func TestViewHistory(t *testing.T) {
     Environment:	<none>
     Mounts:	<none>
   Volumes:	<none>
-  Node-Selectors:	<none>
-  Tolerations:	<none>
 `
 
 			if result != expected {
@@ -375,8 +371,6 @@ func TestViewHistory(t *testing.T) {
     Environment:	<none>
     Mounts:	<none>
   Volumes:	<none>
-  Node-Selectors:	<none>
-  Tolerations:	<none>
 `
 
 			if result != expected {

@@ -41,17 +41,17 @@ import (
 type monitorFakeExec struct {
 	sync.Mutex
 
-	tables map[string]sets.Set[string]
+	tables map[string]sets.String
 
 	block      bool
 	wasBlocked bool
 }
 
 func newMonitorFakeExec() *monitorFakeExec {
-	tables := make(map[string]sets.Set[string])
-	tables["mangle"] = sets.New[string]()
-	tables["filter"] = sets.New[string]()
-	tables["nat"] = sets.New[string]()
+	tables := make(map[string]sets.String)
+	tables["mangle"] = sets.NewString()
+	tables["filter"] = sets.NewString()
+	tables["nat"] = sets.NewString()
 	return &monitorFakeExec{tables: tables}
 }
 
@@ -148,43 +148,33 @@ func (mfc *monitorFakeCmd) SetStdin(in io.Reader) {
 func (mfc *monitorFakeCmd) Run() error {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) Output() ([]byte, error) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) SetDir(dir string) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) SetStdout(out io.Writer) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) SetStderr(out io.Writer) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) SetEnv(env []string) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) StdoutPipe() (io.ReadCloser, error) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) StderrPipe() (io.ReadCloser, error) {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) Start() error {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) Wait() error {
 	panic("should not be reached")
 }
-
 func (mfc *monitorFakeCmd) Stop() {
 	panic("should not be reached")
 }

@@ -19,6 +19,7 @@ package taint
 // This file tests the Taint feature.
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -84,7 +85,7 @@ func TestTaintNodeByCondition(t *testing.T) {
 
 	// Start NodeLifecycleController for taint.
 	nc, err := nodelifecycle.NewNodeLifecycleController(
-		testCtx.Ctx,
+		context.TODO(),
 		externalInformers.Coordination().V1().Leases(),
 		externalInformers.Core().V1().Pods(),
 		externalInformers.Core().V1().Nodes(),

@@ -23,11 +23,10 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-
 
 source "${CODEGEN_PKG}/kube_codegen.sh"
 
-THIS_PKG="k8s.io/apiextensions-apiserver"
-
 kube::codegen::gen_helpers \
-    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
-    "${SCRIPT_ROOT}/pkg"
+    --input-pkg-root k8s.io/apiextensions-apiserver/pkg \
+    --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
+    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt"
 
 if [[ -n "${API_KNOWN_VIOLATIONS_DIR:-}" ]]; then
     report_filename="${API_KNOWN_VIOLATIONS_DIR}/apiextensions_violation_exceptions.list"
@@ -37,19 +36,19 @@ if [[ -n "${API_KNOWN_VIOLATIONS_DIR:-}" ]]; then
 fi
 
 kube::codegen::gen_openapi \
+    --input-pkg-root k8s.io/apiextensions-apiserver/pkg \
     --extra-pkgs k8s.io/api/autoscaling/v1 `# needed for Scale type` \
-    --output-dir "${SCRIPT_ROOT}/pkg/generated/openapi" \
-    --output-pkg "${THIS_PKG}/pkg/generated/openapi" \
+    --output-pkg-root k8s.io/apiextensions-apiserver/pkg/generated \
+    --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
     --report-filename "${report_filename:-"/dev/null"}" \
     ${update_report:+"${update_report}"} \
-    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
-    "${SCRIPT_ROOT}/pkg"
+    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt"
 
 kube::codegen::gen_client \
     --with-watch \
     --with-applyconfig \
-    --output-dir "${SCRIPT_ROOT}/pkg/client" \
-    --output-pkg "${THIS_PKG}/pkg/client" \
-    --versioned-name "clientset" \
-    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
-    "${SCRIPT_ROOT}/pkg/apis"
+    --input-pkg-root k8s.io/apiextensions-apiserver/pkg/apis \
+    --output-pkg-root k8s.io/apiextensions-apiserver/pkg/client \
+    --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
+    --versioned-name clientset \
+    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt"

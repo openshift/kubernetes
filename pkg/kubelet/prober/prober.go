@@ -135,13 +135,12 @@ func (pb *prober) runProbeWithRetries(ctx context.Context, probeType probeType, 
 
 func (pb *prober) runProbe(ctx context.Context, probeType probeType, p *v1.Probe, pod *v1.Pod, status v1.PodStatus, container v1.Container, containerID kubecontainer.ContainerID) (probe.Result, string, error) {
 	timeout := time.Duration(p.TimeoutSeconds) * time.Second
-	switch {
-	case p.Exec != nil:
+	if p.Exec != nil {
 		klog.V(4).InfoS("Exec-Probe runProbe", "pod", klog.KObj(pod), "containerName", container.Name, "execCommand", p.Exec.Command)
 		command := kubecontainer.ExpandContainerCommandOnlyStatic(p.Exec.Command, container.Env)
 		return pb.exec.Probe(pb.newExecInContainer(ctx, container, containerID, command, timeout))
-
-	case p.HTTPGet != nil:
+	}
+	if p.HTTPGet != nil {
 		req, err := httpprobe.NewRequestForHTTPGetAction(p.HTTPGet, &container, status.PodIP, "probe")
 		if err != nil {
 			return probe.Unknown, "", err
@@ -155,8 +154,8 @@ func (pb *prober) runProbe(ctx context.Context, probeType probeType, p *v1.Probe
 			klogV4.InfoS("HTTP-Probe", "scheme", scheme, "host", host, "port", port, "path", path, "timeout", timeout, "headers", headers)
 		}
 		return pb.maybeProbeForBody(pb.http, req, timeout, pod, container, probeType)
-
-	case p.TCPSocket != nil:
+	}
+	if p.TCPSocket != nil {
 		port, err := probe.ResolveContainerPort(p.TCPSocket.Port, &container)
 		if err != nil {
 			return probe.Unknown, "", err
@@ -167,8 +166,9 @@ func (pb *prober) runProbe(ctx context.Context, probeType probeType, p *v1.Probe
 		}
 		klog.V(4).InfoS("TCP-Probe", "host", host, "port", port, "timeout", timeout)
 		return pb.tcp.Probe(host, port, timeout)
+	}
 
-	case p.GRPC != nil:
+	if p.GRPC != nil {
 		host := status.PodIP
 		service := ""
 		if p.GRPC.Service != nil {
@@ -176,11 +176,10 @@ func (pb *prober) runProbe(ctx context.Context, probeType probeType, p *v1.Probe
 		}
 		klog.V(4).InfoS("GRPC-Probe", "host", host, "service", service, "port", p.GRPC.Port, "timeout", timeout)
 		return pb.grpc.Probe(host, service, int(p.GRPC.Port), timeout)
-
-	default:
-		klog.InfoS("Failed to find probe builder for container", "containerName", container.Name)
-		return probe.Unknown, "", fmt.Errorf("missing probe handler for %s:%s", format.Pod(pod), container.Name)
 	}
+
+	klog.InfoS("Failed to find probe builder for container", "containerName", container.Name)
+	return probe.Unknown, "", fmt.Errorf("missing probe handler for %s:%s", format.Pod(pod), container.Name)
 }
 
 type execInContainer struct {

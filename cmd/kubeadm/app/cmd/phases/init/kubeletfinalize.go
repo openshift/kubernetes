@@ -114,17 +114,7 @@ func runKubeletFinalizeCertRotation(c workflow.RunData) error {
 	}
 
 	// Perform basic validation. The errors here can only happen if the kubelet.conf was corrupted.
-	if len(kubeconfig.CurrentContext) == 0 {
-		return errors.Errorf("the file %q does not have current context set", kubeconfigPath)
-	}
-	currentContext, ok := kubeconfig.Contexts[kubeconfig.CurrentContext]
-	if !ok {
-		return errors.Errorf("the file %q is not a valid kubeconfig: %q set as current-context, but not found in context list", kubeconfigPath, kubeconfig.CurrentContext)
-	}
-	userName := currentContext.AuthInfo
-	if len(userName) == 0 {
-		return errors.Errorf("the file %q is not a valid kubeconfig: empty username for current context", kubeconfigPath)
-	}
+	userName := fmt.Sprintf("%s%s", kubeadmconstants.NodesUserPrefix, cfg.NodeRegistration.Name)
 	info, ok := kubeconfig.AuthInfos[userName]
 	if !ok {
 		return errors.Errorf("the file %q does not contain authentication for user %q", kubeconfigPath, cfg.NodeRegistration.Name)

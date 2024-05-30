@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package phases includes command line phases for kubeadm join
 package phases
 
 import (

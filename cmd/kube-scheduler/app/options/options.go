@@ -294,7 +294,7 @@ func (o *Options) Config(ctx context.Context) (*schedulerappconfig.Config, error
 		return nil, err
 	}
 
-	c.EventBroadcaster = events.NewEventBroadcasterAdapterWithContext(ctx, eventClient)
+	c.EventBroadcaster = events.NewEventBroadcasterAdapter(eventClient)
 
 	// Set up leader election if enabled.
 	var leaderElectionConfig *leaderelection.LeaderElectionConfig

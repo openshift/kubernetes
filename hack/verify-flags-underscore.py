@@ -54,6 +54,8 @@ def get_all_files(rootdir):
             dirs.remove('staging')
         if '_output' in dirs:
             dirs.remove('_output')
+        if '_gopath' in dirs:
+            dirs.remove('_gopath')
         if 'third_party' in dirs:
             dirs.remove('third_party')
         if '.git' in dirs:

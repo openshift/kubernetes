@@ -18,10 +18,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-source "${KUBE_ROOT}/hack/lib/init.sh"
+source hack/lib/util.sh
 
-kube::golang::setup_env
 kube::util::require-jq
 kube::util::ensure_clean_working_dir
 
@@ -64,11 +62,9 @@ git add .
 git commit -a -m "Update kubectl kustomize to kyaml/$LATEST_KYAML, cmd/config/$LATEST_CONFIG, api/$LATEST_API, kustomize/$LATEST_KUSTOMIZE"
 
 echo -e "\n${color_blue:?}Verifying kubectl kustomize version${color_norm:?}"
-# We use `make` here intead of `go install` to ensure that all of the
-# linker-defined values are set.
-make -C "${KUBE_ROOT}" WHAT=./cmd/kubectl
+make WHAT=cmd/kubectl
 
-if [[ $(kubectl version --client -o json | jq -r '.kustomizeVersion') != "$LATEST_KUSTOMIZE" ]]; then
+if [[ $(_output/bin/kubectl version --client -o json | jq -r '.kustomizeVersion') != "$LATEST_KUSTOMIZE" ]]; then
   echo -e "${color_red:?}Unexpected kubectl kustomize version${color_norm:?}"
   exit 1
 fi

@@ -1,6 +1,3 @@
-//go:build !providerless
-// +build !providerless
-
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -208,6 +205,10 @@ func VerifyFirewallRule(res, exp *compute.Firewall, network string, portsSubset 
 	}
 	if res.Name != exp.Name {
 		return fmt.Errorf("incorrect name: %v, expected %v", res.Name, exp.Name)
+	}
+	// Sample Network value: https://www.googleapis.com/compute/v1/projects/{project-id}/global/networks/e2e
+	if !strings.HasSuffix(res.Network, "/"+network) {
+		return fmt.Errorf("incorrect network: %v, expected ends with: %v", res.Network, "/"+network)
 	}
 
 	actualPorts := PackProtocolsPortsFromFirewall(res.Allowed)

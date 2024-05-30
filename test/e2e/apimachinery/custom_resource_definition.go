@@ -123,7 +123,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 						expected = e
 					}
 				}
-				gomega.Expect(expected).ToNot(gomega.BeNil())
+				framework.ExpectNotEqual(expected, nil)
 				if !equality.Semantic.DeepEqual(actual.Spec, expected.Spec) {
 					framework.Failf("Expected CustomResourceDefinition in list with name %s to match crd created with same name, but got different specs:\n%s",
 						actual.Name, cmp.Diff(expected.Spec, actual.Spec))
@@ -211,7 +211,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 					break
 				}
 			}
-			gomega.Expect(group).ToNot(gomega.BeNil(), "apiextensions.k8s.io API group not found in /apis discovery document")
+			framework.ExpectNotEqual(group, nil, "apiextensions.k8s.io API group not found in /apis discovery document")
 
 			ginkgo.By("finding the apiextensions.k8s.io/v1 API group/version in the /apis discovery document")
 			var version *metav1.GroupVersionForDiscovery
@@ -221,7 +221,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 					break
 				}
 			}
-			gomega.Expect(version).ToNot(gomega.BeNil(), "apiextensions.k8s.io/v1 API group version not found in /apis discovery document")
+			framework.ExpectNotEqual(version, nil, "apiextensions.k8s.io/v1 API group version not found in /apis discovery document")
 		}
 
 		{
@@ -239,7 +239,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 					break
 				}
 			}
-			gomega.Expect(version).ToNot(gomega.BeNil(), "apiextensions.k8s.io/v1 API group version not found in /apis/apiextensions.k8s.io discovery document")
+			framework.ExpectNotEqual(version, nil, "apiextensions.k8s.io/v1 API group version not found in /apis/apiextensions.k8s.io discovery document")
 		}
 
 		{
@@ -256,7 +256,7 @@ var _ = SIGDescribe("CustomResourceDefinition resources [Privileged:ClusterAdmin
 					crdResource = &apiResourceList.APIResources[i]
 				}
 			}
-			gomega.Expect(crdResource).ToNot(gomega.BeNil(), "customresourcedefinitions resource not found in /apis/apiextensions.k8s.io/v1 discovery document")
+			framework.ExpectNotEqual(crdResource, nil, "customresourcedefinitions resource not found in /apis/apiextensions.k8s.io/v1 discovery document")
 		}
 	})
 

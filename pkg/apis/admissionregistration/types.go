@@ -868,6 +868,9 @@ type ValidatingWebhook struct {
 	//      - If failurePolicy=Fail, reject the request
 	//      - If failurePolicy=Ignore, the error is ignored and the webhook is skipped
 	//
+	// This is a beta feature and managed by the AdmissionWebhookMatchConditions feature gate.
+	//
+	// +featureGate=AdmissionWebhookMatchConditions
 	// +optional
 	MatchConditions []MatchCondition
 }
@@ -1025,6 +1028,9 @@ type MutatingWebhook struct {
 	//      - If failurePolicy=Fail, reject the request
 	//      - If failurePolicy=Ignore, the error is ignored and the webhook is skipped
 	//
+	// This is a beta feature and managed by the AdmissionWebhookMatchConditions feature gate.
+	//
+	// +featureGate=AdmissionWebhookMatchConditions
 	// +optional
 	MatchConditions []MatchCondition
 }

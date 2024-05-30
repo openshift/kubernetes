@@ -58,8 +58,11 @@ func alwaysAlice(req *http.Request) (*authenticator.Response, bool, error) {
 }
 
 func TestSubjectAccessReview(t *testing.T) {
-	tCtx := ktesting.Init(t)
-	clientset, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	clientset, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerConfig: func(config *controlplane.Config) {
 			// Unset BearerToken to disable BearerToken authenticator.
 			config.GenericConfig.LoopbackClientConfig.BearerToken = ""
@@ -129,7 +132,7 @@ func TestSubjectAccessReview(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		response, err := clientset.AuthorizationV1().SubjectAccessReviews().Create(tCtx, test.sar, metav1.CreateOptions{})
+		response, err := clientset.AuthorizationV1().SubjectAccessReviews().Create(ctx, test.sar, metav1.CreateOptions{})
 		switch {
 		case err == nil && len(test.expectedError) == 0:
 
@@ -151,7 +154,9 @@ func TestSubjectAccessReview(t *testing.T) {
 }
 
 func TestSelfSubjectAccessReview(t *testing.T) {
-	tCtx := ktesting.Init(t)
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	var mutex sync.Mutex
 
@@ -169,7 +174,7 @@ func TestSelfSubjectAccessReview(t *testing.T) {
 		}, true, nil
 	}
 
-	clientset, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	clientset, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerConfig: func(config *controlplane.Config) {
 			// Unset BearerToken to disable BearerToken authenticator.
 			config.GenericConfig.LoopbackClientConfig.BearerToken = ""
@@ -230,7 +235,7 @@ func TestSelfSubjectAccessReview(t *testing.T) {
 		username = test.username
 		mutex.Unlock()
 
-		response, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(tCtx, test.sar, metav1.CreateOptions{})
+		response, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, test.sar, metav1.CreateOptions{})
 		switch {
 		case err == nil && len(test.expectedError) == 0:
 
@@ -252,8 +257,11 @@ func TestSelfSubjectAccessReview(t *testing.T) {
 }
 
 func TestLocalSubjectAccessReview(t *testing.T) {
-	tCtx := ktesting.Init(t)
-	clientset, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	clientset, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerConfig: func(config *controlplane.Config) {
 			// Unset BearerToken to disable BearerToken authenticator.
 			config.GenericConfig.LoopbackClientConfig.BearerToken = ""
@@ -351,7 +359,7 @@ func TestLocalSubjectAccessReview(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		response, err := clientset.AuthorizationV1().LocalSubjectAccessReviews(test.namespace).Create(tCtx, test.sar, metav1.CreateOptions{})
+		response, err := clientset.AuthorizationV1().LocalSubjectAccessReviews(test.namespace).Create(ctx, test.sar, metav1.CreateOptions{})
 		switch {
 		case err == nil && len(test.expectedError) == 0:
 

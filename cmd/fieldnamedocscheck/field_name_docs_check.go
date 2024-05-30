@@ -58,9 +58,9 @@ func main() {
 
 		structName := ks[0].Name
 
-		rc = checkFieldNameAndDoc(structName, "", ks[0].Doc, typesMap) || rc
+		rc = checkFieldNameAndDoc(structName, "", ks[0].Doc, typesMap)
 		for _, p := range ks[1:] {
-			rc = checkFieldNameAndDoc(structName, p.Name, p.Doc, typesMap) || rc
+			rc = checkFieldNameAndDoc(structName, p.Name, p.Doc, typesMap)
 		}
 	}
 

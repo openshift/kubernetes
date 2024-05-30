@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"reflect"
 	"sync"
+	"testing"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -31,10 +32,6 @@ import (
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/volume"
 )
-
-type TB interface {
-	Errorf(format string, args ...any)
-}
 
 type FakePod struct {
 	Pod       *kubecontainer.Pod
@@ -68,7 +65,7 @@ type FakeRuntime struct {
 	// from container runtime.
 	BlockImagePulls      bool
 	imagePullTokenBucket chan bool
-	T                    TB
+	T                    *testing.T
 }
 
 const FakeHost = "localhost:12345"
@@ -360,14 +357,6 @@ func (f *FakeRuntime) GetImageRef(_ context.Context, image kubecontainer.ImageSp
 		}
 	}
 	return "", f.InspectErr
-}
-
-func (f *FakeRuntime) GetImageSize(_ context.Context, image kubecontainer.ImageSpec) (uint64, error) {
-	f.Lock()
-	defer f.Unlock()
-
-	f.CalledFunctions = append(f.CalledFunctions, "GetImageSize")
-	return 0, f.Err
 }
 
 func (f *FakeRuntime) ListImages(_ context.Context) ([]kubecontainer.Image, error) {

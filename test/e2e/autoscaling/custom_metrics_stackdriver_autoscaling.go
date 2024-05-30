@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	gcm "google.golang.org/api/monitoring/v3"
@@ -420,9 +419,6 @@ func (tc *CustomMetricTestCase) Run(ctx context.Context) {
 	// Set up a cluster: create a custom metric and set up k8s-sd adapter
 	err = monitoring.CreateDescriptors(gcmService, projectID)
 	if err != nil {
-		if strings.Contains(err.Error(), "Request throttled") {
-			e2eskipper.Skipf("Skipping...hitting rate limits on creating and updating metrics/labels")
-		}
 		framework.Failf("Failed to create metric descriptor: %v", err)
 	}
 	defer monitoring.CleanupDescriptors(gcmService, projectID)
@@ -618,7 +614,7 @@ func ensureDesiredReplicasInRange(ctx context.Context, deploymentName, namespace
 	err := wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(ctx context.Context) (bool, error) {
 		deployment, err := cs.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
 		if err != nil {
-			return true, err
+			framework.Failf("Failed to get replication controller %s: %v", deployment, err)
 		}
 		replicas := int(deployment.Status.ReadyReplicas)
 		framework.Logf("expecting there to be in [%d, %d] replicas (are: %d)", minDesiredReplicas, maxDesiredReplicas, replicas)
@@ -631,7 +627,7 @@ func ensureDesiredReplicasInRange(ctx context.Context, deploymentName, namespace
 		}
 	})
 	// The call above always returns an error, but if it is timeout, it's OK (condition satisfied all the time).
-	if wait.Interrupted(err) || strings.Contains(err.Error(), "would exceed context deadline") {
+	if wait.Interrupted(err) {
 		framework.Logf("Number of replicas was stable over %v", timeout)
 		return
 	}

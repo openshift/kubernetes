@@ -24,12 +24,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	nodeapi "k8s.io/kubernetes/pkg/api/node"
 	pvcutil "k8s.io/kubernetes/pkg/api/persistentvolumeclaim"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/pods"
-	"k8s.io/kubernetes/pkg/features"
 )
 
 func GetWarningsForPod(ctx context.Context, pod, oldPod *api.Pod) []string {
@@ -172,7 +170,7 @@ func warningsForPodSpecAndMeta(fieldPath *field.Path, podSpec *api.PodSpec, meta
 
 	// duplicate hostAliases (#91670, #58477)
 	if len(podSpec.HostAliases) > 1 {
-		items := sets.New[string]()
+		items := sets.NewString()
 		for i, item := range podSpec.HostAliases {
 			if items.Has(item.IP) {
 				warnings = append(warnings, fmt.Sprintf("%s: duplicate ip %q", fieldPath.Child("spec", "hostAliases").Index(i).Child("ip"), item.IP))
@@ -184,7 +182,7 @@ func warningsForPodSpecAndMeta(fieldPath *field.Path, podSpec *api.PodSpec, meta
 
 	// duplicate imagePullSecrets (#91629, #58477)
 	if len(podSpec.ImagePullSecrets) > 1 {
-		items := sets.New[string]()
+		items := sets.NewString()
 		for i, item := range podSpec.ImagePullSecrets {
 			if items.Has(item.Name) {
 				warnings = append(warnings, fmt.Sprintf("%s: duplicate name %q", fieldPath.Child("spec", "imagePullSecrets").Index(i).Child("name"), item.Name))
@@ -214,25 +212,12 @@ func warningsForPodSpecAndMeta(fieldPath *field.Path, podSpec *api.PodSpec, meta
 			warnings = append(warnings, fmt.Sprintf(`%s: non-functional in v1.27+; use the "seccompProfile" field instead`, fieldPath.Child("metadata", "annotations").Key(api.SeccompPodAnnotationKey)))
 		}
 	}
-	hasPodAppArmorProfile := podSpec.SecurityContext != nil && podSpec.SecurityContext.AppArmorProfile != nil
 
 	pods.VisitContainersWithPath(podSpec, fieldPath.Child("spec"), func(c *api.Container, p *field.Path) bool {
 		// use of container seccomp annotation without accompanying field
 		if c.SecurityContext == nil || c.SecurityContext.SeccompProfile == nil {
 			if _, exists := meta.Annotations[api.SeccompContainerAnnotationKeyPrefix+c.Name]; exists {
 				warnings = append(warnings, fmt.Sprintf(`%s: non-functional in v1.27+; use the "seccompProfile" field instead`, fieldPath.Child("metadata", "annotations").Key(api.SeccompContainerAnnotationKeyPrefix+c.Name)))
-			}
-		}
-
-		// use of container AppArmor annotation without accompanying field
-		if utilfeature.DefaultFeatureGate.Enabled(features.AppArmorFields) {
-			isPodTemplate := fieldPath != nil // Pod warnings are emitted through applyAppArmorVersionSkew instead.
-			hasAppArmorField := hasPodAppArmorProfile || (c.SecurityContext != nil && c.SecurityContext.AppArmorProfile != nil)
-			if isPodTemplate && !hasAppArmorField {
-				key := api.DeprecatedAppArmorAnnotationKeyPrefix + c.Name
-				if _, exists := meta.Annotations[key]; exists {
-					warnings = append(warnings, fmt.Sprintf(`%s: deprecated since v1.30; use the "appArmorProfile" field instead`, fieldPath.Child("metadata", "annotations").Key(key)))
-				}
 			}
 		}
 
@@ -252,7 +237,7 @@ func warningsForPodSpecAndMeta(fieldPath *field.Path, podSpec *api.PodSpec, meta
 
 		// duplicate containers[*].env (#86163, #93266, #58477)
 		if len(c.Env) > 1 {
-			items := sets.New[string]()
+			items := sets.NewString()
 			for i, item := range c.Env {
 				if items.Has(item.Name) {
 					// a previous value exists, but it might be OK
@@ -272,7 +257,7 @@ func warningsForPodSpecAndMeta(fieldPath *field.Path, podSpec *api.PodSpec, meta
 						bad = true
 					}
 					if bad {
-						warnings = append(warnings, fmt.Sprintf("%s: hides previous definition of %q, which may be dropped when using apply", p.Child("env").Index(i), item.Name))
+						warnings = append(warnings, fmt.Sprintf("%s: hides previous definition of %q", p.Child("env").Index(i), item.Name))
 					}
 				} else {
 					items.Insert(item.Name)

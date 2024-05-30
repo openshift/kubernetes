@@ -21,7 +21,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,6 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-	noFileErr := os.PathError{Op: "open", Path: "no-such-file.txt", Err: syscall.Errno(syscall.ENOENT)}
 	for name, tt := range map[string]struct {
 		in          string
 		data        map[string]string
@@ -39,7 +37,7 @@ func TestGenerate(t *testing.T) {
 	}{
 		"missing-file": {
 			in:          `{{include "no-such-file.txt"}}`,
-			expectedErr: noFileErr.Error(),
+			expectedErr: "open no-such-file.txt: no such file or directory",
 		},
 		"data": {
 			in:       `{{.Hello}} {{.World}}`,

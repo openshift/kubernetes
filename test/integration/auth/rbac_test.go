@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	rbacapi "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -537,7 +538,10 @@ func TestRBAC(t *testing.T) {
 				"user-with-no-permissions":         {Name: "user-with-no-permissions"},
 			})))
 
-			tCtx := ktesting.Init(t)
+			_, ctx := ktesting.NewTestContext(t)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
 			var tearDownAuthorizerFn func()
 			defer func() {
 				if tearDownAuthorizerFn != nil {
@@ -545,7 +549,7 @@ func TestRBAC(t *testing.T) {
 				}
 			}()
 
-			_, kubeConfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+			_, kubeConfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 				ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 					// Disable ServiceAccount admission plugin as we don't have serviceaccount controller running.
 					// Also disable namespace lifecycle to workaroung the test limitation that first creates
@@ -579,22 +583,20 @@ func TestRBAC(t *testing.T) {
 			previousResourceVersion := make(map[string]float64)
 
 			for j, r := range tc.requests {
-				// This is a URL-path, not a local path, so we use the "path"
-				// package (aliased as "gopath") instead of "path/filepath".
-				urlPath := "/"
+				path := "/"
 				if r.apiGroup == "" {
-					urlPath = gopath.Join(urlPath, "api/v1")
+					path = gopath.Join(path, "api/v1")
 				} else {
-					urlPath = gopath.Join(urlPath, "apis", r.apiGroup, "v1")
+					path = gopath.Join(path, "apis", r.apiGroup, "v1")
 				}
 				if r.namespace != "" {
-					urlPath = gopath.Join(urlPath, "namespaces", r.namespace)
+					path = gopath.Join(path, "namespaces", r.namespace)
 				}
 				if r.resource != "" {
-					urlPath = gopath.Join(urlPath, r.resource)
+					path = gopath.Join(path, r.resource)
 				}
 				if r.name != "" {
-					urlPath = gopath.Join(urlPath, r.name)
+					path = gopath.Join(path, r.name)
 				}
 
 				var body io.Reader
@@ -602,14 +604,14 @@ func TestRBAC(t *testing.T) {
 					sub := ""
 					if r.verb == "PUT" {
 						// For update operations, insert previous resource version
-						if resVersion := previousResourceVersion[getPreviousResourceVersionKey(urlPath, "")]; resVersion != 0 {
+						if resVersion := previousResourceVersion[getPreviousResourceVersionKey(path, "")]; resVersion != 0 {
 							sub += fmt.Sprintf(",\"resourceVersion\": \"%v\"", resVersion)
 						}
 					}
 					body = strings.NewReader(fmt.Sprintf(r.body, sub))
 				}
 
-				req, err := http.NewRequest(r.verb, kubeConfig.Host+urlPath, body)
+				req, err := http.NewRequest(r.verb, kubeConfig.Host+path, body)
 				if r.verb == "PATCH" {
 					// For patch operations, use the apply content type
 					req.Header.Add("Content-Type", string(types.ApplyPatchType))
@@ -660,7 +662,7 @@ func TestRBAC(t *testing.T) {
 						// For successful create operations, extract resourceVersion
 						id, currentResourceVersion, err := parseResourceVersion(b)
 						if err == nil {
-							key := getPreviousResourceVersionKey(urlPath, id)
+							key := getPreviousResourceVersionKey(path, id)
 							previousResourceVersion[key] = currentResourceVersion
 						} else {
 							t.Logf("error in trying to extract resource version: %s", err)
@@ -673,20 +675,23 @@ func TestRBAC(t *testing.T) {
 }
 
 func TestBootstrapping(t *testing.T) {
-	tCtx := ktesting.Init(t)
-	clientset, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	clientset, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			opts.Authorization.Modes = []string{"RBAC"}
 		},
 	})
 	defer tearDownFn()
 
-	watcher, err := clientset.RbacV1().ClusterRoles().Watch(tCtx, metav1.ListOptions{ResourceVersion: "0"})
+	watcher, err := clientset.RbacV1().ClusterRoles().Watch(ctx, metav1.ListOptions{ResourceVersion: "0"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = watchtools.UntilWithoutRetry(tCtx, watcher, func(event watch.Event) (bool, error) {
+	_, err = watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Added {
 			return false, nil
 		}
@@ -696,7 +701,7 @@ func TestBootstrapping(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(tCtx, metav1.ListOptions{})
+	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -712,7 +717,7 @@ func TestBootstrapping(t *testing.T) {
 
 	t.Errorf("missing cluster-admin: %v", clusterRoles)
 
-	healthBytes, err := clientset.Discovery().RESTClient().Get().AbsPath("/healthz/poststarthook/rbac/bootstrap-roles").DoRaw(tCtx)
+	healthBytes, err := clientset.Discovery().RESTClient().Get().AbsPath("/healthz/poststarthook/rbac/bootstrap-roles").DoRaw(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -731,8 +736,11 @@ func TestDiscoveryUpgradeBootstrapping(t *testing.T) {
 
 	etcdConfig := framework.SharedEtcd()
 
-	tCtx := ktesting.Init(t)
-	client, _, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	client, _, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			// Ensure we're using the same etcd across apiserver restarts.
 			opts.Etcd.StorageConfig = *etcdConfig
@@ -743,7 +751,7 @@ func TestDiscoveryUpgradeBootstrapping(t *testing.T) {
 	// Modify the default RBAC discovery ClusterRoleBidnings to look more like the defaults that
 	// existed prior to v1.14, but with user modifications.
 	t.Logf("Modifying default `system:discovery` ClusterRoleBinding")
-	discRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(tCtx, "system:discovery", metav1.GetOptions{})
+	discRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(ctx, "system:discovery", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Failed to get `system:discovery` ClusterRoleBinding: %v", err)
 	}
@@ -756,21 +764,21 @@ func TestDiscoveryUpgradeBootstrapping(t *testing.T) {
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	}
-	if discRoleBinding, err = client.RbacV1().ClusterRoleBindings().Update(tCtx, discRoleBinding, metav1.UpdateOptions{}); err != nil {
+	if discRoleBinding, err = client.RbacV1().ClusterRoleBindings().Update(ctx, discRoleBinding, metav1.UpdateOptions{}); err != nil {
 		t.Fatalf("Failed to update `system:discovery` ClusterRoleBinding: %v", err)
 	}
 	t.Logf("Modifying default `system:basic-user` ClusterRoleBinding")
-	basicUserRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(tCtx, "system:basic-user", metav1.GetOptions{})
+	basicUserRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(ctx, "system:basic-user", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Failed to get `system:basic-user` ClusterRoleBinding: %v", err)
 	}
 	basicUserRoleBinding.Annotations["rbac.authorization.kubernetes.io/autoupdate"] = "false"
 	basicUserRoleBinding.Annotations["rbac-discovery-upgrade-test"] = "pass"
-	if basicUserRoleBinding, err = client.RbacV1().ClusterRoleBindings().Update(tCtx, basicUserRoleBinding, metav1.UpdateOptions{}); err != nil {
+	if basicUserRoleBinding, err = client.RbacV1().ClusterRoleBindings().Update(ctx, basicUserRoleBinding, metav1.UpdateOptions{}); err != nil {
 		t.Fatalf("Failed to update `system:basic-user` ClusterRoleBinding: %v", err)
 	}
 	t.Logf("Deleting default `system:public-info-viewer` ClusterRoleBinding")
-	if err = client.RbacV1().ClusterRoleBindings().Delete(tCtx, "system:public-info-viewer", metav1.DeleteOptions{}); err != nil {
+	if err = client.RbacV1().ClusterRoleBindings().Delete(ctx, "system:public-info-viewer", metav1.DeleteOptions{}); err != nil {
 		t.Fatalf("Failed to delete `system:public-info-viewer` ClusterRoleBinding: %v", err)
 	}
 
@@ -780,7 +788,7 @@ func TestDiscoveryUpgradeBootstrapping(t *testing.T) {
 
 	// Check that upgraded API servers inherit `system:public-info-viewer` settings from
 	// `system:discovery`, and respect auto-reconciliation annotations.
-	client, _, tearDownFn = framework.StartTestServer(tCtx, t, framework.TestServerSetup{
+	client, _, tearDownFn = framework.StartTestServer(ctx, t, framework.TestServerSetup{
 		ModifyServerRunOptions: func(opts *options.ServerRunOptions) {
 			// Ensure we're using the same etcd across apiserver restarts.
 			opts.Etcd.StorageConfig = *etcdConfig
@@ -788,21 +796,21 @@ func TestDiscoveryUpgradeBootstrapping(t *testing.T) {
 		},
 	})
 
-	newDiscRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(tCtx, "system:discovery", metav1.GetOptions{})
+	newDiscRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(ctx, "system:discovery", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Failed to get `system:discovery` ClusterRoleBinding: %v", err)
 	}
 	if !reflect.DeepEqual(newDiscRoleBinding, discRoleBinding) {
 		t.Errorf("`system:discovery` should have been unmodified. Wanted: %v, got %v", discRoleBinding, newDiscRoleBinding)
 	}
-	newBasicUserRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(tCtx, "system:basic-user", metav1.GetOptions{})
+	newBasicUserRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(ctx, "system:basic-user", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Failed to get `system:basic-user` ClusterRoleBinding: %v", err)
 	}
 	if !reflect.DeepEqual(newBasicUserRoleBinding, basicUserRoleBinding) {
 		t.Errorf("`system:basic-user` should have been unmodified. Wanted: %v, got %v", basicUserRoleBinding, newBasicUserRoleBinding)
 	}
-	publicInfoViewerRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(tCtx, "system:public-info-viewer", metav1.GetOptions{})
+	publicInfoViewerRoleBinding, err := client.RbacV1().ClusterRoleBindings().Get(ctx, "system:public-info-viewer", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Failed to get `system:public-info-viewer` ClusterRoleBinding: %v", err)
 	}

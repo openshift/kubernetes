@@ -31,11 +31,14 @@ readonly branch=${1:-${KUBE_VERIFY_GIT_BRANCH:-master}}
 find_files() {
   find . -not \( \
       \( \
-        -wholename './_output' \
+        -wholename './output' \
+        -o -wholename './_output' \
+        -o -wholename './_gopath' \
         -o -wholename './release' \
         -o -wholename './target' \
         -o -wholename '*/third_party/*' \
         -o -wholename '*/vendor/*' \
+        -o -wholename './staging/src/k8s.io/client-go/*vendor/*' \
         -o -wholename './staging/src/k8s.io/client-go/pkg/*' \
       \) -prune \
     \) -name '.readonly'

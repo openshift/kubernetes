@@ -84,7 +84,7 @@ type fakeDRAServerInfo struct {
 	teardownFn tearDown
 }
 
-func setupFakeDRADriverGRPCServer(shouldTimeout bool, pluginClientTimeout *time.Duration) (fakeDRAServerInfo, error) {
+func setupFakeDRADriverGRPCServer(shouldTimeout bool) (fakeDRAServerInfo, error) {
 	socketDir, err := os.MkdirTemp("", "dra")
 	if err != nil {
 		return fakeDRAServerInfo{
@@ -117,7 +117,7 @@ func setupFakeDRADriverGRPCServer(shouldTimeout bool, pluginClientTimeout *time.
 		driverName: driverName,
 	}
 	if shouldTimeout {
-		timeout := *pluginClientTimeout * 2
+		timeout := plugin.PluginClientTimeout + time.Second
 		fakeDRADriverGRPCServer.timeout = &timeout
 	}
 
@@ -154,7 +154,7 @@ func TestNewManagerImpl(t *testing.T) {
 		},
 	} {
 		t.Run(test.description, func(t *testing.T) {
-			manager, err := NewManagerImpl(kubeClient, test.stateFileDirectory, "worker")
+			manager, err := NewManagerImpl(kubeClient, test.stateFileDirectory)
 			if test.wantErr {
 				assert.Error(t, err)
 				return
@@ -287,7 +287,7 @@ func TestGetResources(t *testing.T) {
 		},
 	} {
 		t.Run(test.description, func(t *testing.T) {
-			manager, err := NewManagerImpl(kubeClient, t.TempDir(), "worker")
+			manager, err := NewManagerImpl(kubeClient, t.TempDir())
 			assert.NoError(t, err)
 
 			if test.claimInfo != nil {
@@ -304,10 +304,6 @@ func TestGetResources(t *testing.T) {
 			assert.Equal(t, test.claimInfo.CDIDevices[driverName][0], containerInfo.CDIDevices[0].Name)
 		})
 	}
-}
-
-func getFakeNode() (*v1.Node, error) {
-	return &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "worker"}}, nil
 }
 
 func TestPrepareResources(t *testing.T) {
@@ -758,20 +754,14 @@ func TestPrepareResources(t *testing.T) {
 				}
 			}
 
-			var pluginClientTimeout *time.Duration
-			if test.wantTimeout {
-				timeout := time.Millisecond * 20
-				pluginClientTimeout = &timeout
-			}
-
-			draServerInfo, err := setupFakeDRADriverGRPCServer(test.wantTimeout, pluginClientTimeout)
+			draServerInfo, err := setupFakeDRADriverGRPCServer(test.wantTimeout)
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer draServerInfo.teardownFn()
 
-			plg := plugin.NewRegistrationHandler(nil, getFakeNode)
-			if err := plg.RegisterPlugin(test.driverName, draServerInfo.socketName, []string{"1.27"}, pluginClientTimeout); err != nil {
+			plg := plugin.NewRegistrationHandler()
+			if err := plg.RegisterPlugin(test.driverName, draServerInfo.socketName, []string{"1.27"}); err != nil {
 				t.Fatalf("failed to register plugin %s, err: %v", test.driverName, err)
 			}
 			defer plg.DeRegisterPlugin(test.driverName) // for sake of next tests
@@ -1064,20 +1054,14 @@ func TestUnprepareResources(t *testing.T) {
 				t.Fatalf("failed to create a new instance of the claimInfoCache, err: %v", err)
 			}
 
-			var pluginClientTimeout *time.Duration
-			if test.wantTimeout {
-				timeout := time.Millisecond * 20
-				pluginClientTimeout = &timeout
-			}
-
-			draServerInfo, err := setupFakeDRADriverGRPCServer(test.wantTimeout, pluginClientTimeout)
+			draServerInfo, err := setupFakeDRADriverGRPCServer(test.wantTimeout)
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer draServerInfo.teardownFn()
 
-			plg := plugin.NewRegistrationHandler(nil, getFakeNode)
-			if err := plg.RegisterPlugin(test.driverName, draServerInfo.socketName, []string{"1.27"}, pluginClientTimeout); err != nil {
+			plg := plugin.NewRegistrationHandler()
+			if err := plg.RegisterPlugin(test.driverName, draServerInfo.socketName, []string{"1.27"}); err != nil {
 				t.Fatalf("failed to register plugin %s, err: %v", test.driverName, err)
 			}
 			defer plg.DeRegisterPlugin(test.driverName) // for sake of next tests

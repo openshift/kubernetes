@@ -38,7 +38,6 @@ spec:
   backoffLimitPerIndex: 12
   completionMode: completionModeValue
   completions: 2
-  managedBy: managedByValue
   manualSelector: true
   maxFailedIndexes: 13
   parallelism: 1
@@ -62,10 +61,6 @@ spec:
       - valuesValue
     matchLabels:
       matchLabelsKey: matchLabelsValue
-  successPolicy:
-    rules:
-    - succeededCount: 2
-      succeededIndexes: succeededIndexesValue
   suspend: true
   template:
     metadata:
@@ -369,9 +364,6 @@ spec:
         restartPolicy: restartPolicyValue
         securityContext:
           allowPrivilegeEscalation: true
-          appArmorProfile:
-            localhostProfile: localhostProfileValue
-            type: typeValue
           capabilities:
             add:
             - addValue
@@ -433,7 +425,6 @@ spec:
           mountPropagation: mountPropagationValue
           name: nameValue
           readOnly: true
-          recursiveReadOnly: recursiveReadOnlyValue
           subPath: subPathValue
           subPathExpr: subPathExprValue
         workingDir: workingDirValue
@@ -584,9 +575,6 @@ spec:
         restartPolicy: restartPolicyValue
         securityContext:
           allowPrivilegeEscalation: true
-          appArmorProfile:
-            localhostProfile: localhostProfileValue
-            type: typeValue
           capabilities:
             add:
             - addValue
@@ -649,7 +637,6 @@ spec:
           mountPropagation: mountPropagationValue
           name: nameValue
           readOnly: true
-          recursiveReadOnly: recursiveReadOnlyValue
           subPath: subPathValue
           subPathExpr: subPathExprValue
         workingDir: workingDirValue
@@ -801,9 +788,6 @@ spec:
         restartPolicy: restartPolicyValue
         securityContext:
           allowPrivilegeEscalation: true
-          appArmorProfile:
-            localhostProfile: localhostProfileValue
-            type: typeValue
           capabilities:
             add:
             - addValue
@@ -865,7 +849,6 @@ spec:
           mountPropagation: mountPropagationValue
           name: nameValue
           readOnly: true
-          recursiveReadOnly: recursiveReadOnlyValue
           subPath: subPathValue
           subPathExpr: subPathExprValue
         workingDir: workingDirValue
@@ -892,9 +875,6 @@ spec:
       schedulingGates:
       - name: nameValue
       securityContext:
-        appArmorProfile:
-          localhostProfile: localhostProfileValue
-          type: typeValue
         fsGroup: 5
         fsGroupChangePolicy: fsGroupChangePolicyValue
         runAsGroup: 6

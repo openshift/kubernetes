@@ -32,7 +32,7 @@ PROTOC_VERSION=23.4
 # $1: Full path to the directory where the api.proto file is
 function kube::protoc::generate_proto() {
   kube::golang::setup_env
-  GOPROXY=off go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
+  GO111MODULE=on GOPROXY=off go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
   kube::protoc::check_protoc
 
@@ -69,7 +69,6 @@ function kube::protoc::protoc() {
     PATH="${gogopath}:${PATH}" protoc \
       --proto_path="$(pwd -P)" \
       --proto_path="${KUBE_ROOT}/vendor" \
-      --proto_path="${KUBE_ROOT}/staging/src" \
       --proto_path="${KUBE_ROOT}/third_party/protobuf" \
       --gogo_out=paths=source_relative,plugins=grpc:. \
       api.proto
@@ -85,7 +84,7 @@ function kube::protoc::format() {
   cat hack/boilerplate/boilerplate.generatego.txt "${package}/api.pb.go" > tmpfile && mv tmpfile "${package}/api.pb.go"
 
   # Run gofmt to clean up the generated code.
-  kube::golang::setup_env
+  kube::golang::verify_go_version
   gofmt -s -w "${package}/api.pb.go"
 }
 

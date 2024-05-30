@@ -22,8 +22,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "versions": {
             "description": "versions are the api versions that are available.",
@@ -31,8 +30,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [

@@ -108,6 +108,7 @@ type StorageVersionCondition struct {
 	// +optional
 	ObservedGeneration int64
 	// Last time the condition transitioned from one status to another.
+	// +required
 	LastTransitionTime metav1.Time
 	// The reason for the condition's last transition.
 	// +required

@@ -26,13 +26,13 @@ KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 source "${KUBE_ROOT}/hack/lib/util.sh"
 
-kube::golang::setup_env
+kube::golang::verify_go_version
 
 cd "${KUBE_ROOT}"
 
 errors=()
 # Check conformance tests follow the requirements as https://git.k8s.io/community/contributors/devel/sig-architecture/conformance-tests.md#conformance-test-requirements
-if ! failedLint=$(GOPROXY=off go run hack/conformance/check_conformance_test_requirements.go "${KUBE_ROOT}"/test/e2e/)
+if ! failedLint=$(GO111MODULE=on GOPROXY=off go run hack/conformance/check_conformance_test_requirements.go "${KUBE_ROOT}"/test/e2e/)
 then
   errors+=( "${failedLint}" )
 fi

@@ -22,20 +22,20 @@ package zapcore
 
 import (
 	"fmt"
+	"sync"
 
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/internal/bufferpool"
-	"go.uber.org/zap/internal/pool"
 )
 
-var _sliceEncoderPool = pool.New(func() *sliceArrayEncoder {
-	return &sliceArrayEncoder{
-		elems: make([]interface{}, 0, 2),
-	}
-})
+var _sliceEncoderPool = sync.Pool{
+	New: func() interface{} {
+		return &sliceArrayEncoder{elems: make([]interface{}, 0, 2)}
+	},
+}
 
 func getSliceEncoder() *sliceArrayEncoder {
-	return _sliceEncoderPool.Get()
+	return _sliceEncoderPool.Get().(*sliceArrayEncoder)
 }
 
 func putSliceEncoder(e *sliceArrayEncoder) {
@@ -125,7 +125,11 @@ func (c consoleEncoder) EncodeEntry(ent Entry, fields []Field) (*buffer.Buffer, 
 		line.AppendString(ent.Stack)
 	}
 
-	line.AppendString(c.LineEnding)
+	if c.LineEnding != "" {
+		line.AppendString(c.LineEnding)
+	} else {
+		line.AppendString(DefaultLineEnding)
+	}
 	return line, nil
 }
 

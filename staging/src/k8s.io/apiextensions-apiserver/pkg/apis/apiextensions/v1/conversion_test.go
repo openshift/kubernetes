@@ -28,7 +28,6 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	"k8s.io/utils/ptr"
 )
 
 func TestConversion(t *testing.T) {
@@ -86,7 +85,7 @@ func TestConversion(t *testing.T) {
 			Out:  &apiextensions.CustomResourceDefinition{},
 			ExpectOut: &apiextensions.CustomResourceDefinition{
 				Spec: apiextensions.CustomResourceDefinitionSpec{
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -102,7 +101,7 @@ func TestConversion(t *testing.T) {
 				Spec: apiextensions.CustomResourceDefinitionSpec{
 					Version:               "v1",
 					Versions:              []apiextensions.CustomResourceDefinitionVersion{{Name: "v1", Served: true, Storage: true}},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -124,7 +123,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v1", Served: true, Storage: true},
 						{Name: "v2", Served: false, Storage: false},
 					},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -185,7 +184,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v2", Served: true, Storage: false},
 					},
 					Validation:            &apiextensions.CustomResourceValidation{OpenAPIV3Schema: &apiextensions.JSONSchemaProps{Type: "object"}},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -207,7 +206,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v1", Served: true, Storage: true, Schema: &apiextensions.CustomResourceValidation{OpenAPIV3Schema: &apiextensions.JSONSchemaProps{Description: "v1", Type: "object"}}},
 						{Name: "v2", Served: true, Storage: false, Schema: &apiextensions.CustomResourceValidation{OpenAPIV3Schema: &apiextensions.JSONSchemaProps{Description: "v2", Type: "object"}}},
 					},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -268,7 +267,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v2", Served: true, Storage: false},
 					},
 					Subresources:          &apiextensions.CustomResourceSubresources{Scale: &apiextensions.CustomResourceSubresourceScale{SpecReplicasPath: "spec.replicas"}},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -290,7 +289,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v1", Served: true, Storage: true, Subresources: &apiextensions.CustomResourceSubresources{Scale: &apiextensions.CustomResourceSubresourceScale{SpecReplicasPath: "spec.replicas1"}}},
 						{Name: "v2", Served: true, Storage: false, Subresources: &apiextensions.CustomResourceSubresources{Scale: &apiextensions.CustomResourceSubresourceScale{SpecReplicasPath: "spec.replicas2"}}},
 					},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -351,7 +350,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v2", Served: true, Storage: false},
 					},
 					AdditionalPrinterColumns: []apiextensions.CustomResourceColumnDefinition{{Name: "column1"}},
-					PreserveUnknownFields:    ptr.To(false),
+					PreserveUnknownFields:    pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -373,114 +372,7 @@ func TestConversion(t *testing.T) {
 						{Name: "v1", Served: true, Storage: true, AdditionalPrinterColumns: []apiextensions.CustomResourceColumnDefinition{{Name: "column1"}}},
 						{Name: "v2", Served: true, Storage: false, AdditionalPrinterColumns: []apiextensions.CustomResourceColumnDefinition{{Name: "column2"}}},
 					},
-					PreserveUnknownFields: ptr.To(false),
-				},
-			},
-		},
-		// SelectableFields
-		{
-			Name: "internal to v1, top-level selectable fields moves to per-version",
-			In: &apiextensions.CustomResourceDefinition{
-				Spec: apiextensions.CustomResourceDefinitionSpec{
-					Version:          "v1",
-					SelectableFields: []apiextensions.SelectableField{{JSONPath: ".spec.x"}},
-					Versions: []apiextensions.CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true},
-					},
-				},
-			},
-			Out: &CustomResourceDefinition{},
-			ExpectOut: &CustomResourceDefinition{
-				Spec: CustomResourceDefinitionSpec{
-					Versions: []CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []SelectableField{{JSONPath: ".spec.x"}}},
-					},
-				},
-			},
-		},
-		{
-			Name: "internal to v1, per-version selectable fields is preserved",
-			In: &apiextensions.CustomResourceDefinition{
-				Spec: apiextensions.CustomResourceDefinitionSpec{
-					Versions: []apiextensions.CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []apiextensions.SelectableField{{JSONPath: ".spec.x"}}},
-						{Name: "v2", Served: false, Storage: false, SelectableFields: []apiextensions.SelectableField{{JSONPath: ".spec.y"}}},
-					},
-				},
-			},
-			Out: &CustomResourceDefinition{},
-			ExpectOut: &CustomResourceDefinition{
-				Spec: CustomResourceDefinitionSpec{
-					Versions: []CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []SelectableField{{JSONPath: ".spec.x"}}},
-						{Name: "v2", Served: false, Storage: false, SelectableFields: []SelectableField{{JSONPath: ".spec.y"}}},
-					},
-				},
-			},
-		},
-		{
-			Name: "v1 to internal, identical selectable fields moves to top-level",
-			In: &CustomResourceDefinition{
-				Spec: CustomResourceDefinitionSpec{
-					Versions: []CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []SelectableField{{JSONPath: ".spec.x"}}},
-						{Name: "v2", Served: true, Storage: false, SelectableFields: []SelectableField{{JSONPath: ".spec.x"}}},
-					},
-				},
-			},
-			Out: &apiextensions.CustomResourceDefinition{},
-			ExpectOut: &apiextensions.CustomResourceDefinition{
-				Spec: apiextensions.CustomResourceDefinitionSpec{
-					Version: "v1",
-					Versions: []apiextensions.CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true},
-						{Name: "v2", Served: true, Storage: false},
-					},
-					SelectableFields:      []apiextensions.SelectableField{{JSONPath: ".spec.x"}},
-					PreserveUnknownFields: ptr.To(false),
-				},
-			},
-		},
-		{
-			Name: "v1 to internal, single selectable field moves to top-level",
-			In: &CustomResourceDefinition{
-				Spec: CustomResourceDefinitionSpec{
-					Versions: []CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []SelectableField{{JSONPath: ".spec.x"}}},
-					},
-				},
-			},
-			Out: &apiextensions.CustomResourceDefinition{},
-			ExpectOut: &apiextensions.CustomResourceDefinition{
-				Spec: apiextensions.CustomResourceDefinitionSpec{
-					Version: "v1",
-					Versions: []apiextensions.CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true},
-					},
-					SelectableFields:      []apiextensions.SelectableField{{JSONPath: ".spec.x"}},
-					PreserveUnknownFields: ptr.To(false),
-				},
-			},
-		},
-		{
-			Name: "v1 to internal, distinct selectable fields remains per-version",
-			In: &CustomResourceDefinition{
-				Spec: CustomResourceDefinitionSpec{
-					Versions: []CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []SelectableField{{JSONPath: ".spec.x"}}},
-						{Name: "v2", Served: true, Storage: false, SelectableFields: []SelectableField{{JSONPath: ".spec.y"}}},
-					},
-				},
-			},
-			Out: &apiextensions.CustomResourceDefinition{},
-			ExpectOut: &apiextensions.CustomResourceDefinition{
-				Spec: apiextensions.CustomResourceDefinitionSpec{
-					Version: "v1",
-					Versions: []apiextensions.CustomResourceDefinitionVersion{
-						{Name: "v1", Served: true, Storage: true, SelectableFields: []apiextensions.SelectableField{{JSONPath: ".spec.x"}}},
-						{Name: "v2", Served: true, Storage: false, SelectableFields: []apiextensions.SelectableField{{JSONPath: ".spec.y"}}},
-					},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -550,7 +442,7 @@ func TestConversion(t *testing.T) {
 			ExpectOut: &apiextensions.CustomResourceDefinition{
 				Spec: apiextensions.CustomResourceDefinitionSpec{
 					Conversion:            &apiextensions.CustomResourceConversion{},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -571,7 +463,7 @@ func TestConversion(t *testing.T) {
 					Conversion: &apiextensions.CustomResourceConversion{
 						WebhookClientConfig: &apiextensions.WebhookClientConfig{URL: pointer.StringPtr("http://example.com")},
 					},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},
@@ -592,7 +484,7 @@ func TestConversion(t *testing.T) {
 					Conversion: &apiextensions.CustomResourceConversion{
 						ConversionReviewVersions: []string{"v1"},
 					},
-					PreserveUnknownFields: ptr.To(false),
+					PreserveUnknownFields: pointer.BoolPtr(false),
 				},
 			},
 		},

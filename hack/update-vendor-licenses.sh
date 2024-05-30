@@ -135,8 +135,7 @@ process_content () {
 #############################################################################
 
 # use modules, and use module info rather than the vendor dir for computing dependencies
-kube::golang::setup_env
-export GOWORK=off
+export GO111MODULE=on
 export GOFLAGS=-mod=mod
 
 # Check bash version

@@ -43,8 +43,11 @@ import (
 )
 
 func TestOpenAPIV3SpecRoundTrip(t *testing.T) {
-	tCtx := ktesting.Init(t)
-	_, kubeConfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{})
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	_, kubeConfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{})
 	defer tearDownFn()
 
 	paths := []string{
@@ -186,8 +189,11 @@ func TestOpenAPIV3ProtoRoundtrip(t *testing.T) {
 	// See https://github.com/kubernetes/kubernetes/issues/106387 for more details
 	t.Skip("Skipping OpenAPI V3 Proto roundtrip test")
 
-	tCtx := ktesting.Init(t)
-	_, kubeConfig, tearDownFn := framework.StartTestServer(tCtx, t, framework.TestServerSetup{})
+	_, ctx := ktesting.NewTestContext(t)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	_, kubeConfig, tearDownFn := framework.StartTestServer(ctx, t, framework.TestServerSetup{})
 	defer tearDownFn()
 
 	rt, err := restclient.TransportFor(kubeConfig)

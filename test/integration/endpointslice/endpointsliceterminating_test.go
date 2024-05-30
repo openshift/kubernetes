@@ -29,10 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2/ktesting"
 	kubeapiservertesting "k8s.io/kubernetes/cmd/kube-apiserver/app/testing"
 	"k8s.io/kubernetes/pkg/controller/endpointslice"
 	"k8s.io/kubernetes/test/integration/framework"
-	"k8s.io/kubernetes/test/utils/ktesting"
 	utilpointer "k8s.io/utils/pointer"
 )
 
@@ -116,9 +116,9 @@ func TestEndpointSliceTerminating(t *testing.T) {
 			resyncPeriod := 12 * time.Hour
 			informers := informers.NewSharedInformerFactory(client, resyncPeriod)
 
-			tCtx := ktesting.Init(t)
+			_, ctx := ktesting.NewTestContext(t)
 			epsController := endpointslice.NewController(
-				tCtx,
+				ctx,
 				informers.Core().V1().Pods(),
 				informers.Core().V1().Services(),
 				informers.Core().V1().Nodes(),
@@ -128,8 +128,10 @@ func TestEndpointSliceTerminating(t *testing.T) {
 				1*time.Second)
 
 			// Start informer and controllers
-			informers.Start(tCtx.Done())
-			go epsController.Run(tCtx, 1)
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			informers.Start(ctx.Done())
+			go epsController.Run(ctx, 1)
 
 			// Create namespace
 			ns := framework.CreateNamespaceOrDie(client, "test-endpoints-terminating", t)

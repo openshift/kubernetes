@@ -219,6 +219,7 @@ func TestReadRotatedLog(t *testing.T) {
 	if err != nil {
 		assert.NoErrorf(t, err, "unable to create temp file")
 	}
+
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 	containerID := "fake-container-id"
@@ -234,13 +235,12 @@ func TestReadRotatedLog(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// Start to follow the container's log.
-	fileName := file.Name()
 	go func(ctx context.Context) {
 		podLogOptions := v1.PodLogOptions{
 			Follow: true,
 		}
 		opts := NewLogOptions(&podLogOptions, time.Now())
-		_ = ReadLogs(ctx, fileName, containerID, opts, fakeRuntimeService, stdoutBuf, stderrBuf)
+		ReadLogs(ctx, file.Name(), containerID, opts, fakeRuntimeService, stdoutBuf, stderrBuf)
 	}(ctx)
 
 	// log in stdout
@@ -254,7 +254,6 @@ func TestReadRotatedLog(t *testing.T) {
 	// Write 10 lines to log file.
 	// Let ReadLogs start.
 	time.Sleep(50 * time.Millisecond)
-
 	for line := 0; line < 10; line++ {
 		// Write the first three lines to log file
 		now := time.Now().Format(types.RFC3339NanoLenient)

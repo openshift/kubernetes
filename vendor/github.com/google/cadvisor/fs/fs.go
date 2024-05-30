@@ -43,7 +43,6 @@ const (
 	LabelSystemRoot          = "root"
 	LabelDockerImages        = "docker-images"
 	LabelCrioImages          = "crio-images"
-	LabelCrioContainers      = "crio-containers"
 	DriverStatusPoolName     = "Pool Name"
 	DriverStatusDataLoopFile = "Data loop file"
 )
@@ -296,37 +295,14 @@ func (i *RealFsInfo) addDockerImagesLabel(context Context, mounts []*mount.Info)
 }
 
 func (i *RealFsInfo) addCrioImagesLabel(context Context, mounts []*mount.Info) {
-	labelCrioImageOrContainers := LabelCrioContainers
-	// If imagestore is not specified, let's fall back to the original case.
-	// Everything will be stored in crio-images
-	if context.Crio.ImageStore == "" {
-		labelCrioImageOrContainers = LabelCrioImages
-	}
 	if context.Crio.Root != "" {
 		crioPath := context.Crio.Root
 		crioImagePaths := map[string]struct{}{
 			"/": {},
 		}
-		imageOrContainerPath := context.Crio.Driver + "-containers"
-		if context.Crio.ImageStore == "" {
-			// If ImageStore is not specified then we will assume ImageFs is complete separate.
-			// No need to split the image store.
-			imageOrContainerPath = context.Crio.Driver + "-images"
-
+		for _, dir := range []string{"devicemapper", "btrfs", "aufs", "overlay", "zfs"} {
+			crioImagePaths[path.Join(crioPath, dir+"-images")] = struct{}{}
 		}
-		crioImagePaths[path.Join(crioPath, imageOrContainerPath)] = struct{}{}
-		for crioPath != "/" && crioPath != "." {
-			crioImagePaths[crioPath] = struct{}{}
-			crioPath = filepath.Dir(crioPath)
-		}
-		i.updateContainerImagesPath(labelCrioImageOrContainers, mounts, crioImagePaths)
-	}
-	if context.Crio.ImageStore != "" {
-		crioPath := context.Crio.ImageStore
-		crioImagePaths := map[string]struct{}{
-			"/": {},
-		}
-		crioImagePaths[path.Join(crioPath, context.Crio.Driver+"-images")] = struct{}{}
 		for crioPath != "/" && crioPath != "." {
 			crioImagePaths[crioPath] = struct{}{}
 			crioPath = filepath.Dir(crioPath)

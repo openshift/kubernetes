@@ -248,7 +248,7 @@ users: null
 			}
 
 			// Set arbitrary discovery timeout and retry interval
-			timeout := time.Millisecond * 500
+			test.cfg.Timeout = &metav1.Duration{Duration: time.Millisecond * 200}
 			interval := time.Millisecond * 20
 
 			// Patch the JWS signature after a short delay
@@ -263,7 +263,7 @@ users: null
 			}
 
 			// Retrieve validated configuration
-			kubeconfig, err = retrieveValidatedConfigInfo(client, test.cfg, interval, timeout)
+			kubeconfig, err = retrieveValidatedConfigInfo(client, test.cfg, interval)
 			if (err != nil) != test.expectedError {
 				t.Errorf("expected error %v, got %v, error: %v", test.expectedError, err != nil, err)
 			}

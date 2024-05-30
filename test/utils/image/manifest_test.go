@@ -51,6 +51,9 @@ func BenchmarkReplaceRegistryInImageURL(b *testing.B) {
 			in:  "invalid.registry.k8s.io/invalid/test:latest",
 			out: "test.io/invalid/test:latest",
 		}, {
+			in:  "mcr.microsoft.com/test:latest",
+			out: "test.io/microsoft/test:latest",
+		}, {
 			in:  "registry.k8s.io/e2e-test-images/test:latest",
 			out: "test.io/promoter/test:latest",
 		}, {
@@ -67,6 +70,7 @@ func BenchmarkReplaceRegistryInImageURL(b *testing.B) {
 		PrivateRegistry:         "test.io/k8s-authenticated-test",
 		SigStorageRegistry:      "test.io/sig-storage",
 		InvalidRegistry:         "test.io/invalid",
+		MicrosoftRegistry:       "test.io/microsoft",
 		PromoterE2eRegistry:     "test.io/promoter",
 		BuildImageRegistry:      "test.io/build",
 		GcAuthenticatedRegistry: "test.io/gcAuth",
@@ -108,6 +112,9 @@ func TestReplaceRegistryInImageURL(t *testing.T) {
 			in:  "invalid.registry.k8s.io/invalid/test:latest",
 			out: "test.io/invalid/test:latest",
 		}, {
+			in:  "mcr.microsoft.com/test:latest",
+			out: "test.io/microsoft/test:latest",
+		}, {
 			in:  "registry.k8s.io/e2e-test-images/test:latest",
 			out: "test.io/promoter/test:latest",
 		}, {
@@ -129,6 +136,7 @@ func TestReplaceRegistryInImageURL(t *testing.T) {
 		PrivateRegistry:         "test.io/k8s-authenticated-test",
 		SigStorageRegistry:      "test.io/sig-storage",
 		InvalidRegistry:         "test.io/invalid",
+		MicrosoftRegistry:       "test.io/microsoft",
 		PromoterE2eRegistry:     "test.io/promoter",
 		BuildImageRegistry:      "test.io/build",
 		GcAuthenticatedRegistry: "test.io/gcAuth",

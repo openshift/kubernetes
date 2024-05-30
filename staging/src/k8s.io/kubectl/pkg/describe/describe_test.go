@@ -40,7 +40,6 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	storagev1alpha1 "k8s.io/api/storage/v1alpha1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +49,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	utilpointer "k8s.io/utils/pointer"
-	"k8s.io/utils/ptr"
 )
 
 type describeClient struct {
@@ -2262,11 +2260,9 @@ func TestDescribeDeployment(t *testing.T) {
 				"Replicas:           1 desired | 0 updated | 0 total | 0 available | 0 unavailable",
 				"Image:        mytest-image:latest",
 				"Mounts:\n      /tmp/vol-bar from vol-bar (rw)\n      /tmp/vol-foo from vol-foo (rw)",
-				"OldReplicaSets:    <none>",
-				"NewReplicaSet:     bar-001 (1/1 replicas created)",
-				"Events:            <none>",
-				"Node-Selectors:  <none>",
-				"Tolerations:     <none>",
+				"OldReplicaSets:  <none>",
+				"NewReplicaSet:   bar-001 (1/1 replicas created)",
+				"Events:          <none>",
 			},
 		},
 		{
@@ -2520,8 +2516,8 @@ func TestDescribeDeployment(t *testing.T) {
 			expects: []string{
 				"Replicas:           2 desired | 1 updated | 3 total | 2 available | 1 unavailable",
 				"Image:        mytest-image:v2.0",
-				"OldReplicaSets:    bar-001 (2/2 replicas created)",
-				"NewReplicaSet:     bar-002 (1/1 replicas created)",
+				"OldReplicaSets:  bar-001 (2/2 replicas created)",
+				"NewReplicaSet:   bar-002 (1/1 replicas created)",
 				"Events:\n",
 				"Normal  ScalingReplicaSet  12m (x3 over 20m)  deployment-controller  Scaled up replica set bar-002 to 1",
 				"Normal  ScalingReplicaSet  10m                deployment-controller  Scaled up replica set bar-001 to 2",
@@ -2814,8 +2810,8 @@ func TestDescribeDeployment(t *testing.T) {
 			expects: []string{
 				"Replicas:           2 desired | 2 updated | 2 total | 2 available | 0 unavailable",
 				"Image:        mytest-image:v2.0",
-				"OldReplicaSets:    bar-001 (0/0 replicas created)",
-				"NewReplicaSet:     bar-002 (2/2 replicas created)",
+				"OldReplicaSets:  bar-001 (0/0 replicas created)",
+				"NewReplicaSet:   bar-002 (2/2 replicas created)",
 				"Events:\n",
 				"Normal  ScalingReplicaSet  12m (x3 over 20m)  deployment-controller  Scaled up replica set bar-002 to 1",
 				"Normal  ScalingReplicaSet  10m                deployment-controller  Scaled up replica set bar-001 to 2",
@@ -2848,11 +2844,10 @@ func TestDescribeDeployment(t *testing.T) {
 func TestDescribeJob(t *testing.T) {
 	indexedCompletion := batchv1.IndexedCompletion
 	cases := map[string]struct {
-		job              *batchv1.Job
-		wantElements     []string
-		dontWantElements []string
+		job                  *batchv1.Job
+		wantCompletedIndexes string
 	}{
-		"empty job": {
+		"not indexed": {
 			job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
@@ -2860,9 +2855,8 @@ func TestDescribeJob(t *testing.T) {
 				},
 				Spec: batchv1.JobSpec{},
 			},
-			dontWantElements: []string{"Completed Indexes:", "Suspend:", "Backoff Limit:", "TTL Seconds After Finished:"},
 		},
-		"no completed indexes": {
+		"no indexes": {
 			job: &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
@@ -2872,7 +2866,7 @@ func TestDescribeJob(t *testing.T) {
 					CompletionMode: &indexedCompletion,
 				},
 			},
-			wantElements: []string{"Completed Indexes:  <none>"},
+			wantCompletedIndexes: "<none>",
 		},
 		"few completed indexes": {
 			job: &batchv1.Job{
@@ -2887,7 +2881,7 @@ func TestDescribeJob(t *testing.T) {
 					CompletedIndexes: "0-5,7,9,10,12,13,15,16,18,20,21,23,24,26,27,29,30,32",
 				},
 			},
-			wantElements: []string{"Completed Indexes:  0-5,7,9,10,12,13,15,16,18,20,21,23,24,26,27,29,30,32"},
+			wantCompletedIndexes: "0-5,7,9,10,12,13,15,16,18,20,21,23,24,26,27,29,30,32",
 		},
 		"too many completed indexes": {
 			job: &batchv1.Job{
@@ -2902,37 +2896,7 @@ func TestDescribeJob(t *testing.T) {
 					CompletedIndexes: "0-5,7,9,10,12,13,15,16,18,20,21,23,24,26,27,29,30,32-34,36,37",
 				},
 			},
-			wantElements: []string{"Completed Indexes:  0-5,7,9,10,12,13,15,16,18,20,21,23,24,26,27,29,30,32-34,..."},
-		},
-		"suspend set to true": {
-			job: &batchv1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bar",
-					Namespace: "foo",
-				},
-				Spec: batchv1.JobSpec{
-					Suspend:                 ptr.To(true),
-					TTLSecondsAfterFinished: ptr.To(int32(123)),
-					BackoffLimit:            ptr.To(int32(1)),
-				},
-			},
-			wantElements: []string{
-				"Suspend:                     true",
-				"TTL Seconds After Finished:  123",
-				"Backoff Limit:               1",
-			},
-		},
-		"suspend set to false": {
-			job: &batchv1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bar",
-					Namespace: "foo",
-				},
-				Spec: batchv1.JobSpec{
-					Suspend: ptr.To(false),
-				},
-			},
-			wantElements: []string{"Suspend:        false"},
+			wantCompletedIndexes: "0-5,7,9,10,12,13,15,16,18,20,21,23,24,26,27,29,30,32-34,...",
 		},
 	}
 	for name, tc := range cases {
@@ -2945,19 +2909,14 @@ func TestDescribeJob(t *testing.T) {
 			describer := JobDescriber{Interface: client}
 			out, err := describer.Describe(tc.job.Namespace, tc.job.Name, DescriberSettings{ShowEvents: true})
 			if err != nil {
-				t.Fatalf("unexpected error describing object: %v", err)
+				t.Fatalf("Unexpected error describing object: %v", err)
 			}
-
-			for _, expected := range tc.wantElements {
-				if !strings.Contains(out, expected) {
-					t.Errorf("expected to find %q in output:\n %s", expected, out)
+			if tc.wantCompletedIndexes != "" {
+				if !strings.Contains(out, fmt.Sprintf("Completed Indexes:  %s\n", tc.wantCompletedIndexes)) {
+					t.Errorf("Output didn't contain wanted Completed Indexes:\n%s", out)
 				}
-			}
-
-			for _, unexpected := range tc.dontWantElements {
-				if strings.Contains(out, unexpected) {
-					t.Errorf("unexpected to find %q in output:\n %s", unexpected, out)
-				}
+			} else if strings.Contains(out, "Completed Indexes:") {
+				t.Errorf("Output contains unexpected completed indexes:\n%s", out)
 			}
 		})
 	}
@@ -3491,38 +3450,6 @@ func TestDescribeStorageClass(t *testing.T) {
 		!strings.Contains(out, "zone2") ||
 		!strings.Contains(out, "node2") {
 		t.Errorf("unexpected out: %s", out)
-	}
-}
-
-func TestDescribeVolumeAttributesClass(t *testing.T) {
-	expectedOut := `Name:         foo
-Annotations:  name=bar
-DriverName:   my-driver
-Parameters:   param1=value1,param2=value2
-Events:       <none>
-`
-
-	f := fake.NewSimpleClientset(&storagev1alpha1.VolumeAttributesClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "foo",
-			ResourceVersion: "4",
-			Annotations: map[string]string{
-				"name": "bar",
-			},
-		},
-		DriverName: "my-driver",
-		Parameters: map[string]string{
-			"param1": "value1",
-			"param2": "value2",
-		},
-	})
-	s := VolumeAttributesClassDescriber{f}
-	out, err := s.Describe("", "foo", DescriberSettings{ShowEvents: true})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if out != expectedOut {
-		t.Errorf("expected:\n %s\n but got output:\n %s diff:\n%s", expectedOut, out, cmp.Diff(out, expectedOut))
 	}
 }
 

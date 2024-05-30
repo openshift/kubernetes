@@ -76,7 +76,7 @@ func NewController(ctx context.Context, endpointsInformer coreinformers.Endpoint
 	endpointUpdatesBatchPeriod time.Duration,
 ) *Controller {
 	logger := klog.FromContext(ctx)
-	broadcaster := record.NewBroadcaster(record.WithContext(ctx))
+	broadcaster := record.NewBroadcaster()
 	recorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "endpoint-slice-mirroring-controller"})
 
 	metrics.RegisterMetrics()

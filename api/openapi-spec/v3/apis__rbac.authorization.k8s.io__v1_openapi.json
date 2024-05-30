@@ -14,8 +14,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "type": "object"
@@ -58,8 +57,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "type": "object",
@@ -110,8 +108,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -225,8 +222,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "nonResourceURLs": {
             "description": "NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"),  but not both.",
@@ -234,8 +230,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "resourceNames": {
             "description": "ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.",
@@ -243,8 +238,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "resources": {
             "description": "Resources is a list of resources this rule applies to. '*' represents all resources.",
@@ -252,8 +246,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "verbs": {
             "description": "Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.",
@@ -261,8 +254,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -300,8 +292,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "type": "object",
@@ -352,8 +343,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -523,8 +513,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "group": {
             "description": "group is the preferred group of the resource.  Empty implies the group of the containing resource list. For subresources, this may have a different value, for example: Scale\".",
@@ -551,8 +540,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "singularName": {
             "default": "",
@@ -611,8 +599,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -641,8 +628,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "gracePeriodSeconds": {
             "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
@@ -961,11 +947,6 @@
             "group": "storage.k8s.io",
             "kind": "DeleteOptions",
             "version": "v1beta1"
-          },
-          {
-            "group": "storagemigration.k8s.io",
-            "kind": "DeleteOptions",
-            "version": "v1alpha1"
           }
         ]
       },
@@ -986,8 +967,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "matchLabels": {
             "additionalProperties": {
@@ -1020,8 +1000,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -1134,7 +1113,6 @@
               "type": "string"
             },
             "type": "array",
-            "x-kubernetes-list-type": "set",
             "x-kubernetes-patch-strategy": "merge"
           },
           "generateName": {
@@ -1164,8 +1142,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "name": {
             "description": "Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names",
@@ -1186,10 +1163,6 @@
               "default": {}
             },
             "type": "array",
-            "x-kubernetes-list-map-keys": [
-              "uid"
-            ],
-            "x-kubernetes-list-type": "map",
             "x-kubernetes-patch-merge-key": "uid",
             "x-kubernetes-patch-strategy": "merge"
           },
@@ -1285,8 +1258,7 @@
                 "$ref": "#/components/schemas/io.k8s.apimachinery.pkg.apis.meta.v1.StatusDetails"
               }
             ],
-            "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type.",
-            "x-kubernetes-list-type": "atomic"
+            "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type."
           },
           "kind": {
             "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
@@ -1359,8 +1331,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "group": {
             "description": "The group attribute of the resource associated with the status StatusReason.",
@@ -1702,11 +1673,6 @@
             "group": "storage.k8s.io",
             "kind": "WatchEvent",
             "version": "v1beta1"
-          },
-          {
-            "group": "storagemigration.k8s.io",
-            "kind": "WatchEvent",
-            "version": "v1alpha1"
           }
         ]
       },

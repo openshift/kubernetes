@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -71,7 +70,7 @@ func FetchInitConfigurationFromCluster(client clientset.Interface, printer outpu
 // getInitConfigurationFromCluster is separate only for testing purposes, don't call it directly, use FetchInitConfigurationFromCluster instead
 func getInitConfigurationFromCluster(kubeconfigDir string, client clientset.Interface, newControlPlane, skipComponentConfigs bool) (*kubeadmapi.InitConfiguration, error) {
 	// Also, the config map really should be KubeadmConfigConfigMap...
-	configMap, err := apiclient.GetConfigMapWithShortRetry(client, metav1.NamespaceSystem, constants.KubeadmConfigConfigMap)
+	configMap, err := apiclient.GetConfigMapWithRetry(client, metav1.NamespaceSystem, constants.KubeadmConfigConfigMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get config map")
 	}
@@ -196,33 +195,29 @@ func getNodeNameFromKubeletConfig(fileName string) (string, error) {
 }
 
 func getAPIEndpoint(client clientset.Interface, nodeName string, apiEndpoint *kubeadmapi.APIEndpoint) error {
-	return getAPIEndpointWithRetry(client, nodeName, apiEndpoint,
-		constants.KubernetesAPICallRetryInterval, kubeadmapi.GetActiveTimeouts().KubernetesAPICall.Duration)
+	return getAPIEndpointWithBackoff(client, nodeName, apiEndpoint, constants.StaticPodMirroringDefaultRetry)
 }
 
-func getAPIEndpointWithRetry(client clientset.Interface, nodeName string, apiEndpoint *kubeadmapi.APIEndpoint,
-	interval, timeout time.Duration) error {
+func getAPIEndpointWithBackoff(client clientset.Interface, nodeName string, apiEndpoint *kubeadmapi.APIEndpoint, backoff wait.Backoff) error {
 	var err error
 	var errs []error
 
-	if err = getAPIEndpointFromPodAnnotation(client, nodeName, apiEndpoint, interval, timeout); err == nil {
+	if err = getAPIEndpointFromPodAnnotation(client, nodeName, apiEndpoint, backoff); err == nil {
 		return nil
 	}
 	errs = append(errs, errors.WithMessagef(err, "could not retrieve API endpoints for node %q using pod annotations", nodeName))
 	return errorsutil.NewAggregate(errs)
 }
 
-func getAPIEndpointFromPodAnnotation(client clientset.Interface, nodeName string, apiEndpoint *kubeadmapi.APIEndpoint,
-	interval, timeout time.Duration) error {
+func getAPIEndpointFromPodAnnotation(client clientset.Interface, nodeName string, apiEndpoint *kubeadmapi.APIEndpoint, backoff wait.Backoff) error {
 	var rawAPIEndpoint string
 	var lastErr error
 	// Let's tolerate some unexpected transient failures from the API server or load balancers. Also, if
 	// static pods were not yet mirrored into the API server we want to wait for this propagation.
-	err := wait.PollUntilContextTimeout(context.Background(), interval, timeout, true,
-		func(ctx context.Context) (bool, error) {
-			rawAPIEndpoint, lastErr = getRawAPIEndpointFromPodAnnotationWithoutRetry(ctx, client, nodeName)
-			return lastErr == nil, nil
-		})
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		rawAPIEndpoint, lastErr = getRawAPIEndpointFromPodAnnotationWithoutRetry(client, nodeName)
+		return lastErr == nil, nil
+	})
 	if err != nil {
 		return err
 	}
@@ -234,9 +229,9 @@ func getAPIEndpointFromPodAnnotation(client clientset.Interface, nodeName string
 	return nil
 }
 
-func getRawAPIEndpointFromPodAnnotationWithoutRetry(ctx context.Context, client clientset.Interface, nodeName string) (string, error) {
+func getRawAPIEndpointFromPodAnnotationWithoutRetry(client clientset.Interface, nodeName string) (string, error) {
 	podList, err := client.CoreV1().Pods(metav1.NamespaceSystem).List(
-		ctx,
+		context.TODO(),
 		metav1.ListOptions{
 			FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 			LabelSelector: fmt.Sprintf("component=%s,tier=%s", constants.KubeAPIServer, constants.ControlPlaneTier),

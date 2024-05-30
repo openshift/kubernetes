@@ -373,19 +373,19 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: ingressIPs
       type:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: machineNetworks
       type:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
 - name: com.github.openshift.api.config.v1.BareMetalPlatformStatus
   map:
     fields:
@@ -397,7 +397,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: ingressIP
       type:
         scalar: string
@@ -406,7 +406,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: loadBalancer
       type:
         namedType: com.github.openshift.api.config.v1.BareMetalPlatformLoadBalancer
@@ -417,7 +417,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: nodeDNSIP
       type:
         scalar: string
@@ -2022,49 +2022,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1.NetworkStatus
       default: {}
-- name: com.github.openshift.api.config.v1.NetworkDiagnostics
-  map:
-    fields:
-    - name: mode
-      type:
-        scalar: string
-      default: ""
-    - name: sourcePlacement
-      type:
-        namedType: com.github.openshift.api.config.v1.NetworkDiagnosticsSourcePlacement
-      default: {}
-    - name: targetPlacement
-      type:
-        namedType: com.github.openshift.api.config.v1.NetworkDiagnosticsTargetPlacement
-      default: {}
-- name: com.github.openshift.api.config.v1.NetworkDiagnosticsSourcePlacement
-  map:
-    fields:
-    - name: nodeSelector
-      type:
-        map:
-          elementType:
-            scalar: string
-    - name: tolerations
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.core.v1.Toleration
-          elementRelationship: atomic
-- name: com.github.openshift.api.config.v1.NetworkDiagnosticsTargetPlacement
-  map:
-    fields:
-    - name: nodeSelector
-      type:
-        map:
-          elementType:
-            scalar: string
-    - name: tolerations
-      type:
-        list:
-          elementType:
-            namedType: io.k8s.api.core.v1.Toleration
-          elementRelationship: atomic
 - name: com.github.openshift.api.config.v1.NetworkMigration
   map:
     fields:
@@ -2086,10 +2043,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: externalIP
       type:
         namedType: com.github.openshift.api.config.v1.ExternalIPConfig
-    - name: networkDiagnostics
-      type:
-        namedType: com.github.openshift.api.config.v1.NetworkDiagnostics
-      default: {}
     - name: networkType
       type:
         scalar: string
@@ -2573,19 +2526,19 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: ingressIPs
       type:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: machineNetworks
       type:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
 - name: com.github.openshift.api.config.v1.OpenStackPlatformStatus
   map:
     fields:
@@ -2597,7 +2550,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: cloudName
       type:
         scalar: string
@@ -2609,7 +2562,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: loadBalancer
       type:
         namedType: com.github.openshift.api.config.v1.OpenStackPlatformLoadBalancer
@@ -2620,7 +2573,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: nodeDNSIP
       type:
         scalar: string
@@ -3448,7 +3401,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: failureDomains
       type:
         list:
@@ -3462,13 +3415,13 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: machineNetworks
       type:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: nodeNetworking
       type:
         namedType: com.github.openshift.api.config.v1.VSpherePlatformNodeNetworking
@@ -3490,7 +3443,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: ingressIP
       type:
         scalar: string
@@ -3499,7 +3452,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: loadBalancer
       type:
         namedType: com.github.openshift.api.config.v1.VSpherePlatformLoadBalancer
@@ -3510,7 +3463,7 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             scalar: string
-          elementRelationship: atomic
+          elementRelationship: associative
     - name: nodeDNSIP
       type:
         scalar: string

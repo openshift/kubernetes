@@ -89,8 +89,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -387,8 +386,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "type": "object"
@@ -584,8 +582,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "to": {
             "description": "to is a list of destinations for outgoing traffic of pods selected for this rule. Items in this list are combined using a logical OR operation. If this field is empty or missing, this rule matches all destinations (traffic not restricted by destination). If this field is present and contains at least one item, this rule allows traffic only if the traffic matches at least one item in the to list.",
@@ -597,8 +594,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "type": "object"
@@ -616,8 +612,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "ports": {
             "description": "ports is a list of ports which should be made accessible on the pods selected for this rule. Each item in this list is combined using a logical OR. If this field is empty or missing, this rule matches all ports (traffic not restricted by port). If this field is present and contains at least one item, then this rule allows traffic only if the traffic matches at least one port in the list.",
@@ -629,8 +624,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "type": "object"
@@ -746,8 +740,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "ingress": {
             "description": "ingress is a list of ingress rules to be applied to the selected pods. Traffic is allowed to a pod if there are no NetworkPolicies selecting the pod (and cluster policy otherwise allows the traffic), OR if the traffic source is the pod's local node, OR if the traffic matches at least one ingress rule across all of the NetworkPolicy objects whose podSelector matches the pod. If this field is empty then this NetworkPolicy does not allow any traffic (and serves solely to ensure that the pods it selects are isolated by default)",
@@ -759,8 +752,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "podSelector": {
             "allOf": [
@@ -777,8 +769,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -810,8 +801,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "group": {
             "description": "group is the preferred group of the resource.  Empty implies the group of the containing resource list. For subresources, this may have a different value, for example: Scale\".",
@@ -838,8 +828,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "singularName": {
             "default": "",
@@ -898,8 +887,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -928,8 +916,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "gracePeriodSeconds": {
             "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
@@ -1248,11 +1235,6 @@
             "group": "storage.k8s.io",
             "kind": "DeleteOptions",
             "version": "v1beta1"
-          },
-          {
-            "group": "storagemigration.k8s.io",
-            "kind": "DeleteOptions",
-            "version": "v1alpha1"
           }
         ]
       },
@@ -1273,8 +1255,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "matchLabels": {
             "additionalProperties": {
@@ -1307,8 +1288,7 @@
               "default": "",
               "type": "string"
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           }
         },
         "required": [
@@ -1421,7 +1401,6 @@
               "type": "string"
             },
             "type": "array",
-            "x-kubernetes-list-type": "set",
             "x-kubernetes-patch-strategy": "merge"
           },
           "generateName": {
@@ -1451,8 +1430,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "name": {
             "description": "Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. Cannot be updated. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names",
@@ -1473,10 +1451,6 @@
               "default": {}
             },
             "type": "array",
-            "x-kubernetes-list-map-keys": [
-              "uid"
-            ],
-            "x-kubernetes-list-type": "map",
             "x-kubernetes-patch-merge-key": "uid",
             "x-kubernetes-patch-strategy": "merge"
           },
@@ -1572,8 +1546,7 @@
                 "$ref": "#/components/schemas/io.k8s.apimachinery.pkg.apis.meta.v1.StatusDetails"
               }
             ],
-            "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type.",
-            "x-kubernetes-list-type": "atomic"
+            "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type."
           },
           "kind": {
             "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
@@ -1646,8 +1619,7 @@
               ],
               "default": {}
             },
-            "type": "array",
-            "x-kubernetes-list-type": "atomic"
+            "type": "array"
           },
           "group": {
             "description": "The group attribute of the resource associated with the status StatusReason.",
@@ -1989,11 +1961,6 @@
             "group": "storage.k8s.io",
             "kind": "WatchEvent",
             "version": "v1beta1"
-          },
-          {
-            "group": "storagemigration.k8s.io",
-            "kind": "WatchEvent",
-            "version": "v1alpha1"
           }
         ]
       },

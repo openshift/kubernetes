@@ -33,11 +33,28 @@ explained [here](docs/controller-client-go.md).
 
 ## Fetch sample-controller and its dependencies
 
-Issue the following commands --- starting in whatever working directory you
-like.
+Like the rest of Kubernetes, sample-controller has used
+[godep](https://github.com/tools/godep) and `$GOPATH` for years and is
+now adopting go 1.11 modules.  There are thus two alternative ways to
+go about fetching this demo and its dependencies.
+
+### Fetch with godep
+
+When NOT using go 1.11 modules, you can use the following commands.
 
 ```sh
-git clone https://github.com/kubernetes/sample-controller
+go get -d k8s.io/sample-controller
+cd $GOPATH/src/k8s.io/sample-controller
+godep restore
+```
+
+### When using go 1.11 modules
+
+When using go 1.11 modules (`GO111MODULE=on`), issue the following
+commands --- starting in whatever working directory you like.
+
+```sh
+git clone https://github.com/kubernetes/sample-controller.git
 cd sample-controller
 ```
 

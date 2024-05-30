@@ -44,7 +44,6 @@ var (
 type Info struct {
 	StorageDriver string `json:"storage_driver"`
 	StorageRoot   string `json:"storage_root"`
-	StorageImage  string `json:"storage_image"`
 }
 
 // ContainerInfo represents a given container information

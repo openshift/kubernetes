@@ -35,13 +35,15 @@ kube::golang::setup_env
 find_files() {
   find . -not \( \
       \( \
-        -wholename './.git' \
+        -wholename './output' \
+        -o -wholename './.git' \
         -o -wholename './_output' \
+        -o -wholename './_gopath' \
         -o -wholename './release' \
         -o -wholename './target' \
         -o -wholename '*/third_party/*' \
         -o -wholename '*/vendor/*' \
-        -o -wholename '*/testdata/*' \
+        -o -wholename './staging/src/k8s.io/client-go/*vendor/*' \
         -o -wholename '*/bindata.go' \
       \) -prune \
     \) -name '*.go'
