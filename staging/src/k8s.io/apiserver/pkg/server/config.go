@@ -325,6 +325,11 @@ type Config struct {
 	SendRetryAfterWhileNotReadyOnce bool
 }
 
+// EventSink allows to create events.
+type EventSink interface {
+	Create(event *corev1.Event) (*corev1.Event, error)
+}
+
 type RecommendedConfig struct {
 	Config
 
@@ -900,9 +905,7 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 
 		muxAndDiscoveryCompleteSignals: map[string]<-chan struct{}{},
 
-		OpenShiftGenericAPIServerPatch: OpenShiftGenericAPIServerPatch{
-			eventSink: c.EventSink,
-		},
+		eventSink: c.EventSink,
 	}
 
 	ref, err := eventReference()
