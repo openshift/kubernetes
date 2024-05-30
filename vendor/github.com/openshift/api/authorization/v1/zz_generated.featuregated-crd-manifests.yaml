@@ -1,6 +1,5 @@
 rolebindingrestrictions.authorization.openshift.io:
-  Annotations:
-    release.openshift.io/bootstrap-required: "true"
+  Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/470
   CRDName: rolebindingrestrictions.authorization.openshift.io
   Capability: ""

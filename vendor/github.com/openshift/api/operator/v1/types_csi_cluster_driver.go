@@ -279,7 +279,6 @@ type VSphereCSIDriverConfigSpec struct {
 	// If cluster Infrastructure object has a topology, values specified in
 	// Infrastructure object will be used and modifications to topologyCategories
 	// will be rejected.
-	// +listType=atomic
 	// +optional
 	TopologyCategories []string `json:"topologyCategories,omitempty"`
 

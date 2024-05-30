@@ -860,7 +860,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -880,7 +879,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean
@@ -932,7 +930,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     elementRelationship: atomic
 - name: io.k8s.api.core.v1.ObjectFieldSelector
   map:
@@ -1023,7 +1020,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: name
       type:
         scalar: string
-      default: ""
     - name: optional
       type:
         scalar: boolean

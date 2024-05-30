@@ -17,7 +17,6 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=proxies,scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:metadata:annotations=release.openshift.io/bootstrap-required=true
 type Proxy struct {
 	metav1.TypeMeta `json:",inline"`
 

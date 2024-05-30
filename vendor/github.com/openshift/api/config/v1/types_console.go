@@ -19,7 +19,6 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=consoles,scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:metadata:annotations=release.openshift.io/bootstrap-required=true
 type Console struct {
 	metav1.TypeMeta `json:",inline"`
 
