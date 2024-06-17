@@ -25,6 +25,7 @@ cpuCFSQuota: true
 cpuCFSQuotaPeriod: 100ms
 cpuManagerPolicy: none
 cpuManagerReconcilePeriod: 10s
+failCgroupV1: false
 enableControllerAttachDetach: true
 enableDebugFlagsHandler: true
 enableDebuggingHandlers: true
