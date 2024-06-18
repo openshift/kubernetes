@@ -1965,7 +1965,7 @@ func TestSchedulerSchedulePod(t *testing.T) {
 			nodes:              []string{"node1", "node2", "node3"},
 			pod:                st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
 			wantNodes:          sets.NewString("node2"),
-			wantEvaluatedNodes: pointer.Int32(3),
+			wantEvaluatedNodes: pointer.Int32(1),
 		},
 		{
 			name: "test prefilter plugin returning non-intersecting nodes",
@@ -2030,6 +2030,34 @@ func TestSchedulerSchedulePod(t *testing.T) {
 			},
 		},
 		{
+			name: "test some nodes are filtered out by prefilter plugin and other are filtered out by filter plugin",
+			registerPlugins: []st.RegisterPluginFunc{
+				st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+				st.RegisterPreFilterPlugin(
+					"FakePreFilter",
+					st.NewFakePreFilterPlugin("FakePreFilter", &framework.PreFilterResult{NodeNames: sets.NewString("node2")}, nil),
+				),
+				st.RegisterFilterPlugin(
+					"FakeFilter",
+					st.NewFakeFilterPlugin(map[string]framework.Code{"node2": framework.Unschedulable}),
+				),
+				st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+			},
+			nodes: []string{"node1", "node2"},
+			pod:   st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
+			wErr: &framework.FitError{
+				Pod:         st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
+				NumAllNodes: 2,
+				Diagnosis: framework.Diagnosis{
+					NodeToStatusMap: framework.NodeToStatusMap{
+						"node2": framework.NewStatus(framework.Unschedulable, "injecting failure for pod test-prefilter").WithFailedPlugin("FakeFilter"),
+					},
+					UnschedulablePlugins: sets.NewString("FakeFilter"),
+					PreFilterMsg:         "",
+				},
+			},
+		},
+		{
 			name: "test prefilter plugin returning skip",
 			registerPlugins: []st.RegisterPluginFunc{
 				st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
@@ -2079,6 +2107,30 @@ func TestSchedulerSchedulePod(t *testing.T) {
 			nodes:     []string{"node1", "node2"},
 			pod:       st.MakePod().Name("ignore").UID("ignore").Obj(),
 			wantNodes: sets.NewString("node1", "node2"),
+		},
+		{
+			name: "test prefilter plugin returned an invalid node",
+			registerPlugins: []st.RegisterPluginFunc{
+				st.RegisterQueueSortPlugin(queuesort.Name, queuesort.New),
+				st.RegisterPreFilterPlugin(
+					"FakePreFilter",
+					st.NewFakePreFilterPlugin("FakePreFilter", &framework.PreFilterResult{
+						NodeNames: sets.NewString("invalid-node"),
+					}, nil),
+				),
+				st.RegisterFilterPlugin("TrueFilter", st.NewTrueFilterPlugin),
+				st.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
+			},
+			nodes:     []string{"1", "2"},
+			pod:       st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
+			wantNodes: nil,
+			wErr: &framework.FitError{
+				Pod:         st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
+				NumAllNodes: 2,
+				Diagnosis: framework.Diagnosis{
+					NodeToStatusMap: framework.NodeToStatusMap{},
+				},
+			},
 		},
 	}
 	for _, test := range tests {
