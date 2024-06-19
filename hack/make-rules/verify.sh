@@ -71,6 +71,7 @@ EXCLUDED_PATTERNS+=(
   "verify-vendor-licenses.sh"               # TODO(marun) Fix inconsistent behavior between local and ci execution
   "verify-structured-logging.sh"            # TODO(soltysh) I don't expect us needed it now
   "verify-mocks.sh"                         # TODO(soltysh) I don't expect us needed mocks re-generation
+  "verify-govulncheck.sh"                   # TODO(bertinatto) Fix inconsistent behavior between local and ci execution
 )
 
 # Exclude typecheck in certain cases, if they're running in a separate job.
