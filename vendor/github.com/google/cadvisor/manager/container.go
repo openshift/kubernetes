@@ -121,13 +121,19 @@ func (cd *containerData) Start() error {
 }
 
 func (cd *containerData) Stop() error {
+	maybeID := rand.Float64()
+	fmt.Println(time.Now(), "DEBBUG cadvisor Stop() beginning", maybeID)
 	err := cd.memoryCache.RemoveContainer(cd.info.Name)
 	if err != nil {
 		return err
 	}
+	fmt.Println(time.Now(), "DEBBUG cadvisor Stop() before close(cd.stop)", maybeID)
 	close(cd.stop)
+	fmt.Println(time.Now(), "DEBBUG cadvisor Stop() before cd.perfCollector.Destroy()", maybeID)
 	cd.perfCollector.Destroy()
+	fmt.Println(time.Now(), "DEBBUG cadvisor Stop() before cd.resctrlCollector.Destroy()", maybeID)
 	cd.resctrlCollector.Destroy()
+	fmt.Println(time.Now(), "DEBBUG cadvisor Stop() END", maybeID)
 	return nil
 }
 
