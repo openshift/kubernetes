@@ -3207,9 +3207,6 @@ func (list SortableResourceNames) Less(i, j int) bool {
 }
 
 func isRestartableInitContainer(initContainer *api.Container) bool {
-	if initContainer == nil {
-		return false
-	}
 	if initContainer.RestartPolicy == nil {
 		return false
 	}

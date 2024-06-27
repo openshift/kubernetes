@@ -48,15 +48,14 @@ func (t *testVariable) GetName() string {
 
 func TestCompositedPolicies(t *testing.T) {
 	cases := []struct {
-		name                  string
-		variables             []NamedExpressionAccessor
-		expression            string
-		attributes            admission.Attributes
-		expectedResult        any
-		expectErr             bool
-		expectedErrorMessage  string
-		runtimeCostBudget     int64
-		strictCostEnforcement bool
+		name                 string
+		variables            []NamedExpressionAccessor
+		expression           string
+		attributes           admission.Attributes
+		expectedResult       any
+		expectErr            bool
+		expectedErrorMessage string
+		runtimeCostBudget    int64
 	}{
 		{
 			name: "simple",
@@ -186,45 +185,16 @@ func TestCompositedPolicies(t *testing.T) {
 			expectErr:            true,
 			expectedErrorMessage: "found no matching overload for '_==_' applied to '(string, int)'",
 		},
-		{
-			name: "with strictCostEnforcement on: exceeds cost budget",
-			variables: []NamedExpressionAccessor{
-				&testVariable{
-					name:       "dict",
-					expression: "'abc 123 def 123'.split(' ')",
-				},
-			},
-			attributes:            endpointCreateAttributes(),
-			expression:            "size(variables.dict) > 0",
-			expectErr:             true,
-			expectedErrorMessage:  "validation failed due to running out of cost budget, no further validation rules will be run",
-			runtimeCostBudget:     5,
-			strictCostEnforcement: true,
-		},
-		{
-			name: "with strictCostEnforcement off: not exceed cost budget",
-			variables: []NamedExpressionAccessor{
-				&testVariable{
-					name:       "dict",
-					expression: "'abc 123 def 123'.split(' ')",
-				},
-			},
-			attributes:            endpointCreateAttributes(),
-			expression:            "size(variables.dict) > 0",
-			expectedResult:        true,
-			runtimeCostBudget:     5,
-			strictCostEnforcement: false,
-		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			compiler, err := NewCompositedCompiler(environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), tc.strictCostEnforcement))
+			compiler, err := NewCompositedCompiler(environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()))
 			if err != nil {
 				t.Fatal(err)
 			}
-			compiler.CompileAndStoreVariables(tc.variables, OptionalVariableDeclarations{HasParams: false, HasAuthorizer: false, StrictCost: tc.strictCostEnforcement}, environment.NewExpressions)
+			compiler.CompileAndStoreVariables(tc.variables, OptionalVariableDeclarations{HasParams: false, HasAuthorizer: false}, environment.NewExpressions)
 			validations := []ExpressionAccessor{&condition{Expression: tc.expression}}
-			f := compiler.Compile(validations, OptionalVariableDeclarations{HasParams: false, HasAuthorizer: false, StrictCost: tc.strictCostEnforcement}, environment.NewExpressions)
+			f := compiler.Compile(validations, OptionalVariableDeclarations{HasParams: false, HasAuthorizer: false}, environment.NewExpressions)
 			versionedAttr, err := admission.NewVersionedAttributes(tc.attributes, tc.attributes.GetKind(), newObjectInterfacesForTest())
 			if err != nil {
 				t.Fatal(err)

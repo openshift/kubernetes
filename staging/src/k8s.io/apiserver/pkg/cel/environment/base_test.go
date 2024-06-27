@@ -29,10 +29,10 @@ import (
 // a cached environment is loaded for each MustBaseEnvSet call.
 func BenchmarkLoadBaseEnv(b *testing.B) {
 	ver := DefaultCompatibilityVersion()
-	MustBaseEnvSet(ver, true)
+	MustBaseEnvSet(ver)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		MustBaseEnvSet(ver, true)
+		MustBaseEnvSet(ver)
 	}
 }
 
@@ -41,7 +41,7 @@ func BenchmarkLoadBaseEnv(b *testing.B) {
 func BenchmarkLoadBaseEnvDifferentVersions(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		MustBaseEnvSet(version.MajorMinor(1, uint(i)), true)
+		MustBaseEnvSet(version.MajorMinor(1, uint(i)))
 	}
 }
 

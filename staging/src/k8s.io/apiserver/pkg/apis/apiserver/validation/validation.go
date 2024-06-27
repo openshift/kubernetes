@@ -91,8 +91,7 @@ func CompileAndValidateJWTAuthenticator(authenticator api.JWTAuthenticator, disa
 func validateJWTAuthenticator(authenticator api.JWTAuthenticator, fldPath *field.Path, disallowedIssuers sets.Set[string], structuredAuthnFeatureEnabled bool) (authenticationcel.CELMapper, field.ErrorList) {
 	var allErrs field.ErrorList
 
-	// strictCost is set to true which enables the strict cost for CEL validation.
-	compiler := authenticationcel.NewCompiler(environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true))
+	compiler := authenticationcel.NewCompiler(environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()))
 	state := &validationState{}
 
 	allErrs = append(allErrs, validateIssuer(authenticator.Issuer, disallowedIssuers, fldPath.Child("issuer"))...)
@@ -723,8 +722,7 @@ func compileMatchConditions(matchConditions []api.WebhookMatchCondition, fldPath
 		return nil, allErrs
 	}
 
-	// strictCost is set to true which enables the strict cost for CEL validation.
-	compiler := authorizationcel.NewCompiler(environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true))
+	compiler := authorizationcel.NewCompiler(environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()))
 	seenExpressions := sets.NewString()
 	var compilationResults []authorizationcel.CompilationResult
 
