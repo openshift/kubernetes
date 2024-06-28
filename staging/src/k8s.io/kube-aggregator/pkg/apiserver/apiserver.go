@@ -39,7 +39,6 @@ import (
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/version"
 	"k8s.io/client-go/transport"
 	"k8s.io/component-base/tracing"
 	"k8s.io/klog/v2"
