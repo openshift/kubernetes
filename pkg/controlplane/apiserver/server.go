@@ -21,6 +21,8 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/kubernetes/pkg/controlplane/controller/kubernetesservice"
+
 	coordinationapiv1 "k8s.io/api/coordination/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -130,7 +132,7 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 		VersionedInformers:        c.VersionedInformers,
 	}
 
-	kubernetesservice.KubeAPIServerEmitEventFn = m.GenericAPIServer.Eventf
+	kubernetesservice.KubeAPIServerEmitEventFn = s.GenericAPIServer.Eventf
 
 	client, err := kubernetes.NewForConfig(s.GenericAPIServer.LoopbackClientConfig)
 	if err != nil {
