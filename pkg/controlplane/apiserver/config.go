@@ -25,6 +25,7 @@ import (
 
 	noopoteltrace "go.opentelemetry.io/otel/trace/noop"
 
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 	eventstorage "k8s.io/kubernetes/pkg/registry/core/event/storage"
@@ -296,7 +297,7 @@ func CreateConfig(
 	var eventStorage *eventstorage.REST
 	eventStorage, err := eventstorage.NewREST(genericConfig.RESTOptionsGetter, uint64(opts.EventTTL.Seconds()))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	genericConfig.EventSink = eventRegistrySink{eventStorage}
 
@@ -370,12 +371,12 @@ func CreateConfig(
 		return nil, nil, fmt.Errorf("failed to create real dynamic external client: %w", err)
 	}
 
-	if err := openshiftkubeapiserver.OpenShiftKubeAPIServerConfigPatch(genericConfig, versionedInformers, &pluginInitializers); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to patch: %v", err)
+	if err := openshiftkubeapiserver.OpenShiftKubeAPIServerConfigPatch(genericConfig, versionedInformers, &genericInitializers); err != nil {
+		return nil, nil, fmt.Errorf("failed to patch: %v", err)
 	}
 
 	if enablement.IsOpenShift() {
-		admissionenablement.SetAdmissionDefaults(&opts.CompletedOptions, versionedInformers, clientgoExternalClient)
+		admissionenablement.SetAdmissionDefaults(&opts, versionedInformers, clientgoExternalClient)
 	}
 
 	err = opts.Admission.ApplyTo(
