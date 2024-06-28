@@ -13,5 +13,5 @@ func InstallOpenShiftAdmissionPlugins(o *options.ServerRunOptions) {
 	RegisterOpenshiftKubeAdmissionPlugins(o.Admission.GenericAdmission.Plugins)
 	customresourcevalidationregistration.RegisterCustomResourceValidation(o.Admission.GenericAdmission.Plugins)
 	existingDefaultOff := o.Admission.GenericAdmission.DefaultOffPlugins
-	o.Admission.GenericAdmission.DefaultOffPlugins = sets.StringKeySet(NewDefaultOffPluginsFunc(existingDefaultOff)())
+	o.Admission.GenericAdmission.DefaultOffPlugins = NewDefaultOffPluginsFunc(sets.StringKeySet(existingDefaultOff))()
 }
