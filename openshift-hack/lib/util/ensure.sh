@@ -86,7 +86,7 @@ function os::util::ensure::gopath_binary_exists() {
 		if [[ -n "${install_path:-}" ]]; then
 			os::log::info "No installed \`${binary}\` was found in \$GOPATH. Attempting to install using:
   $ go get ${install_path}"
-  			go get "${install_path}"
+			go get "${install_path}"
 		else
 			os::log::fatal "Required \`${binary}\` binary was not found in \$GOPATH."
 		fi

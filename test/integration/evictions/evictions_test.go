@@ -386,7 +386,7 @@ func TestEvictionWithFinalizers(t *testing.T) {
 
 			ns := framework.CreateNamespaceOrDie(clientSet, "eviction-with-finalizers", t)
 			defer framework.DeleteNamespaceOrDie(clientSet, ns, t)
-			defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.PodDisruptionConditions, tc.enablePodDisruptionConditions)()
+			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.PodDisruptionConditions, tc.enablePodDisruptionConditions)
 			defer tCtx.Cancel("test has completed")
 
 			informers.Start(tCtx.Done())
@@ -434,40 +434,29 @@ func TestEvictionWithFinalizers(t *testing.T) {
 // TestEvictionWithUnhealthyPodEvictionPolicy tests eviction with a PDB that has a UnhealthyPodEvictionPolicy
 func TestEvictionWithUnhealthyPodEvictionPolicy(t *testing.T) {
 	cases := map[string]struct {
-		enableUnhealthyPodEvictionPolicy bool
-		unhealthyPodEvictionPolicy       *policyv1.UnhealthyPodEvictionPolicyType
-		isPodReady                       bool
+		unhealthyPodEvictionPolicy *policyv1.UnhealthyPodEvictionPolicyType
+		isPodReady                 bool
 	}{
-		"UnhealthyPodEvictionPolicy disabled and policy not set": {
-			enableUnhealthyPodEvictionPolicy: false,
-			unhealthyPodEvictionPolicy:       nil,
-			isPodReady:                       true,
-		},
 		"UnhealthyPodEvictionPolicy enabled but policy not set": {
-			enableUnhealthyPodEvictionPolicy: true,
-			unhealthyPodEvictionPolicy:       nil,
-			isPodReady:                       true,
+			unhealthyPodEvictionPolicy: nil,
+			isPodReady:                 true,
 		},
 		"UnhealthyPodEvictionPolicy enabled but policy set to IfHealthyBudget with ready pod": {
-			enableUnhealthyPodEvictionPolicy: true,
-			unhealthyPodEvictionPolicy:       unhealthyPolicyPtr(policyv1.IfHealthyBudget),
-			isPodReady:                       true,
+			unhealthyPodEvictionPolicy: unhealthyPolicyPtr(policyv1.IfHealthyBudget),
+			isPodReady:                 true,
 		},
 		"UnhealthyPodEvictionPolicy enabled but policy set to AlwaysAllow with ready pod": {
-			enableUnhealthyPodEvictionPolicy: true,
-			unhealthyPodEvictionPolicy:       unhealthyPolicyPtr(policyv1.AlwaysAllow),
-			isPodReady:                       true,
+			unhealthyPodEvictionPolicy: unhealthyPolicyPtr(policyv1.AlwaysAllow),
+			isPodReady:                 true,
 		},
 		"UnhealthyPodEvictionPolicy enabled but policy set to AlwaysAllow with unready pod": {
-			enableUnhealthyPodEvictionPolicy: true,
-			unhealthyPodEvictionPolicy:       unhealthyPolicyPtr(policyv1.AlwaysAllow),
-			isPodReady:                       false,
+			unhealthyPodEvictionPolicy: unhealthyPolicyPtr(policyv1.AlwaysAllow),
+			isPodReady:                 false,
 		},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			tCtx := ktesting.Init(t)
-			defer featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.PDBUnhealthyPodEvictionPolicy, tc.enableUnhealthyPodEvictionPolicy)()
 			closeFn, rm, informers, _, clientSet := rmSetup(tCtx, t)
 			defer closeFn()
 
@@ -688,7 +677,7 @@ func newV1Eviction(ns, evictionName string, deleteOption metav1.DeleteOptions) *
 
 func rmSetup(ctx context.Context, t *testing.T) (kubeapiservertesting.TearDownFunc, *disruption.DisruptionController, informers.SharedInformerFactory, *restclient.Config, clientset.Interface) {
 	// Disable ServiceAccount admission plugin as we don't have serviceaccount controller running.
-	server := kubeapiservertesting.StartTestServerOrDie(t, nil, []string{"--disable-admission-plugins=ServiceAccount"}, framework.SharedEtcd())
+	server := kubeapiservertesting.StartTestServerOrDie(t, nil, framework.DefaultTestServerFlags(), framework.SharedEtcd())
 
 	config := restclient.CopyConfig(server.ClientConfig)
 	clientSet, err := clientset.NewForConfig(config)

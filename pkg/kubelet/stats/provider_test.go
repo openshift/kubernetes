@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	cadvisorapiv1 "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	fuzz "github.com/google/gofuzz"
@@ -76,11 +75,8 @@ func TestGetCgroupStats(t *testing.T) {
 		updateStats       = false
 	)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	var (
-		mockCadvisor     = cadvisortest.NewMockInterface(mockCtrl)
+		mockCadvisor     = cadvisortest.NewMockInterface(t)
 		mockPodManager   = new(kubepodtest.MockManager)
 		mockRuntimeCache = new(kubecontainertest.MockRuntimeCache)
 
@@ -113,11 +109,8 @@ func TestGetCgroupCPUAndMemoryStats(t *testing.T) {
 		updateStats       = false
 	)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	var (
-		mockCadvisor     = cadvisortest.NewMockInterface(mockCtrl)
+		mockCadvisor     = cadvisortest.NewMockInterface(t)
 		mockPodManager   = new(kubepodtest.MockManager)
 		mockRuntimeCache = new(kubecontainertest.MockRuntimeCache)
 
@@ -147,11 +140,8 @@ func TestRootFsStats(t *testing.T) {
 		containerInfoSeed = 2000
 	)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	var (
-		mockCadvisor     = cadvisortest.NewMockInterface(mockCtrl)
+		mockCadvisor     = cadvisortest.NewMockInterface(t)
 		mockPodManager   = new(kubepodtest.MockManager)
 		mockRuntimeCache = new(kubecontainertest.MockRuntimeCache)
 
@@ -179,8 +169,6 @@ func TestRootFsStats(t *testing.T) {
 
 func TestHasDedicatedImageFs(t *testing.T) {
 	ctx := context.Background()
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 	imageStatsExpected := &statsapi.FsStats{AvailableBytes: uint64Ptr(1)}
 
 	for desc, test := range map[string]struct {
@@ -213,7 +201,7 @@ func TestHasDedicatedImageFs(t *testing.T) {
 	} {
 		t.Logf("TestCase %q", desc)
 		var (
-			mockCadvisor     = cadvisortest.NewMockInterface(mockCtrl)
+			mockCadvisor     = cadvisortest.NewMockInterface(t)
 			mockPodManager   = new(kubepodtest.MockManager)
 			mockRuntimeCache = new(kubecontainertest.MockRuntimeCache)
 		)

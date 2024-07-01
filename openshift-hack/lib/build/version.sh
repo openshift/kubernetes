@@ -24,7 +24,7 @@ readonly -f os::build::version::get_vars
 function os::build::version::git_vars() {
 	if [[ -n "${OS_GIT_VERSION-}" ]]; then
 		return 0
- 	fi
+	fi
 
 	local git=(git --work-tree "${OS_ROOT}")
 

@@ -65,7 +65,7 @@ func TestNodeAuthorizer(t *testing.T) {
 	}, "\n"))
 	tokenFile.Close()
 
-	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.DynamicResourceAllocation, true)()
+	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.DynamicResourceAllocation, true)
 
 	server := kubeapiservertesting.StartTestServerOrDie(t, nil, []string{
 		"--runtime-config=api/all=true",
@@ -225,8 +225,8 @@ func TestNodeAuthorizer(t *testing.T) {
 						{Name: "pvc", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mypvc"}}},
 					},
 					ResourceClaims: []corev1.PodResourceClaim{
-						{Name: "namedclaim", Source: corev1.ClaimSource{ResourceClaimName: pointer.String("mynamedresourceclaim")}},
-						{Name: "templateclaim", Source: corev1.ClaimSource{ResourceClaimTemplateName: pointer.String("myresourceclaimtemplate")}},
+						{Name: "namedclaim", ResourceClaimName: pointer.String("mynamedresourceclaim")},
+						{Name: "templateclaim", ResourceClaimTemplateName: pointer.String("myresourceclaimtemplate")},
 					},
 				},
 			}, metav1.CreateOptions{})

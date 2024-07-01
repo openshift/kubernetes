@@ -539,10 +539,10 @@ func TestOnEndpointSliceUpdate(t *testing.T) {
 	epSlice2 := epSlice1.DeepCopy()
 	epSlice2.Labels[discovery.LabelManagedBy] = "something else"
 
-	assert.Equal(t, 0, esController.queue.Len())
+	assert.Equal(t, 0, esController.serviceQueue.Len())
 	esController.onEndpointSliceUpdate(logger, epSlice1, epSlice2)
 	err := wait.PollImmediate(100*time.Millisecond, 3*time.Second, func() (bool, error) {
-		if esController.queue.Len() > 0 {
+		if esController.serviceQueue.Len() > 0 {
 			return true, nil
 		}
 		return false, nil
@@ -550,7 +550,7 @@ func TestOnEndpointSliceUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error waiting for add to queue")
 	}
-	assert.Equal(t, 1, esController.queue.Len())
+	assert.Equal(t, 1, esController.serviceQueue.Len())
 }
 
 func TestSyncService(t *testing.T) {
@@ -1685,7 +1685,7 @@ func TestPodDeleteBatching(t *testing.T) {
 
 				old, exists, err := esController.podStore.GetByKey(fmt.Sprintf("%s/%s", ns, update.podName))
 				assert.Nil(t, err, "error while retrieving old value of %q: %v", update.podName, err)
-				assert.Equal(t, true, exists, "pod should exist")
+				assert.True(t, exists, "pod should exist")
 				esController.podStore.Delete(old)
 				esController.deletePod(old)
 			}
@@ -1947,8 +1947,8 @@ func Test_checkNodeTopologyDistribution(t *testing.T) {
 			logger, _ := ktesting.NewTestContext(t)
 			esController.checkNodeTopologyDistribution(logger)
 
-			if esController.queue.Len() != tc.expectedQueueLen {
-				t.Errorf("Expected %d services to be queued, got %d", tc.expectedQueueLen, esController.queue.Len())
+			if esController.serviceQueue.Len() != tc.expectedQueueLen {
+				t.Errorf("Expected %d services to be queued, got %d", tc.expectedQueueLen, esController.serviceQueue.Len())
 			}
 		})
 	}
@@ -2007,8 +2007,11 @@ func TestUpdateNode(t *testing.T) {
 	logger, _ := ktesting.NewTestContext(t)
 	esController.nodeStore.Add(node1)
 	esController.nodeStore.Add(node2)
-	esController.addNode(logger, node1)
-	esController.addNode(logger, node2)
+	esController.addNode()
+	esController.addNode()
+	assert.Equal(t, 1, esController.topologyQueue.Len())
+	esController.processNextTopologyWorkItem(logger)
+	assert.Equal(t, 0, esController.topologyQueue.Len())
 	// The Nodes don't have the zone label, AddHints should fail.
 	_, _, eventsBuilders := esController.topologyCache.AddHints(logger, sliceInfo)
 	require.Len(t, eventsBuilders, 1)
@@ -2022,8 +2025,11 @@ func TestUpdateNode(t *testing.T) {
 	// After adding the zone label to the Nodes and calling the event handler updateNode, AddHints should succeed.
 	esController.nodeStore.Update(updateNode1)
 	esController.nodeStore.Update(updateNode2)
-	esController.updateNode(logger, node1, updateNode1)
-	esController.updateNode(logger, node2, updateNode2)
+	esController.updateNode(node1, updateNode1)
+	esController.updateNode(node2, updateNode2)
+	assert.Equal(t, 1, esController.topologyQueue.Len())
+	esController.processNextTopologyWorkItem(logger)
+	assert.Equal(t, 0, esController.topologyQueue.Len())
 	_, _, eventsBuilders = esController.topologyCache.AddHints(logger, sliceInfo)
 	require.Len(t, eventsBuilders, 1)
 	assert.Contains(t, eventsBuilders[0].Message, topologycache.TopologyAwareHintsEnabled)

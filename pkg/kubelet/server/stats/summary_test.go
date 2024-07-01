@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 
@@ -72,14 +71,12 @@ func TestSummaryProviderGetStatsNoSplitFileSystem(t *testing.T) {
 		"/pods":    {cs: getContainerStats(), ns: getNetworkStats()},
 	}
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStatsProvider := statstest.NewMockProvider(mockCtrl)
+	mockStatsProvider := statstest.NewMockProvider(t)
 
 	mockStatsProvider.EXPECT().GetNode().Return(node, nil)
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig)
 	mockStatsProvider.EXPECT().GetPodCgroupRoot().Return(cgroupRoot)
-	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).AnyTimes()
+	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).Maybe()
 	mockStatsProvider.EXPECT().ListPodStatsAndUpdateCPUNanoCoreUsage(ctx).Return(podStats, nil)
 	mockStatsProvider.EXPECT().ImageFsStats(ctx).Return(imageFsStats, imageFsStats, nil)
 	mockStatsProvider.EXPECT().RootFsStats().Return(rootFsStats, nil)
@@ -169,14 +166,12 @@ func TestSummaryProviderGetStatsSplitImageFs(t *testing.T) {
 		"/pods":    {cs: getContainerStats(), ns: getNetworkStats()},
 	}
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStatsProvider := statstest.NewMockProvider(mockCtrl)
+	mockStatsProvider := statstest.NewMockProvider(t)
 
 	mockStatsProvider.EXPECT().GetNode().Return(node, nil)
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig)
 	mockStatsProvider.EXPECT().GetPodCgroupRoot().Return(cgroupRoot)
-	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).AnyTimes()
+	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).Maybe()
 	mockStatsProvider.EXPECT().ListPodStatsAndUpdateCPUNanoCoreUsage(ctx).Return(podStats, nil)
 	mockStatsProvider.EXPECT().RootFsStats().Return(rootFsStats, nil)
 	mockStatsProvider.EXPECT().RlimitStats().Return(rlimitStats, nil)
@@ -265,9 +260,7 @@ func TestSummaryProviderGetCPUAndMemoryStats(t *testing.T) {
 		"/pods":    {cs: getVolumeCPUAndMemoryStats()},
 	}
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStatsProvider := statstest.NewMockProvider(mockCtrl)
+	mockStatsProvider := statstest.NewMockProvider(t)
 
 	mockStatsProvider.EXPECT().GetNode().Return(node, nil)
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig)

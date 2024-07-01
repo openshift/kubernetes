@@ -59,7 +59,6 @@ EXCLUDED_PATTERNS+=(
 if [[ ${EXCLUDE_TYPECHECK:-} =~ ^[yY]$ ]]; then
   EXCLUDED_PATTERNS+=(
     "verify-typecheck.sh"              # runs in separate typecheck job
-    "verify-typecheck-providerless.sh" # runs in separate typecheck job
     )
 fi
 

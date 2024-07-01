@@ -11,7 +11,7 @@ func TestParseConfigData(t *testing.T) {
 		{
 			data: []byte(`{
 					"shared_cpus": {
-     					"containers_limit": 15
+					"containers_limit": 15
 					}
 				}`),
 			expectedToBeParsed:  true,
@@ -20,8 +20,8 @@ func TestParseConfigData(t *testing.T) {
 		{
 			data: []byte(`{
 					"shared_cpus": {
-     					"abc": "25"
-  					}
+					"abc": "25"
+					}
 				}`),
 			expectedToBeParsed:  false,
 			containerLimitValue: 0,

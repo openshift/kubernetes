@@ -174,7 +174,6 @@ func initDefaultResizePolicy(containers []TestContainerInfo) {
 }
 
 func makeTestContainer(tcInfo TestContainerInfo) (v1.Container, v1.ContainerStatus) {
-	cmd := "trap exit TERM; while true; do sleep 1; done"
 	res, alloc, resizePol := getTestResourceInfo(tcInfo)
 	bTrue := true
 	bFalse := false
@@ -209,7 +208,7 @@ func makeTestContainer(tcInfo TestContainerInfo) (v1.Container, v1.ContainerStat
 		Name:            tcInfo.Name,
 		Image:           imageutils.GetE2EImage(imageutils.BusyBox),
 		Command:         []string{"/bin/sh"},
-		Args:            []string{"-c", cmd},
+		Args:            []string{"-c", e2epod.InfiniteSleepCommand},
 		Resources:       res,
 		ResizePolicy:    resizePol,
 		SecurityContext: securityContext,
@@ -1630,7 +1629,7 @@ func doPodResizeSchedulerTests() {
 		nodeAllocatableMilliCPU2, nodeAvailableMilliCPU2 := getNodeAllocatableAndAvailableMilliCPUValues(&node)
 		framework.Logf("TEST2: Node '%s': NodeAllocatable MilliCPUs = %dm. MilliCPUs currently available to allocate = %dm.",
 			node.Name, nodeAllocatableMilliCPU2, nodeAvailableMilliCPU2)
-		testPod3CPUQuantity := resource.NewMilliQuantity(nodeAvailableMilliCPU2+testPod1CPUQuantity.MilliValue()/2, resource.DecimalSI)
+		testPod3CPUQuantity := resource.NewMilliQuantity(nodeAvailableMilliCPU2+testPod1CPUQuantity.MilliValue()/4, resource.DecimalSI)
 		testPod1CPUQuantityResized := resource.NewMilliQuantity(testPod1CPUQuantity.MilliValue()/3, resource.DecimalSI)
 		framework.Logf("TEST2: testPod1 MilliCPUs after resize '%dm'", testPod1CPUQuantityResized.MilliValue())
 

@@ -35,7 +35,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	k8stesting "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/component-base/metrics/testutil"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/controller"
@@ -294,6 +293,31 @@ func TestSyncHandler(t *testing.T) {
 			expectedMetrics: expectedMetrics{0, 0},
 		},
 		{
+			name:   "clear-reserved-delayed-allocation-structured",
+			pods:   []*v1.Pod{},
+			key:    claimKey(testClaimReserved),
+			claims: []*resourcev1alpha2.ResourceClaim{structuredParameters(testClaimReserved)},
+			expectedClaims: func() []resourcev1alpha2.ResourceClaim {
+				claim := testClaimAllocated.DeepCopy()
+				claim.Finalizers = []string{}
+				claim.Status.Allocation = nil
+				return []resourcev1alpha2.ResourceClaim{*claim}
+			}(),
+			expectedMetrics: expectedMetrics{0, 0},
+		},
+		{
+			name: "dont-clear-reserved-delayed-allocation-structured",
+			pods: []*v1.Pod{testPodWithResource},
+			key:  claimKey(testClaimReserved),
+			claims: func() []*resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimReserved)
+				claim = reserveClaim(claim, otherTestPod)
+				return []*resourcev1alpha2.ResourceClaim{claim}
+			}(),
+			expectedClaims:  []resourcev1alpha2.ResourceClaim{*structuredParameters(testClaimReserved)},
+			expectedMetrics: expectedMetrics{0, 0},
+		},
+		{
 			name: "clear-reserved-immediate-allocation",
 			pods: []*v1.Pod{},
 			key:  claimKey(testClaimReserved),
@@ -305,6 +329,62 @@ func TestSyncHandler(t *testing.T) {
 			expectedClaims: func() []resourcev1alpha2.ResourceClaim {
 				claim := testClaimAllocated.DeepCopy()
 				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				return []resourcev1alpha2.ResourceClaim{*claim}
+			}(),
+			expectedMetrics: expectedMetrics{0, 0},
+		},
+		{
+			name: "clear-reserved-immediate-allocation-structured",
+			pods: []*v1.Pod{},
+			key:  claimKey(testClaimReserved),
+			claims: func() []*resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimReserved.DeepCopy())
+				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				return []*resourcev1alpha2.ResourceClaim{claim}
+			}(),
+			expectedClaims: func() []resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimAllocated.DeepCopy())
+				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				return []resourcev1alpha2.ResourceClaim{*claim}
+			}(),
+			expectedMetrics: expectedMetrics{0, 0},
+		},
+		{
+			name: "clear-reserved-immediate-allocation-structured-deleted",
+			pods: []*v1.Pod{},
+			key:  claimKey(testClaimReserved),
+			claims: func() []*resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimReserved.DeepCopy())
+				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				claim.DeletionTimestamp = &metav1.Time{}
+				return []*resourcev1alpha2.ResourceClaim{claim}
+			}(),
+			expectedClaims: func() []resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimAllocated.DeepCopy())
+				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				claim.DeletionTimestamp = &metav1.Time{}
+				claim.Finalizers = []string{}
+				claim.Status.Allocation = nil
+				return []resourcev1alpha2.ResourceClaim{*claim}
+			}(),
+			expectedMetrics: expectedMetrics{0, 0},
+		},
+		{
+			name: "immediate-allocation-structured-deleted",
+			pods: []*v1.Pod{},
+			key:  claimKey(testClaimReserved),
+			claims: func() []*resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimAllocated.DeepCopy())
+				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				claim.DeletionTimestamp = &metav1.Time{}
+				return []*resourcev1alpha2.ResourceClaim{claim}
+			}(),
+			expectedClaims: func() []resourcev1alpha2.ResourceClaim {
+				claim := structuredParameters(testClaimAllocated.DeepCopy())
+				claim.Spec.AllocationMode = resourcev1alpha2.AllocationModeImmediate
+				claim.DeletionTimestamp = &metav1.Time{}
+				claim.Finalizers = []string{}
+				claim.Status.Allocation = nil
 				return []resourcev1alpha2.ResourceClaim{*claim}
 			}(),
 			expectedMetrics: expectedMetrics{0, 0},
@@ -439,14 +519,13 @@ func TestSyncHandler(t *testing.T) {
 			}
 
 			// Ensure informers are up-to-date.
-			go informerFactory.Start(ctx.Done())
+			informerFactory.Start(ctx.Done())
 			stopInformers := func() {
 				cancel()
 				informerFactory.Shutdown()
 			}
 			defer stopInformers()
 			informerFactory.WaitForCacheSync(ctx.Done())
-			cache.WaitForCacheSync(ctx.Done(), podInformer.Informer().HasSynced, claimInformer.Informer().HasSynced, templateInformer.Informer().HasSynced)
 
 			// Add claims that only exist in the mutation cache.
 			for _, claim := range tc.claimsInCache {
@@ -462,7 +541,7 @@ func TestSyncHandler(t *testing.T) {
 				}
 			}
 
-			err = ec.syncHandler(context.TODO(), tc.key)
+			err = ec.syncHandler(ctx, tc.key)
 			if err != nil && !tc.expectedError {
 				t.Fatalf("unexpected error while running handler: %v", err)
 			}
@@ -546,6 +625,14 @@ func allocateClaim(claim *resourcev1alpha2.ResourceClaim) *resourcev1alpha2.Reso
 	return claim
 }
 
+func structuredParameters(claim *resourcev1alpha2.ResourceClaim) *resourcev1alpha2.ResourceClaim {
+	claim = claim.DeepCopy()
+	// As far the controller is concerned, a claim was allocated by us if it has
+	// this finalizer. For testing we don't need to update the allocation result.
+	claim.Finalizers = append(claim.Finalizers, resourcev1alpha2.Finalizer)
+	return claim
+}
+
 func reserveClaim(claim *resourcev1alpha2.ResourceClaim, pod *v1.Pod) *resourcev1alpha2.ResourceClaim {
 	claim = claim.DeepCopy()
 	claim.Status.ReservedFor = append(claim.Status.ReservedFor,
@@ -560,10 +647,8 @@ func reserveClaim(claim *resourcev1alpha2.ResourceClaim, pod *v1.Pod) *resourcev
 
 func makePodResourceClaim(name, templateName string) *v1.PodResourceClaim {
 	return &v1.PodResourceClaim{
-		Name: name,
-		Source: v1.ClaimSource{
-			ResourceClaimTemplateName: &templateName,
-		},
+		Name:                      name,
+		ResourceClaimTemplateName: &templateName,
 	}
 }
 

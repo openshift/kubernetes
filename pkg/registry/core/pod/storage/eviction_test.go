@@ -165,8 +165,6 @@ func TestEviction(t *testing.T) {
 				continue
 			}
 			t.Run(fmt.Sprintf("%v with %v policy", tc.name, unhealthyPolicyStr(unhealthyPodEvictionPolicy)), func(t *testing.T) {
-				defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PDBUnhealthyPodEvictionPolicy, true)()
-
 				// same test runs multiple times, make copy of objects to have unique ones
 				evictionCopy := tc.eviction.DeepCopy()
 				var pdbsCopy []runtime.Object
@@ -530,8 +528,6 @@ func TestEvictionIgnorePDB(t *testing.T) {
 				continue
 			}
 			t.Run(fmt.Sprintf("%v with %v policy", tc.name, unhealthyPolicyStr(unhealthyPodEvictionPolicy)), func(t *testing.T) {
-				defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PDBUnhealthyPodEvictionPolicy, true)()
-
 				// same test runs 3 times, make copy of objects to have unique ones
 				evictionCopy := tc.eviction.DeepCopy()
 				prcCopy := tc.prc.DeepCopy()
@@ -809,7 +805,7 @@ func TestAddConditionAndDelete(t *testing.T) {
 		for _, conditionsEnabled := range []bool{true, false} {
 			name := fmt.Sprintf("%s_conditions=%v", tc.name, conditionsEnabled)
 			t.Run(name, func(t *testing.T) {
-				defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodDisruptionConditions, conditionsEnabled)()
+				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodDisruptionConditions, conditionsEnabled)
 				var deleteOptions *metav1.DeleteOptions
 				if tc.initialPod {
 					newPod := validNewPod()
@@ -819,7 +815,9 @@ func TestAddConditionAndDelete(t *testing.T) {
 					}
 					t.Cleanup(func() {
 						zero := int64(0)
-						storage.Delete(testContext, newPod.Name, rest.ValidateAllObjectFunc, &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+						if _, _, err := storage.Delete(testContext, newPod.Name, rest.ValidateAllObjectFunc, &metav1.DeleteOptions{GracePeriodSeconds: &zero}); err != nil && !apierrors.IsNotFound(err) {
+							t.Fatal(err)
+						}
 					})
 					deleteOptions = tc.makeDeleteOptions(createdObj.(*api.Pod))
 				} else {
