@@ -2,7 +2,6 @@ package admissionenablement
 
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
-
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/customresourcevalidationregistration"
 )

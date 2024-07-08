@@ -6,6 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/plugin/resourcequota"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/mixedcpus"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/conditiontransitiontimeinjection"
 
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy"
 	imagepolicyapiv1 "github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1"
@@ -44,6 +45,7 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
 	csiinlinevolumesecurity.Register(plugins)
+	conditiontransitiontimeinjection.Register(plugins)
 }
 
 var (
@@ -77,6 +79,7 @@ var (
 		csiinlinevolumesecurity.PluginName, // "storage.openshift.io/CSIInlineVolumeSecurity"
 		managednode.PluginName,             // "autoscaling.openshift.io/ManagedNode"
 		mixedcpus.PluginName,               // "autoscaling.openshift.io/MixedCPUs"
+		conditiontransitiontimeinjection.PluginName,
 	}
 
 	// openshiftAdmissionPluginsForKubeAfterResourceQuota are the plugins to add after ResourceQuota plugin
