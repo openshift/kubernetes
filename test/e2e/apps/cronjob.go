@@ -62,6 +62,10 @@ var _ = SIGDescribe("CronJob", func() {
 	successCommand := []string{"/bin/true"}
 	failureCommand := []string{"/bin/false"}
 
+	ginkgo.It("should always fail", func(ctx context.Context) {
+		ginkgo.Fail("because I wrote it")
+	})
+
 	/*
 	   Release: v1.21
 	   Testname: CronJob AllowConcurrent
