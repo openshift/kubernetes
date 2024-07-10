@@ -144,9 +144,6 @@ var (
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-34577
-			`\[sig-storage\] Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-34594
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
 		},
@@ -168,7 +165,7 @@ var (
 			`Volumes GlusterFS`,         // OpenShift 4.x does not support Gluster
 			`GlusterDynamicProvisioner`, // OpenShift 4.x does not support Gluster
 			// OCP 4.16 and newer does not support PersistentVolumeLabel admission plugin and thus
-			// the test can's create in-tree PVs.
+			// the test can's create in-tree PVs. See https://issues.redhat.com/browse/OCPBUGS-34577
 			`Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs`,
 			`PersistentVolumes GCEPD`,
 			`\[Driver: azure-disk\] \[Testpattern: Pre-provisioned PV`,
