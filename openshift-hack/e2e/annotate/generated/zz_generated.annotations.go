@@ -335,6 +335,8 @@ var Annotations = map[string]string{
 
 	"[sig-apps] ControllerRevision [Serial] should manage the lifecycle of a ControllerRevision [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
+	"[sig-apps] CronJob should always fail": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-apps] CronJob should be able to schedule after more than 100 missed schedule": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] CronJob should delete failed finished jobs with limit of one job": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
