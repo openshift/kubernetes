@@ -26,6 +26,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"math/rand"
 
 	"github.com/google/cadvisor/cache/memory"
 	"github.com/google/cadvisor/collector"
@@ -428,7 +429,12 @@ func (m *manager) getContainerData(containerName string) (*containerData, error)
 	var cont *containerData
 	var ok bool
 	func() {
+		maybeID := rand.Float64()
+		start := time.Now()
+		fmt.Println(time.Now(), "DEBBUG cadvisor getContainerData getting RLock()", "containerName", containerName, maybeID)
 		m.containersLock.RLock()
+		fmt.Println(time.Now(), "DEBBUG cadvisor getContainerData GOT RLock()", "containerName", containerName, maybeID)
+		defer fmt.Println(time.Now(), "DEBBUG cadvisor getContainerData TOOK", time.Since(start))
 		defer m.containersLock.RUnlock()
 
 		// Ensure we have the container.
@@ -563,8 +569,14 @@ func (m *manager) containerDataToContainerInfo(cont *containerData, query *info.
 }
 
 func (m *manager) getContainer(containerName string) (*containerData, error) {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainer getting RLock()", "containerName", containerName, maybeID)
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainer GOT RLock()", "containerName", containerName, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor getContainer TOOK", time.Since(start))
 	defer m.containersLock.RUnlock()
+
 	cont, ok := m.containers[namespacedContainerName{Name: containerName}]
 	if !ok {
 		return nil, fmt.Errorf("unknown container %q", containerName)
@@ -573,8 +585,14 @@ func (m *manager) getContainer(containerName string) (*containerData, error) {
 }
 
 func (m *manager) getSubcontainers(containerName string) map[string]*containerData {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getSubcontainers getting RLock()", "containerName", containerName, maybeID)
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getSubcontainers GOT RLock()", "containerName", containerName, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor getSubcontainers TOOK", time.Since(start))
 	defer m.containersLock.RUnlock()
+
 	containersMap := make(map[string]*containerData, len(m.containers))
 
 	// Get all the unique subcontainers of the specified container
@@ -602,8 +620,14 @@ func (m *manager) SubcontainersInfo(containerName string, query *info.ContainerI
 }
 
 func (m *manager) getAllNamespacedContainers(ns string) map[string]*containerData {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getAllNamespacedContainers getting RLock()", "ns", ns, maybeID)
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getAllNamespacedContainers GOT RLock()", "ns", ns, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor getAllNamespacedContainers TOOK", time.Since(start))
 	defer m.containersLock.RUnlock()
+
 	containers := make(map[string]*containerData, len(m.containers))
 
 	// Get containers in a namespace.
@@ -621,7 +645,12 @@ func (m *manager) AllDockerContainers(query *info.ContainerInfoRequest) (map[str
 }
 
 func (m *manager) namespacedContainer(containerName string, ns string) (*containerData, error) {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor containersLock getting RLock()", "ns", ns, "containerName", containerName, maybeID)
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor containersLock GOT RLock()", "ns", ns, "containerName", containerName, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor containersLock TOOK", time.Since(start))
 	defer m.containersLock.RUnlock()
 
 	// Check for the container in the namespace.
@@ -837,7 +866,12 @@ func (m *manager) GetVersionInfo() (*info.VersionInfo, error) {
 }
 
 func (m *manager) Exists(containerName string) bool {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor Exists getting RLock()", "containerName", containerName, maybeID)
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor Exists GOT RLock()", "containerName", containerName, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor Exists TOOK", time.Since(start))
 	defer m.containersLock.RUnlock()
 
 	namespacedName := namespacedContainerName{
@@ -904,7 +938,12 @@ func (m *manager) registerCollectors(collectorConfigs map[string]string, cont *c
 
 // Create a container.
 func (m *manager) createContainer(containerName string, watchSource watcher.ContainerWatchSource) error {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor createContainer getting Lock()", "containerName", containerName, maybeID)
 	m.containersLock.Lock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor createContainer GOT Lock()", "containerName", containerName, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor createContainer TOOK", time.Since(start))
 	defer m.containersLock.Unlock()
 
 	return m.createContainerLocked(containerName, watchSource)
@@ -1004,13 +1043,18 @@ func (m *manager) createContainerLocked(containerName string, watchSource watche
 }
 
 func (m *manager) destroyContainer(containerName string) error {
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer getting Lock()", "containerName", containerName, maybeID)
 	m.containersLock.Lock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer GOT Lock()", "containerName", containerName, maybeID)
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainer TOOK", time.Since(start))
 	defer m.containersLock.Unlock()
 
-	return m.destroyContainerLocked(containerName)
+	return m.destroyContainerLocked(containerName, maybeID)
 }
 
-func (m *manager) destroyContainerLocked(containerName string) error {
+func (m *manager) destroyContainerLocked(containerName string, maybeID float64) error {
 	namespacedName := namespacedContainerName{
 		Name: containerName,
 	}
@@ -1020,11 +1064,15 @@ func (m *manager) destroyContainerLocked(containerName string) error {
 		return nil
 	}
 
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainerLocked before Stop", containerName, maybeID)
+
 	// Tell the container to stop.
 	err := cont.Stop()
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainerLocked after Stop", containerName, maybeID)
 
 	// Remove the container from our records (and all its aliases).
 	delete(m.containers, namespacedName)
@@ -1050,17 +1098,24 @@ func (m *manager) destroyContainerLocked(containerName string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(time.Now(), "DEBBUG cadvisor destroyContainerLocked END", containerName, maybeID)
 	return nil
 }
 
 // Detect all containers that have been added or deleted from the specified container.
 func (m *manager) getContainersDiff(containerName string) (added []info.ContainerReference, removed []info.ContainerReference, err error) {
+
+	maybeID := rand.Float64()
+	start := time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainersDiff 1 getting RLock()", "containerName", containerName, maybeID)
 	// Get all subcontainers recursively.
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainersDiff 1 GOT RLock()", "containerName", containerName, maybeID)
 	cont, ok := m.containers[namespacedContainerName{
 		Name: containerName,
 	}]
 	m.containersLock.RUnlock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainersDiff 1 TOOK", time.Since(start))
 	if !ok {
 		return nil, nil, fmt.Errorf("failed to find container %q while checking for new containers", containerName)
 	}
@@ -1071,8 +1126,12 @@ func (m *manager) getContainersDiff(containerName string) (added []info.Containe
 	}
 	allContainers = append(allContainers, info.ContainerReference{Name: containerName})
 
+	start = time.Now()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainersDiff 2 getting RLock()", "containerName", containerName, maybeID)
 	m.containersLock.RLock()
+	fmt.Println(time.Now(), "DEBBUG cadvisor getContainersDiff 2 GOT RLock()", "containerName", containerName, maybeID)
 	defer m.containersLock.RUnlock()
+	defer fmt.Println(time.Now(), "DEBBUG cadvisor getContainersDiff 2 TOOK", time.Since(start))
 
 	// Determine which were added and which were removed.
 	allContainersSet := make(map[string]*containerData)
@@ -1321,7 +1380,12 @@ func (m *manager) DebugInfo() map[string][]string {
 	// Get unique containers.
 	var conts map[*containerData]struct{}
 	func() {
+		maybeID := rand.Float64()
+		start := time.Now()
+		fmt.Println(time.Now(), "DEBBUG cadvisor DebugInfo getting RLock()", maybeID)
 		m.containersLock.RLock()
+		fmt.Println(time.Now(), "DEBBUG cadvisor DebugInfo GOT RLock()", maybeID)
+		defer fmt.Println(time.Now(), "DEBBUG cadvisor DebugInfo TOOK", time.Since(start))
 		defer m.containersLock.RUnlock()
 
 		conts = make(map[*containerData]struct{}, len(m.containers))
