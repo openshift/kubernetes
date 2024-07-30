@@ -104,6 +104,7 @@ type numaOrSocketsFirstFuncs interface {
 	takeFullSecondLevel()
 	sortAvailableNUMANodes() []int
 	sortAvailableSockets() []int
+	sortAvailableUncoreCaches() []int
 	sortAvailableCores() []int
 }
 
@@ -149,6 +150,9 @@ func (n *numaFirst) sortAvailableSockets() []int {
 // If NUMA nodes are higher in the memory hierarchy than sockets, then
 // cores sit directly below sockets in the memory hierarchy.
 func (n *numaFirst) sortAvailableCores() []int {
+	if n.acc.topo.NumUnCoreCaches > 1 {
+		return n.sortAvailableCoresForUncoreCaches()
+	}
 	var result []int
 	for _, socket := range n.acc.sortAvailableSockets() {
 		cores := n.acc.details.CoresInSockets(socket).UnsortedList()
@@ -194,6 +198,9 @@ func (s *socketsFirst) sortAvailableSockets() []int {
 // If sockets are higher in the memory hierarchy than NUMA nodes, then cores
 // sit directly below NUMA Nodes in the memory hierarchy.
 func (s *socketsFirst) sortAvailableCores() []int {
+	if s.acc.topo.NumUnCoreCaches > 1 {
+		return s.sortAvaliableCoresForUncoreCaches()
+	}
 	var result []int
 	for _, numa := range s.acc.sortAvailableNUMANodes() {
 		cores := s.acc.details.CoresInNUMANodes(numa).UnsortedList()
@@ -468,6 +475,15 @@ func takeByTopologyNUMAPacked(topo *topology.CPUTopology, availableCPUs cpuset.C
 	acc.numaOrSocketsFirst.takeFullSecondLevel()
 	if acc.isSatisfied() {
 		return acc.result, nil
+	}
+
+	if topo.NumUnCoreCaches > 1 {
+		// with just 1 uncore cache group there's no point in bothering with the new logic
+		// 0 uncore caches is abused as master flag to disable this feature entirely minimizing the API changes
+		acc.takeFullUncoreGroups()
+		if acc.isSatisfied() {
+			return acc.result, nil
+		}
 	}
 
 	// 2. Acquire whole cores, if available and the container requires at least

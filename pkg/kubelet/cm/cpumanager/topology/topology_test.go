@@ -515,6 +515,7 @@ func Test_Discover(t *testing.T) {
 				}
 				return
 			}
+			got = got.FixUnCoreCacheIDs()
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("Discover() = %v, want %v diff=%s", got, tt.want, diff)
 			}

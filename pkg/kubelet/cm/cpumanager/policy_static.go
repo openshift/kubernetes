@@ -139,6 +139,8 @@ func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int, reserv
 
 	klog.InfoS("Static policy created with configuration", "options", opts)
 
+	topology = SetupTopologyByPolicyOptions(topology, opts)
+
 	policy := &staticPolicy{
 		topology:    topology,
 		affinity:    affinity,

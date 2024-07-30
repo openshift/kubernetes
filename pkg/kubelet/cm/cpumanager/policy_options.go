@@ -32,6 +32,7 @@ const (
 	FullPCPUsOnlyOption            string = "full-pcpus-only"
 	DistributeCPUsAcrossNUMAOption string = "distribute-cpus-across-numa"
 	AlignBySocketOption            string = "align-by-socket"
+	AlignByUnCoreCacheOption       string = "align-by-uncore-cache"
 )
 
 var (
@@ -41,6 +42,7 @@ var (
 	)
 	betaOptions = sets.New[string](
 		FullPCPUsOnlyOption,
+		AlignByUnCoreCacheOption,
 	)
 	stableOptions = sets.New[string]()
 )
@@ -80,6 +82,9 @@ type StaticPolicyOptions struct {
 	// Flag to ensure CPUs are considered aligned at socket boundary rather than
 	// NUMA boundary
 	AlignBySocket bool
+	// Flag to ensure CPUs are considered aligned at uncore cache boundary.
+	// Prefer to allocate all CPUs referring to the same uncore cache.
+	AlignByUnCoreCache bool
 }
 
 // NewStaticPolicyOptions creates a StaticPolicyOptions struct from the user configuration.
@@ -109,6 +114,12 @@ func NewStaticPolicyOptions(policyOptions map[string]string) (StaticPolicyOption
 				return opts, fmt.Errorf("bad value for option %q: %w", name, err)
 			}
 			opts.AlignBySocket = optValue
+		case AlignByUnCoreCacheOption:
+			optValue, err := strconv.ParseBool(value)
+			if err != nil {
+				return opts, fmt.Errorf("bad value for option %q: %w", name, err)
+			}
+			opts.AlignByUnCoreCache = optValue
 		default:
 			// this should never be reached, we already detect unknown options,
 			// but we keep it as further safety.
@@ -128,6 +139,11 @@ func ValidateStaticPolicyOptions(opts StaticPolicyOptions, topology *topology.CP
 		// Not compatible with topology when number of sockets are more than number of NUMA nodes.
 		if topology.NumSockets > topology.NumNUMANodes {
 			return fmt.Errorf("Align by socket is not compatible with hardware where number of sockets are more than number of NUMA")
+		}
+	}
+	if opts.AlignByUnCoreCache {
+		if opts.DistributeCPUsAcrossNUMA {
+			return fmt.Errorf("Align by uncore cache is not compatible with Distribute Across NUMA")
 		}
 	}
 	return nil
