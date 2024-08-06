@@ -1113,7 +1113,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	KubeletPodResourcesGet: {Default: false, PreRelease: featuregate.Alpha},
 
-	KubeletSeparateDiskGC: {Default: false, PreRelease: featuregate.Alpha},
+	KubeletSeparateDiskGC: {Default: true, PreRelease: featuregate.Alpha},
 
 	KubeletTracing: {Default: true, PreRelease: featuregate.Beta},
 
