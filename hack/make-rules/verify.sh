@@ -53,13 +53,13 @@ EXCLUDED_PATTERNS+=(
   "verify-shellcheck.sh"                    # TODO(soltysh) Requires either docker or local shellcheck
   "verify-spelling.sh"                      # TODO(soltysh) Need to ensure installation of misspell command
   "verify-mocks.sh"                         # TODO(soltysh) I don't expect us needed mocks re-generation
+  "verify-e2e-suites.sh"
 )
 
 # Exclude typecheck in certain cases, if they're running in a separate job.
 if [[ ${EXCLUDE_TYPECHECK:-} =~ ^[yY]$ ]]; then
   EXCLUDED_PATTERNS+=(
     "verify-typecheck.sh"              # runs in separate typecheck job
-    "verify-typecheck-providerless.sh" # runs in separate typecheck job
     )
 fi
 

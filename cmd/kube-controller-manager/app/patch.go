@@ -59,7 +59,6 @@ func SetUpCustomRoundTrippersForOpenShift(controllerManagerOptions *options.Kube
 
 	controllerManagerOptions.Authentication.WithCustomRoundTripper(controllerManagerOptions.OpenShiftContext.PreferredHostRoundTripperWrapperFn)
 	controllerManagerOptions.Authorization.WithCustomRoundTripper(controllerManagerOptions.OpenShiftContext.PreferredHostRoundTripperWrapperFn)
-
 	return nil
 }
 
