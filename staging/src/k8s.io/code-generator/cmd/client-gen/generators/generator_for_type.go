@@ -40,6 +40,7 @@ type genClientForType struct {
 	group                     string
 	version                   string
 	groupGoName               string
+	prefersProtobuf           bool
 	typeToMatch               *types.Type
 	imports                   namer.ImportTracker
 }
@@ -158,6 +159,7 @@ func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w i
 		"subresource":                      false,
 		"subresourcePath":                  "",
 		"GroupGoName":                      g.groupGoName,
+		"prefersProtobuf":                  g.prefersProtobuf,
 		"Version":                          namer.IC(g.version),
 		"CreateOptions":                    c.Universe.Type(types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "CreateOptions"}),
 		"DeleteOptions":                    c.Universe.Type(types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "DeleteOptions"}),
@@ -477,7 +479,9 @@ var newStruct = []string{
 				c.RESTClient(),
 				$.schemeParameterCodec|raw$,
 				namespace,
-				func() *$.resultType|raw$ { return &$.resultType|raw${} }),
+				func() *$.resultType|raw$ { return &$.resultType|raw${} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -490,7 +494,9 @@ var newStruct = []string{
 				c.RESTClient(),
 				$.schemeParameterCodec|raw$,
 				namespace,
-				func() *$.resultType|raw$ { return &$.resultType|raw${} }),
+				func() *$.resultType|raw$ { return &$.resultType|raw${} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -504,7 +510,9 @@ var newStruct = []string{
 				$.schemeParameterCodec|raw$,
 				namespace,
 				func() *$.resultType|raw$ { return &$.resultType|raw${} },
-				func() *$.resultType|raw$List { return &$.resultType|raw$List{} }),
+				func() *$.resultType|raw$List { return &$.resultType|raw$List{} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -518,7 +526,9 @@ var newStruct = []string{
 				$.schemeParameterCodec|raw$,
 				namespace,
 				func() *$.resultType|raw$ { return &$.resultType|raw${} },
-				func() *$.resultType|raw$List { return &$.resultType|raw$List{} }),
+				func() *$.resultType|raw$List { return &$.resultType|raw$List{} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -531,7 +541,9 @@ var newStruct = []string{
 				c.RESTClient(),
 				$.schemeParameterCodec|raw$,
 				"",
-				func() *$.resultType|raw$ { return &$.resultType|raw${} }),
+				func() *$.resultType|raw$ { return &$.resultType|raw${} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -544,7 +556,9 @@ var newStruct = []string{
 				c.RESTClient(),
 				$.schemeParameterCodec|raw$,
 				"",
-				func() *$.resultType|raw$ { return &$.resultType|raw${} }),
+				func() *$.resultType|raw$ { return &$.resultType|raw${} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -558,7 +572,9 @@ var newStruct = []string{
 				$.schemeParameterCodec|raw$,
 				"",
 				func() *$.resultType|raw$ { return &$.resultType|raw${} },
-				func() *$.resultType|raw$List { return &$.resultType|raw$List{} }),
+				func() *$.resultType|raw$List { return &$.resultType|raw$List{} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -572,7 +588,9 @@ var newStruct = []string{
 				$.schemeParameterCodec|raw$,
 				"",
 				func() *$.resultType|raw$ { return &$.resultType|raw${} },
-				func() *$.resultType|raw$List { return &$.resultType|raw$List{} }),
+				func() *$.resultType|raw$List { return &$.resultType|raw$List{} },
+				$if .prefersProtobuf$gentype.PrefersProtobuf[*$.resultType|raw$](),$end$
+			),
 		}
 	}
 	`,
@@ -608,6 +626,7 @@ func (c *$.type|privatePlural$) list(ctx context.Context, opts $.ListOptions|raw
 	}
 	result = &$.resultType|raw$List{}
 	err = c.GetClient().Get().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		VersionedParams(&opts, $.schemeParameterCodec|raw$).
@@ -627,6 +646,7 @@ func (c *$.type|privatePlural$) List(ctx context.Context, $.type|private$Name st
 	}
 	result = &$.resultType|raw$List{}
 	err = c.GetClient().Get().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name($.type|private$Name).
@@ -644,6 +664,7 @@ var getTemplate = `
 func (c *$.type|privatePlural$) Get(ctx context.Context, name string, options $.GetOptions|raw$) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Get().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name(name).
@@ -659,6 +680,7 @@ var getSubresourceTemplate = `
 func (c *$.type|privatePlural$) Get(ctx context.Context, $.type|private$Name string, options $.GetOptions|raw$) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Get().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name($.type|private$Name).
@@ -674,6 +696,7 @@ var deleteTemplate = `
 // Delete takes name of the $.type|private$ and deletes it. Returns an error if one occurs.
 func (c *$.type|privatePlural$) Delete(ctx context.Context, name string, opts $.DeleteOptions|raw$) error {
 	return c.GetClient().Delete().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name(name).
@@ -688,6 +711,7 @@ var createSubresourceTemplate = `
 func (c *$.type|privatePlural$) Create(ctx context.Context, $.type|private$Name string, $.inputType|private$ *$.inputType|raw$, opts $.CreateOptions|raw$) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Post().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name($.type|private$Name).
@@ -705,6 +729,7 @@ var createTemplate = `
 func (c *$.type|privatePlural$) Create(ctx context.Context, $.inputType|private$ *$.inputType|raw$, opts $.CreateOptions|raw$) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Post().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		VersionedParams(&opts, $.schemeParameterCodec|raw$).
@@ -720,6 +745,7 @@ var updateSubresourceTemplate = `
 func (c *$.type|privatePlural$) Update(ctx context.Context, $.type|private$Name string, $.inputType|private$ *$.inputType|raw$, opts $.UpdateOptions|raw$) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Put().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name($.type|private$Name).
@@ -737,6 +763,7 @@ var updateTemplate = `
 func (c *$.type|privatePlural$) Update(ctx context.Context, $.inputType|private$ *$.inputType|raw$, opts $.UpdateOptions|raw$) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Put().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name($.inputType|private$.Name).
@@ -757,6 +784,7 @@ func (c *$.type|privatePlural$) Watch(ctx context.Context, opts $.ListOptions|ra
 	}
 	opts.Watch = true
 	return c.GetClient().Get().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		VersionedParams(&opts, $.schemeParameterCodec|raw$).
 		Timeout(timeout).
@@ -773,6 +801,7 @@ func (c *$.type|privatePlural$) watchList(ctx context.Context, opts $.ListOption
 	}
     result = &$.resultType|raw$List{}
 	err = c.client.Get().
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.ns).$end$
 		Resource("$.type|resource$").
 		VersionedParams(&opts, $.schemeParameterCodec|raw$).
@@ -788,6 +817,7 @@ var patchTemplate = `
 func (c *$.type|privatePlural$) Patch(ctx context.Context, name string, pt $.PatchType|raw$, data []byte, opts $.PatchOptions|raw$, subresources ...string) (result *$.resultType|raw$, err error) {
 	result = &$.resultType|raw${}
 	err = c.GetClient().Patch(pt).
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name(name).
@@ -817,6 +847,7 @@ func (c *$.type|privatePlural$) Apply(ctx context.Context, $.inputType|private$ 
 	}
 	result = &$.resultType|raw${}
 	err = c.GetClient().Patch($.ApplyPatchType|raw$).
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name(*name).
@@ -843,6 +874,7 @@ func (c *$.type|privatePlural$) Apply(ctx context.Context, $.type|private$Name s
 
 	result = &$.resultType|raw${}
 	err = c.GetClient().Patch($.ApplyPatchType|raw$).
+		$if .prefersProtobuf$UseProtobufAsDefault().$end$
 		$if .namespaced$Namespace(c.GetNamespace()).$end$
 		Resource("$.type|resource$").
 		Name($.type|private$Name).
