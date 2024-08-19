@@ -32,17 +32,17 @@ const (
 	FullPCPUsOnlyOption            string = "full-pcpus-only"
 	DistributeCPUsAcrossNUMAOption string = "distribute-cpus-across-numa"
 	AlignBySocketOption            string = "align-by-socket"
-	AlignByUnCoreCacheOption       string = "align-cpus-by-uncorecache"
+	PreferAlignByUnCoreCacheOption string = "prefer-align-cpus-by-uncorecache"
 )
 
 var (
 	alphaOptions = sets.New[string](
 		DistributeCPUsAcrossNUMAOption,
 		AlignBySocketOption,
+		PreferAlignByUnCoreCacheOption,
 	)
 	betaOptions = sets.New[string](
 		FullPCPUsOnlyOption,
-		AlignByUnCoreCacheOption,
 	)
 	stableOptions = sets.New[string]()
 )
@@ -84,7 +84,7 @@ type StaticPolicyOptions struct {
 	AlignBySocket bool
 	// Flag that makes best-effort to align CPUs to a L3 or uncorecache boundary
 	// As long as there are CPUs available, pods will be admitted if the condition is not met.
-	AlignByUnCoreCacheOption bool
+	PreferAlignByUnCoreCacheOption bool
 }
 
 // NewStaticPolicyOptions creates a StaticPolicyOptions struct from the user configuration.
@@ -114,17 +114,20 @@ func NewStaticPolicyOptions(policyOptions map[string]string) (StaticPolicyOption
 				return opts, fmt.Errorf("bad value for option %q: %w", name, err)
 			}
 			opts.AlignBySocket = optValue
-		case AlignByUnCoreCacheOption:
 			optValue, err := strconv.ParseBool(value)
 			if err != nil {
 				return opts, fmt.Errorf("bad value for option %q: %w", name, err)
 			}
-			opts.AlignByUnCoreCacheOption = optValue
+			opts.PreferAlignByUnCoreCacheOption = optValue
 		default:
 			// this should never be reached, we already detect unknown options,
 			// but we keep it as further safety.
 			return opts, fmt.Errorf("unsupported cpumanager option: %q (%s)", name, value)
 		}
+	}
+
+	if opts.PreferAlignByUnCoreCacheOption && opts.DistributeCPUsAcrossNUMA {
+		return opts, fmt.Errorf("static policy options %s and %s can not be used at the same time", PreferAlignByUnCoreCacheOption, DistributeCPUsAcrossNUMAOption)
 	}
 
 	return opts, nil
