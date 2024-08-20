@@ -425,7 +425,7 @@ func (a *cpuAccumulator) takeFullUnCore() {
 		if !a.needsAtLeast(cpusInUnCore.Size()) {
 			continue
 		}
-		klog.V(4).InfoS("takeFullCCD: claiming CCD ", uncore)
+		klog.V(4).InfoS("takeFullCCD: claiming CCD", "uncore", uncore)
 		a.take(cpusInUnCore)
 	}
 }
@@ -441,13 +441,13 @@ func (a *cpuAccumulator) takeUnCoreCache() {
 		var freeCPUsInUncorecache cpuset.CPUSet
 		//need to get needed cores in uncorecache
 		freeCoresInUncorecache := a.details.CoresNeededInUnCoreCache(numCoresNeeded, uncore)
-		klog.V(2).Info("free cores from a.details list: ", freeCoresInUncorecache)
+		klog.V(2).InfoS("free cores from a.details list: ", "freeCoresInUncorecache", freeCoresInUncorecache)
 		for _, coreId := range freeCoresInUncorecache.List() {
 			freeCPUsInUncorecache = freeCPUsInUncorecache.Union(a.topo.CPUDetails.CPUsInCores(coreId))
 		}
-		klog.V(2).Info("freeCPUsInUncorecache  : ", freeCPUsInUncorecache)
+		klog.V(2).InfoS("freeCPUsInUncorecache  : ", "freeCPUsInUncorecache", freeCPUsInUncorecache)
 		if a.numCPUsNeeded == freeCPUsInUncorecache.Size() {
-			klog.V(4).InfoS("takePartialUncore: claiming cores from Uncorecache ID", uncore)
+			klog.V(4).InfoS("takePartialUncore: claiming cores from Uncorecache ID", "uncore", uncore)
 			a.take(freeCPUsInUncorecache)
 		}
 		//take full Uncorecache if the numCPUsNeeded is greater the L3 cache size

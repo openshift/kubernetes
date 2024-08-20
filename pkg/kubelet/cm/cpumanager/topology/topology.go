@@ -162,7 +162,7 @@ func (d CPUDetails) CoresNeededInUnCoreCache(numCoresNeeded int, ids ...int) cpu
 		//return the full list
 		coresNeeded = coreIDs
 	}
-	klog.V(2).Info("Available coreIDs : ", coresNeeded)
+	klog.V(2).InfoS("Available coreIDs : ", "coresNeeded", coresNeeded)
 	return cpuset.New(coresNeeded...)
 }
 

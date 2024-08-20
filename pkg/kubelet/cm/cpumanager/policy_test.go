@@ -129,26 +129,6 @@ var (
 		},
 	}
 
-	topoSingleUncoreSingleSocket = &topology.CPUTopology{
-		NumCPUs:    12,
-		NumSockets: 1,
-		NumCores:   12,
-		CPUDetails: map[int]topology.CPUInfo{
-			0:  {CoreID: 0, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			1:  {CoreID: 1, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			2:  {CoreID: 2, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			3:  {CoreID: 3, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			4:  {CoreID: 4, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			5:  {CoreID: 5, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			6:  {CoreID: 0, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			7:  {CoreID: 1, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			8:  {CoreID: 2, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			9:  {CoreID: 3, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			10: {CoreID: 4, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-			11: {CoreID: 5, SocketID: 0, NUMANodeID: 0, UnCoreCacheID: 0},
-		},
-	}
-
 	topoDualSocketNoHT = &topology.CPUTopology{
 		NumCPUs:    8,
 		NumSockets: 2,
