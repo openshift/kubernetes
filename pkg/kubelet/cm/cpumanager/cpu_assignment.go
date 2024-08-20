@@ -127,7 +127,7 @@ func (n *numaFirst) takeFullSecondLevel() {
 	n.acc.takeFullSockets()
 }
 
-// In Split L3 Topology, we take from the sets of uncorecache as the thrid level
+// In Split L3 Topology, we take from the sets of uncorecache as the third level
 func (n *numaFirst) takeThirdLevel() {
 	n.acc.takeUnCoreCache()
 }
@@ -321,9 +321,7 @@ func (a *cpuAccumulator) freeUnCoreCache() []int {
 // Returns all UnCoreCache IDs as a slice sorted by sortAvailableUnCoreCache().
 func (a *cpuAccumulator) allUnCoreCache() []int {
 	all := []int{}
-	for _, uncore := range a.numaOrSocketsFirst.sortAvailableUnCoreCaches() {
-		all = append(all, uncore)
-	}
+	all = append(all, a.numaOrSocketsFirst.sortAvailableUnCoreCaches()...)
 	return all
 }
 
@@ -436,21 +434,21 @@ func (a *cpuAccumulator) takeUnCoreCache() {
 	// check if SMT ON
 
 	for _, uncore := range a.allUnCoreCache() {
-		numCoresNeeded := a.numCPUsNeeded / a.topo.CPUsPerCore() //this is another new change
+		numCoresNeeded := a.numCPUsNeeded / a.topo.CPUsPerCore() // this is another new change
 
 		var freeCPUsInUncorecache cpuset.CPUSet
-		//need to get needed cores in uncorecache
+		// need to get needed cores in uncorecache
 		freeCoresInUncorecache := a.details.CoresNeededInUnCoreCache(numCoresNeeded, uncore)
 		klog.V(2).InfoS("free cores from a.details list: ", "freeCoresInUncorecache", freeCoresInUncorecache)
-		for _, coreId := range freeCoresInUncorecache.List() {
-			freeCPUsInUncorecache = freeCPUsInUncorecache.Union(a.topo.CPUDetails.CPUsInCores(coreId))
+		for _, coreID := range freeCoresInUncorecache.List() {
+			freeCPUsInUncorecache = freeCPUsInUncorecache.Union(a.topo.CPUDetails.CPUsInCores(coreID))
 		}
 		klog.V(2).InfoS("freeCPUsInUncorecache  : ", "freeCPUsInUncorecache", freeCPUsInUncorecache)
 		if a.numCPUsNeeded == freeCPUsInUncorecache.Size() {
 			klog.V(4).InfoS("takePartialUncore: claiming cores from Uncorecache ID", "uncore", uncore)
 			a.take(freeCPUsInUncorecache)
 		}
-		//take full Uncorecache if the numCPUsNeeded is greater the L3 cache size
+		// take full Uncorecache if the numCPUsNeeded is greater the L3 cache size
 		a.takeFullUnCore()
 
 		if a.isSatisfied() {

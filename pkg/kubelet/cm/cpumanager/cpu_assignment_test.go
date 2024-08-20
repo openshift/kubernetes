@@ -704,7 +704,7 @@ func TestTakeByTopologyUnCoreCachePacked(t *testing.T) {
 			cpuset.New(8, 9, 10, 11),
 		},
 		{
-			"take first available uncore cache from avilable NUMA",
+			"take first available uncore cache from available NUMA",
 			topoUncoreSingleSocketMultiNuma,
 			StaticPolicyOptions{AlignByUnCoreCacheOption: true},
 			mustParseCPUSet(t, "3,4-8,12"),

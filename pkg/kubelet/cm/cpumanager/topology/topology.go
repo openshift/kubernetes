@@ -152,14 +152,14 @@ func (d CPUDetails) CoresNeededInUnCoreCache(numCoresNeeded int, ids ...int) cpu
 	}
 	sort.Ints(coreIDs)
 
-	//return only unique coreID
+	// return only unique coreID
 	var coresNeeded []int
 
 	if len(coreIDs) > numCoresNeeded {
-		//return only what is needed
+		// return only what is needed
 		coresNeeded = coreIDs[0:numCoresNeeded]
 	} else {
-		//return the full list
+		// return the full list
 		coresNeeded = coreIDs
 	}
 	klog.V(2).InfoS("Available coreIDs : ", "coresNeeded", coresNeeded)
