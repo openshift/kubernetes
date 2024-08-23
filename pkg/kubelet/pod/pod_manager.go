@@ -70,6 +70,11 @@ type Manager interface {
 	// the pod fullnames of any orphaned mirror pods.
 	GetPodsAndMirrorPods() (allPods []*v1.Pod, allMirrorPods []*v1.Pod, orphanedMirrorPodFullnames []string)
 
+	// GetStaticPodsAndMirrorPods return all static pods and mirror pods. It is possible that
+	// there is no mirror pod for a static pod if kubelet is running in standalone mode
+	// or is in the process of creating the mirror pod.
+	GetStaticPodsAndMirrorPods() (allStaticPods []*v1.Pod, allMirrorPods []*v1.Pod)
+
 	// SetPods replaces the internal pods with the new pods.
 	// It is currently only used for testing.
 	SetPods(pods []*v1.Pod)
@@ -224,6 +229,21 @@ func (pm *basicManager) GetPodsAndMirrorPods() (allPods []*v1.Pod, allMirrorPods
 		}
 	}
 	return allPods, allMirrorPods, orphanedMirrorPodFullnames
+}
+
+func (pm *basicManager) GetStaticPodsAndMirrorPods() (allStaticPods []*v1.Pod, allMirrorPods []*v1.Pod) {
+	pm.lock.RLock()
+	defer pm.lock.RUnlock()
+	for _, pod := range podsMapToPods(pm.podByUID) {
+		if kubetypes.IsStaticPod(pod) {
+			allStaticPods = append(allStaticPods, pod)
+			mirrorPod, ok := pm.mirrorPodByFullName[kubecontainer.GetPodFullName(pod)]
+			if ok {
+				allMirrorPods = append(allMirrorPods, mirrorPod)
+			}
+		}
+	}
+	return allStaticPods, allMirrorPods
 }
 
 func (pm *basicManager) GetPodByUID(uid types.UID) (*v1.Pod, bool) {

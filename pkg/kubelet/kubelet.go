@@ -403,6 +403,8 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 
 	var nodeHasSynced cache.InformerSynced
 	var nodeLister corelisters.NodeLister
+	var cleanupNodeEventHandler func()
+	nodeRegistrationCh := make(chan struct{})
 
 	// If kubeClient == nil, we are running in standalone mode (i.e. no API servers)
 	// If not nil, we are running as part of a cluster and should sync w/API
@@ -411,8 +413,22 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 			options.FieldSelector = fields.Set{metav1.ObjectNameField: string(nodeName)}.String()
 		}))
 		nodeLister = kubeInformers.Core().V1().Nodes().Lister()
+		nodeInformer := kubeInformers.Core().V1().Nodes().Informer()
 		nodeHasSynced = func() bool {
-			return kubeInformers.Core().V1().Nodes().Informer().HasSynced()
+			return nodeInformer.HasSynced()
+		}
+		handle, err := nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				nodeRegistrationCh <- struct{}{}
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		cleanupNodeEventHandler = func() {
+			if err := nodeInformer.RemoveEventHandler(handle); err != nil {
+				klog.ErrorS(err, "failed to remove event handler from node informer")
+			}
 		}
 		kubeInformers.Start(wait.NeverStop)
 		klog.InfoS("Attempting to sync node with API server")
@@ -421,6 +437,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		nodeIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 		nodeLister = corelisters.NewNodeLister(nodeIndexer)
 		nodeHasSynced = func() bool { return true }
+		cleanupNodeEventHandler = func() {}
 		klog.InfoS("Kubelet is running in standalone mode, will skip API server sync")
 	}
 
@@ -586,6 +603,8 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		nodeStatusMaxImages:            nodeStatusMaxImages,
 		tracer:                         tracer,
 		nodeStartupLatencyTracker:      kubeDeps.NodeStartupLatencyTracker,
+		nodeRegistrationCh:             nodeRegistrationCh,
+		cleanupNodeEventHandler:        cleanupNodeEventHandler,
 	}
 
 	if klet.cloud != nil {
@@ -1360,6 +1379,16 @@ type Kubelet struct {
 
 	// Track node startup latencies
 	nodeStartupLatencyTracker util.NodeStartupLatencyTracker
+
+	// sends an update when node is registered.
+	nodeRegistrationCh chan struct{}
+
+	// clean up EventHandlers added to node informers.
+	cleanupNodeEventHandler func()
+
+	// whether initial static pods registration was completed or not
+	// before node became ready.
+	staticPodsRegistered bool
 }
 
 // ListPodStats is delegated to StatsProvider, which implements stats.Provider interface
@@ -2527,6 +2556,19 @@ func (kl *Kubelet) syncLoopIteration(ctx context.Context, configCh <-chan kubety
 			}
 			klog.V(4).InfoS("SyncLoop (housekeeping) end", "duration", duration.Round(time.Millisecond))
 		}
+	case <-kl.nodeRegistrationCh:
+		// It is possible that static pods are running but their corresponding mirror
+		// pods are not created because node was not registered. We want to sync static
+		// pods again quickly on node registration so that their resource requests are
+		// visible to the scheduler and avoid delaying node readiness.
+		defer kl.cleanupNodeEventHandler()
+		if kl.kubeClient != nil {
+			staticPods, mirrorPods := kl.podManager.GetStaticPodsAndMirrorPods()
+			if len(staticPods) != len(mirrorPods) {
+				handler.HandlePodSyncs(staticPods)
+			}
+		}
+
 	}
 	return true
 }
@@ -3089,4 +3131,24 @@ func (kl *Kubelet) warnCgroupV1Usage() {
 		klog.V(2).InfoS("Warning: cgroup v1", "message", cm.CgroupV1MaintenanceModeWarning)
 	}
 	metrics.CgroupVersion.Set(float64(cgroupVersion))
+}
+
+// staticPodRegistration ensures that all static pods are registered to the apiserver
+// before node became ready.
+func (kl *Kubelet) staticPodsRegistration() error {
+	// kubelet running in standalone mode does not register static pods to the apiserver.
+	if kl.kubeClient == nil {
+		return nil
+	}
+	// Check if initial static pod registration has already been completed.
+	if kl.staticPodsRegistered {
+		return nil
+	}
+	allStaticPods, allMirrorPods := kl.podManager.GetStaticPodsAndMirrorPods()
+	if len(allStaticPods) == len(allMirrorPods) {
+		kl.staticPodsRegistered = true
+		return nil
+	}
+
+	return fmt.Errorf("all static pods are not registered")
 }

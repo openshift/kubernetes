@@ -465,6 +465,27 @@ func TestSyncPodsStartPod(t *testing.T) {
 	fakeRuntime.AssertStartedPods([]string{string(pods[0].UID)})
 }
 
+func TestSyncStaticPodsOnNodeRegistration(t *testing.T) {
+	ctx := context.Background()
+	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+	defer testKubelet.Cleanup()
+	kubelet := testKubelet.kubelet
+	fakeRuntime := testKubelet.fakeRuntime
+	pods := []*v1.Pod{
+		podWithUIDNameNsSpec("12345678", "foo", "new", v1.PodSpec{}),
+		podWithUIDNameNsSpec("1234", "bar", "kube-system", v1.PodSpec{}),
+	}
+	pods[1].Annotations[kubetypes.ConfigSourceAnnotationKey] = "file"
+	kubelet.podManager.SetPods(pods)
+	kubelet.cleanupNodeEventHandler = func() {}
+	kubelet.nodeRegistrationCh = make(chan struct{}, 1)
+	kubelet.nodeRegistrationCh <- struct{}{}
+
+	ok := kubelet.syncLoopIteration(ctx, make(chan kubetypes.PodUpdate), kubelet, make(chan time.Time), make(chan time.Time), make(chan *pleg.PodLifecycleEvent, 1))
+	require.True(t, ok, "Expected syncLoopIteration to return ok")
+	fakeRuntime.AssertStartedPods([]string{string(pods[1].UID)})
+}
+
 func TestHandlePodCleanupsPerQOS(t *testing.T) {
 	ctx := context.Background()
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
@@ -3278,5 +3299,64 @@ func TestSyncPodSpans(t *testing.T) {
 
 	for _, span := range runtimeServiceSpans {
 		assert.Equal(t, span.Parent.SpanID(), rootSpan.SpanContext.SpanID(), fmt.Sprintf("runtime service span %s %s should be child of root span", span.Name, span.Parent.SpanID()))
+	}
+}
+
+func TestStaticPodsRegistration(t *testing.T) {
+	normalPod := podWithUIDNameNsSpec("12345678", "foo", "new", v1.PodSpec{})
+	staticPod := podWithUIDNameNsSpec("123456789", "kube-system", "new", v1.PodSpec{})
+	staticPod.Annotations[kubetypes.ConfigSourceAnnotationKey] = "file"
+	mirrorPod := podWithUIDNameNsSpec("111111", "kube-system", "new", v1.PodSpec{})
+	mirrorPod.Annotations[kubetypes.ConfigSourceAnnotationKey] = "api"
+	mirrorPod.Annotations[kubetypes.ConfigMirrorAnnotationKey] = "mirror"
+	tests := []struct {
+		desc              string
+		pods              []*v1.Pod
+		alreadyRegistered bool
+		wantErr           bool
+	}{
+		{
+			desc: "a normal pod",
+			pods: []*v1.Pod{normalPod},
+		},
+		{
+			desc:    "a static pod",
+			pods:    []*v1.Pod{staticPod},
+			wantErr: true,
+		},
+		{
+			desc: "a static pod and a corresponding mirror pod",
+			pods: []*v1.Pod{staticPod, mirrorPod},
+		},
+		{
+			desc:    "a normal pod and a static pod",
+			pods:    []*v1.Pod{normalPod, staticPod},
+			wantErr: true,
+		},
+		{
+			desc: "a normal pod, a static pod and a corresponding mirror pod",
+			pods: []*v1.Pod{normalPod, staticPod, mirrorPod},
+		},
+		{
+			desc:              "static pods already registered and new static pod added",
+			alreadyRegistered: true,
+			pods:              []*v1.Pod{staticPod},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+			defer testKubelet.Cleanup()
+			kubelet := testKubelet.kubelet
+			kubelet.podManager.SetPods(tc.pods)
+			kubelet.staticPodsRegistered = tc.alreadyRegistered
+			err := kubelet.staticPodsRegistration()
+			if tc.wantErr && err == nil {
+				t.Fatal("staticPodsRegistration() did not return any error, want error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatal("staticPodsRegistration() returned error, want nil")
+			}
+		})
 	}
 }

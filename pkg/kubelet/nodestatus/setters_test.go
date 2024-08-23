@@ -1638,6 +1638,7 @@ func TestReadyCondition(t *testing.T) {
 		storageErrors                        error
 		cmStatus                             cm.Status
 		nodeShutdownManagerErrors            error
+		staticPodsRegistrationErrors         error
 		expectConditions                     []v1.NodeCondition
 		expectEvents                         []testEvent
 		disableLocalStorageCapacityIsolation bool
@@ -1687,6 +1688,12 @@ func TestReadyCondition(t *testing.T) {
 			node:                                 withoutStorageCapacity.DeepCopy(),
 			disableLocalStorageCapacityIsolation: true,
 			expectConditions:                     []v1.NodeCondition{*makeReadyCondition(true, "kubelet is posting ready status", now, now)},
+		},
+		{
+			desc:                         "new, not ready: static pods not registered",
+			node:                         withCapacity.DeepCopy(),
+			staticPodsRegistrationErrors: errors.New("all static pods are not registered"),
+			expectConditions:             []v1.NodeCondition{*makeReadyCondition(false, "all static pods are not registered", now, now)},
 		},
 		// the transition tests ensure timestamps are set correctly, no need to test the entire condition matrix in this section
 		{
@@ -1760,6 +1767,9 @@ func TestReadyCondition(t *testing.T) {
 			nodeShutdownErrorsFunc := func() error {
 				return tc.nodeShutdownManagerErrors
 			}
+			staticPodsRegistrationErrorsFunc := func() error {
+				return tc.staticPodsRegistrationErrors
+			}
 			events := []testEvent{}
 			recordEventFunc := func(eventType, event string) {
 				events = append(events, testEvent{
@@ -1768,7 +1778,7 @@ func TestReadyCondition(t *testing.T) {
 				})
 			}
 			// construct setter
-			setter := ReadyCondition(nowFunc, runtimeErrorsFunc, networkErrorsFunc, storageErrorsFunc, cmStatusFunc, nodeShutdownErrorsFunc, recordEventFunc, !tc.disableLocalStorageCapacityIsolation)
+			setter := ReadyCondition(nowFunc, runtimeErrorsFunc, networkErrorsFunc, storageErrorsFunc, cmStatusFunc, nodeShutdownErrorsFunc, recordEventFunc, staticPodsRegistrationErrorsFunc, !tc.disableLocalStorageCapacityIsolation)
 			// call setter on node
 			if err := setter(ctx, tc.node); err != nil {
 				t.Fatalf("unexpected error: %v", err)
