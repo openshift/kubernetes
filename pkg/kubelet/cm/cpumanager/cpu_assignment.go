@@ -235,6 +235,11 @@ func newCPUAccumulator(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, 
 	return acc
 }
 
+// Returns true if the accumulator needs `size` CPUs or more
+func (a *cpuAccumulator) needsAtLeast(size int) bool {
+	return a.numCPUsNeeded >= size
+}
+
 // Returns true if the supplied NUMANode is fully available in `topoDetails`.
 func (a *cpuAccumulator) isNUMANodeFree(numaID int) bool {
 	return a.details.CPUsInNUMANodes(numaID).Size() == a.topo.CPUDetails.CPUsInNUMANodes(numaID).Size()
