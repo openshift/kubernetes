@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -1609,7 +1608,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 					return false, nil // retry
 				}
 				// Claim 1's external owner is neither its pod nor its set, so it should get updated with a controller.
-				if !reflect.DeepEqual(claim.GetOwnerReferences(), slices.Concat(expectedExternalRef, expectedOwnerRef)) {
+				if !reflect.DeepEqual(claim.GetOwnerReferences(), append(expectedExternalRef, expectedOwnerRef...)) {
 					return false, nil // retry
 				}
 				claim, err = c.CoreV1().PersistentVolumeClaims(ns).Get(ctx, claimNames[3], metav1.GetOptions{})
