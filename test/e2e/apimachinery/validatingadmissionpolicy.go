@@ -362,6 +362,13 @@ var _ = SIGDescribe("ValidatingAdmissionPolicy [Privileged:ClusterAdmin]", func(
 				if err != nil {
 					return false, err
 				}
+				applyConfig := applyadmissionregistrationv1.ValidatingAdmissionPolicy(policy.Name).WithLabels(map[string]string{
+					"touched": time.Now().String(),
+					"random":  fmt.Sprintf("%d", rand.Int()),
+				})
+				if _, err := client.AdmissionregistrationV1().ValidatingAdmissionPolicies().Apply(ctx, applyConfig, metav1.ApplyOptions{}); err != nil {
+					return false, err
+				}
 				if policy.Status.TypeChecking != nil {
 					// TODO(#123829) Remove once the schema watcher is merged.
 					// If the warnings are empty, touch the policy to retry type checking
