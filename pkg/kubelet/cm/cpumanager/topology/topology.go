@@ -91,6 +91,15 @@ func (topo *CPUTopology) CPUNUMANodeID(cpu int) (int, error) {
 	return info.NUMANodeID, nil
 }
 
+// CPUCacheGroup returns the Cache group ID which the given logical CPU belongs to.
+func (topo *CPUTopology) CPUCacheGroup(cpu int) (int, error) {
+	info, ok := topo.CPUDetails[cpu]
+	if !ok {
+		return -1, fmt.Errorf("unknown CPU ID: %d", cpu)
+	}
+	return info.UnCoreCacheID, nil
+}
+
 // CPUInfo contains the NUMA, socket, and core IDs associated with a CPU.
 type CPUInfo struct {
 	NUMANodeID    int

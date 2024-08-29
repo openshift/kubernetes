@@ -875,6 +875,60 @@ func TestTakeByTopologyNUMADistributed(t *testing.T) {
 	}
 }
 
+type takeByCacheGroupTestCase struct {
+	description   string
+	topo          *topology.CPUTopology
+	availableCPUs cpuset.CPUSet
+	numCPUs       int
+	expErr        string
+	expResult     cpuset.CPUSet
+	expCacheGrps  int
+}
+
+func TestTakeByCacheGroupsNUMAPacked(t *testing.T) {
+	testCases := []takeByCacheGroupTestCase{
+		{
+			"allocate cores from a single cache group",
+			topoDualSocketSingleNumaPerSocketHTLargeCacheGroups,
+			mustParseCPUSet(t, "5-191,196-383"), // cpus 4 and 197 from the first available cache groups are used
+			8,
+			"",
+			mustParseCPUSet(t, "8-11,212-219"),
+			1,
+		},
+		{
+			"allocate cores from a minimal amount of cache groups",
+			topoDualSocketSingleNumaPerSocketHTLargeCacheGroups,
+			mustParseCPUSet(t, "5-191,197-383"), // cpus 4 and 197 from the first available cache groups are used
+			16,
+			"",
+			mustParseCPUSet(t, "8-19,212-227"),
+			2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			result, err := takeByTopologyNUMAPacked(tc.topo, tc.availableCPUs, tc.numCPUs)
+			if tc.expErr != "" && err != nil && err.Error() != tc.expErr {
+				t.Errorf("expected error to be [%v] but it was [%v]", tc.expErr, err)
+			}
+
+			cacheGrps := map[int]bool{}
+			for _, cpu := range result.List() {
+				cacheID, _ := tc.topo.CPUCacheGroup(cpu)
+				cacheGrps[cacheID] = true
+			}
+			if !result.Equals(tc.expResult) {
+				t.Errorf("expected result [%s] to equal [%s]", result, tc.expResult)
+			}
+			if len(cacheGrps) != tc.expCacheGrps {
+				t.Errorf("expected result [%s] using %d cache groups to use exactly %d cache groups", result, len(cacheGrps), tc.expCacheGrps)
+			}
+		})
+	}
+}
+
 func mustParseCPUSet(t *testing.T, s string) cpuset.CPUSet {
 	cpus, err := cpuset.Parse(s)
 	if err != nil {
