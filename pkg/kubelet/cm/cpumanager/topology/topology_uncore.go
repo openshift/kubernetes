@@ -89,9 +89,9 @@ func (d CPUDetails) UncoreCaches() cpuset.CPUSet {
 func (d CPUDetails) CPUsInUncoreCaches(ids ...int) cpuset.CPUSet {
 	var coreIDs []int
 	for _, id := range ids {
-		for _, info := range d {
+		for cpuid, info := range d {
 			if info.UnCoreCacheID == id {
-				coreIDs = append(coreIDs, info.UnCoreCacheID)
+				coreIDs = append(coreIDs, cpuid)
 			}
 		}
 	}
@@ -105,7 +105,7 @@ func (d CPUDetails) CoresInUncoreCaches(ids ...int) cpuset.CPUSet {
 	for _, id := range ids {
 		for _, info := range d {
 			if info.UnCoreCacheID == id {
-				coreIDs = append(coreIDs, info.UnCoreCacheID)
+				coreIDs = append(coreIDs, info.CoreID)
 			}
 		}
 	}
