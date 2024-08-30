@@ -1019,6 +1019,8 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] Stackdriver Monitoring should run Stackdriver Metadata Agent [Feature:StackdriverMetadataAgent]": " [Disabled:Unimplemented] [Suite:k8s]",
 
+	"[sig-luis] protected metadata when update by a service account fails": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] CVE-2021-29923 IPv4 Service Type ClusterIP with leading zeros should work interpreted as decimal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] ClusterDns [Feature:Example] should create pod that uses dns": " [Disabled:Broken] [Suite:k8s]",
