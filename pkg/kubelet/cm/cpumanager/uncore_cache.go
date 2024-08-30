@@ -73,6 +73,32 @@ func (a *cpuAccumulator) takeFullUncoreGroups() {
 	return
 }
 
+func (a *cpuAccumulator) takeRemainingUncoreGroups() {
+	// First take an uncore group with the exact amount of remaining cpus
+	// to avoid excessive fragmentation
+	for _, uncorecache := range a.sortAvailableUncoreCaches() {
+		cpusInUncoreCache := a.topo.CPUDetails.CPUsInUncoreCaches(uncorecache)
+		if !a.needsAtLeast(cpusInUncoreCache.Size()) {
+			continue
+		}
+		klog.V(4).InfoS("takeFullUncoreCaches: claiming exact size uncore-cache", "uncore-cache", uncorecache)
+		a.take(cpusInUncoreCache)
+	}
+
+	// Fill the rest using whatever is available
+	for a.numCPUsNeeded > 0 {
+		// It is sorted smaller to larger, reverse it
+		caches := a.sortAvailableUncoreCaches()
+		for i := len(caches) - 1; i >= 0 && !a.isSatisfied(); i-- {
+			cpusInUncoreCache := a.topo.CPUDetails.CPUsInUncoreCaches(caches[i])
+			klog.V(4).InfoS("takeFullUncoreCaches: claiming remainder uncore-cache", "uncore-cache", caches[i])
+			a.takeN(cpusInUncoreCache, a.numCPUsNeeded)
+		}
+	}
+
+	return
+}
+
 // Returns true if the supplied core is fully available in `topoDetails`.
 func (a *cpuAccumulator) isUncoreCacheFree(uncoreCacheID int) bool {
 	return a.details.CPUsInUncoreCaches(uncoreCacheID).Size() == a.topo.CPUsPerUncoreCache()

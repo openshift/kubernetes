@@ -892,20 +892,29 @@ func TestTakeByCacheGroupsNUMAPacked(t *testing.T) {
 			topoDualSocketSingleNumaPerSocketHTLargeCacheGroups,
 			mustParseCPUSet(t, "5-191,196-383"), // cpus 4 and 197 from the first available cache groups are used
 			// TODO When full cache groups aren't requested, the allocated cpus can be spread across multiple cache
-			//      groups here!
+			//      groups here according to the original design?!
 			8,
 			"",
-			mustParseCPUSet(t, "8-11,212-219"),
+			mustParseCPUSet(t, "160-163,352-355"),
 			1,
 		},
 		{
 			"allocate cores from a minimal amount of cache groups",
 			topoDualSocketSingleNumaPerSocketHTLargeCacheGroups,
-			mustParseCPUSet(t, "5-191,197-383"), // cpus 4 and 197 from the first available cache groups are used
+			mustParseCPUSet(t, "5-191,197-383"), // cpus 4 and 197 from the first available cache group are used
 			16,
 			"",
 			mustParseCPUSet(t, "72-79,264-271"),
 			1,
+		},
+		{
+			"allocate cores from a minimal amount of cache groups with large request",
+			topoDualSocketSingleNumaPerSocketHTLargeCacheGroups,
+			mustParseCPUSet(t, "5-191,197-383"), // cpus 4 and 197 from the first available cache group are used
+			24,
+			"",
+			mustParseCPUSet(t, "72-79,160-163,264-271,352-355"),
+			2,
 		},
 	}
 

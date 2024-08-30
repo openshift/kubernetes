@@ -348,6 +348,26 @@ func (a *cpuAccumulator) take(cpus cpuset.CPUSet) {
 	a.numCPUsNeeded -= cpus.Size()
 }
 
+// Take at maximum `n` CPUs from the cpuset `cpus`, try taking sibling cpus first
+// When the cpuset is smaller, take all available
+func (a *cpuAccumulator) takeN(cpus cpuset.CPUSet, n int) {
+	if cpus.Size() < n {
+		a.take(cpus)
+		return
+	}
+
+	cpusSiblingsFirst := cpus.List()
+	sort.SliceStable(cpusSiblingsFirst[:], func(cpua, cpub int) bool {
+		corea, _ := a.topo.CPUCoreID(cpusSiblingsFirst[cpua])
+		coreb, _ := a.topo.CPUCoreID(cpusSiblingsFirst[cpub])
+		return corea < coreb
+	})
+
+	a.result = a.result.Union(cpuset.New(cpusSiblingsFirst[:n]...))
+	a.details = a.details.KeepOnly(a.details.CPUs().Difference(a.result))
+	a.numCPUsNeeded -= n
+}
+
 func (a *cpuAccumulator) takeFullNUMANodes() {
 	for _, numa := range a.freeNUMANodes() {
 		cpusInNUMANode := a.topo.CPUDetails.CPUsInNUMANodes(numa)
@@ -486,6 +506,7 @@ func takeByTopologyNUMAPacked(topo *topology.CPUTopology, availableCPUs cpuset.C
 		// with just 1 uncore cache group there's no point in bothering with the new logic
 		// 0 uncore caches is abused as master flag to disable this feature entirely minimizing the API changes
 		acc.takeFullUncoreGroups()
+		acc.takeRemainingUncoreGroups()
 		if acc.isSatisfied() {
 			return acc.result, nil
 		}
