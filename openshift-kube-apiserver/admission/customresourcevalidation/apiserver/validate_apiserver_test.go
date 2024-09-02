@@ -144,27 +144,12 @@ func Test_validateTLSSecurityProfile(t *testing.T) {
 			},
 		},
 		{
-			name: "modern type - currently unsupported",
-			profile: &configv1.TLSSecurityProfile{
-				Type:   configv1.TLSProfileModernType,
-				Modern: &configv1.ModernTLSProfile{},
-			},
-			want: field.ErrorList{
-				field.NotSupported(rootFieldPath.Child("type"), configv1.TLSProfileModernType,
-					[]string{
-						string(configv1.TLSProfileOldType),
-						string(configv1.TLSProfileIntermediateType),
-						string(configv1.TLSProfileCustomType),
-					}),
-			},
-		},
-		{
 			name: "unknown type",
 			profile: &configv1.TLSSecurityProfile{
 				Type: "something",
 			},
 			want: field.ErrorList{
-				field.Invalid(rootFieldPath.Child("type"), "something", "unknown type, valid values are: [Old Intermediate Custom]"),
+				field.Invalid(rootFieldPath.Child("type"), "something", "unknown type, valid values are: [Old Intermediate Custom Modern]"),
 			},
 		},
 		{
@@ -209,21 +194,6 @@ func Test_validateTLSSecurityProfile(t *testing.T) {
 			want: field.ErrorList{
 				field.Invalid(rootFieldPath.Child("custom", "ciphers"), []string(nil), "no supported cipher suite found"),
 				field.Invalid(rootFieldPath.Child("custom", "ciphers"), []string(nil), "http2: TLSConfig.CipherSuites is missing an HTTP/2-required AES_128_GCM_SHA256 cipher (need at least one of ECDHE-RSA-AES128-GCM-SHA256 or ECDHE-ECDSA-AES128-GCM-SHA256)"),
-			},
-		},
-		{
-			name: "min tls 1.3 - currently unsupported",
-			profile: &configv1.TLSSecurityProfile{
-				Type: "Custom",
-				Custom: &configv1.CustomTLSProfile{
-					TLSProfileSpec: configv1.TLSProfileSpec{
-						Ciphers:       []string{"ECDHE-ECDSA-CHACHA20-POLY1305"},
-						MinTLSVersion: configv1.VersionTLS13,
-					},
-				},
-			},
-			want: field.ErrorList{
-				field.NotSupported(rootFieldPath.Child("custom", "minTLSVersion"), configv1.VersionTLS13, []string{string(configv1.VersionTLS10), string(configv1.VersionTLS11), string(configv1.VersionTLS12)}),
 			},
 		},
 		{
