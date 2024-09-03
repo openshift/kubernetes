@@ -24,6 +24,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -362,12 +363,20 @@ var _ = SIGDescribe("ValidatingAdmissionPolicy [Privileged:ClusterAdmin]", func(
 				if err != nil {
 					return false, err
 				}
+				applyConfig := applyadmissionregistrationv1.ValidatingAdmissionPolicy(policy.Name).WithLabels(map[string]string{
+					"touched": fmt.Sprintf("%d", time.Now().UnixMilli()),
+					"random":  fmt.Sprintf("%d", rand.Int()),
+				})
+				if _, err := client.AdmissionregistrationV1().ValidatingAdmissionPolicies().Apply(ctx, applyConfig, metav1.ApplyOptions{FieldManager: "validatingadmissionpolicy-e2e"}); err != nil {
+					return false, err
+				}
+				logrus.Info("made it past test apply successfully")
 				if policy.Status.TypeChecking != nil {
 					// TODO(#123829) Remove once the schema watcher is merged.
 					// If the warnings are empty, touch the policy to retry type checking
 					if len(policy.Status.TypeChecking.ExpressionWarnings) == 0 {
 						applyConfig := applyadmissionregistrationv1.ValidatingAdmissionPolicy(policy.Name).WithLabels(map[string]string{
-							"touched": time.Now().String(),
+							"touched": fmt.Sprintf("%d", time.Now().UnixMilli()),
 							"random":  fmt.Sprintf("%d", rand.Int()),
 						})
 						_, err := client.AdmissionregistrationV1().ValidatingAdmissionPolicies().Apply(ctx, applyConfig, metav1.ApplyOptions{FieldManager: "validatingadmissionpolicy-e2e"})
