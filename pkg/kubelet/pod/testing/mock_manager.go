@@ -546,61 +546,49 @@ func (_c *MockManager_GetPodsAndMirrorPods_Call) RunAndReturn(run func() ([]*v1.
 	return _c
 }
 
-// GetStaticPodsAndMirrorPods provides a mock function with given fields:
-func (_m *MockManager) GetStaticPodsAndMirrorPods() ([]*v1.Pod, []*v1.Pod) {
+// GetStaticPodToMirrorPodMap provides a mock function with given fields:
+func (_m *MockManager) GetStaticPodToMirrorPodMap() map[*v1.Pod]*v1.Pod {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetStaticPodsAndMirrorPods")
+		panic("no return value specified for GetStaticPodToMirrorPodMap")
 	}
 
-	var r0 []*v1.Pod
-	var r1 []*v1.Pod
-	if rf, ok := ret.Get(0).(func() ([]*v1.Pod, []*v1.Pod)); ok {
-		return rf()
-	}
-	if rf, ok := ret.Get(0).(func() []*v1.Pod); ok {
+	var r0 map[*v1.Pod]*v1.Pod
+	if rf, ok := ret.Get(0).(func() map[*v1.Pod]*v1.Pod); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*v1.Pod)
+			r0 = ret.Get(0).(map[*v1.Pod]*v1.Pod)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func() []*v1.Pod); ok {
-		r1 = rf()
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]*v1.Pod)
-		}
-	}
-
-	return r0, r1
+	return r0
 }
 
-// MockManager_GetStaticPodsAndMirrorPods_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStaticPodsAndMirrorPods'
-type MockManager_GetStaticPodsAndMirrorPods_Call struct {
+// MockManager_GetStaticPodToMirrorPodMap_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStaticPodToMirrorPodMap'
+type MockManager_GetStaticPodToMirrorPodMap_Call struct {
 	*mock.Call
 }
 
-// GetStaticPodsAndMirrorPods is a helper method to define mock.On call
-func (_e *MockManager_Expecter) GetStaticPodsAndMirrorPods() *MockManager_GetStaticPodsAndMirrorPods_Call {
-	return &MockManager_GetStaticPodsAndMirrorPods_Call{Call: _e.mock.On("GetStaticPodsAndMirrorPods")}
+// GetStaticPodToMirrorPodMap is a helper method to define mock.On call
+func (_e *MockManager_Expecter) GetStaticPodToMirrorPodMap() *MockManager_GetStaticPodToMirrorPodMap_Call {
+	return &MockManager_GetStaticPodToMirrorPodMap_Call{Call: _e.mock.On("GetStaticPodToMirrorPodMap")}
 }
 
-func (_c *MockManager_GetStaticPodsAndMirrorPods_Call) Run(run func()) *MockManager_GetStaticPodsAndMirrorPods_Call {
+func (_c *MockManager_GetStaticPodToMirrorPodMap_Call) Run(run func()) *MockManager_GetStaticPodToMirrorPodMap_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockManager_GetStaticPodsAndMirrorPods_Call) Return(allStaticPods []*v1.Pod, allMirrorPods []*v1.Pod) *MockManager_GetStaticPodsAndMirrorPods_Call {
-	_c.Call.Return(allStaticPods, allMirrorPods)
+func (_c *MockManager_GetStaticPodToMirrorPodMap_Call) Return(_a0 map[*v1.Pod]*v1.Pod) *MockManager_GetStaticPodToMirrorPodMap_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockManager_GetStaticPodsAndMirrorPods_Call) RunAndReturn(run func() ([]*v1.Pod, []*v1.Pod)) *MockManager_GetStaticPodsAndMirrorPods_Call {
+func (_c *MockManager_GetStaticPodToMirrorPodMap_Call) RunAndReturn(run func() map[*v1.Pod]*v1.Pod) *MockManager_GetStaticPodToMirrorPodMap_Call {
 	_c.Call.Return(run)
 	return _c
 }
