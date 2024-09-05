@@ -120,10 +120,17 @@ const (
 	// Metric for tracking garbage collected images
 	ImageGarbageCollectedTotalKey = "image_garbage_collected_total"
 
+	// Metric for tracking aligment of compute resources
+	ContainerAlignedComputeResourcesNameKey  = "container_aligned_compute_resources_count"
+	ContainerAlignedComputeResourcesLabelKey = "boundary"
+
 	// Values used in metric labels
 	Container          = "container"
 	InitContainer      = "init_container"
 	EphemeralContainer = "ephemeral_container"
+
+	AlignedPhysicalCPU = "physical_cpu"
+	AlignedNUMAZone    = "numa_zone"
 )
 
 var (
@@ -822,6 +829,16 @@ var (
 			StabilityLevel: metrics.ALPHA,
 		},
 	)
+
+	ContainerAlignedComputeResources = metrics.NewCounterVec(
+		&metrics.CounterOpts{
+			Subsystem:      KubeletSubsystem,
+			Name:           ContainerAlignedComputeResourcesNameKey,
+			Help:           "Cumulative number of aligned compute resources allocated to containers by alignment type.",
+			StabilityLevel: metrics.ALPHA,
+		},
+		[]string{ContainerAlignedComputeResourcesLabelKey},
+	)
 )
 
 var registerMetrics sync.Once
@@ -906,6 +923,8 @@ func Register(collectors ...metrics.StableCollector) {
 		if utilfeature.DefaultFeatureGate.Enabled(features.ConsistentHTTPGetHandlers) {
 			legacyregistry.MustRegister(LifecycleHandlerHTTPFallbacks)
 		}
+
+		legacyregistry.MustRegister(ContainerAlignedComputeResources)
 	})
 }
 
