@@ -535,6 +535,10 @@ var Annotations = map[string]string{
 
 	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should delete PVCs with a WhenDeleted policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVC with OnScaledown policy if another controller owns the PVC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVCs when there is another controller": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-apps] StatefulSet Scaling StatefulSetStartOrdinal Decreasing .start.ordinal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Scaling StatefulSetStartOrdinal Increasing .start.ordinal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
