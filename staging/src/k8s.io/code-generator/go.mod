@@ -13,7 +13,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/text v0.16.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/apimachinery v0.31.0
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
@@ -44,6 +44,7 @@ require (
 )
 
 replace (
+	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240806135314-3946b2b7b2a8
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/code-generator => ../code-generator
 )
