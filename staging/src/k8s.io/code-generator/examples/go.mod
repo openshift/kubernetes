@@ -5,8 +5,8 @@ module k8s.io/code-generator/examples
 go 1.22.0
 
 require (
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.31.0
+	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.0.0
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1
@@ -58,3 +58,13 @@ replace (
 )
 
 replace github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.49.0-openshift-4.17-2
+
+replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240806135314-3946b2b7b2a8
+
+replace github.com/openshift/api => github.com/atiratree/api v0.0.0-20240911144943-a0863674c1f1
+
+replace github.com/openshift/client-go => github.com/atiratree/client-go v0.0.0-20240911161715-75dcd95ae84c
+
+replace github.com/openshift/library-go => github.com/atiratree/library-go v0.0.0-20240911163119-9925541486b7
+
+replace github.com/openshift/apiserver-library-go => github.com/atiratree/apiserver-library-go v0.0.0-20240911163557-66abe72b0438
