@@ -734,12 +734,7 @@ func TestTakeByTopologyUnCoreCachePacked(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			strategy := CPUSortingStrategyPacked
-			if tc.opts.DistributeCPUsAcrossCores {
-				strategy = CPUSortingStrategySpread
-			}
-
-			result, err := takeByTopologyUnCoreCachePacked(tc.topo, tc.availableCPUs, tc.numCPUs, strategy)
+			result, err := takeByTopologyUnCoreCachePacked(tc.topo, tc.availableCPUs, tc.numCPUs)
 			if tc.expErr != "" && err != nil && err.Error() != tc.expErr {
 				t.Errorf("expected error to be [%v] but it was [%v]", tc.expErr, err)
 			}
