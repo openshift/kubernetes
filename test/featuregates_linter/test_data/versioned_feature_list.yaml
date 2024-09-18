@@ -1060,7 +1060,7 @@
     version: "1.29"
 - name: ResilientWatchCacheInitialization
   versionedSpecs:
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
     version: "1.31"
