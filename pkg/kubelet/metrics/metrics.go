@@ -129,8 +129,9 @@ const (
 	InitContainer      = "init_container"
 	EphemeralContainer = "ephemeral_container"
 
-	AlignedPhysicalCPU = "physical_cpu"
-	AlignedNUMAZone    = "numa_zone"
+	AlignedPhysicalCPU  = "physical_cpu"
+	AlignedNUMAZone     = "numa_zone"
+	AlignedL3CacheGroup = "l3_cache_group"
 )
 
 var (
