@@ -1271,7 +1271,7 @@ func (proxier *Proxier) syncProxyRules() {
 
 			if localWithFallback {
 				// Masquerade external traffic but not internal
-				proxier.natRules.Write(
+				natRules.Write(
 					"-A", string(externalTrafficChain),
 					"-m", "comment", "--comment", fmt.Sprintf(`"masquerade traffic for %s external destinations"`, svcPortNameString),
 					proxier.localDetector.IfNotLocal(),
