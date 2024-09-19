@@ -1441,7 +1441,6 @@ func RunWatchSemantics(ctx context.Context, t *testing.T, store storage.Interfac
 	}
 	for idx, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			t.Parallel()
 			// set up env
 			if scenario.expectedInitialEvents == nil {
 				scenario.expectedInitialEvents = func(_ []*example.Pod) []watch.Event { return nil }
