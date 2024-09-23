@@ -287,16 +287,18 @@ func (gb *GraphBuilder) startMonitors(logger klog.Logger) {
 	<-gb.informersStarted
 
 	monitors := gb.monitors
+	startedResourceNames := sets.Set[string]{}
 	started := 0
-	for _, monitor := range monitors {
+	for gvr, monitor := range monitors {
 		if monitor.stopCh == nil {
 			monitor.stopCh = make(chan struct{})
 			gb.sharedInformers.Start(gb.stopCh)
 			go monitor.Run()
 			started++
+			startedResourceNames.Insert(gvr.String())
 		}
 	}
-	logger.V(4).Info("started new monitors", "new", started, "current", len(monitors))
+	logger.V(2).Info("started new monitors", "new", startedResourceNames, "current", len(monitors))
 }
 
 // IsResourceSynced returns true if a monitor exists for the given resource and has synced
