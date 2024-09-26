@@ -419,12 +419,14 @@ func (a *cpuAccumulator) takeFullSockets() {
 	}
 }
 func (a *cpuAccumulator) takeFullUnCore() {
+	klog.V(2).InfoS("LLC: takeFullUncore start")
+	defer klog.V(2).InfoS("LLC: takeFullUncore done")
 	for _, uncore := range a.freeUnCoreCache() {
 		cpusInUnCore := a.topo.CPUDetails.CPUsInUnCoreCaches(uncore)
 		if !a.needs(cpusInUnCore.Size()) {
 			continue
 		}
-		klog.V(4).InfoS("takeFullCCD: claiming CCD", "uncore", uncore)
+		klog.V(2).InfoS("LLC: takeFullUnCore: claiming", "uncore", uncore)
 		a.take(cpusInUnCore)
 	}
 }
@@ -436,19 +438,23 @@ func (a *cpuAccumulator) takeUnCoreCache() (int, int) {
 	part := 0
 	full := 0
 
+	klog.V(2).InfoS("LLC: takeUnCoreCache start")
+	defer klog.V(2).InfoS("LLC: takeUnCoreCache done", "part", part, "full", full)
+
 	for _, uncore := range a.allUnCoreCache() {
 		numCoresNeeded := a.numCPUsNeeded / a.topo.CPUsPerCore() // this is another new change
+		klog.V(2).InfoS("LLC: allocation", "uncore", uncore, "numCoresNeeded", numCoresNeeded)
 
 		var freeCPUsInUncorecache cpuset.CPUSet
 		// need to get needed cores in uncorecache
 		freeCoresInUncorecache := a.details.CoresNeededInUnCoreCache(numCoresNeeded, uncore)
-		klog.V(2).InfoS("free cores from a.details list: ", "freeCoresInUncorecache", freeCoresInUncorecache)
+		klog.V(2).InfoS("LLC: free cores pristine", "freeCoresInUncorecache", freeCoresInUncorecache)
 		for _, coreID := range freeCoresInUncorecache.List() {
 			freeCPUsInUncorecache = freeCPUsInUncorecache.Union(a.topo.CPUDetails.CPUsInCores(coreID))
 		}
-		klog.V(2).InfoS("freeCPUsInUncorecache  : ", "freeCPUsInUncorecache", freeCPUsInUncorecache)
+		klog.V(2).InfoS("LLC: free cores adjusted", "freeCPUsInUncorecache", freeCPUsInUncorecache)
 		if a.numCPUsNeeded == freeCPUsInUncorecache.Size() {
-			klog.V(4).InfoS("takePartialUncore: claiming cores from Uncorecache ID", "uncore", uncore)
+			klog.V(2).InfoS("LLC: takePartialUncore: claiming cores", "uncore", uncore, "amount", freeCPUsInUncorecache)
 			a.take(freeCPUsInUncorecache)
 			part += 1
 		}
