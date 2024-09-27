@@ -162,7 +162,7 @@ func (d CPUDetails) CoresNeededInUnCoreCache(numCoresNeeded int, ids ...int) cpu
 		// return the full list
 		coresNeeded = coreIDs
 	}
-	klog.V(2).InfoS("Available coreIDs : ", "coresNeeded", coresNeeded)
+	klog.V(2).InfoS("LLC: Available coreIDs", "numCoresNeeded", numCoresNeeded, "coresNeeded", coresNeeded, "ids", ids)
 	return cpuset.New(coresNeeded...)
 }
 
@@ -177,7 +177,9 @@ func (d CPUDetails) CPUsInUnCoreCaches(ids ...int) cpuset.CPUSet {
 			}
 		}
 	}
-	return cpuset.New(cpuIDs...)
+	cs := cpuset.New(cpuIDs...)
+	klog.V(2).InfoS("LLC: cpus in uncore caches", "ids", ids, "cpuIDs", cs.String())
+	return cs
 }
 
 // NUMANodes returns all of the NUMANode IDs associated with the CPUs in this
