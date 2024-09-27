@@ -439,7 +439,7 @@ func (a *cpuAccumulator) takeUnCoreCache() (int, int) {
 	full := 0
 
 	klog.V(2).InfoS("LLC: takeUnCoreCache start")
-	defer klog.V(2).InfoS("LLC: takeUnCoreCache done", "part", part, "full", full)
+	defer klog.V(2).InfoS("LLC: takeUnCoreCache done")
 
 	for _, uncore := range a.allUnCoreCache() {
 		numCoresNeeded := a.numCPUsNeeded / a.topo.CPUsPerCore() // this is another new change
@@ -628,6 +628,8 @@ func takeByTopologyUnCoreCachePacked(topo *topology.CPUTopology, availableCPUs c
 	// 2. Acquire partial uncorecache, if there are enough CPUs available to satisfy the container requirement
 	//    Acquire the full uncorecache, if available and the container requires at least all the CPUs in the uncorecache grouping
 	part, full := acc.numaOrSocketsFirst.takeThirdLevel()
+	klog.InfoS("LLC takeThirdLevel done", "partialUncores", part, "fullUncores", full)
+
 	if acc.isSatisfied() {
 		if part == 0 && full > 0 {
 			metrics.ContainerAlignedComputeResources.WithLabelValues(metrics.AlignedL3CacheGroup).Inc()
