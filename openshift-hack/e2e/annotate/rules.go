@@ -243,7 +243,7 @@ var (
 			`\[sig-storage\] Flexvolumes should be mountable`,
 			`\[sig-storage\] Detaching volumes should not work when mount is in progress`,
 
-			// We are using openshift-sdn to conceal metadata
+			// We are using ovn-kubernetes to conceal metadata
 			`\[sig-auth\] Metadata Concealment should run a check-metadata-concealment job to completion`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
@@ -285,17 +285,6 @@ var (
 			// not run, assigned to arch as catch-all
 			`\[Feature:GKELocalSSD\]`,
 			`\[Feature:GKENodePool\]`,
-		},
-		// Tests that don't pass under openshift-sdn.
-		// These are skipped explicitly by openshift-hack/test-kubernetes-e2e.sh,
-		// but will also be skipped by openshift-tests in jobs that use openshift-sdn.
-		"[Skipped:Network/OpenShiftSDN]": {
-			`NetworkPolicy.*IPBlock`,    // feature is not supported by openshift-sdn
-			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
-			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
-
-			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
-			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
 		},
 
 		// These tests are skipped when openshift-tests needs to use a proxy to reach the
@@ -346,10 +335,6 @@ var (
 			`\[Feature:StorageProvider\]`,
 		},
 
-		// tests that don't pass under openshift-sdn multitenant mode
-		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
-			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
 			// ovn-kubernetes does not support named ports
