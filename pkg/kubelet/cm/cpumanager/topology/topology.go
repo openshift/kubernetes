@@ -178,7 +178,7 @@ func (d CPUDetails) CPUsInUnCoreCaches(ids ...int) cpuset.CPUSet {
 		}
 	}
 	cs := cpuset.New(cpuIDs...)
-	klog.V(2).InfoS("LLC: cpus in uncore caches", "ids", ids, "cpuIDs", cs.String())
+	klog.V(5).InfoS("LLC: cpus in uncore caches", "ids", ids, "cpuIDs", cs.String())
 	return cs
 }
 
