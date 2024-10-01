@@ -157,7 +157,7 @@ func NewManager(cpuPolicyName string, cpuPolicyOptions map[string]string, reconc
 	var policy Policy
 	var err error
 
-	klog.InfoS("LLC alignment available", "version", "2024093001")
+	klog.InfoS("LLC alignment available", "version", "2024100101")
 
 	switch policyName(cpuPolicyName) {
 

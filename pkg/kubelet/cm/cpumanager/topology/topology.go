@@ -337,7 +337,7 @@ func Discover(machineInfo *cadvisorapi.MachineInfo) (*CPUTopology, error) {
 						CoreID:        coreID,
 						SocketID:      core.SocketID,
 						NUMANodeID:    node.Id,
-						UnCoreCacheID: core.UncoreCaches[0].Id,
+						UnCoreCacheID: getUncoreCacheID(core.UncoreCaches),
 					}
 				}
 			} else {
@@ -355,6 +355,19 @@ func Discover(machineInfo *cadvisorapi.MachineInfo) (*CPUTopology, error) {
 		NumUnCoreCache: CPUDetails.UncoreCaches().Size(),
 		CPUDetails:     CPUDetails,
 	}, nil
+}
+
+const (
+	NullUncoreCacheID int = 65535 // TODO: "high enough" value to signal "impossible"
+)
+
+func getUncoreCacheID(uncoreCaches []cadvisorapi.Cache) int {
+	if len(uncoreCaches) < 1 {
+		return NullUncoreCacheID
+	}
+	// Even though cadvisor API returns a slice, we only expect either 0 or 1 uncore caches,
+	// so everything past first entry should be discarded
+	return uncoreCaches[0].Id
 }
 
 // getUniqueCoreID computes coreId as the lowest cpuID

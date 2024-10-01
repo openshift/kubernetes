@@ -1379,3 +1379,53 @@ func TestCPUNUMANodeID(t *testing.T) {
 		})
 	}
 }
+
+func Test_getUncoreCacheID(t *testing.T) {
+	tests := []struct {
+		name         string
+		uncoreCaches []cadvisorapi.Cache
+		expectedID   int
+	}{
+		{
+			name:       "nil",
+			expectedID: NullUncoreCacheID,
+		},
+		{
+			name:         "empty",
+			uncoreCaches: []cadvisorapi.Cache{},
+			expectedID:   NullUncoreCacheID,
+		},
+		{
+			name: "one-entry",
+			uncoreCaches: []cadvisorapi.Cache{
+				{
+					Id: 42,
+				},
+			},
+			expectedID: 42,
+		},
+		{
+			name: "multi-entries",
+			uncoreCaches: []cadvisorapi.Cache{
+				{
+					Id: 1,
+				},
+				{
+					Id: 12,
+				},
+				{
+					Id: 42,
+				},
+			},
+			expectedID: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getUncoreCacheID(tt.uncoreCaches)
+			if got != tt.expectedID {
+				t.Errorf("getUncoreCacheID = %v expected %v", got, tt.expectedID)
+			}
+		})
+	}
+}
