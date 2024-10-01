@@ -75,9 +75,6 @@ const (
 	// controllerName is a unique value used with LabelManagedBy to indicated
 	// the component managing an EndpointSlice.
 	controllerName = "endpointslice-controller.k8s.io"
-
-	// topologyQueueItemKey is the key for all items in the topologyQueue.
-	topologyQueueItemKey = "topologyQueueItemKey"
 )
 
 // NewController creates and initializes a new Controller
@@ -102,13 +99,12 @@ func NewController(ctx context.Context, podInformer coreinformers.PodInformer,
 		// such as an update to a Service or Deployment. A more significant
 		// rate limit back off here helps ensure that the Controller does not
 		// overwhelm the API Server.
-		serviceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.NewMaxOfRateLimiter(
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.NewMaxOfRateLimiter(
 			workqueue.NewItemExponentialFailureRateLimiter(defaultSyncBackOff, maxSyncBackOff),
 			// 10 qps, 100 bucket size. This is only for retry speed and its
 			// only the overall factor (not per item).
 			&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
 		), "endpoint_slice"),
-		topologyQueue:    workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "endpoint_slice_topology"),
 		workerLoopPeriod: time.Second,
 	}
 
@@ -157,14 +153,14 @@ func NewController(ctx context.Context, podInformer coreinformers.PodInformer,
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.TopologyAwareHints) {
 		nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc: func(_ interface{}) {
-				c.addNode()
+			AddFunc: func(obj interface{}) {
+				c.addNode(logger, obj)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				c.updateNode(oldObj, newObj)
+				c.updateNode(logger, oldObj, newObj)
 			},
-			DeleteFunc: func(_ interface{}) {
-				c.deleteNode()
+			DeleteFunc: func(obj interface{}) {
+				c.deleteNode(logger, obj)
 			},
 		})
 
@@ -235,11 +231,7 @@ type Controller struct {
 	// more often than services with few pods; it also would cause a
 	// service that's inserted multiple times to be processed more than
 	// necessary.
-	serviceQueue workqueue.RateLimitingInterface
-
-	// topologyQueue is used to trigger a topology cache update and checking node
-	// topology distribution.
-	topologyQueue workqueue.RateLimitingInterface
+	queue workqueue.RateLimitingInterface
 
 	// maxEndpointsPerSlice references the maximum number of endpoints that
 	// should be added to an EndpointSlice
@@ -267,8 +259,7 @@ func (c *Controller) Run(ctx context.Context, workers int) {
 	c.eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: c.client.CoreV1().Events("")})
 	defer c.eventBroadcaster.Shutdown()
 
-	defer c.serviceQueue.ShutDown()
-	defer c.topologyQueue.ShutDown()
+	defer c.queue.ShutDown()
 
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting endpoint slice controller")
@@ -278,31 +269,29 @@ func (c *Controller) Run(ctx context.Context, workers int) {
 		return
 	}
 
-	logger.V(2).Info("Starting service queue worker threads", "total", workers)
+	logger.V(2).Info("Starting worker threads", "total", workers)
 	for i := 0; i < workers; i++ {
-		go wait.Until(func() { c.serviceQueueWorker(logger) }, c.workerLoopPeriod, ctx.Done())
+		go wait.Until(func() { c.worker(logger) }, c.workerLoopPeriod, ctx.Done())
 	}
-	logger.V(2).Info("Starting topology queue worker threads", "total", 1)
-	go wait.Until(func() { c.topologyQueueWorker(logger) }, c.workerLoopPeriod, ctx.Done())
 
 	<-ctx.Done()
 }
 
-// serviceQueueWorker runs a worker thread that just dequeues items, processes
-// them, and marks them done. You may run as many of these in parallel as you
-// wish; the workqueue guarantees that they will not end up processing the same
-// service at the same time
-func (c *Controller) serviceQueueWorker(logger klog.Logger) {
-	for c.processNextServiceWorkItem(logger) {
+// worker runs a worker thread that just dequeues items, processes them, and
+// marks them done. You may run as many of these in parallel as you wish; the
+// workqueue guarantees that they will not end up processing the same service
+// at the same time
+func (c *Controller) worker(logger klog.Logger) {
+	for c.processNextWorkItem(logger) {
 	}
 }
 
-func (c *Controller) processNextServiceWorkItem(logger klog.Logger) bool {
-	cKey, quit := c.serviceQueue.Get()
+func (c *Controller) processNextWorkItem(logger klog.Logger) bool {
+	cKey, quit := c.queue.Get()
 	if quit {
 		return false
 	}
-	defer c.serviceQueue.Done(cKey)
+	defer c.queue.Done(cKey)
 
 	err := c.syncService(logger, cKey.(string))
 	c.handleErr(logger, err, cKey)
@@ -310,37 +299,22 @@ func (c *Controller) processNextServiceWorkItem(logger klog.Logger) bool {
 	return true
 }
 
-func (c *Controller) topologyQueueWorker(logger klog.Logger) {
-	for c.processNextTopologyWorkItem(logger) {
-	}
-}
-
-func (c *Controller) processNextTopologyWorkItem(logger klog.Logger) bool {
-	key, quit := c.topologyQueue.Get()
-	if quit {
-		return false
-	}
-	defer c.topologyQueue.Done(key)
-	c.checkNodeTopologyDistribution(logger)
-	return true
-}
-
 func (c *Controller) handleErr(logger klog.Logger, err error, key interface{}) {
 	trackSync(err)
 
 	if err == nil {
-		c.serviceQueue.Forget(key)
+		c.queue.Forget(key)
 		return
 	}
 
-	if c.serviceQueue.NumRequeues(key) < maxRetries {
+	if c.queue.NumRequeues(key) < maxRetries {
 		logger.Info("Error syncing endpoint slices for service, retrying", "key", key, "err", err)
-		c.serviceQueue.AddRateLimited(key)
+		c.queue.AddRateLimited(key)
 		return
 	}
 
 	logger.Info("Retry budget exceeded, dropping service out of the queue", "key", key, "err", err)
-	c.serviceQueue.Forget(key)
+	c.queue.Forget(key)
 	utilruntime.HandleError(err)
 }
 
@@ -437,7 +411,7 @@ func (c *Controller) onServiceUpdate(obj interface{}) {
 		return
 	}
 
-	c.serviceQueue.Add(key)
+	c.queue.Add(key)
 }
 
 // onServiceDelete removes the Service Selector from the cache and queues the Service for processing.
@@ -448,7 +422,7 @@ func (c *Controller) onServiceDelete(obj interface{}) {
 		return
 	}
 
-	c.serviceQueue.Add(key)
+	c.queue.Add(key)
 }
 
 // onEndpointSliceAdd queues a sync for the relevant Service for a sync if the
@@ -521,7 +495,7 @@ func (c *Controller) queueServiceForEndpointSlice(endpointSlice *discovery.Endpo
 	if c.endpointUpdatesBatchPeriod > delay {
 		delay = c.endpointUpdatesBatchPeriod
 	}
-	c.serviceQueue.AddAfter(key, delay)
+	c.queue.AddAfter(key, delay)
 }
 
 func (c *Controller) addPod(obj interface{}) {
@@ -532,14 +506,14 @@ func (c *Controller) addPod(obj interface{}) {
 		return
 	}
 	for key := range services {
-		c.serviceQueue.AddAfter(key, c.endpointUpdatesBatchPeriod)
+		c.queue.AddAfter(key, c.endpointUpdatesBatchPeriod)
 	}
 }
 
 func (c *Controller) updatePod(old, cur interface{}) {
 	services := endpointsliceutil.GetServicesToUpdateOnPodChange(c.serviceLister, old, cur)
 	for key := range services {
-		c.serviceQueue.AddAfter(key, c.endpointUpdatesBatchPeriod)
+		c.queue.AddAfter(key, c.endpointUpdatesBatchPeriod)
 	}
 }
 
@@ -552,11 +526,11 @@ func (c *Controller) deletePod(obj interface{}) {
 	}
 }
 
-func (c *Controller) addNode() {
-	c.topologyQueue.Add(topologyQueueItemKey)
+func (c *Controller) addNode(logger klog.Logger, obj interface{}) {
+	c.checkNodeTopologyDistribution(logger)
 }
 
-func (c *Controller) updateNode(old, cur interface{}) {
+func (c *Controller) updateNode(logger klog.Logger, old, cur interface{}) {
 	oldNode := old.(*v1.Node)
 	curNode := cur.(*v1.Node)
 
@@ -564,12 +538,12 @@ func (c *Controller) updateNode(old, cur interface{}) {
 	// The topology cache should be updated in this case.
 	if isNodeReady(oldNode) != isNodeReady(curNode) ||
 		oldNode.Labels[v1.LabelTopologyZone] != curNode.Labels[v1.LabelTopologyZone] {
-		c.topologyQueue.Add(topologyQueueItemKey)
+		c.checkNodeTopologyDistribution(logger)
 	}
 }
 
-func (c *Controller) deleteNode() {
-	c.topologyQueue.Add(topologyQueueItemKey)
+func (c *Controller) deleteNode(logger klog.Logger, obj interface{}) {
+	c.checkNodeTopologyDistribution(logger)
 }
 
 // checkNodeTopologyDistribution updates Nodes in the topology cache and then
@@ -587,7 +561,7 @@ func (c *Controller) checkNodeTopologyDistribution(logger klog.Logger) {
 	serviceKeys := c.topologyCache.GetOverloadedServices()
 	for _, serviceKey := range serviceKeys {
 		logger.V(2).Info("Queuing Service after Node change due to overloading", "key", serviceKey)
-		c.serviceQueue.Add(serviceKey)
+		c.queue.Add(serviceKey)
 	}
 }
 

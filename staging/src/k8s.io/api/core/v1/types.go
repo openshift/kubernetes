@@ -4340,15 +4340,13 @@ type PodDNSConfigOption struct {
 // PodIP represents a single IP address allocated to the pod.
 type PodIP struct {
 	// IP is the IP address assigned to the pod
-	// +required
-	IP string `json:"ip" protobuf:"bytes,1,opt,name=ip"`
+	IP string `json:"ip,omitempty" protobuf:"bytes,1,opt,name=ip"`
 }
 
 // HostIP represents a single IP address allocated to the host.
 type HostIP struct {
 	// IP is the IP address assigned to the host
-	// +required
-	IP string `json:"ip" protobuf:"bytes,1,opt,name=ip"`
+	IP string `json:"ip,omitempty" protobuf:"bytes,1,opt,name=ip"`
 }
 
 // EphemeralContainerCommon is a copy of all fields in Container to be inlined in

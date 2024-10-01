@@ -75,9 +75,11 @@ type EndpointSliceConfig struct {
 
 // NewEndpointSliceConfig creates a new EndpointSliceConfig.
 func NewEndpointSliceConfig(endpointSliceInformer discoveryv1informers.EndpointSliceInformer, resyncPeriod time.Duration) *EndpointSliceConfig {
-	result := &EndpointSliceConfig{}
+	result := &EndpointSliceConfig{
+		listerSynced: endpointSliceInformer.Informer().HasSynced,
+	}
 
-	handlerRegistration, _ := endpointSliceInformer.Informer().AddEventHandlerWithResyncPeriod(
+	_, _ = endpointSliceInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    result.handleAddEndpointSlice,
 			UpdateFunc: result.handleUpdateEndpointSlice,
@@ -85,8 +87,6 @@ func NewEndpointSliceConfig(endpointSliceInformer discoveryv1informers.EndpointS
 		},
 		resyncPeriod,
 	)
-
-	result.listerSynced = handlerRegistration.HasSynced
 
 	return result
 }
@@ -166,9 +166,11 @@ type ServiceConfig struct {
 
 // NewServiceConfig creates a new ServiceConfig.
 func NewServiceConfig(serviceInformer v1informers.ServiceInformer, resyncPeriod time.Duration) *ServiceConfig {
-	result := &ServiceConfig{}
+	result := &ServiceConfig{
+		listerSynced: serviceInformer.Informer().HasSynced,
+	}
 
-	handlerRegistration, _ := serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
+	_, _ = serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    result.handleAddService,
 			UpdateFunc: result.handleUpdateService,
@@ -176,8 +178,6 @@ func NewServiceConfig(serviceInformer v1informers.ServiceInformer, resyncPeriod 
 		},
 		resyncPeriod,
 	)
-
-	result.listerSynced = handlerRegistration.HasSynced
 
 	return result
 }
