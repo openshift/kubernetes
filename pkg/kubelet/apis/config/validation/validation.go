@@ -205,24 +205,64 @@ func ValidateKubeletConfiguration(kc *kubeletconfig.KubeletConfiguration, featur
 		allErrors = append(allErrors, fmt.Errorf("invalid configuration: memorySwap.swapBehavior cannot be set when NodeSwap feature flag is disabled"))
 	}
 
+	reservedKeys := map[string]bool{
+		kubetypes.SystemReservedEnforcementKey:             false,
+		kubetypes.SystemReservedCompressibleEnforcementKey: false,
+		kubetypes.KubeReservedEnforcementKey:               false,
+		kubetypes.KubeReservedCompressibleEnforcementKey:   false,
+	}
+
+	for _, val := range kc.EnforceNodeAllocatable {
+		switch val {
+		case kubetypes.SystemReservedEnforcementKey:
+			if reservedKeys[kubetypes.SystemReservedCompressibleEnforcementKey] {
+				allErrors = append(allErrors, fmt.Errorf("invalid configuration: both %q and %q cannot be specified together in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.SystemReservedEnforcementKey, kubetypes.SystemReservedCompressibleEnforcementKey))
+			}
+			reservedKeys[val] = true
+		case kubetypes.SystemReservedCompressibleEnforcementKey:
+			if reservedKeys[kubetypes.SystemReservedEnforcementKey] {
+				allErrors = append(allErrors, fmt.Errorf("invalid configuration: both %q and %q cannot be specified together in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.SystemReservedEnforcementKey, kubetypes.SystemReservedCompressibleEnforcementKey))
+			}
+			reservedKeys[val] = true
+
+		case kubetypes.KubeReservedEnforcementKey:
+			if reservedKeys[kubetypes.KubeReservedCompressibleEnforcementKey] {
+				allErrors = append(allErrors, fmt.Errorf("invalid configuration: both %q and %q cannot be specified together in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.KubeReservedEnforcementKey, kubetypes.KubeReservedCompressibleEnforcementKey))
+			}
+			reservedKeys[val] = true
+
+		case kubetypes.KubeReservedCompressibleEnforcementKey:
+			if reservedKeys[kubetypes.KubeReservedEnforcementKey] {
+				allErrors = append(allErrors, fmt.Errorf("invalid configuration: both %q and %q cannot be specified together in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.KubeReservedEnforcementKey, kubetypes.KubeReservedCompressibleEnforcementKey))
+			}
+			reservedKeys[val] = true
+		}
+	}
+
 	for _, val := range kc.EnforceNodeAllocatable {
 		switch val {
 		case kubetypes.NodeAllocatableEnforcementKey:
-		case kubetypes.SystemReservedEnforcementKey:
+		case kubetypes.SystemReservedEnforcementKey, kubetypes.SystemReservedCompressibleEnforcementKey:
 			if kc.SystemReservedCgroup == "" {
-				allErrors = append(allErrors, fmt.Errorf("invalid configuration: systemReservedCgroup (--system-reserved-cgroup) must be specified when %q contained in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.SystemReservedEnforcementKey))
+				allErrors = append(allErrors, fmt.Errorf("invalid configuration: systemReservedCgroup (--system-reserved-cgroup) must be specified when %q or %q contained in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.SystemReservedEnforcementKey, kubetypes.SystemReservedCompressibleEnforcementKey))
 			}
-		case kubetypes.KubeReservedEnforcementKey:
+		case kubetypes.KubeReservedEnforcementKey, kubetypes.KubeReservedCompressibleEnforcementKey:
 			if kc.KubeReservedCgroup == "" {
-				allErrors = append(allErrors, fmt.Errorf("invalid configuration: kubeReservedCgroup (--kube-reserved-cgroup) must be specified when %q contained in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.KubeReservedEnforcementKey))
+				allErrors = append(allErrors, fmt.Errorf("invalid configuration: kubeReservedCgroup (--kube-reserved-cgroup) must be specified when %q or %q contained in enforceNodeAllocatable (--enforce-node-allocatable)", kubetypes.KubeReservedEnforcementKey, kubetypes.KubeReservedCompressibleEnforcementKey))
 			}
 		case kubetypes.NodeAllocatableNoneKey:
 			if len(kc.EnforceNodeAllocatable) > 1 {
 				allErrors = append(allErrors, fmt.Errorf("invalid configuration: enforceNodeAllocatable (--enforce-node-allocatable) may not contain additional enforcements when %q is specified", kubetypes.NodeAllocatableNoneKey))
 			}
 		default:
-			allErrors = append(allErrors, fmt.Errorf("invalid configuration: option %q specified for enforceNodeAllocatable (--enforce-node-allocatable). Valid options are %q, %q, %q, or %q",
-				val, kubetypes.NodeAllocatableEnforcementKey, kubetypes.SystemReservedEnforcementKey, kubetypes.KubeReservedEnforcementKey, kubetypes.NodeAllocatableNoneKey))
+			allErrors = append(allErrors, fmt.Errorf("invalid configuration: option %q specified for enforceNodeAllocatable (--enforce-node-allocatable). Valid options are %q, %q, %q, %q, %q or %q",
+				val, kubetypes.NodeAllocatableEnforcementKey, kubetypes.SystemReservedEnforcementKey, kubetypes.SystemReservedCompressibleEnforcementKey,
+				kubetypes.KubeReservedEnforcementKey, kubetypes.KubeReservedCompressibleEnforcementKey, kubetypes.NodeAllocatableNoneKey))
+			continue
+		}
+
+		if !kc.CgroupsPerQOS {
+			allErrors = append(allErrors, fmt.Errorf("invalid configuration: cgroupsPerQOS (--cgroups-per-qos) must be set to true when %q contained in enforceNodeAllocatable (--enforce-node-allocatable)", val))
 		}
 	}
 	switch kc.HairpinMode {
