@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/browsersafe"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/minimumkubeletversion"
+	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	authzconfig "k8s.io/apiserver/pkg/apis/apiserver"
@@ -177,6 +179,8 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
 		}
 	}
+	// if minKubeletVersion defined
+	authorizers = append(authorizers, minimumkubeletversion.NewMinimumKubeletVersion(nodeidentifier.NewDefaultNodeIdentifier(), r.initialConfig.VersionedInformerFactory.Core().V1().Nodes()))
 
 	return union.New(authorizers...), union.NewRuleResolvers(ruleResolvers...), nil
 }
