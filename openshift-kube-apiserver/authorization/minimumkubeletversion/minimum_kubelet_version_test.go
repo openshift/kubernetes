@@ -19,6 +19,7 @@ func TestAuthorize(t *testing.T) {
 
 	testCases := []struct {
 		name            string
+		minVersion      string
 		attributes      kauthorizer.AttributesRecord
 		expectedAllowed kauthorizer.Decision
 		expectedErr     string
@@ -26,7 +27,15 @@ func TestAuthorize(t *testing.T) {
 		node            *v1.Node
 	}{
 		{
-			name: "no user",
+			name:            "no version",
+			minVersion:      "",
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
+			expectedErr:     "",
+			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "name"}},
+		},
+		{
+			name:       "no user",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -36,7 +45,8 @@ func TestAuthorize(t *testing.T) {
 			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "name"}},
 		},
 		{
-			name: "user not a node",
+			name:       "user not a node",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -46,7 +56,8 @@ func TestAuthorize(t *testing.T) {
 			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node0"}},
 		},
 		{
-			name: "skips if subjectaccessreviews",
+			name:       "skips if subjectaccessreviews",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -57,7 +68,8 @@ func TestAuthorize(t *testing.T) {
 			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node0"}},
 		},
 		{
-			name: "skips if get node",
+			name:       "skips if get node",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -69,7 +81,8 @@ func TestAuthorize(t *testing.T) {
 			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node0"}},
 		},
 		{
-			name: "skips if update nodes",
+			name:       "skips if update nodes",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -81,7 +94,8 @@ func TestAuthorize(t *testing.T) {
 			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node0"}},
 		},
 		{
-			name: "fail if update node not found",
+			name:       "fail if update node not found",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -92,7 +106,8 @@ func TestAuthorize(t *testing.T) {
 			node:            &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
 		},
 		{
-			name: "skip if bogus kubelet version",
+			name:       "skip if bogus kubelet version",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -108,7 +123,8 @@ func TestAuthorize(t *testing.T) {
 				}},
 		},
 		{
-			name: "deny if too low version",
+			name:       "deny if too low version",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -124,7 +140,8 @@ func TestAuthorize(t *testing.T) {
 				}},
 		},
 		{
-			name: "accept if high enough version",
+			name:       "accept if high enough version",
+			minVersion: "1.30.0",
 			attributes: kauthorizer.AttributesRecord{
 				ResourceRequest: true,
 				Namespace:       "ns",
@@ -142,6 +159,9 @@ func TestAuthorize(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.minVersion != "" {
+				SetMinimumKubeletVersion(tc.minVersion)
+			}
 			identifier := nodeidentifier.NewDefaultNodeIdentifier()
 
 			nodeStore := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})

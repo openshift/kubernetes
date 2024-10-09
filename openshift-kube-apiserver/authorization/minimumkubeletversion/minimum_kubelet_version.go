@@ -13,7 +13,14 @@ import (
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 )
 
-type minimumKubeletVersion struct {
+var minimumKubeletVersion *semver.Version
+
+func SetMinimumKubeletVersion(version string) {
+	v := semver.MustParse(version)
+	minimumKubeletVersion = &v
+}
+
+type minimumKubeletVersionAuth struct {
 	nodeIdentifier nodeidentifier.NodeIdentifier
 	nodeLister     listersv1.NodeLister
 }
@@ -22,13 +29,17 @@ func NewMinimumKubeletVersion(nodeIdentifier nodeidentifier.NodeIdentifier,
 	nodeLister listersv1.NodeLister,
 ) authorizer.Authorizer {
 
-	return &minimumKubeletVersion{
+	return &minimumKubeletVersionAuth{
 		nodeIdentifier: nodeIdentifier,
 		nodeLister:     nodeLister,
 	}
 }
 
-func (m *minimumKubeletVersion) Authorize(ctx context.Context, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
+func (m *minimumKubeletVersionAuth) Authorize(ctx context.Context, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
+	if minimumKubeletVersion == nil {
+		return authorizer.DecisionNoOpinion, "", nil
+	}
+
 	user := attrs.GetUser()
 	if user == nil {
 		return authorizer.DecisionNoOpinion, "", fmt.Errorf("user missing from context")
@@ -71,12 +82,10 @@ func (m *minimumKubeletVersion) Authorize(ctx context.Context, attrs authorizer.
 
 	version.Pre = nil
 	version.Build = nil
-	// TODO(haircommander: get this value legitimately
-	minVersion := semver.MustParse("1.30.0")
 
-	if minVersion.GT(version) {
+	if minimumKubeletVersion.GT(version) {
 		// Specifically deny here because the NodeAuthorizer may have already approved
-		return authorizer.DecisionDeny, fmt.Sprintf("kubelet version of node %s is %v, which is lower than minimumKubeletVersion of %v", nodeName, version, minVersion), nil
+		return authorizer.DecisionDeny, fmt.Sprintf("kubelet version of node %s is %v, which is lower than minimumKubeletVersion of %v", nodeName, version, *minimumKubeletVersion), nil
 	}
 
 	return authorizer.DecisionNoOpinion, "", nil
