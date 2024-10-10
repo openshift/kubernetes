@@ -275,6 +275,7 @@ func (p *staticPolicy) GetAvailableCPUs(s state.State) cpuset.CPUSet {
 }
 
 func (p *staticPolicy) GetAvailablePhysicalCPUs(s state.State) cpuset.CPUSet {
+	klog.InfoS("staticPolicy: GetAvailablePhysicalCPUs", "GetDefaultCPUSet", s.GetDefaultCPUSet(), "p.reservedPhysicalCPUs", p.reservedPhysicalCPUs)
 	return s.GetDefaultCPUSet().Difference(p.reservedPhysicalCPUs)
 }
 
@@ -336,6 +337,7 @@ func (p *staticPolicy) Allocate(s state.State, pod *v1.Pod, container *v1.Contai
 			// Just like the behaviour in case of static policy, takeByTopology will try to first allocate CPUs from the same socket
 			// and only in case the request cannot be sattisfied on a single socket, CPU allocation is done for a workload to occupy all
 			// CPUs on a physical core. Allocation of individual threads would never have to occur.
+			klog.InfoS("Static policy: Allocate SMTAlignment error because of numCPUs % CPUsPerCore", "pod", klog.KObj(pod), "containerName", container.Name, "numCPUs", numCPUs, "CPUsPerCore", CPUsPerCore)
 			return SMTAlignmentError{
 				RequestedCPUs: numCPUs,
 				CpusPerCore:   CPUsPerCore,
@@ -349,6 +351,7 @@ func (p *staticPolicy) Allocate(s state.State, pod *v1.Pod, container *v1.Contai
 		// all the core siblings of the reserved CPUs as unavailable when computing the free CPUs, before to start the actual allocation.
 		// This way, by construction all possible CPUs allocation whose number is multiple of the SMT level are now correct again.
 		if numCPUs > availablePhysicalCPUs {
+			klog.InfoS("Static policy: Allocate SMTAlignment error because of numCPUs > availablePhysicalCPUs", "pod", klog.KObj(pod), "containerName", container.Name, "numCPUs", numCPUs, "availablePhysicalCPUs", availablePhysicalCPUs)
 			return SMTAlignmentError{
 				RequestedCPUs:         numCPUs,
 				CpusPerCore:           CPUsPerCore,

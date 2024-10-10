@@ -2582,7 +2582,7 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 		// the pod worker is invoked it will also avoid setting up the pod, so
 		// we simply avoid doing any work.
 		// We also do not try to admit the pod that is already in terminated state.
-		if !kl.podWorkers.IsPodTerminationRequested(pod.UID) && !podutil.IsPodPhaseTerminal(pod.Status.Phase) {
+		if !kl.podWorkers.IsPodTerminationRequested(pod.UID) {
 			// We failed pods that we rejected, so activePods include all admitted
 			// pods that are alive.
 			activePods := kl.filterOutInactivePods(existingPods)
