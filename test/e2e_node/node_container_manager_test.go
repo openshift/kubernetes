@@ -94,24 +94,15 @@ var _ = SIGDescribe("Node Container Manager", framework.WithSerial(), func() {
 			ginkgo.DeferCleanup(func(ctx context.Context) {
 				if oldCfg != nil {
 					// Update the Kubelet configuration.
-					ginkgo.By("Stopping the kubelet")
-					startKubelet := stopKubelet()
-
-					// wait until the kubelet health check will fail
-					gomega.Eventually(ctx, func() bool {
-						return kubeletHealthCheck(kubeletHealthCheckURL)
-					}).WithTimeout(time.Minute).WithPolling(time.Second).Should(gomega.BeFalseBecause("expected kubelet health check to be failed"))
-					ginkgo.By("Stopped the kubelet")
-
 					framework.ExpectNoError(e2enodekubelet.WriteKubeletConfigFile(oldCfg))
 
-					ginkgo.By("Starting the kubelet")
-					startKubelet()
+					ginkgo.By("Restarting the kubelet")
+					restartKubelet(true)
 
 					// wait until the kubelet health check will succeed
 					gomega.Eventually(ctx, func(ctx context.Context) bool {
 						return kubeletHealthCheck(kubeletHealthCheckURL)
-					}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(gomega.BeTrueBecause("expected kubelet to be in healthy state"))
+					}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(gomega.BeTrue())
 					ginkgo.By("Started the kubelet")
 				}
 			})
@@ -122,29 +113,20 @@ var _ = SIGDescribe("Node Container Manager", framework.WithSerial(), func() {
 			newCfg.CgroupDriver = "systemd"
 
 			// Update the Kubelet configuration.
-			ginkgo.By("Stopping the kubelet")
-			startKubelet := stopKubelet()
-
-			// wait until the kubelet health check will fail
-			gomega.Eventually(ctx, func() bool {
-				return kubeletHealthCheck(kubeletHealthCheckURL)
-			}).WithTimeout(time.Minute).WithPolling(time.Second).Should(gomega.BeFalseBecause("expected kubelet health check to be failed"))
-			ginkgo.By("Stopped the kubelet")
-
 			framework.ExpectNoError(e2enodekubelet.WriteKubeletConfigFile(newCfg))
 
-			ginkgo.By("Starting the kubelet")
-			startKubelet()
+			ginkgo.By("Restarting the kubelet")
+			restartKubelet(true)
 
 			// wait until the kubelet health check will succeed
-			gomega.Eventually(ctx, func() bool {
-				return getNodeReadyStatus(ctx, f) && kubeletHealthCheck(kubeletHealthCheckURL)
-			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(gomega.BeTrueBecause("expected kubelet to be in healthy state"))
+			gomega.Eventually(ctx, func(ctx context.Context) bool {
+				return kubeletHealthCheck(kubeletHealthCheckURL)
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(gomega.BeTrue())
 			ginkgo.By("Started the kubelet")
 
 			gomega.Consistently(ctx, func(ctx context.Context) bool {
 				return getNodeReadyStatus(ctx, f) && kubeletHealthCheck(kubeletHealthCheckURL)
-			}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(gomega.BeTrueBecause("node keeps reporting ready status"))
+			}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(gomega.BeTrue())
 		})
 	})
 })
