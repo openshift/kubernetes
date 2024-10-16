@@ -560,6 +560,9 @@ func (a *cpuAccumulator) iterateCombinations(n []int, k int, f func([]int) LoopC
 }
 
 func takeByTopologyNUMAPacked(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int) (cpuset.CPUSet, error) {
+	klog.V(2).InfoS("takeByTopologyNUMAPacked start")
+	defer klog.V(2).InfoS("takeByTopologyNUMAPacked done")
+
 	acc := newCPUAccumulator(topo, availableCPUs, numCPUs)
 	if acc.isSatisfied() {
 		return acc.result, nil
@@ -603,6 +606,9 @@ func takeByTopologyNUMAPacked(topo *topology.CPUTopology, availableCPUs cpuset.C
 // takeByTopologyUnCoreCachePacked uses the "packed" sorting strategy similar to takeByTopologyNUMAPacked.
 // It includes an additional level of sorting by uncorecache
 func takeByTopologyUnCoreCachePacked(topo *topology.CPUTopology, availableCPUs cpuset.CPUSet, numCPUs int) (cpuset.CPUSet, error) {
+	klog.V(2).InfoS("LLC: takeByTopologyUnCoreCachePacked start")
+	defer klog.V(2).InfoS("LLC: takeByTopologyUnCoreCachePacked done")
+
 	acc := newCPUAccumulator(topo, availableCPUs, numCPUs)
 	if acc.isSatisfied() {
 		return acc.result, nil
@@ -628,7 +634,7 @@ func takeByTopologyUnCoreCachePacked(topo *topology.CPUTopology, availableCPUs c
 	// 2. Acquire partial uncorecache, if there are enough CPUs available to satisfy the container requirement
 	//    Acquire the full uncorecache, if available and the container requires at least all the CPUs in the uncorecache grouping
 	part, full := acc.numaOrSocketsFirst.takeThirdLevel()
-	klog.InfoS("LLC takeThirdLevel done", "partialUncores", part, "fullUncores", full)
+	klog.V(2).InfoS("LLC takeThirdLevel done", "partialUncores", part, "fullUncores", full)
 
 	if acc.isSatisfied() {
 		if part == 0 && full > 0 {
