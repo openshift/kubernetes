@@ -506,9 +506,9 @@ func (p *staticPolicy) takeByTopology(availableCPUs cpuset.CPUSet, numCPUs int) 
 		return takeByTopologyNUMADistributed(p.topology, availableCPUs, numCPUs, cpuGroupSize)
 	}
 
-	if p.options.PreferAlignByUnCoreCacheOption {
+	if p.options.PreferAlignByUncoreCacheOption {
 
-		return takeByTopologyUnCoreCachePacked(p.topology, availableCPUs, numCPUs, cpuSortingStrategy)
+		return takeByTopologyUncoreCachePacked(p.topology, availableCPUs, numCPUs, cpuSortingStrategy)
 
 	}
 	return takeByTopologyNUMAPacked(p.topology, availableCPUs, numCPUs, cpuSortingStrategy)
