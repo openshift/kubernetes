@@ -862,6 +862,13 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 			"pod", klog.KObj(pod),
 			"oldPodUID", uid,
 			"podUID", translatedUID)
+
+		err = m.kubeClient.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+		if err != nil {
+			klog.InfoS("Failed to delete status for pod", "pod", klog.KObj(pod), "err", err)
+			return
+		}
+		klog.V(3).InfoS("Pod removed from etcd", "pod", klog.KObj(pod))
 		m.deletePodStatus(uid)
 		return
 	}
