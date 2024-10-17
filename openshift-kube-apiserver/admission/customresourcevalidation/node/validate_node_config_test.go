@@ -7,6 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	configv1 "github.com/openshift/api/config/v1"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func TestValidateConfigNodeForExtremeLatencyProfile(t *testing.T) {
@@ -62,6 +69,217 @@ func TestValidateConfigNodeForExtremeLatencyProfile(t *testing.T) {
 				assert.Equal(t, "spec.workerLatencyProfile", fieldErr.Field, "field name during for latency profile should be spec.workerLatencyProfile")
 				assert.Contains(t, fieldErr.Detail, testCase.fromProfile, "error message should contain %q", testCase.fromProfile)
 				assert.Contains(t, fieldErr.Detail, testCase.toProfile, "error message should contain %q", testCase.toProfile)
+			}
+		})
+	}
+}
+
+func TestValidateConfigNodeForMinimumKubeletVersion(t *testing.T) {
+	testCases := []struct {
+		name         string
+		version      string
+		shouldReject bool
+		nodes        []v1.Node
+		nodeListErr  error
+		errType      field.ErrorType
+		errMsg       string
+	}{
+		// no rejections
+		{
+			name:         "should not reject when minimum kubelet version is empty",
+			version:      "",
+			shouldReject: false,
+		},
+		{
+			name:         "should reject when list nodes fails",
+			version:      "1.30.0",
+			shouldReject: true,
+			nodeListErr:  fmt.Errorf("Failed to list nodes"),
+			errType:      field.ErrorTypeForbidden,
+			errMsg:       "Getting nodes to compare minimum version",
+		},
+		{
+			name:         "should reject when min kubelet version bogus",
+			version:      "bogus",
+			shouldReject: true,
+			nodes: []v1.Node{
+				{
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.30.0",
+						},
+					},
+				},
+			},
+			errType: field.ErrorTypeInvalid,
+			errMsg:  "Failed to parse submitted version bogus No Major.Minor.Patch elements found",
+		},
+		{
+			name:         "should reject when kubelet version is bogus",
+			version:      "1.30.0",
+			shouldReject: true,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "bogus",
+						},
+					},
+				},
+			},
+			errType: field.ErrorTypeInvalid,
+			errMsg:  "failed to parse node version bogus: No Major.Minor.Patch elements found",
+		},
+		{
+			name:         "should reject when kubelet version is too old",
+			version:      "1.30.0",
+			shouldReject: true,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.29.0",
+						},
+					},
+				},
+			},
+			errType: field.ErrorTypeInvalid,
+			errMsg:  "kubelet version of node node is 1.29.0, which is lower than minimumKubeletVersion of 1.30.0",
+		},
+		{
+			name:         "should reject when one kubelet version is too old",
+			version:      "1.30.0",
+			shouldReject: true,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.30.0",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node2",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.29.0",
+						},
+					},
+				},
+			},
+			errType: field.ErrorTypeInvalid,
+			errMsg:  "kubelet version of node node2 is 1.29.0, which is lower than minimumKubeletVersion of 1.30.0",
+		},
+		{
+			name:         "should not reject when kubelet version is equal",
+			version:      "1.30.0",
+			shouldReject: false,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.30.0",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:         "should reject when min version incomplete",
+			version:      "1.30",
+			shouldReject: true,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.30.0",
+						},
+					},
+				},
+			},
+			errType: field.ErrorTypeInvalid,
+			errMsg:  "Failed to parse submitted version 1.30 No Major.Minor.Patch elements found",
+		},
+		{
+			name:         "should reject when kubelet version incomplete",
+			version:      "1.30.0",
+			shouldReject: true,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.30",
+						},
+					},
+				},
+			},
+			errType: field.ErrorTypeInvalid,
+			errMsg:  "failed to parse node version 1.30: No Major.Minor.Patch elements found",
+		},
+		{
+			name:         "should not reject when kubelet version is new enough",
+			version:      "1.30.0",
+			shouldReject: false,
+			nodes: []v1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node",
+					},
+					Status: v1.NodeStatus{
+						NodeInfo: v1.NodeSystemInfo{
+							KubeletVersion: "1.31.0",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		c := fake.NewSimpleClientset()
+		c.PrependReactor("list", "nodes", func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
+			nodeList := &v1.NodeList{Items: testCase.nodes}
+			return true, nodeList, testCase.nodeListErr
+		})
+
+		shouldStr := "should not be"
+		if testCase.shouldReject {
+			shouldStr = "should be"
+		}
+		t.Run(testCase.name, func(t *testing.T) {
+			obj := configv1.Node{
+				Spec: configv1.NodeSpec{
+					MinimumKubeletVersion: testCase.version,
+				},
+			}
+
+			fieldErr := validateMinimumKubeletVersion(c.CoreV1(), &obj)
+			assert.Equal(t, testCase.shouldReject, fieldErr != nil, "minimum kubelet version %q %s rejected", testCase.version, shouldStr)
+
+			if testCase.shouldReject {
+				assert.Equal(t, "spec.minimumKubeletVersion", fieldErr.Field, "field name during for mininumKubeletVersion should be spec.mininumKubeletVersion")
+				assert.Equal(t, fieldErr.Type, testCase.errType, "error type should be %q", testCase.errType)
+				assert.Contains(t, fieldErr.Detail, testCase.errMsg, "error message should contain %q", testCase.errMsg)
 			}
 		})
 	}
