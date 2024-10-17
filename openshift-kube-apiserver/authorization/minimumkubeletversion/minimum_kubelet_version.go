@@ -92,8 +92,8 @@ func IsKubeletVersionTooOld(node *corev1.Node, minVersion *semver.Version) (bool
 	version.Build = nil
 
 	name := node.ObjectMeta.Name
-	if minimumKubeletVersion.GT(version) {
-		return true, fmt.Sprintf("kubelet version of node %s is %v, which is lower than minimumKubeletVersion of %v", name, version, *minimumKubeletVersion)
+	if minVersion.GT(version) {
+		return true, fmt.Sprintf("kubelet version of node %s is %v, which is lower than minimumKubeletVersion of %v", name, version, *minVersion)
 	}
 	return false, ""
 }
