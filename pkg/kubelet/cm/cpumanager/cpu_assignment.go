@@ -424,14 +424,19 @@ func (a *cpuAccumulator) takeFullUnCore() {
 	}
 }
 
-// First try to take partial UncoreCache, if available and the request size can fit w/in the UncoreCache.
-// Second try to take the full UncoreCache if available and need is at least the size of the UncoreCache group.
+// First try to take full UncoreCache, if available and need is at least the size of the UncoreCache group.
+// Second try to take the partial UncoreCache if available and the request size can fit w/in the UncoreCache.
 func (a *cpuAccumulator) takeUncoreCache() {
 	for _, uncore := range a.allUncoreCache() {
 		numCoresNeeded := a.numCPUsNeeded / a.topo.CPUsPerCore()
 
+		// take full UncoreCache if the CPUs needed is greater a UncoreCache size
+		if a.numCPUsNeeded >= a.topo.NumCPUs/a.topo.NumUncoreCache {
+			a.takeFullUnCore()
+		}
+
 		var freeCPUsInUncoreCache cpuset.CPUSet
-		// need to get needed cores in uncorecache
+		// need to get needed cores in UncoreCache
 		freeCoresInUncoreCache := a.details.CoresNeededInUncoreCache(numCoresNeeded, uncore)
 		klog.V(2).InfoS("free cores from a.details list: ", "freeCoresInUncorecache", freeCoresInUncoreCache)
 		for _, coreID := range freeCoresInUncoreCache.List() {
@@ -442,8 +447,6 @@ func (a *cpuAccumulator) takeUncoreCache() {
 			klog.V(4).InfoS("takePartialUncore: claiming cores from Uncorecache ID", "uncore", uncore)
 			a.take(freeCPUsInUncoreCache)
 		}
-		// take full Uncorecache if the numCPUsNeeded is greater the L3 cache size
-		a.takeFullUnCore()
 
 		if a.isSatisfied() {
 			return

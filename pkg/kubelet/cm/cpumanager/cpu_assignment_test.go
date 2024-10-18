@@ -695,6 +695,15 @@ func TestTakeByTopologyUncoreCachePacked(t *testing.T) {
 			cpuset.New(0, 1, 2, 3),
 		},
 		{
+			"take all available UncoreCache from first socket",
+			topoUncoreDualSocketNoSMT,
+			StaticPolicyOptions{PreferAlignByUncoreCacheOption: true},
+			mustParseCPUSet(t, "2-15"),
+			6,
+			"",
+			cpuset.New(2, 3, 4, 5, 6, 7),
+		},
+		{
 			"take first available UncoreCache from second socket",
 			topoUncoreDualSocketNoSMT,
 			StaticPolicyOptions{PreferAlignByUncoreCacheOption: true},
@@ -713,7 +722,7 @@ func TestTakeByTopologyUncoreCachePacked(t *testing.T) {
 			cpuset.New(4, 5),
 		},
 		{
-			"take cpus from best available UncoreCache group of multi uncore cache single socket - SMT disabled",
+			"take cpus from best available UncoreCache group of multi uncore cache single socket - SMT enabled",
 			topoUncoreSingleSocketSMT,
 			StaticPolicyOptions{PreferAlignByUncoreCacheOption: true},
 			mustParseCPUSet(t, "2-3,10-11,4-7,12-15"),
@@ -722,7 +731,7 @@ func TestTakeByTopologyUncoreCachePacked(t *testing.T) {
 			cpuset.New(4, 5, 6, 12, 13, 14),
 		},
 		{
-			"take cpus from multiple UncoreCache of single socket - SMT disabled",
+			"take cpus from multiple UncoreCache of single socket - SMT enabled",
 			topoUncoreSingleSocketSMT,
 			StaticPolicyOptions{PreferAlignByUncoreCacheOption: true},
 			mustParseCPUSet(t, "1-7,9-15"),
