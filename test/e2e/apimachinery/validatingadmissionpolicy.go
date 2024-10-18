@@ -366,7 +366,7 @@ var _ = SIGDescribe("ValidatingAdmissionPolicy [Privileged:ClusterAdmin]", func(
 					// TODO(#123829) Remove once the schema watcher is merged.
 					// If the warnings are empty, touch the policy to retry type checking
 					if len(policy.Status.TypeChecking.ExpressionWarnings) == 0 {
-						randomValue := fmt.Sprintf("a%d", rand.Int())
+						randomValue := fmt.Sprintf(`"%d"`, rand.Int())
 						// Use a fixed key and change only the value
 						applyConfig := applyadmissionregistrationv1.ValidatingAdmissionPolicy(policy.Name).
 							WithSpec(applyadmissionregistrationv1.ValidatingAdmissionPolicySpec().
