@@ -18,8 +18,6 @@ package topology
 
 import (
 	"fmt"
-	"slices"
-	"sort"
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"k8s.io/klog/v2"
@@ -139,31 +137,25 @@ func (d CPUDetails) UncoreInNUMANodes(ids ...int) cpuset.CPUSet {
 // CoresNeededInUncoreCache returns either the full list of all available unique core IDs associated with the given
 // UnCoreCache IDs in this CPUDetails or subset that matches the ask.
 func (d CPUDetails) CoresNeededInUncoreCache(numCoresNeeded int, ids ...int) cpuset.CPUSet {
+	coreIDs := d.coresInUncoreCache(ids...)
+	if coreIDs.Size() <= numCoresNeeded {
+		return coreIDs
+	}
+	tmpCoreIDs := coreIDs.List()
+	return cpuset.New(tmpCoreIDs[:numCoresNeeded]...)
+}
+
+// Helper function that just gets the cores
+func (d CPUDetails) coresInUncoreCache(ids ...int) cpuset.CPUSet {
 	var coreIDs []int
 	for _, id := range ids {
 		for _, info := range d {
 			if info.UncoreCacheID == id {
-
-				if !slices.Contains(coreIDs, info.CoreID) {
-					coreIDs = append(coreIDs, info.CoreID)
-				}
+				coreIDs = append(coreIDs, info.CoreID)
 			}
 		}
 	}
-	sort.Ints(coreIDs)
-
-	// return only unique coreID
-	var coresNeeded []int
-
-	if len(coreIDs) > numCoresNeeded {
-		// return only what is needed
-		coresNeeded = coreIDs[0:numCoresNeeded]
-	} else {
-		// return the full list
-		coresNeeded = coreIDs
-	}
-	klog.V(2).InfoS("Available coreIDs : ", "coresNeeded", coresNeeded)
-	return cpuset.New(coresNeeded...)
+	return cpuset.New(coreIDs...)
 }
 
 // CPUsInUncoreCaches returns all the logical CPU IDs associated with the given
@@ -317,13 +309,14 @@ func (d CPUDetails) CPUsInCores(ids ...int) cpuset.CPUSet {
 	return cpuset.New(cpuIDs...)
 }
 
-func getUncoreCacheID(uncoreCaches []cadvisorapi.Cache) int {
-	if len(uncoreCaches) < 1 {
-		return 0
+func getUncoreCacheID(core cadvisorapi.Core) int {
+	if len(core.UncoreCaches) < 1 {
+		// In case cAdvisor is nil, failback to socket alignment since uncorecache is not shared
+		return core.SocketID
 	}
 	// Even though cadvisor API returns a slice, we only expect either 0 or a 1 uncore caches,
 	// so everything past the first entry should be discarded or ignored
-	return uncoreCaches[0].Id
+	return core.UncoreCaches[0].Id
 }
 
 // Discover returns CPUTopology based on cadvisor node info
@@ -344,7 +337,7 @@ func Discover(machineInfo *cadvisorapi.MachineInfo) (*CPUTopology, error) {
 						CoreID:        coreID,
 						SocketID:      core.SocketID,
 						NUMANodeID:    node.Id,
-						UncoreCacheID: getUncoreCacheID(core.UncoreCaches),
+						UncoreCacheID: getUncoreCacheID(core),
 					}
 				}
 			} else {

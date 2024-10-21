@@ -34,6 +34,41 @@ func Test_Discover(t *testing.T) {
 		wantErr     bool
 	}{
 		{
+			name: "EmptyUncoreCache",
+			machineInfo: cadvisorapi.MachineInfo{
+				NumCores:   8,
+				NumSockets: 1,
+				Topology: []cadvisorapi.Node{
+					{Id: 0,
+						Cores: []cadvisorapi.Core{
+							{SocketID: 0, Id: 0, Threads: []int{0, 4}, UncoreCaches: []cadvisorapi.Cache{}},
+							{SocketID: 0, Id: 1, Threads: []int{1, 5}, UncoreCaches: []cadvisorapi.Cache{}},
+							{SocketID: 0, Id: 2, Threads: []int{2, 6}, UncoreCaches: []cadvisorapi.Cache{}},
+							{SocketID: 0, Id: 3, Threads: []int{3, 7}, UncoreCaches: []cadvisorapi.Cache{}},
+						},
+					},
+				},
+			},
+			want: &CPUTopology{
+				NumCPUs:        8,
+				NumSockets:     1,
+				NumCores:       4,
+				NumNUMANodes:   1,
+				NumUncoreCache: 1,
+				CPUDetails: map[int]CPUInfo{
+					0: {CoreID: 0, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					1: {CoreID: 1, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					2: {CoreID: 2, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					3: {CoreID: 3, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					4: {CoreID: 0, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					5: {CoreID: 1, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					6: {CoreID: 2, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+					7: {CoreID: 3, SocketID: 0, NUMANodeID: 0, UncoreCacheID: 0},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "FailNumCores",
 			machineInfo: cadvisorapi.MachineInfo{
 				NumCores: 0,
@@ -1375,6 +1410,41 @@ func TestCPUNUMANodeID(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("CPUSocketID() returned %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getUncoreCacheID(t *testing.T) {
+	tests := []struct {
+		name string
+		args cadvisorapi.Core
+		want int
+	}{
+		{
+			name: "Core with uncore cache info",
+			args: cadvisorapi.Core{
+				SocketID: 1,
+				UncoreCaches: []cadvisorapi.Cache{
+					{Id: 5},
+					{Id: 6},
+				},
+			},
+			want: 5,
+		},
+		{
+			name: "Core with empty uncore cache info",
+			args: cadvisorapi.Core{
+				SocketID:     2,
+				UncoreCaches: []cadvisorapi.Cache{},
+			},
+			want: 2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getUncoreCacheID(tt.args); got != tt.want {
+				t.Errorf("getUncoreCacheID() = %v, want %v", got, tt.want)
 			}
 		})
 	}

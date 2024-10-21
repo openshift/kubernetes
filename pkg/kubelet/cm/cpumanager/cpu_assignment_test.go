@@ -676,6 +676,16 @@ func TestTakeByTopologyUncoreCachePacked(t *testing.T) {
 		expErr        string
 		expResult     cpuset.CPUSet
 	}{
+		// Test cases for PreferAlignByUncoreCache
+		{
+			"take cpus from two full UncoreCaches and partial from a single UncoreCache",
+			topoUncoreSingleSocketNoSMT,
+			StaticPolicyOptions{PreferAlignByUncoreCacheOption: true},
+			mustParseCPUSet(t, "1-15"),
+			10,
+			"",
+			cpuset.New(1, 2, 4, 5, 6, 7, 8, 9, 10, 11),
+		},
 		{
 			"take one cpu from dual socket with HT - core from Socket 0",
 			topoDualSocketHT,
@@ -748,7 +758,7 @@ func TestTakeByTopologyUncoreCachePacked(t *testing.T) {
 				strategy = CPUSortingStrategySpread
 			}
 
-			result, err := takeByTopologyUncoreCachePacked(tc.topo, tc.availableCPUs, tc.numCPUs, strategy)
+			result, err := takeByTopologyNUMAPacked(tc.topo, tc.availableCPUs, tc.numCPUs, strategy, tc.opts.PreferAlignByUncoreCacheOption)
 			if tc.expErr != "" && err != nil && err.Error() != tc.expErr {
 				t.Errorf("expected error to be [%v] but it was [%v]", tc.expErr, err)
 			}
