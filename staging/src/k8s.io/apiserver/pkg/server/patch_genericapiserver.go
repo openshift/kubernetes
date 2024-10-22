@@ -217,6 +217,16 @@ func WithLateConnectionFilter(handler http.Handler) http.Handler {
 	})
 }
 
+// WithRequestHeaderHost logs every non-probe request and logs which host was used in request header.
+func WithRequestHeaderHost(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
+			audit.AddAuditAnnotation(r.Context(), "openshift.io/request-header-host", r.Host)
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
 // WithNonReadyRequestLogging rejects the request until the process has been ready once.
 func WithNonReadyRequestLogging(handler http.Handler, hasBeenReadySignal lifecycleSignal) http.Handler {
 	if hasBeenReadySignal == nil {

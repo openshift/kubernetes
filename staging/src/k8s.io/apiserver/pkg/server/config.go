@@ -1104,6 +1104,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericfilters.WithWaitGroup(handler, c.LongRunningFunc, c.NonLongRunningRequestWaitGroup)
 	handler = WithNonReadyRequestLogging(handler, c.lifecycleSignals.HasBeenReady)
 	handler = WithLateConnectionFilter(handler)
+	handler = WithRequestHeaderHost(handler)
 	if c.ShutdownWatchTerminationGracePeriod > 0 {
 		handler = genericfilters.WithWatchTerminationDuringShutdown(handler, c.lifecycleSignals, c.WatchRequestWaitGroup)
 	}
