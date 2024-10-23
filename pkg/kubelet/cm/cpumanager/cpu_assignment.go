@@ -250,7 +250,7 @@ func (a *cpuAccumulator) isSocketFree(socketID int) bool {
 }
 
 // Returns true if the supplied UnCoreCache is fully available,
-// meaning all its CPUs are free in `a.details`.
+// "fully available" means that all the CPUs in it are free.
 func (a *cpuAccumulator) isUncoreCacheFree(uncoreID int) bool {
 	return a.details.CPUsInUncoreCaches(uncoreID).Size() == a.topo.CPUDetails.CPUsInUncoreCaches(uncoreID).Size()
 }
@@ -385,36 +385,47 @@ func (a *cpuAccumulator) takeFullSockets() {
 		a.take(cpusInSocket)
 	}
 }
+
 func (a *cpuAccumulator) takeFullUncore() {
 	for _, uncore := range a.freeUncoreCache() {
 		cpusInUncore := a.topo.CPUDetails.CPUsInUncoreCaches(uncore)
 		if !a.needsAtLeast(cpusInUncore.Size()) {
 			continue
 		}
+		klog.V(4).InfoS("takeFullUncore: claiming uncore", "uncore", uncore)
 		a.take(cpusInUncore)
 	}
 }
 
 func (a *cpuAccumulator) takePartialUncore(uncoreID int) {
 	numCoresNeeded := a.numCPUsNeeded / a.topo.CPUsPerCore()
-	var freeCPUsInUncoreCache cpuset.CPUSet
-	freeCoresInUncoreCache := a.details.CoresNeededInUncoreCache(numCoresNeeded, uncoreID)
-	for _, coreID := range freeCoresInUncoreCache.List() {
-		freeCPUsInUncoreCache = freeCPUsInUncoreCache.Union(a.topo.CPUDetails.CPUsInCores(coreID))
+
+	// note: we need to keep the first N free cores (physical cpus) and only we we got these expand to their
+	// cpus (virtual cpus). Taking directly the first M cpus (virtual cpus) leads to suboptimal allocation
+	freeCores := a.details.CoresNeededInUncoreCache(numCoresNeeded, uncoreID)
+	freeCPUs := a.details.CPUsInCores(freeCores.UnsortedList()...)
+
+	claimed := (a.numCPUsNeeded == freeCPUs.Size())
+	klog.V(4).InfoS("takePartialUncore: trying to claim partial uncore",
+		"uncore", uncoreID,
+		"claimed", claimed,
+		"needed", a.numCPUsNeeded,
+		"cores", freeCores.String(),
+		"cpus", freeCPUs.String())
+	if !claimed {
+		return
+
 	}
-	klog.V(4).InfoS("freeCPUsInUncorecache  : ", "freeCPUsInUncorecache", freeCPUsInUncoreCache.String(), "freeCPUsInUnCoreCache", freeCPUsInUncoreCache.String())
-	if a.numCPUsNeeded == freeCPUsInUncoreCache.Size() {
-		a.take(freeCPUsInUncoreCache)
-	}
+	a.take(freeCPUs)
 }
 
 // First try to take full UncoreCache, if available and need is at least the size of the UncoreCache group.
 // Second try to take the partial UncoreCache if available and the request size can fit w/in the UncoreCache.
 func (a *cpuAccumulator) takeUncoreCache() {
-	cpusPerUncoreCache := a.topo.NumCPUs / a.topo.NumUncoreCache
+	numCPUsInUncore := a.topo.CPUsPerUncore()
 	for _, uncore := range a.sortAvailableUncoreCaches() {
 		// take full UncoreCache if the CPUs needed is greater than free UncoreCache size
-		if a.needsAtLeast(cpusPerUncoreCache) {
+		if a.needsAtLeast(numCPUsInUncore) {
 			a.takeFullUncore()
 		}
 

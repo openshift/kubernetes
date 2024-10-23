@@ -1415,6 +1415,178 @@ func TestCPUNUMANodeID(t *testing.T) {
 	}
 }
 
+func TestCPUsInUncoreCaches(t *testing.T) {
+	tests := []struct {
+		name    string
+		details CPUDetails
+		ids     []int
+		want    cpuset.CPUSet
+	}{
+		{
+			name: "Single Uncore Cache",
+			details: map[int]CPUInfo{
+				0: {UncoreCacheID: 0},
+				1: {UncoreCacheID: 0},
+			},
+			ids:  []int{0},
+			want: cpuset.New(0, 1),
+		},
+		{
+			name: "Multiple Uncore Caches",
+			details: map[int]CPUInfo{
+				0: {UncoreCacheID: 0},
+				1: {UncoreCacheID: 0},
+				2: {UncoreCacheID: 1},
+			},
+			ids:  []int{0, 1},
+			want: cpuset.New(0, 1, 2),
+		},
+		{
+			name: "Uncore Cache does not exist",
+			details: map[int]CPUInfo{
+				0: {UncoreCacheID: 0},
+			},
+			ids:  []int{1},
+			want: cpuset.New(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.details.CPUsInUncoreCaches(tt.ids...)
+			if !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("CPUsInUncoreCaches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func TestUncoreInNUMANodes(t *testing.T) {
+	tests := []struct {
+		name    string
+		details CPUDetails
+		ids     []int
+		want    cpuset.CPUSet
+	}{
+		{
+			name: "Single NUMA Node",
+			details: map[int]CPUInfo{
+				0: {NUMANodeID: 0, UncoreCacheID: 0},
+				1: {NUMANodeID: 0, UncoreCacheID: 1},
+			},
+			ids:  []int{0},
+			want: cpuset.New(0, 1),
+		},
+		{
+			name: "Multiple NUMANode",
+			details: map[int]CPUInfo{
+				0:  {NUMANodeID: 0, UncoreCacheID: 0},
+				1:  {NUMANodeID: 0, UncoreCacheID: 0},
+				20: {NUMANodeID: 1, UncoreCacheID: 1},
+				21: {NUMANodeID: 1, UncoreCacheID: 1},
+			},
+			ids:  []int{0, 1},
+			want: cpuset.New(0, 1),
+		},
+		{
+			name: "Non-Existent NUMANode",
+			details: map[int]CPUInfo{
+				0: {NUMANodeID: 1, UncoreCacheID: 0},
+			},
+			ids:  []int{0},
+			want: cpuset.New(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.details.UncoreInNUMANodes(tt.ids...)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("UncoreInNUMANodes()= %v, want %v", got, tt.want)
+			}
+		})
+
+	}
+}
+
+func TestUncoreCaches(t *testing.T) {
+	tests := []struct {
+		name    string
+		details CPUDetails
+		want    cpuset.CPUSet
+	}{
+		{
+			name: "Get CPUSet of UncoreCache IDs",
+			details: map[int]CPUInfo{
+				0: {UncoreCacheID: 0},
+				1: {UncoreCacheID: 1},
+				2: {UncoreCacheID: 2},
+			},
+			want: cpuset.New(0, 1, 2),
+		},
+		{
+			name:    "Empty CPUDetails",
+			details: map[int]CPUInfo{},
+			want:    cpuset.New(),
+		},
+		{
+			name: "Shared UncoreCache",
+			details: map[int]CPUInfo{
+				0: {UncoreCacheID: 0},
+				1: {UncoreCacheID: 0},
+				2: {UncoreCacheID: 0},
+			},
+			want: cpuset.New(0),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.details.UncoreCaches()
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("UncoreCaches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCPUsPerUncore(t *testing.T) {
+	tests := []struct {
+		name string
+		topo *CPUTopology
+		want int
+	}{
+		{
+			name: "Zero Number of UncoreCache",
+			topo: &CPUTopology{
+				NumCPUs:        8,
+				NumUncoreCache: 0,
+			},
+			want: 0,
+		},
+		{
+			name: "Normal case",
+			topo: &CPUTopology{
+				NumCPUs:        16,
+				NumUncoreCache: 2,
+			},
+			want: 8,
+		},
+		{
+			name: "Single shared UncoreCache",
+			topo: &CPUTopology{
+				NumCPUs:        8,
+				NumUncoreCache: 1,
+			},
+			want: 8,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.topo.CPUsPerUncore()
+			if got != tt.want {
+				t.Errorf("CPUsPerUncore() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+}
 func Test_getUncoreCacheID(t *testing.T) {
 	tests := []struct {
 		name string
@@ -1439,6 +1611,13 @@ func Test_getUncoreCacheID(t *testing.T) {
 				UncoreCaches: []cadvisorapi.Cache{},
 			},
 			want: 2,
+		},
+		{
+			name: "Core with nil uncore cache info",
+			args: cadvisorapi.Core{
+				SocketID: 1,
+			},
+			want: 1,
 		},
 	}
 	for _, tt := range tests {
