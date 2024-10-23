@@ -20,7 +20,6 @@ var (
 			`\[Feature:RelaxedEnvironmentVariableValidation\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
 			`\[Feature:UserNamespacesSupport\]`, // disabled Beta
-			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:VolumeAttributesClass\]`, // disabled Beta
 		},
 		// tests for features that are not implemented in openshift
