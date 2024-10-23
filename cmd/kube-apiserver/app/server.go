@@ -26,6 +26,7 @@ import (
 	"os"
 
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/minimumkubeletversion"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 
@@ -113,6 +114,10 @@ cluster's shared state through which all other components interact.`,
 				args, err := openshiftkubeapiserver.ConfigToFlags(openshiftConfig)
 				if err != nil {
 					return err
+				}
+
+				if openshiftConfig.MinimumKubeletVersion != "" {
+					minimumkubeletversion.SetMinimumKubeletVersion(openshiftConfig.MinimumKubeletVersion)
 				}
 
 				// hopefully this resets the flags?

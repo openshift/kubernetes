@@ -46,17 +46,16 @@ type NodeSpec struct {
 	// the status and corresponding reaction of the cluster
 	// +optional
 	WorkerLatencyProfile WorkerLatencyProfileType `json:"workerLatencyProfile,omitempty"`
+
+	// MinimumKubeletVersion is the lowest version of a kubelet that can join the cluster.
+	// Specifically, the apiserver will deny any authorization requests of kubelets that are older
+	// than the specified version.
+	// +kubebuilder:validation:Pattern=`^([0-9]*\.[0-9]*\.[0-9]*$`
+	// +optional
+	MinimumKubeletVersion string `json:"minimumKubeletVersion,omitempty"`
 }
 
-type NodeStatus struct {
-	// conditions contain the details and the current state of the nodes.config object
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-}
+type NodeStatus struct{}
 
 // +kubebuilder:validation:Enum=v1;v2;""
 type CgroupMode string
