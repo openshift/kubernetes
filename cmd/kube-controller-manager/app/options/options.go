@@ -481,7 +481,10 @@ func (s KubeControllerManagerOptions) Config(allControllers []string, disabledBy
 		kubeconfig.Wrap(customOpenShiftRoundTripper)
 	}
 
-	client, err := clientset.NewForConfig(restclient.AddUserAgent(kubeconfig, KubeControllerManagerUserAgent))
+	protobufConfig := restclient.CopyConfig(kubeconfig)
+	protobufConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protobufConfig.ContentType = "application/vnd.kubernetes.protobuf"
+	client, err := clientset.NewForConfig(restclient.AddUserAgent(protobufConfig, KubeControllerManagerUserAgent))
 	if err != nil {
 		return nil, err
 	}
