@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
+	"k8s.io/kubernetes/pkg/kubelet/llcalign"
 	"k8s.io/kubernetes/pkg/kubelet/managed"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/kubelet/types"
@@ -138,6 +139,7 @@ func NewStaticPolicy(topology *topology.CPUTopology, numReservedCPUs int, reserv
 	}
 
 	klog.InfoS("Static policy created with configuration", "options", opts)
+	klog.InfoS("Static policy created with configuration", "llcAlignment", llcalign.IsEnabled())
 
 	policy := &staticPolicy{
 		topology:    topology,
@@ -506,7 +508,8 @@ func (p *staticPolicy) takeByTopology(availableCPUs cpuset.CPUSet, numCPUs int) 
 		return takeByTopologyNUMADistributed(p.topology, availableCPUs, numCPUs, cpuGroupSize)
 	}
 
-	return takeByTopologyNUMAPacked(p.topology, availableCPUs, numCPUs, p.options.PreferAlignByUncoreCacheOption)
+	preferAlignByUncoreCacheOption := isAlignByUncoreCacheEnabled(p.options)
+	return takeByTopologyNUMAPacked(p.topology, availableCPUs, numCPUs, preferAlignByUncoreCacheOption)
 }
 
 func (p *staticPolicy) GetTopologyHints(s state.State, pod *v1.Pod, container *v1.Container) map[string][]topologymanager.TopologyHint {
@@ -717,4 +720,15 @@ func (p *staticPolicy) getAlignedCPUs(numaAffinity bitmask.BitMask, allocatableC
 	}
 
 	return alignedCPUs
+}
+
+func isAlignByUncoreCacheEnabled(options StaticPolicyOptions) bool {
+	if !options.PreferAlignByUncoreCacheOption {
+		return false
+	}
+	if !llcalign.IsEnabled() {
+		klog.V(4).InfoS("isAlignByUncoreCacheEnabled disabled because missing config file")
+		return false
+	}
+	return true
 }
