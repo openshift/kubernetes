@@ -68,6 +68,7 @@ func newFlunders(c *WardleV1alpha1Client, namespace string) *flunders {
 			scheme.ParameterCodec,
 			namespace,
 			func() *v1alpha1.Flunder { return &v1alpha1.Flunder{} },
-			func() *v1alpha1.FlunderList { return &v1alpha1.FlunderList{} }),
+			func() *v1alpha1.FlunderList { return &v1alpha1.FlunderList{} },
+		),
 	}
 }

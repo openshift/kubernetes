@@ -68,6 +68,8 @@ func newCustomResourceDefinitions(c *ApiextensionsV1Client) *customResourceDefin
 			scheme.ParameterCodec,
 			"",
 			func() *v1.CustomResourceDefinition { return &v1.CustomResourceDefinition{} },
-			func() *v1.CustomResourceDefinitionList { return &v1.CustomResourceDefinitionList{} }),
+			func() *v1.CustomResourceDefinitionList { return &v1.CustomResourceDefinitionList{} },
+			gentype.PrefersProtobuf[*v1.CustomResourceDefinition](),
+		),
 	}
 }
