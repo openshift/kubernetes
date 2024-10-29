@@ -389,7 +389,7 @@ func (a *cpuAccumulator) takeFullSockets() {
 func (a *cpuAccumulator) takeFullUncore() {
 	for _, uncore := range a.freeUncoreCache() {
 		cpusInUncore := a.topo.CPUDetails.CPUsInUncoreCaches(uncore)
-		if !a.needsAtLeast(cpusInUncore.Size()) {
+		if !a.needs(cpusInUncore.Size()) {
 			continue
 		}
 		klog.V(4).InfoS("takeFullUncore: claiming uncore", "uncore", uncore)
@@ -425,7 +425,7 @@ func (a *cpuAccumulator) takeUncoreCache() {
 	numCPUsInUncore := a.topo.CPUsPerUncore()
 	for _, uncore := range a.sortAvailableUncoreCaches() {
 		// take full UncoreCache if the CPUs needed is greater than free UncoreCache size
-		if a.needsAtLeast(numCPUsInUncore) {
+		if a.needs(numCPUsInUncore) {
 			a.takeFullUncore()
 		}
 

@@ -114,6 +114,7 @@ func NewStaticPolicyOptions(policyOptions map[string]string) (StaticPolicyOption
 				return opts, fmt.Errorf("bad value for option %q: %w", name, err)
 			}
 			opts.AlignBySocket = optValue
+		case PreferAlignByUnCoreCacheOption:
 			optValue, err := strconv.ParseBool(value)
 			if err != nil {
 				return opts, fmt.Errorf("bad value for option %q: %w", name, err)
@@ -126,7 +127,7 @@ func NewStaticPolicyOptions(policyOptions map[string]string) (StaticPolicyOption
 		}
 	}
 
-	if opts.PreferAlignByUnCoreCacheOption && opts.DistributeCPUsAcrossNUMA {
+	if opts.PreferAlignByUncoreCacheOption && opts.DistributeCPUsAcrossNUMA {
 		return opts, fmt.Errorf("static policy options %s and %s can not be used at the same time", PreferAlignByUnCoreCacheOption, DistributeCPUsAcrossNUMAOption)
 	}
 
