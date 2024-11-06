@@ -651,7 +651,33 @@ func TestTakeByTopologyNUMAPacked(t *testing.T) {
 			"",
 			mustParseCPUSet(t, "0-29,40-69,30,31,70,71"),
 		},
-		// Test cases for PreferAlignByUncoreCache
+	}...)
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			result, err := takeByTopologyNUMAPacked(tc.topo, tc.availableCPUs, tc.numCPUs, false)
+			if tc.expErr != "" && err != nil && err.Error() != tc.expErr {
+				t.Errorf("expected error to be [%v] but it was [%v]", tc.expErr, err)
+			}
+			if !result.Equals(tc.expResult) {
+				t.Errorf("expected result [%s] to equal [%s]", result, tc.expResult)
+			}
+		})
+	}
+}
+
+type takeByTopologyUncoreTestCase struct {
+	description   string
+	topo          *topology.CPUTopology
+	opts          StaticPolicyOptions
+	availableCPUs cpuset.CPUSet
+	numCPUs       int
+	expErr        string
+	expResult     cpuset.CPUSet
+}
+
+func TestTakeByTopologyUncore(t *testing.T) {
+	testCases := []takeByTopologyUncoreTestCase{
 		{
 			"take cpus from two full UncoreCaches and partial from a single UncoreCache",
 			topoUncoreSingleSocketNoSMT,
@@ -724,7 +750,7 @@ func TestTakeByTopologyNUMAPacked(t *testing.T) {
 			"",
 			mustParseCPUSet(t, "4-7,12-15,1,9"),
 		},
-	}...)
+	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
