@@ -1772,7 +1772,11 @@ func TestSchedulerSchedulePod(t *testing.T) {
 		name               string
 		registerPlugins    []tf.RegisterPluginFunc
 		extenders          []tf.FakeExtender
+<<<<<<< HEAD
 		nodes              []*v1.Node
+=======
+		nodes              []string
+>>>>>>> v1.29.10
 		pvcs               []v1.PersistentVolumeClaim
 		pvs                []v1.PersistentVolume
 		pod                *v1.Pod
@@ -2149,11 +2153,15 @@ func TestSchedulerSchedulePod(t *testing.T) {
 					Predicates:   []tf.FitPredicate{tf.FalsePredicateExtender},
 				},
 			},
+<<<<<<< HEAD
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "1", Labels: map[string]string{"kubernetes.io/hostname": "1"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "2", Labels: map[string]string{"kubernetes.io/hostname": "2"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "3", Labels: map[string]string{"kubernetes.io/hostname": "3"}}},
 			},
+=======
+			nodes:     []string{"1", "2", "3"},
+>>>>>>> v1.29.10
 			pod:       st.MakePod().Name("test-filter").UID("test-filter").Obj(),
 			wantNodes: nil,
 			wErr: &framework.FitError{
