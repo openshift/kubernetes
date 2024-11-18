@@ -49,10 +49,10 @@ require (
 	github.com/opencontainers/runc v1.1.13
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20241028125658-76ee2532d0bf
-	github.com/openshift/api v0.0.0-20241001152557-e415140e5d5f
+	github.com/openshift/api v0.0.0-20241101202457-04eb3fd119d2
 	github.com/openshift/apiserver-library-go v0.0.0-20241001175710-6064b62894a6
 	github.com/openshift/client-go v0.0.0-20241001162912-da6d55e4611f
-	github.com/openshift/library-go v0.0.0-20241107160307-0064ad7bd060
+	github.com/openshift/library-go v0.0.0-20241122090744-c450187f381d
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.19.1
