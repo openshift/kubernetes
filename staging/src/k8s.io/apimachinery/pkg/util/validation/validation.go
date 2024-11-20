@@ -21,8 +21,10 @@ import (
 	"math"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
+	lrucache "k8s.io/apimachinery/pkg/util/cache"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	netutils "k8s.io/utils/net"
 )
@@ -35,11 +37,20 @@ const qualifiedNameMaxLength int = 63
 
 var qualifiedNameRegexp = regexp.MustCompile("^" + qualifiedNameFmt + "$")
 
+const cacheTTL = 5 * time.Minute
+const cacheSize = 4096
+
+var regexpResultCache = lrucache.NewLRUExpireCache(cacheSize)
+
 // IsQualifiedName tests whether the value passed is what Kubernetes calls a
 // "qualified name".  This is a format used in various places throughout the
 // system.  If the value is not valid, a list of error strings is returned.
 // Otherwise an empty list (or nil) is returned.
 func IsQualifiedName(value string) []string {
+	if cachedResponse, ok := regexpResultCache.Get(value); ok {
+		return cachedResponse.([]string)
+	}
+
 	var errs []string
 	parts := strings.Split(value, "/")
 	var name string
@@ -67,6 +78,8 @@ func IsQualifiedName(value string) []string {
 	if !qualifiedNameRegexp.MatchString(name) {
 		errs = append(errs, "name part "+RegexError(qualifiedNameErrMsg, qualifiedNameFmt, "MyName", "my.name", "123-abc"))
 	}
+
+	regexpResultCache.Add(value, errs, cacheTTL)
 	return errs
 }
 
