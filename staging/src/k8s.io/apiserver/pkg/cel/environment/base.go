@@ -134,7 +134,7 @@ var baseOptsWithoutStrictCost = []VersionedOptions{
 	},
 	// Format Library
 	{
-		IntroducedVersion: version.MajorMinor(1, 31),
+		IntroducedVersion: version.MajorMinor(1, 30),
 		EnvOptions: []cel.EnvOption{
 			library.Format(),
 		},
