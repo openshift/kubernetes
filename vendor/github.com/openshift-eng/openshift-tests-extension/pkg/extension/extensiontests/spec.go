@@ -72,6 +72,10 @@ func (specs ExtensionTestSpecs) Run(w ResultWriter, maxConcurrent int) error {
 				for _, afterEachTask := range spec.afterEach {
 					afterEachTask.Run(res)
 				}
+
+				// We can't assume the runner will set the name of a test; it may not know it. Even if
+				// it does, we may want to modify it (e.g. k8s-tests for annotations currently).
+				res.Name = spec.Name
 				w.Write(res)
 			}
 		}()
