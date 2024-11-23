@@ -24,6 +24,7 @@ import (
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
 	storagehelpers "k8s.io/component-helpers/storage/volume"
+	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/volume"
 	metricutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/utils/ptr"
@@ -183,8 +184,12 @@ func (collector *pvAndPVCCountCollector) CollectWithStability(ch chan<- metrics.
 
 func (collector *pvAndPVCCountCollector) getPVPluginName(pv *v1.PersistentVolume) string {
 	spec := volume.NewSpecFromPersistentVolume(pv, true)
+	klog.V(1).Infof("=== Spec is -> %v ===", &spec)
 	fullPluginName := pluginNameNotAvailable
-	if plugin, err := collector.pluginMgr.FindPluginBySpec(spec); err == nil {
+	plugin, err := collector.pluginMgr.FindPluginBySpec(spec)
+	klog.V(1).Infof("=== Plugin is -> %v ===", plugin)
+	klog.V(1).Infof("=== GetPluginErr -> %v ===", err)
+	if err == nil {
 		fullPluginName = metricutil.GetFullQualifiedPluginNameForVolume(plugin.GetPluginName(), spec)
 	}
 	return fullPluginName
