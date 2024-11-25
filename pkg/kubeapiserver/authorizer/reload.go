@@ -176,6 +176,7 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
 			authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup))
 		case authzconfig.AuthorizerType(modes.ModeMinimumKubeletVersion):
+			klog.Infof("XXXXX have min kubelet verison")
 			// Add MinimumKubeletVerison authorizer, to block a node from being able to access most resources if it's not new enough.
 			// We must do so here instead of in pkg/apiserver because it relies on a node informer, which is not present in generic control planes.
 			authorizers = append(authorizers, minimumkubeletversion.NewMinimumKubeletVersion(
