@@ -5,12 +5,15 @@ import (
 	"fmt"
 
 	"github.com/blang/semver/v4"
+	openshiftfeatures "github.com/openshift/api/features"
 	nodelib "github.com/openshift/library-go/pkg/apiserver/node"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/util/feature"
 	v1listers "k8s.io/client-go/listers/core/v1"
 	cache "k8s.io/client-go/tools/cache"
+	"k8s.io/component-base/featuregate"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 )
@@ -25,15 +28,13 @@ type minimumKubeletVersionAuth struct {
 
 // Creates a new minimumKubeletVersionAuth object, which is an authorizer that checks
 // whether nodes are new enough to be authorized.
-func NewMinimumKubeletVersion(minVersionStr string,
+func NewMinimumKubeletVersion(minVersion *semver.Version,
 	nodeIdentifier nodeidentifier.NodeIdentifier,
 	nodeInformer cache.SharedIndexInformer,
 	nodeLister v1listers.NodeLister,
 ) *minimumKubeletVersionAuth {
-	var minVersionPtr *semver.Version
-	if len(minVersionStr) != 0 {
-		v := semver.MustParse(minVersionStr)
-		minVersionPtr = &v
+	if !feature.DefaultMutableFeatureGate.Enabled(featuregate.Feature(openshiftfeatures.FeatureGateMinimumKubeletVersion)) {
+		minVersion = nil
 	}
 
 	return &minimumKubeletVersionAuth{
@@ -41,7 +42,7 @@ func NewMinimumKubeletVersion(minVersionStr string,
 		nodeInformer:            nodeInformer,
 		nodeLister:              nodeLister,
 		hasNodeInformerSyncedFn: nodeInformer.HasSynced,
-		minVersion:              minVersionPtr,
+		minVersion:              minVersion,
 	}
 }
 
