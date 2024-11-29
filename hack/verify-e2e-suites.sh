@@ -20,6 +20,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -x
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
@@ -35,6 +36,7 @@ for suite in $(git grep -l framework.AfterReadingAllFlags | grep -v -e ^test/e2e
     # Build a binary and run it in the root directory to get paths that are
     # relative to that instead of the package directory.
     out=""
+    ls ${KUBE_TEMP}
     if (cd "$suite" && go test -c -o "${KUBE_TEMP}/e2e.bin" .) && out=$("${KUBE_TEMP}/e2e.bin" --list-tests); then
         echo "E2E suite $suite passed."
     else
