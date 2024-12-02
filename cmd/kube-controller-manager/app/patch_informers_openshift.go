@@ -118,7 +118,11 @@ type combinedInformers struct {
 }
 
 func newInformerFactory(clientConfig *rest.Config) (informers.SharedInformerFactory, error) {
-	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	protobufConfig := rest.CopyConfig(clientConfig)
+	protobufConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protobufConfig.ContentType = "application/vnd.kubernetes.protobuf"
+
+	kubeClient, err := kubernetes.NewForConfig(protobufConfig)
 	if err != nil {
 		return nil, err
 	}

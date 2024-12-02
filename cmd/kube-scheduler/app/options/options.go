@@ -398,12 +398,15 @@ func createKubeConfig(config componentbaseconfig.ClientConnectionConfiguration, 
 
 // createClients creates a kube client and an event client from the given kubeConfig
 func createClients(kubeConfig *restclient.Config) (clientset.Interface, clientset.Interface, error) {
-	client, err := clientset.NewForConfig(restclient.AddUserAgent(kubeConfig, "scheduler"))
+	protobufConfig := restclient.CopyConfig(kubeConfig)
+	protobufConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protobufConfig.ContentType = "application/vnd.kubernetes.protobuf"
+	client, err := clientset.NewForConfig(restclient.AddUserAgent(protobufConfig, "scheduler"))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	eventClient, err := clientset.NewForConfig(kubeConfig)
+	eventClient, err := clientset.NewForConfig(protobufConfig)
 	if err != nil {
 		return nil, nil, err
 	}
