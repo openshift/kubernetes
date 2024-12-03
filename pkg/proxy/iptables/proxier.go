@@ -965,6 +965,21 @@ func (proxier *Proxier) syncProxyRules() {
 		allEndpoints := proxier.endpointsMap[svcName]
 		clusterEndpoints, localEndpoints, allLocallyReachableEndpoints, hasEndpoints := proxy.CategorizeEndpoints(allEndpoints, svcInfo, proxier.nodeLabels)
 
+		// Prefer local endpoint for the DNS service.
+		// Fixes <https://bugzilla.redhat.com/show_bug.cgi?id=1919737>.
+		// TODO: Delete this once node-level topology is
+		// implemented and the DNS operator is updated to use it.
+		if svcPortNameString == "openshift-dns/dns-default:dns" || svcPortNameString == "openshift-dns/dns-default:dns-tcp" {
+			for _, ep := range clusterEndpoints {
+				if ep.IsLocal() {
+					klog.V(4).Infof("Found a local endpoint %q for service %q; preferring the local endpoint and ignoring %d other endpoints", ep.String(), svcPortNameString, len(clusterEndpoints)-1)
+					clusterEndpoints = []proxy.Endpoint{ep}
+					allLocallyReachableEndpoints = clusterEndpoints
+					break
+				}
+			}
+		}
+
 		// clusterPolicyChain contains the endpoints used with "Cluster" traffic policy
 		clusterPolicyChain := svcInfo.clusterPolicyChainName
 		usesClusterPolicyChain := len(clusterEndpoints) > 0 && svcInfo.UsesClusterEndpoints()
@@ -1007,7 +1022,7 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 		externalTrafficChain := svcInfo.externalChainName // eventually jumps to externalPolicyChain
 
-		// usesExternalTrafficChain is based on hasEndpoints, not hasExternalEndpoints,
+		// usesExternalTrafficChain is based on hasEndpoints, not hasExternalEndpoints,clusterPolicyChain
 		// because we need the local-traffic-short-circuiting rules even when there
 		// are no externally-usable endpoints.
 		usesExternalTrafficChain := hasEndpoints && svcInfo.ExternallyAccessible()
