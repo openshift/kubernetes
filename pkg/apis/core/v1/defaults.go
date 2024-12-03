@@ -19,8 +19,6 @@ package v1
 import (
 	"time"
 
-	"k8s.io/utils/ptr"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -29,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1/service"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/util/parsers"
+	"k8s.io/utils/pointer"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -66,7 +65,7 @@ func SetDefaults_ReplicationController(obj *v1.ReplicationController) {
 	}
 }
 func SetDefaults_Volume(obj *v1.Volume) {
-	if ptr.AllPtrFieldsNil(&obj.VolumeSource) {
+	if pointer.AllPtrFieldsNil(&obj.VolumeSource) {
 		obj.VolumeSource = v1.VolumeSource{
 			EmptyDir: &v1.EmptyDirVolumeSource{},
 		}
@@ -149,7 +148,7 @@ func SetDefaults_Service(obj *v1.Service) {
 
 	if obj.Spec.Type == v1.ServiceTypeLoadBalancer {
 		if obj.Spec.AllocateLoadBalancerNodePorts == nil {
-			obj.Spec.AllocateLoadBalancerNodePorts = ptr.To(true)
+			obj.Spec.AllocateLoadBalancerNodePorts = pointer.Bool(true)
 		}
 	}
 
@@ -436,14 +435,6 @@ func SetDefaults_HostPathVolumeSource(obj *v1.HostPathVolumeSource) {
 	typeVol := v1.HostPathUnset
 	if obj.Type == nil {
 		obj.Type = &typeVol
-	}
-}
-
-func SetDefaults_PodLogOptions(obj *v1.PodLogOptions) {
-	if utilfeature.DefaultFeatureGate.Enabled(features.PodLogsQuerySplitStreams) {
-		if obj.Stream == nil {
-			obj.Stream = ptr.To(v1.LogStreamAll)
-		}
 	}
 }
 

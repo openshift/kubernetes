@@ -31,8 +31,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
-	netutils "k8s.io/utils/net"
-
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -50,7 +48,6 @@ import (
 	resourcehelper "k8s.io/component-helpers/resource"
 	schedulinghelper "k8s.io/component-helpers/scheduling/corev1"
 	kubeletapis "k8s.io/kubelet/pkg/apis"
-
 	apiservice "k8s.io/kubernetes/pkg/api/service"
 	"k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
@@ -61,6 +58,7 @@ import (
 	"k8s.io/kubernetes/pkg/cluster/ports"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/fieldpath"
+	netutils "k8s.io/utils/net"
 )
 
 const isNegativeErrorMsg string = apimachineryvalidation.IsNegativeErrorMsg
@@ -7705,13 +7703,7 @@ func validateOS(podSpec *core.PodSpec, fldPath *field.Path, opts PodValidationOp
 	return allErrs
 }
 
-var validLogStreams = sets.New[string](
-	core.LogStreamStdout,
-	core.LogStreamStderr,
-	core.LogStreamAll,
-)
-
-func ValidatePodLogOptions(opts *core.PodLogOptions, allowStreamSelection bool) field.ErrorList {
+func ValidatePodLogOptions(opts *core.PodLogOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if opts.TailLines != nil && *opts.TailLines < 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("tailLines"), *opts.TailLines, isNegativeErrorMsg))
@@ -7726,20 +7718,6 @@ func ValidatePodLogOptions(opts *core.PodLogOptions, allowStreamSelection bool) 
 		if *opts.SinceSeconds < 1 {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("sinceSeconds"), *opts.SinceSeconds, "must be greater than 0"))
 		}
-	}
-	if allowStreamSelection {
-		if opts.Stream == nil {
-			allErrs = append(allErrs, field.Required(field.NewPath("stream"), "must be specified"))
-		} else {
-			if !validLogStreams.Has(*opts.Stream) {
-				allErrs = append(allErrs, field.NotSupported(field.NewPath("stream"), *opts.Stream, validLogStreams.UnsortedList()))
-			}
-			if *opts.Stream != core.LogStreamAll && opts.TailLines != nil {
-				allErrs = append(allErrs, field.Forbidden(field.NewPath(""), "`tailLines` and specific `stream` are mutually exclusive for now"))
-			}
-		}
-	} else if opts.Stream != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("stream"), "may not be specified"))
 	}
 	return allErrs
 }

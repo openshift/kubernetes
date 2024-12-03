@@ -24,8 +24,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/utils/ptr"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/features"
+	utilpointer "k8s.io/utils/pointer"
 
 	// ensure types are installed
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -1565,7 +1564,7 @@ func TestSetDefaultReplicationControllerReplicas(t *testing.T) {
 		{
 			rc: v1.ReplicationController{
 				Spec: v1.ReplicationControllerSpec{
-					Replicas: ptr.To[int32](0),
+					Replicas: utilpointer.Int32(0),
 					Template: &v1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
@@ -1580,7 +1579,7 @@ func TestSetDefaultReplicationControllerReplicas(t *testing.T) {
 		{
 			rc: v1.ReplicationController{
 				Spec: v1.ReplicationControllerSpec{
-					Replicas: ptr.To[int32](3),
+					Replicas: utilpointer.Int32(3),
 					Template: &v1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
@@ -2805,7 +2804,7 @@ func TestDefaultRequestIsNotSetForReplicationController(t *testing.T) {
 	}
 	rc := &v1.ReplicationController{
 		Spec: v1.ReplicationControllerSpec{
-			Replicas: ptr.To[int32](3),
+			Replicas: utilpointer.Int32(3),
 			Template: &v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -3218,29 +3217,6 @@ func TestSetDefaults_Volume(t *testing.T) {
 	} {
 		t.Run(desc, func(t *testing.T) {
 			corev1.SetDefaults_Volume(tc.given)
-			if !cmp.Equal(tc.given, tc.expected) {
-				t.Errorf("expected volume %+v, but got %+v", tc.expected, tc.given)
-			}
-		})
-	}
-}
-
-func TestSetDefaults_PodLogOptions(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PodLogsQuerySplitStreams, true)
-	for desc, tc := range map[string]struct {
-		given, expected *v1.PodLogOptions
-	}{
-		"defaults to All": {
-			given:    &v1.PodLogOptions{},
-			expected: &v1.PodLogOptions{Stream: ptr.To(v1.LogStreamAll)},
-		},
-		"the specified stream should not be overridden": {
-			given:    &v1.PodLogOptions{Stream: ptr.To(v1.LogStreamStdout)},
-			expected: &v1.PodLogOptions{Stream: ptr.To(v1.LogStreamStdout)},
-		},
-	} {
-		t.Run(desc, func(t *testing.T) {
-			corev1.SetDefaults_PodLogOptions(tc.given)
 			if !cmp.Equal(tc.given, tc.expected) {
 				t.Errorf("expected volume %+v, but got %+v", tc.expected, tc.given)
 			}

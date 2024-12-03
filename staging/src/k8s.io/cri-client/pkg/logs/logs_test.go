@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -29,7 +28,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -541,58 +539,4 @@ func TestReadLogsLimitsWithTimestamps(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, lineCount, "should have two lines")
-}
-
-func TestOnlyStdoutStream(t *testing.T) {
-	timestamp := time.Unix(1234, 43210)
-	msgs := []*logMessage{
-		{
-			timestamp: timestamp,
-			stream:    runtimeapi.Stdout,
-			log:       []byte("out1\n"),
-		},
-		{
-			timestamp: timestamp,
-			stream:    runtimeapi.Stderr,
-			log:       []byte("err1\n"),
-		},
-		{
-			timestamp: timestamp,
-			stream:    runtimeapi.Stdout,
-			log:       []byte("out2\n"),
-		},
-	}
-
-	testCases := map[string]struct {
-		limitBytes int64
-
-		expectedStdout string
-	}{
-		"all stdout logs": {
-			limitBytes: -1,
-
-			expectedStdout: "out1\nout2\n",
-		},
-		"the first 7 bytes from stdout": {
-			limitBytes: 7,
-
-			expectedStdout: "out1\nou",
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			stdoutBuf := bytes.NewBuffer(nil)
-			w := newLogWriter(stdoutBuf, nil, &LogOptions{
-				bytes: tc.limitBytes,
-			})
-			for _, msg := range msgs {
-				err := w.write(msg, false)
-				if errors.Is(err, errMaximumWrite) {
-					continue
-				}
-				require.NoError(t, err)
-			}
-			assert.EqualValues(t, tc.expectedStdout, stdoutBuf.String())
-		})
-	}
 }

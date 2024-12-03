@@ -21310,79 +21310,29 @@ func TestValidPodLogOptions(t *testing.T) {
 	negative := int64(-1)
 	zero := int64(0)
 	positive := int64(1)
-	stdoutStream := core.LogStreamStdout
-	stderrStream := core.LogStreamStderr
-	allStream := core.LogStreamAll
-	invalidStream := "invalid"
 	tests := []struct {
-		opt                  core.PodLogOptions
-		errs                 int
-		allowStreamSelection bool
+		opt  core.PodLogOptions
+		errs int
 	}{
-		{core.PodLogOptions{}, 0, false},
-		{core.PodLogOptions{Previous: true}, 0, false},
-		{core.PodLogOptions{Follow: true}, 0, false},
-		{core.PodLogOptions{TailLines: &zero}, 0, false},
-		{core.PodLogOptions{TailLines: &negative}, 1, false},
-		{core.PodLogOptions{TailLines: &positive}, 0, false},
-		{core.PodLogOptions{LimitBytes: &zero}, 1, false},
-		{core.PodLogOptions{LimitBytes: &negative}, 1, false},
-		{core.PodLogOptions{LimitBytes: &positive}, 0, false},
-		{core.PodLogOptions{SinceSeconds: &negative}, 1, false},
-		{core.PodLogOptions{SinceSeconds: &positive}, 0, false},
-		{core.PodLogOptions{SinceSeconds: &zero}, 1, false},
-		{core.PodLogOptions{SinceTime: &now}, 0, false},
-		{
-			opt: core.PodLogOptions{
-				Stream: &stdoutStream,
-			},
-			allowStreamSelection: false,
-			errs:                 1,
-		},
-		{
-			opt: core.PodLogOptions{
-				Stream: &stdoutStream,
-			},
-			allowStreamSelection: true,
-		},
-		{
-			opt: core.PodLogOptions{
-				Stream: &invalidStream,
-			},
-			allowStreamSelection: true,
-			errs:                 1,
-		},
-		{
-			opt: core.PodLogOptions{
-				Stream:    &stderrStream,
-				TailLines: &positive,
-			},
-			allowStreamSelection: true,
-			errs:                 1,
-		},
-		{
-			opt: core.PodLogOptions{
-				Stream:    &allStream,
-				TailLines: &positive,
-			},
-			allowStreamSelection: true,
-		},
-		{
-			opt: core.PodLogOptions{
-				Stream:     &stdoutStream,
-				LimitBytes: &positive,
-				SinceTime:  &now,
-			},
-			allowStreamSelection: true,
-		},
+		{core.PodLogOptions{}, 0},
+		{core.PodLogOptions{Previous: true}, 0},
+		{core.PodLogOptions{Follow: true}, 0},
+		{core.PodLogOptions{TailLines: &zero}, 0},
+		{core.PodLogOptions{TailLines: &negative}, 1},
+		{core.PodLogOptions{TailLines: &positive}, 0},
+		{core.PodLogOptions{LimitBytes: &zero}, 1},
+		{core.PodLogOptions{LimitBytes: &negative}, 1},
+		{core.PodLogOptions{LimitBytes: &positive}, 0},
+		{core.PodLogOptions{SinceSeconds: &negative}, 1},
+		{core.PodLogOptions{SinceSeconds: &positive}, 0},
+		{core.PodLogOptions{SinceSeconds: &zero}, 1},
+		{core.PodLogOptions{SinceTime: &now}, 0},
 	}
 	for i, test := range tests {
-		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
-			errs := ValidatePodLogOptions(&test.opt, test.allowStreamSelection)
-			if test.errs != len(errs) {
-				t.Errorf("%d: Unexpected errors: %v", i, errs)
-			}
-		})
+		errs := ValidatePodLogOptions(&test.opt)
+		if test.errs != len(errs) {
+			t.Errorf("%d: Unexpected errors: %v", i, errs)
+		}
 	}
 }
 
