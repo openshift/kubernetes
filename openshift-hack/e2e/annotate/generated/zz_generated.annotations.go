@@ -2089,8 +2089,6 @@ var Annotations = map[string]string{
 
 	"[sig-node] kubelet kubectl get --raw \"/api/v1/nodes/<insert-node-name-here>/proxy/logs/?query=/<insert-log-file-name-here> [Feature:NodeLogQuery] should return the last three lines of the kubelet logs": " [Disabled:SpecialConfig] [Suite:k8s]",
 
-	"[sig-node] specific log stream [Feature:PodLogsQuerySplitStreams] kubectl get --raw /api/v1/namespaces/default/pods/<pod-name>/log?stream": " [Disabled:Alpha] [Suite:k8s]",
-
 	"[sig-scheduling] LimitRange should create a LimitRange with defaults and ensure pod has those defaults applied. [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-scheduling] LimitRange should list, patch and delete a LimitRange by collection [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
