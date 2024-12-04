@@ -23,3 +23,5 @@ require (
 )
 
 replace k8s.io/kms => ../../../../kms
+
+replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241008152707-25bf9f14db44
