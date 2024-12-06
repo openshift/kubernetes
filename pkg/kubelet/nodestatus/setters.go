@@ -18,6 +18,7 @@ package nodestatus
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net"
@@ -313,6 +314,8 @@ func MachineInfo(nodeName string,
 				// and event is recorded or neither should happen, see issue #6055.
 				recordEventFunc(v1.EventTypeWarning, events.NodeRebooted,
 					fmt.Sprintf("Node %s has been rebooted, boot id: %s", nodeName, info.BootID))
+				j, _ := json.Marshal(node.Status.NodeInfo)
+				klog.Infof("Node %s has been rebooted, NodeInfo(%s)", nodeName, j)
 			}
 			node.Status.NodeInfo.BootID = info.BootID
 
