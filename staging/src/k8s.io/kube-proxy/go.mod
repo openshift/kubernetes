@@ -11,8 +11,8 @@ godebug winreadlinkvolume=0
 godebug winsymlink=0
 
 require (
-	k8s.io/apimachinery v0.31.1
-	k8s.io/component-base v0.31.1
+	k8s.io/apimachinery v0.0.0
+	k8s.io/component-base v0.0.0
 )
 
 require (
