@@ -31,14 +31,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	cloudprovider "k8s.io/cloud-provider"
 	cloudproviderapi "k8s.io/cloud-provider/api"
 	nodeutil "k8s.io/component-helpers/node/util"
 	"k8s.io/klog/v2"
 	kubeletapis "k8s.io/kubelet/pkg/apis"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/events"
 	"k8s.io/kubernetes/pkg/kubelet/managed"
@@ -95,7 +96,16 @@ func (kl *Kubelet) tryRegisterWithAPIServer(node *v1.Node) bool {
 		return true
 	}
 
-	if !apierrors.IsAlreadyExists(err) {
+	switch {
+	case apierrors.IsAlreadyExists(err):
+		// Node already exists, proceed to reconcile node.
+	case apierrors.IsForbidden(err):
+		// Creating nodes is forbidden, but node may still exist, attempt to get the node.
+		if utilfeature.DefaultFeatureGate.Enabled(features.KubeletRegistrationGetOnExistsOnly) {
+			klog.ErrorS(err, "Unable to register node with API server, reason is forbidden", "node", klog.KObj(node))
+			return false
+		}
+	default:
 		klog.ErrorS(err, "Unable to register node with API server", "node", klog.KObj(node))
 		return false
 	}
@@ -105,6 +115,7 @@ func (kl *Kubelet) tryRegisterWithAPIServer(node *v1.Node) bool {
 		klog.ErrorS(err, "Unable to register node with API server, error getting existing node", "node", klog.KObj(node))
 		return false
 	}
+
 	if existingNode == nil {
 		klog.InfoS("Unable to register node with API server, no node instance returned", "node", klog.KObj(node))
 		return false
@@ -779,7 +790,7 @@ func (kl *Kubelet) defaultNodeStatusFuncs() []func(context.Context, *v1.Node) er
 	}
 	var setters []func(ctx context.Context, n *v1.Node) error
 	setters = append(setters,
-		nodestatus.NodeAddress(kl.nodeIPs, kl.nodeIPValidator, kl.hostname, kl.hostnameOverridden, kl.externalCloudProvider, kl.cloud, nodeAddressesFunc, utilnet.ResolveBindAddress),
+		nodestatus.NodeAddress(kl.nodeIPs, kl.nodeIPValidator, kl.hostname, kl.hostnameOverridden, kl.externalCloudProvider, kl.cloud, nodeAddressesFunc),
 		nodestatus.MachineInfo(string(kl.nodeName), kl.maxPods, kl.podsPerCore, kl.GetCachedMachineInfo, kl.containerManager.GetCapacity,
 			kl.containerManager.GetDevicePluginResourceCapacity, kl.containerManager.GetNodeAllocatableReservation, kl.recordEvent, kl.supportLocalStorageCapacityIsolation()),
 		nodestatus.VersionInfo(kl.cadvisor.VersionInfo, kl.containerRuntime.Type, kl.containerRuntime.Version),
