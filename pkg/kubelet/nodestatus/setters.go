@@ -18,6 +18,7 @@ package nodestatus
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	cloudprovider "k8s.io/cloud-provider"
 	cloudproviderapi "k8s.io/cloud-provider/api"
@@ -65,7 +67,6 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 	externalCloudProvider bool, // typically Kubelet.externalCloudProvider
 	cloud cloudprovider.Interface, // typically Kubelet.cloud
 	nodeAddressesFunc func() ([]v1.NodeAddress, error), // typically Kubelet.cloudResourceSyncManager.NodeAddresses
-	resolveAddressFunc func(net.IP) (net.IP, error), // typically k8s.io/apimachinery/pkg/util/net.ResolveBindAddress
 ) Setter {
 	var nodeIP, secondaryNodeIP net.IP
 	if len(nodeIPs) > 0 {
@@ -129,15 +130,12 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 			if len(node.Status.Addresses) > 0 {
 				return nil
 			}
-			// If nodeIPs are not set wait for the external cloud-provider to set the node addresses.
-			// If the nodeIP is the unspecified address 0.0.0.0 or ::, then use the IP of the default gateway of
-			// the corresponding IP family to bootstrap the node until the out-of-tree provider overrides it later.
-			// xref: https://github.com/kubernetes/kubernetes/issues/125348
+			// If nodeIPs are not specified wait for the external cloud-provider to set the node addresses.
 			// Otherwise uses them on the assumption that the installer/administrator has the previous knowledge
 			// required to ensure the external cloud provider will use the same addresses to avoid the issues explained
 			// in https://github.com/kubernetes/kubernetes/issues/120720.
 			// We are already hinting the external cloud provider via the annotation AnnotationAlphaProvidedIPAddr.
-			if nodeIP == nil {
+			if !nodeIPSpecified {
 				node.Status.Addresses = []v1.NodeAddress{
 					{Type: v1.NodeHostName, Address: hostname},
 				}
@@ -225,7 +223,7 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 				}
 
 				if ipAddr == nil {
-					ipAddr, err = resolveAddressFunc(nodeIP)
+					ipAddr, err = utilnet.ResolveBindAddress(nodeIP)
 				}
 			}
 
@@ -313,6 +311,8 @@ func MachineInfo(nodeName string,
 				// and event is recorded or neither should happen, see issue #6055.
 				recordEventFunc(v1.EventTypeWarning, events.NodeRebooted,
 					fmt.Sprintf("Node %s has been rebooted, boot id: %s", nodeName, info.BootID))
+				j, _ := json.Marshal(node.Status.NodeInfo)
+				klog.Infof("Node %s has been rebooted, NodeInfo(%s)", nodeName, j)
 			}
 			node.Status.NodeInfo.BootID = info.BootID
 
@@ -324,7 +324,6 @@ func MachineInfo(nodeName string,
 					node.Status.Capacity[v1.ResourceEphemeralStorage] = v
 				}
 			}
-			//}
 
 			devicePluginCapacity, devicePluginAllocatable, removedDevicePlugins = devicePluginResourceCapacityFunc()
 			for k, v := range devicePluginCapacity {
