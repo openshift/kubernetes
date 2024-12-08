@@ -4181,6 +4181,11 @@ func (in *PodSecurityContext) DeepCopyInto(out *PodSecurityContext) {
 		*out = new(AppArmorProfile)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.SELinuxChangePolicy != nil {
+		in, out := &in.SELinuxChangePolicy, &out.SELinuxChangePolicy
+		*out = new(PodSELinuxChangePolicy)
+		**out = **in
+	}
 	return
 }
 
@@ -4362,6 +4367,11 @@ func (in *PodSpec) DeepCopyInto(out *PodSpec) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.Resources != nil {
+		in, out := &in.Resources, &out.Resources
+		*out = new(ResourceRequirements)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
