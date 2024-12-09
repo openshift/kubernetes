@@ -148,7 +148,7 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 			cloudNodeAddresses, err := nodeAddressesFunc()
 			if err != nil {
 				klog.Errorf("could not fetch address with nodeAddressFunc: %v", err)
-				return nil
+				// fall through to the next line
 			}
 
 			nodeAddresses, err := cloudprovidernodeutil.GetNodeAddressesFromNodeIPLegacy(nodeIP, cloudNodeAddresses)
