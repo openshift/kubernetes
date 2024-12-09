@@ -1,6 +1,7 @@
 package openshiftkubeapiserver
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/quota/v1/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -120,6 +122,7 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		go openshiftAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
 	})
+    //TODO: prevent this from running when auth type is OIDC
 	genericConfig.AddPostStartHookOrDie("openshift.io-oauth-apiserver-reachable", func(context genericapiserver.PostStartHookContext) error {
 		go oauthAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
@@ -176,6 +179,16 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 		OpenshiftUserInformers:     userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 		OpenshiftConfigInformers:   configv1informer.NewSharedInformerFactory(configClient, defaultInformerResyncPeriod),
 	}
+
+	// we should avoid causing oauth-apiserver served informers from running when
+	// authentication type is OIDC due to the oauth-apiserver being shut down.
+	auth, err := configClient.ConfigV1().Authentications().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err == nil {
+		if auth.Spec.Type == "OIDC" {
+			return ret, nil
+		}
+	}
+
 	if err := ret.OpenshiftUserInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
 	}); err != nil {
@@ -195,12 +208,15 @@ type kubeAPIServerInformers struct {
 func (i *kubeAPIServerInformers) getOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.OpenshiftQuotaInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {
 	return i.OpenshiftSecurityInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.OpenshiftUserInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftInfraInformers() configv1informer.SharedInformerFactory {
 	return i.OpenshiftConfigInformers
 }
