@@ -147,12 +147,14 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 		if cloud != nil {
 			cloudNodeAddresses, err := nodeAddressesFunc()
 			if err != nil {
-				return err
+				klog.Errorf("could not fetch address with nodeAddressFunc: %v", err)
+				return nil
 			}
 
 			nodeAddresses, err := cloudprovidernodeutil.GetNodeAddressesFromNodeIPLegacy(nodeIP, cloudNodeAddresses)
 			if err != nil {
-				return err
+				klog.Errorf("could not fetch address with GetNodeAddressesFromNodeIPLegacy: %v", err)
+				return nil
 			}
 
 			switch {
@@ -231,7 +233,9 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 
 			if ipAddr == nil {
 				// We tried everything we could, but the IP address wasn't fetchable; error out
-				return fmt.Errorf("can't get ip address of node %s. error: %v", node.Name, err)
+				err := fmt.Errorf("can't get ip address of node %s. error: %v", node.Name, err)
+				klog.Errorf("ipAddr is nil: %v", err)
+				return nil
 			}
 			node.Status.Addresses = []v1.NodeAddress{
 				{Type: v1.NodeInternalIP, Address: ipAddr.String()},
@@ -250,6 +254,7 @@ func hasAddressType(addresses []v1.NodeAddress, addressType v1.NodeAddressType) 
 	}
 	return false
 }
+
 func hasAddressValue(addresses []v1.NodeAddress, addressValue string) bool {
 	for _, address := range addresses {
 		if address.Address == addressValue {
