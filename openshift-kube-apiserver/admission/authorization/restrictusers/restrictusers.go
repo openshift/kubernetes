@@ -18,6 +18,7 @@ import (
 
 	userv1 "github.com/openshift/api/user/v1"
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
@@ -45,13 +46,16 @@ type restrictUsersAdmission struct {
 	roleBindingRestrictionsGetter authorizationtypedclient.RoleBindingRestrictionsGetter
 	userClient                    userclient.Interface
 	kubeClient                    kubernetes.Interface
+	configClient                  configclient.Interface
 	groupCache                    GroupCache
 }
 
-var _ = admissionrestconfig.WantsRESTClientConfig(&restrictUsersAdmission{})
-var _ = WantsUserInformer(&restrictUsersAdmission{})
-var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
-var _ = admission.ValidationInterface(&restrictUsersAdmission{})
+var (
+	_ = admissionrestconfig.WantsRESTClientConfig(&restrictUsersAdmission{})
+	_ = WantsUserInformer(&restrictUsersAdmission{})
+	_ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
+	_ = admission.ValidationInterface(&restrictUsersAdmission{})
+)
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.
@@ -84,9 +88,31 @@ func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Confi
 		utilruntime.HandleError(err)
 		return
 	}
+
+    // OpenQuestion: Does this get configured before SetUserInformer is called?
+    q.configClient, err = configclient.NewForConfig(&restClientConfig)
+    if err != nil {
+        utilruntime.HandleError(err)
+        return
+    }
+}
+
+// TODO: a better implementation where we don't make a live request every time
+func (q *restrictUsersAdmission) isAuthTypeOIDC() bool {
+    auth, err := q.configClient.ConfigV1().Authentications().Get(context.TODO(), "cluster",metav1.GetOptions{})
+    if err == nil {
+        return auth.Spec.Type == "OIDC"
+    }
+    return false
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
+    // if the authentication type is OIDC, meaning external OIDC provider(s)
+    // have been configured, the oauth-apiserver is not running and thus
+    // the Group API is not served.
+    if q.isAuthTypeOIDC() {
+        return
+    }
 	q.groupCache = usercache.NewGroupCache(userInformers.User().V1().Groups())
 }
 
@@ -116,7 +142,6 @@ func subjectsDelta(elementsToIgnore, elements []rbac.Subject) []rbac.Subject {
 // each subject in the binding must be matched by some rolebinding restriction
 // in the namespace.
 func (q *restrictUsersAdmission) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
-
 	// We only care about rolebindings
 	if a.GetResource().GroupResource() != rbac.Resource("rolebindings") {
 		return nil
@@ -178,8 +203,22 @@ func (q *restrictUsersAdmission) Validate(ctx context.Context, a admission.Attri
 		return nil
 	}
 
+    isAuthOIDC := q.isAuthTypeOIDC()
+
 	checkers := []SubjectChecker{}
 	for _, rbr := range roleBindingRestrictionList.Items {
+        // if the auth type is OIDC, the oauth-apiserver is down and as such
+        // we cannot properly evaluate the user and/or group subjects. Fail fast
+        // if the RBR has user and/or group restrictions applied if auth type is OIDC
+        if isAuthOIDC {
+            if rbr.Spec.UserRestriction != nil {
+                return admission.NewForbidden(a,errors.New("auth type is OIDC and rolebinding restriction specifies user restrictions. Unable to get user information due to OIDC configuration, rejecting"))
+            }
+
+            if rbr.Spec.GroupRestriction != nil {
+                return admission.NewForbidden(a, errors.New("auth type is OIDC and rolebinding restriction specifies group restrictions. Unable to get group information due to OIDC configuration, rejecting"))
+            }
+        }
 		checker, err := NewSubjectChecker(&rbr.Spec)
 		if err != nil {
 			return admission.NewForbidden(a, fmt.Errorf("could not create rolebinding restriction subject checker: %v", err))
@@ -226,7 +265,8 @@ func (q *restrictUsersAdmission) ValidateInitialization() error {
 	if q.userClient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires an OpenShift user client")
 	}
-	if q.groupCache == nil {
+    // Only worry about the group cache if authentication type is not OIDC
+	if q.groupCache == nil && !q.isAuthTypeOIDC() {
 		return errors.New("RestrictUsersAdmission plugin requires a group cache")
 	}
 
