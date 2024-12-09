@@ -137,7 +137,8 @@ func NodeAddress(nodeIPs []net.IP, // typically Kubelet.nodeIPs
 			// required to ensure the external cloud provider will use the same addresses to avoid the issues explained
 			// in https://github.com/kubernetes/kubernetes/issues/120720.
 			// We are already hinting the external cloud provider via the annotation AnnotationAlphaProvidedIPAddr.
-			if nodeIP == nil {
+			// if nodeIP == nil {
+			if !nodeIPSpecified {
 				node.Status.Addresses = []v1.NodeAddress{
 					{Type: v1.NodeHostName, Address: hostname},
 				}
@@ -324,7 +325,6 @@ func MachineInfo(nodeName string,
 					node.Status.Capacity[v1.ResourceEphemeralStorage] = v
 				}
 			}
-			//}
 
 			devicePluginCapacity, devicePluginAllocatable, removedDevicePlugins = devicePluginResourceCapacityFunc()
 			for k, v := range devicePluginCapacity {
