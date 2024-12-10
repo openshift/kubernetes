@@ -2280,14 +2280,13 @@ func TestSchedulerSchedulePod(t *testing.T) {
 				),
 				tf.RegisterBindPlugin(defaultbinder.Name, defaultbinder.New),
 			},
-			wantNodes: sets.New("node2"),
-			// since this case has no score plugin, we'll only try to find one node in Filter stage
 			nodes: []*v1.Node{
 				{ObjectMeta: metav1.ObjectMeta{Name: "node1", Labels: map[string]string{"kubernetes.io/hostname": "node1"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "node2", Labels: map[string]string{"kubernetes.io/hostname": "node2"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "node3", Labels: map[string]string{"kubernetes.io/hostname": "node3"}}},
 			},
-			pod: st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
+			pod:       st.MakePod().Name("test-prefilter").UID("test-prefilter").Obj(),
+			wantNodes: sets.New("node2"),
 			// since this case has no score plugin, we'll only try to find one node in Filter stage
 			wantEvaluatedNodes: ptr.To[int32](1),
 		},
