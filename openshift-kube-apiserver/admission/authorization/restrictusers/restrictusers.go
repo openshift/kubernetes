@@ -5,23 +5,28 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
+	configv1 "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	configv1informer "github.com/openshift/client-go/config/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/authncache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 )
 
@@ -37,6 +42,11 @@ type GroupCache interface {
 	HasSynced() bool
 }
 
+type AuthnCache interface {
+	Authn() (*configv1.Authentication, error)
+	HasSynced() bool
+}
+
 // restrictUsersAdmission implements admission.ValidateInterface and enforces
 // restrictions on adding rolebindings in a project to permit only designated
 // subjects.
@@ -46,8 +56,9 @@ type restrictUsersAdmission struct {
 	roleBindingRestrictionsGetter authorizationtypedclient.RoleBindingRestrictionsGetter
 	userClient                    userclient.Interface
 	kubeClient                    kubernetes.Interface
-	configClient                  configclient.Interface
+	groupCacheFunc                func() (GroupCache, error)
 	groupCache                    GroupCache
+	authnCache                    AuthnCache
 }
 
 var (
@@ -88,32 +99,39 @@ func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Confi
 		utilruntime.HandleError(err)
 		return
 	}
-
-    // OpenQuestion: Does this get configured before SetUserInformer is called?
-    q.configClient, err = configclient.NewForConfig(&restClientConfig)
-    if err != nil {
-        utilruntime.HandleError(err)
-        return
-    }
 }
 
-// TODO: a better implementation where we don't make a live request every time
-func (q *restrictUsersAdmission) isAuthTypeOIDC() bool {
-    auth, err := q.configClient.ConfigV1().Authentications().Get(context.TODO(), "cluster",metav1.GetOptions{})
-    if err == nil {
-        return auth.Spec.Type == "OIDC"
-    }
-    return false
+func (q *restrictUsersAdmission) isAuthTypeOIDC() (bool, error) {
+	err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+		return q.authnCache.HasSynced(), nil
+	})
+	if err != nil {
+		return false, errors.New("authentications.config.openshift.io cache is not synchronized")
+	}
+
+	auth, err := q.authnCache.Authn()
+	if err == nil && auth != nil {
+		return auth.Spec.Type == configv1.AuthenticationTypeOIDC, nil
+	}
+	return false, err
+}
+
+func (q *restrictUsersAdmission) SetConfigInformer(configInformer configv1informer.SharedInformerFactory) {
+	q.authnCache = authncache.NewAuthnCache(configInformer.Config().V1().Authentications())
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
-    // if the authentication type is OIDC, meaning external OIDC provider(s)
-    // have been configured, the oauth-apiserver is not running and thus
-    // the Group API is not served.
-    if q.isAuthTypeOIDC() {
-        return
-    }
-	q.groupCache = usercache.NewGroupCache(userInformers.User().V1().Groups())
+	// defer the allocation of the group cache until later in the process so we can
+	// ensure we aren't creating informers for the Group resources if the authentication
+	// type is OIDC.
+	q.groupCacheFunc = func() (GroupCache, error) {
+		if err := userInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+		}); err != nil {
+			return nil, err
+		}
+		return usercache.NewGroupCache(userInformers.User().V1().Groups()), nil
+	}
 }
 
 // subjectsDelta returns the relative complement of elementsToIgnore in
@@ -203,27 +221,39 @@ func (q *restrictUsersAdmission) Validate(ctx context.Context, a admission.Attri
 		return nil
 	}
 
-    isAuthOIDC := q.isAuthTypeOIDC()
+	isAuthOIDC, err := q.isAuthTypeOIDC()
+	if err != nil {
+		return admission.NewForbidden(a, fmt.Errorf("could not determine if authentication type is OIDC: %v", err))
+	}
 
 	checkers := []SubjectChecker{}
 	for _, rbr := range roleBindingRestrictionList.Items {
-        // if the auth type is OIDC, the oauth-apiserver is down and as such
-        // we cannot properly evaluate the user and/or group subjects. Fail fast
-        // if the RBR has user and/or group restrictions applied if auth type is OIDC
-        if isAuthOIDC {
-            if rbr.Spec.UserRestriction != nil {
-                return admission.NewForbidden(a,errors.New("auth type is OIDC and rolebinding restriction specifies user restrictions. Unable to get user information due to OIDC configuration, rejecting"))
-            }
+		// if the auth type is OIDC, the oauth-apiserver is down and as such
+		// we cannot properly evaluate the user and/or group subjects. Fail fast
+		// if the RBR has user and/or group restrictions applied if auth type is OIDC
+		if isAuthOIDC {
+			if rbr.Spec.UserRestriction != nil {
+				return admission.NewForbidden(a, errors.New("authentication type is OIDC and rolebinding restriction specifies user restrictions. Unable to get user information due to OIDC configuration, rejecting"))
+			}
 
-            if rbr.Spec.GroupRestriction != nil {
-                return admission.NewForbidden(a, errors.New("auth type is OIDC and rolebinding restriction specifies group restrictions. Unable to get group information due to OIDC configuration, rejecting"))
-            }
-        }
+			if rbr.Spec.GroupRestriction != nil {
+				return admission.NewForbidden(a, errors.New("authentication type is OIDC and rolebinding restriction specifies group restrictions. Unable to get group information due to OIDC configuration, rejecting"))
+			}
+		}
 		checker, err := NewSubjectChecker(&rbr.Spec)
 		if err != nil {
 			return admission.NewForbidden(a, fmt.Errorf("could not create rolebinding restriction subject checker: %v", err))
 		}
 		checkers = append(checkers, checker)
+	}
+
+	// If auth type is OIDC, we should never create checkers for the user/group restrictions
+	// so it should be ok to provide a nil group cache
+	if !isAuthOIDC && q.groupCache == nil && q.groupCacheFunc != nil {
+		q.groupCache, err = q.groupCacheFunc()
+		if err != nil {
+			return admission.NewForbidden(a, fmt.Errorf("could not create group cache: %v", err))
+		}
 	}
 
 	roleBindingRestrictionContext, err := newRoleBindingRestrictionContext(ns,
@@ -265,8 +295,10 @@ func (q *restrictUsersAdmission) ValidateInitialization() error {
 	if q.userClient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires an OpenShift user client")
 	}
-    // Only worry about the group cache if authentication type is not OIDC
-	if q.groupCache == nil && !q.isAuthTypeOIDC() {
+	if q.authnCache == nil {
+		return errors.New("RestrictUsersAdmission plugin requires an authentication cache")
+	}
+	if q.groupCache == nil && q.groupCacheFunc == nil {
 		return errors.New("RestrictUsersAdmission plugin requires a group cache")
 	}
 

@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
@@ -82,6 +83,8 @@ func TestAdmission(t *testing.T) {
 		kubeObjects          []runtime.Object
 		authorizationObjects []runtime.Object
 		userObjects          []runtime.Object
+
+		authnCache AuthnCache
 	}{
 		{
 			name: "ignore (allow) if subresource is nonempty",
@@ -109,6 +112,14 @@ func TestAdmission(t *testing.T) {
 						Name: "namespace",
 					},
 				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: true,
 			},
 		},
 		{
@@ -138,6 +149,14 @@ func TestAdmission(t *testing.T) {
 						Name: "namespace",
 					},
 				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: true,
 			},
 		},
 		{
@@ -173,6 +192,14 @@ func TestAdmission(t *testing.T) {
 						Name: "namespace",
 					},
 				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: true,
 			},
 		},
 		{
@@ -222,6 +249,14 @@ func TestAdmission(t *testing.T) {
 						UserRestriction: &authorizationv1.UserRestriction{},
 					},
 				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: true,
 			},
 		},
 		{
@@ -297,6 +332,14 @@ func TestAdmission(t *testing.T) {
 					},
 				},
 			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: true,
+			},
 		},
 		{
 			name: "prohibit user without a matching user literal",
@@ -348,6 +391,176 @@ func TestAdmission(t *testing.T) {
 				&userAlice,
 				&userBob,
 			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: true,
+			},
+		},
+		{
+			name:        "reject if authentication cache has not synced",
+			expectedErr: "could not determine if authentication type is OIDC: authentications.config.openshift.io cache is not synchronized",
+			object: &rbac.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "namespace",
+					Name:      "rolebinding",
+				},
+				Subjects: []rbac.Subject{
+					userAliceSubj,
+				},
+				RoleRef: rbac.RoleRef{Name: "name"},
+			},
+			oldObject: &rbac.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "namespace",
+					Name:      "rolebinding",
+				},
+				Subjects: []rbac.Subject{},
+				RoleRef:  rbac.RoleRef{Name: "name"},
+			},
+			kind:        rbac.Kind("RoleBinding").WithVersion("version"),
+			resource:    rbac.Resource("rolebindings").WithVersion("version"),
+			namespace:   "namespace",
+			subresource: "",
+			kubeObjects: []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "namespace",
+					},
+				},
+			},
+			authorizationObjects: []runtime.Object{
+				&authorizationv1.RoleBindingRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "match-users-bob",
+						Namespace: "namespace",
+					},
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationv1.UserRestriction{
+							Users: []string{userBobSubj.Name},
+						},
+					},
+				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: "",
+					},
+				},
+				hasSynced: false,
+			},
+		},
+		{
+			name:        "reject if authentication type is OIDC and RBR has user restrictions",
+			expectedErr: "authentication type is OIDC and rolebinding restriction specifies user restrictions. Unable to get user information due to OIDC configuration, rejecting",
+			object: &rbac.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "namespace",
+					Name:      "rolebinding",
+				},
+				Subjects: []rbac.Subject{
+					userAliceSubj,
+				},
+				RoleRef: rbac.RoleRef{Name: "name"},
+			},
+			oldObject: &rbac.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "namespace",
+					Name:      "rolebinding",
+				},
+				Subjects: []rbac.Subject{},
+				RoleRef:  rbac.RoleRef{Name: "name"},
+			},
+			kind:        rbac.Kind("RoleBinding").WithVersion("version"),
+			resource:    rbac.Resource("rolebindings").WithVersion("version"),
+			namespace:   "namespace",
+			subresource: "",
+			kubeObjects: []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "namespace",
+					},
+				},
+			},
+			authorizationObjects: []runtime.Object{
+				&authorizationv1.RoleBindingRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "match-users-bob",
+						Namespace: "namespace",
+					},
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						UserRestriction: &authorizationv1.UserRestriction{
+							Users: []string{userBobSubj.Name},
+						},
+					},
+				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+					},
+				},
+				hasSynced: true,
+			},
+		},
+		{
+			name:        "reject if authentication type is OIDC and RBR has group restrictions",
+			expectedErr: "authentication type is OIDC and rolebinding restriction specifies group restrictions. Unable to get group information due to OIDC configuration, rejecting",
+			object: &rbac.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "namespace",
+					Name:      "rolebinding",
+				},
+				Subjects: []rbac.Subject{
+					userAliceSubj,
+				},
+				RoleRef: rbac.RoleRef{Name: "name"},
+			},
+			oldObject: &rbac.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "namespace",
+					Name:      "rolebinding",
+				},
+				Subjects: []rbac.Subject{},
+				RoleRef:  rbac.RoleRef{Name: "name"},
+			},
+			kind:        rbac.Kind("RoleBinding").WithVersion("version"),
+			resource:    rbac.Resource("rolebindings").WithVersion("version"),
+			namespace:   "namespace",
+			subresource: "",
+			kubeObjects: []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "namespace",
+					},
+				},
+			},
+			authorizationObjects: []runtime.Object{
+				&authorizationv1.RoleBindingRestriction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "match-users-bob",
+						Namespace: "namespace",
+					},
+					Spec: authorizationv1.RoleBindingRestrictionSpec{
+						GroupRestriction: &authorizationv1.GroupRestriction{
+							Groups: []string{"foo", "bar"},
+						},
+					},
+				},
+			},
+			authnCache: &fakeAuthnCache{
+				authn: &configv1.Authentication{
+					Spec: configv1.AuthenticationSpec{
+						Type: configv1.AuthenticationTypeOIDC,
+					},
+				},
+				hasSynced: true,
+			},
 		},
 	}
 
@@ -368,6 +581,7 @@ func TestAdmission(t *testing.T) {
 		plugin.(*restrictUsersAdmission).roleBindingRestrictionsGetter = fakeAuthorizationClient.AuthorizationV1()
 		plugin.(*restrictUsersAdmission).userClient = fakeUserClient
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
+		plugin.(*restrictUsersAdmission).authnCache = tc.authnCache
 
 		err = admission.ValidateInitialization(plugin)
 		if err != nil {

@@ -1,7 +1,6 @@
 package openshiftkubeapiserver
 
 import (
-	"context"
 	"os"
 	"time"
 
@@ -22,16 +21,13 @@ import (
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/quota/v1/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoinformers "k8s.io/client-go/informers"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/managednode"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/managementcpusoverride"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
@@ -70,7 +66,7 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 
 	*pluginInitializers = append(*pluginInitializers,
 		imagepolicy.NewInitializer(imagereferencemutators.KubeImageMutators{}, enablement.OpenshiftConfig().ImagePolicyConfig.InternalRegistryHostname),
-		restrictusers.NewInitializer(openshiftInformers.getOpenshiftUserInformers()),
+		restrictusers.NewInitializer(openshiftInformers.getOpenshiftUserInformers(), openshiftInformers.getOpenshiftInfraInformers()),
 		sccadmission.NewInitializer(openshiftInformers.getOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints()),
 		clusterresourcequota.NewInitializer(
 			openshiftInformers.getOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
@@ -122,7 +118,10 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		go openshiftAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
 	})
-    //TODO: prevent this from running when auth type is OIDC
+    // TODO: Should we skip this post start hook when external OIDC is enabled?
+    // it seems like the worst case scenario is that this logs an error if a connection
+    // is not able to happen and returns true. In theory could wrap the connection check with a pre-check
+    // that just returns true if authentication type is OIDC.
 	genericConfig.AddPostStartHookOrDie("openshift.io-oauth-apiserver-reachable", func(context genericapiserver.PostStartHookContext) error {
 		go oauthAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
@@ -180,21 +179,6 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 		OpenshiftConfigInformers:   configv1informer.NewSharedInformerFactory(configClient, defaultInformerResyncPeriod),
 	}
 
-	// we should avoid causing oauth-apiserver served informers from running when
-	// authentication type is OIDC due to the oauth-apiserver being shut down.
-	auth, err := configClient.ConfigV1().Authentications().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	if err == nil {
-		if auth.Spec.Type == "OIDC" {
-			return ret, nil
-		}
-	}
-
-	if err := ret.OpenshiftUserInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
-		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
-	}); err != nil {
-		return nil, err
-	}
-
 	return ret, nil
 }
 
@@ -208,15 +192,12 @@ type kubeAPIServerInformers struct {
 func (i *kubeAPIServerInformers) getOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.OpenshiftQuotaInformers
 }
-
 func (i *kubeAPIServerInformers) getOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {
 	return i.OpenshiftSecurityInformers
 }
-
 func (i *kubeAPIServerInformers) getOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.OpenshiftUserInformers
 }
-
 func (i *kubeAPIServerInformers) getOpenshiftInfraInformers() configv1informer.SharedInformerFactory {
 	return i.OpenshiftConfigInformers
 }
