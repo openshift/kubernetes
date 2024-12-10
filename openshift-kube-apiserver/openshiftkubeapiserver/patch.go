@@ -118,10 +118,10 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		go openshiftAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
 	})
-    // TODO: Should we skip this post start hook when external OIDC is enabled?
-    // it seems like the worst case scenario is that this logs an error if a connection
-    // is not able to happen and returns true. In theory could wrap the connection check with a pre-check
-    // that just returns true if authentication type is OIDC.
+	// TODO: Should we skip this post start hook when external OIDC is enabled?
+	// it seems like the worst case scenario is that this logs an error if a connection
+	// is not able to happen and returns true. In theory could wrap the connection check with a pre-check
+	// that just returns true if authentication type is OIDC.
 	genericConfig.AddPostStartHookOrDie("openshift.io-oauth-apiserver-reachable", func(context genericapiserver.PostStartHookContext) error {
 		go oauthAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
@@ -192,12 +192,15 @@ type kubeAPIServerInformers struct {
 func (i *kubeAPIServerInformers) getOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.OpenshiftQuotaInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {
 	return i.OpenshiftSecurityInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.OpenshiftUserInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftInfraInformers() configv1informer.SharedInformerFactory {
 	return i.OpenshiftConfigInformers
 }
