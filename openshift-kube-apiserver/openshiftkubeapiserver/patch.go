@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy"
 	"github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/imagereferencemutators"
 	"github.com/openshift/apiserver-library-go/pkg/admission/quota/clusterresourcequota"
@@ -21,6 +22,7 @@ import (
 	"github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig"
 	"github.com/openshift/library-go/pkg/apiserver/apiserverconfig"
 	"github.com/openshift/library-go/pkg/quota/clusterquotamapping"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/quota/v1/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -28,6 +30,7 @@ import (
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/authncache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/managednode"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/managementcpusoverride"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
@@ -118,11 +121,22 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		go openshiftAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
 	})
-	// TODO: Should we skip this post start hook when external OIDC is enabled?
-	// it seems like the worst case scenario is that this logs an error if a connection
-	// is not able to happen and returns true. In theory could wrap the connection check with a pre-check
-	// that just returns true if authentication type is OIDC.
 	genericConfig.AddPostStartHookOrDie("openshift.io-oauth-apiserver-reachable", func(context genericapiserver.PostStartHookContext) error {
+		authnCache := authncache.NewAuthnCache(openshiftInformers.OpenshiftConfigInformers.Config().V1().Authentications())
+		err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
+			return authnCache.HasSynced(), nil
+		})
+		if err == nil {
+			auth, err := authnCache.Authn()
+			if err == nil && auth != nil {
+				if auth.Spec.Type == configv1.AuthenticationTypeOIDC {
+					// skip the oauthAPIServiceReachabilityCheck if OIDC
+					// has been configured since the oauth apiserver will be down.
+					return nil
+				}
+			}
+		}
+
 		go oauthAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
 	})
