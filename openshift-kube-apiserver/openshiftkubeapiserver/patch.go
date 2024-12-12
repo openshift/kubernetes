@@ -110,7 +110,26 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 	// END HANDLER CHAIN
 
 	openshiftAPIServiceReachabilityCheck := newOpenshiftAPIServiceReachabilityCheck(genericConfig.PublicAddress)
-	oauthAPIServiceReachabilityCheck := newOAuthPIServiceReachabilityCheck(genericConfig.PublicAddress)
+
+    oauthAPIServiceTerminationCondition := func() (bool, string) {
+		authnCache := authncache.NewAuthnCache(openshiftInformers.OpenshiftConfigInformers.Config().V1().Authentications())
+		err := wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+			return authnCache.HasSynced(), nil
+		})
+		if err == nil {
+			auth, err := authnCache.Authn()
+			if err == nil && auth != nil {
+				if auth.Spec.Type == configv1.AuthenticationTypeOIDC {
+					// skip the oauthAPIServiceReachabilityCheck if OIDC
+					// has been configured since the oauth apiserver will be down.
+					return true, "authentication type is OIDC, meaning no oauth-apiserver is deployed. Skipping oauth-apiserver availability check"
+				}
+			}
+		}
+        return false, ""
+    }
+	oauthAPIServiceReachabilityCheck := newOAuthAPIServiceReachabilityCheck(genericConfig.PublicAddress, oauthAPIServiceTerminationCondition)
+
 	genericConfig.ReadyzChecks = append(genericConfig.ReadyzChecks, openshiftAPIServiceReachabilityCheck, oauthAPIServiceReachabilityCheck)
 
 	genericConfig.AddPostStartHookOrDie("openshift.io-startkubeinformers", func(context genericapiserver.PostStartHookContext) error {
@@ -122,21 +141,6 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 		return nil
 	})
 	genericConfig.AddPostStartHookOrDie("openshift.io-oauth-apiserver-reachable", func(context genericapiserver.PostStartHookContext) error {
-		authnCache := authncache.NewAuthnCache(openshiftInformers.OpenshiftConfigInformers.Config().V1().Authentications())
-		err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
-			return authnCache.HasSynced(), nil
-		})
-		if err == nil {
-			auth, err := authnCache.Authn()
-			if err == nil && auth != nil {
-				if auth.Spec.Type == configv1.AuthenticationTypeOIDC {
-					// skip the oauthAPIServiceReachabilityCheck if OIDC
-					// has been configured since the oauth apiserver will be down.
-					return nil
-				}
-			}
-		}
-
 		go oauthAPIServiceReachabilityCheck.checkForConnection(context)
 		return nil
 	})

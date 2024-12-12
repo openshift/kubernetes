@@ -19,24 +19,27 @@ import (
 )
 
 func newOpenshiftAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP) *aggregatedAPIServiceAvailabilityCheck {
-	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-apiserver", "api")
+	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-apiserver", "api", nil)
 }
 
-func newOAuthPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP) *aggregatedAPIServiceAvailabilityCheck {
-	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-oauth-apiserver", "api")
+func newOAuthAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP, terminationCondition terminationConditionFunc) *aggregatedAPIServiceAvailabilityCheck {
+	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-oauth-apiserver", "api", terminationCondition)
 }
 
-// if the API service is not found, then this check returns quickly.
+// if the API service is not found or the termination condition is met, then this check returns quickly.
 // if the endpoint is not accessible within 60 seconds, we report ready no matter what
 // otherwise, wait for up to 60 seconds to be able to reach the apiserver
-func newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP, namespace, service string) *aggregatedAPIServiceAvailabilityCheck {
+func newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP, namespace, service string, terminationCondition terminationConditionFunc) *aggregatedAPIServiceAvailabilityCheck {
 	return &aggregatedAPIServiceAvailabilityCheck{
 		done:                          make(chan struct{}),
 		ipForKubernetesDefaultService: ipForKubernetesDefaultService,
 		namespace:                     namespace,
 		serviceName:                   service,
+		terminationCondition:          terminationCondition,
 	}
 }
+
+type terminationConditionFunc func() (bool, string)
 
 type aggregatedAPIServiceAvailabilityCheck struct {
 	// done indicates that this check is complete (success or failure) and the check should return true
@@ -50,6 +53,11 @@ type aggregatedAPIServiceAvailabilityCheck struct {
 	namespace string
 	// serviceName is used to get a list of endpoints to directly dial
 	serviceName string
+
+	// terminationCondition is used to determine if conditions are met
+	// to terminate the availability check early. If the conditions are met,
+	// it is expected that true and a message is returned to be logged.
+	terminationCondition terminationConditionFunc
 }
 
 func (c *aggregatedAPIServiceAvailabilityCheck) Name() string {
@@ -75,6 +83,14 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 		close(waitUntilCh) // this stops the endpoint check
 		close(c.done)      // once this method is done, the ready check should return true
 	}()
+
+	if c.terminationCondition != nil {
+		if ok, msg := c.terminationCondition(); ok {
+			klog.V(2).Infof("%s early termination condition met: %s", c.Name(), msg)
+			return
+		}
+	}
+
 	start := time.Now()
 
 	kubeClient, err := kubernetes.NewForConfig(context.LoopbackClientConfig)
