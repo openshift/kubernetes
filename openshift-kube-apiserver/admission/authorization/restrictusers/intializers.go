@@ -3,11 +3,12 @@ package restrictusers
 import (
 	"k8s.io/apiserver/pkg/admission"
 
+	configv1informer "github.com/openshift/client-go/config/informers/externalversions"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 )
 
-func NewInitializer(userInformer userinformer.SharedInformerFactory) admission.PluginInitializer {
-	return &localInitializer{userInformer: userInformer}
+func NewInitializer(userInformer userinformer.SharedInformerFactory, configInformer configv1informer.SharedInformerFactory) admission.PluginInitializer {
+	return &localInitializer{userInformer: userInformer, configInformer: configInformer}
 }
 
 type WantsUserInformer interface {
@@ -15,8 +16,13 @@ type WantsUserInformer interface {
 	admission.InitializationValidator
 }
 
+type WantsConfigInformer interface {
+	SetConfigInformer(configv1informer.SharedInformerFactory)
+}
+
 type localInitializer struct {
-	userInformer userinformer.SharedInformerFactory
+	userInformer   userinformer.SharedInformerFactory
+	configInformer configv1informer.SharedInformerFactory
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -24,5 +30,9 @@ type localInitializer struct {
 func (i *localInitializer) Initialize(plugin admission.Interface) {
 	if wants, ok := plugin.(WantsUserInformer); ok {
 		wants.SetUserInformer(i.userInformer)
+	}
+
+	if wants, ok := plugin.(WantsConfigInformer); ok {
+		wants.SetConfigInformer(i.configInformer)
 	}
 }
