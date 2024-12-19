@@ -85,7 +85,9 @@ func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, option
 		mf, scheme, scheme,
 		json.SerializerOptions{Yaml: true, Pretty: false, Strict: true},
 	)
-	protoSerializer := protobuf.NewSerializer(scheme, scheme)
+	protoSerializer := protobuf.NewSerializerWithOptions(scheme, scheme, protobuf.SerializerOptions{
+		StreamingCollectionsEncoding: options.StreamingCollectionsEncodingToProtobuf,
+	})
 	protoRawSerializer := protobuf.NewRawSerializer(scheme, scheme)
 
 	serializers := []serializerType{
@@ -137,7 +139,8 @@ type CodecFactoryOptions struct {
 	// Pretty includes a pretty serializer along with the non-pretty one
 	Pretty bool
 
-	StreamingCollectionsEncodingToJSON bool
+	StreamingCollectionsEncodingToJSON     bool
+	StreamingCollectionsEncodingToProtobuf bool
 }
 
 // CodecFactoryOptionsMutator takes a pointer to an options struct and then modifies it.
@@ -167,6 +170,12 @@ func DisableStrict(options *CodecFactoryOptions) {
 func WithStreamingCollectionEncodingToJSON() CodecFactoryOptionsMutator {
 	return func(options *CodecFactoryOptions) {
 		options.StreamingCollectionsEncodingToJSON = true
+	}
+}
+
+func WithStreamingCollectionEncodingToProtobuf() CodecFactoryOptionsMutator {
+	return func(options *CodecFactoryOptions) {
+		options.StreamingCollectionsEncodingToProtobuf = true
 	}
 }
 
