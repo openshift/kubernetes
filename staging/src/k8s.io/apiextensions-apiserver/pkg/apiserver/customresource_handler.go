@@ -888,7 +888,9 @@ func (r *crdHandler) getOrCreateServingInfoFor(uid types.UID, name string) (*crd
 					MediaType:        "application/vnd.kubernetes.protobuf",
 					MediaTypeType:    "application",
 					MediaTypeSubType: "vnd.kubernetes.protobuf",
-					Serializer:       protobuf.NewSerializer(creator, typer),
+					Serializer: protobuf.NewSerializerWithOptions(creator, typer, protobuf.SerializerOptions{
+						StreamingCollectionsEncoding: utilfeature.DefaultFeatureGate.Enabled(features.StreamingCollectionEncodingToProtobuf),
+					}),
 					StreamSerializer: &runtime.StreamSerializerInfo{
 						Serializer: protobuf.NewRawSerializer(creator, typer),
 						Framer:     protobuf.LengthDelimitedFramer,
@@ -962,6 +964,9 @@ func (r *crdHandler) getOrCreateServingInfoFor(uid types.UID, name string) (*crd
 		var opts []serializer.CodecFactoryOptionsMutator
 		if utilfeature.DefaultFeatureGate.Enabled(features.StreamingCollectionEncodingToJSON) {
 			opts = append(opts, serializer.WithStreamingCollectionEncodingToJSON())
+		}
+		if utilfeature.DefaultFeatureGate.Enabled(features.StreamingCollectionEncodingToProtobuf) {
+			opts = append(opts, serializer.WithStreamingCollectionEncodingToProtobuf())
 		}
 		scaleScope.Serializer = serializer.NewCodecFactory(scaleConverter.Scheme(), opts...)
 		scaleScope.Kind = autoscalingv1.SchemeGroupVersion.WithKind("Scale")
