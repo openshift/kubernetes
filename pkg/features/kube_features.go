@@ -840,6 +840,10 @@ const (
 	// Enables a StatefulSet to start from an arbitrary non zero ordinal
 	StatefulSetStartOrdinal featuregate.Feature = "StatefulSetStartOrdinal"
 
+	// owner: @serathius
+	// Allow API server JSON encoder to encode collections item by item, instead of all at once.
+	StreamingCollectionEncodingToJSON featuregate.Feature = "StreamingCollectionEncodingToJSON"
+
 	// owner: @robscott
 	// kep: https://kep.k8s.io/2433
 	// alpha: v1.21
@@ -1194,6 +1198,8 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	StatefulSetAutoDeletePVC: {Default: true, PreRelease: featuregate.Beta},
 
 	StatefulSetStartOrdinal: {Default: true, PreRelease: featuregate.Beta},
+
+	StreamingCollectionEncodingToJSON: {Default: true, PreRelease: featuregate.Beta},
 
 	TopologyAwareHints: {Default: true, PreRelease: featuregate.Beta},
 
