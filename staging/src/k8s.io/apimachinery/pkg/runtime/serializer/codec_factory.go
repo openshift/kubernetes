@@ -52,7 +52,7 @@ type serializerType struct {
 func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, options CodecFactoryOptions) []serializerType {
 	jsonSerializer := json.NewSerializerWithOptions(
 		mf, scheme, scheme,
-		json.SerializerOptions{Yaml: false, Pretty: false, Strict: options.Strict},
+		json.SerializerOptions{Yaml: false, Pretty: false, Strict: options.Strict, StreamingCollectionsEncoding: options.StreamingCollectionsEncodingToJSON},
 	)
 	jsonSerializerType := serializerType{
 		AcceptContentTypes: []string{runtime.ContentTypeJSON},
@@ -73,7 +73,7 @@ func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, option
 
 	strictJSONSerializer := json.NewSerializerWithOptions(
 		mf, scheme, scheme,
-		json.SerializerOptions{Yaml: false, Pretty: false, Strict: true},
+		json.SerializerOptions{Yaml: false, Pretty: false, Strict: true, StreamingCollectionsEncoding: options.StreamingCollectionsEncodingToJSON},
 	)
 	jsonSerializerType.StrictSerializer = strictJSONSerializer
 
@@ -136,6 +136,8 @@ type CodecFactoryOptions struct {
 	Strict bool
 	// Pretty includes a pretty serializer along with the non-pretty one
 	Pretty bool
+
+	StreamingCollectionsEncodingToJSON bool
 }
 
 // CodecFactoryOptionsMutator takes a pointer to an options struct and then modifies it.
@@ -160,6 +162,12 @@ func EnableStrict(options *CodecFactoryOptions) {
 // DisableStrict disables configuring all serializers in strict mode
 func DisableStrict(options *CodecFactoryOptions) {
 	options.Strict = false
+}
+
+func WithStreamingCollectionEncodingToJSON() CodecFactoryOptionsMutator {
+	return func(options *CodecFactoryOptions) {
+		options.StreamingCollectionsEncodingToJSON = true
+	}
 }
 
 // NewCodecFactory provides methods for retrieving serializers for the supported wire formats
