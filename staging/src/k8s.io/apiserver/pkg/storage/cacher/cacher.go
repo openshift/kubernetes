@@ -661,6 +661,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 	}
 
 	addedWatcher := false
+	fmt.Printf("#### 1n groupResource=%v \n", c.groupResource)
 	func() {
 		c.Lock()
 		defer c.Unlock()
@@ -673,6 +674,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 			return
 		}
 
+		fmt.Printf("#### 1p groupResource=%v \n", c.groupResource)
 		// Update watcher.forget function once we can compute it.
 		watcher.forget = forgetWatcher(c, watcher, c.watcherIdx, scope, triggerValue, triggerSupported)
 		// Update the bookMarkAfterResourceVersion
@@ -680,12 +682,16 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 		c.watchers.addWatcher(watcher, c.watcherIdx, scope, triggerValue, triggerSupported)
 		addedWatcher = true
 
+		fmt.Printf("#### 1q groupResource=%v \n", c.groupResource)
 		// Add it to the queue only when the client support watch bookmarks.
 		if watcher.allowWatchBookmarks {
 			c.bookmarkWatchers.addWatcherThreadUnsafe(watcher)
 		}
 		c.watcherIdx++
+
+		fmt.Printf("#### 1r groupResource=%v \n", c.groupResource)
 	}()
+	fmt.Printf("#### 1s groupResource=%v \n", c.groupResource)
 
 	if !addedWatcher {
 		fmt.Printf("#### 1x groupResource=%v returning the immediate closer thing\n", c.groupResource)
@@ -696,6 +702,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 		return newImmediateCloseWatcher(), nil
 	}
 
+	fmt.Printf("#### 1y groupResource=%v \n", c.groupResource)
 	go watcher.processInterval(ctx, cacheInterval, requiredResourceVersion)
 	return watcher, nil
 }
@@ -1342,13 +1349,18 @@ func forgetWatcher(c *Cacher, w *cacheWatcher, index int, scope namespacedName, 
 		c.Lock()
 		defer c.Unlock()
 
+		fmt.Printf("#### 3a groupResource=%v \n", c.groupResource)
+
 		w.setDrainInputBufferLocked(drainWatcher)
+		fmt.Printf("#### 3b groupResource=%v \n", c.groupResource)
 
 		// It's possible that the watcher is already not in the structure (e.g. in case of
 		// simultaneous Stop() and terminateAllWatchers(), but it is safe to call stopLocked()
 		// on a watcher multiple times.
 		c.watchers.deleteWatcher(index, scope, triggerValue, triggerSupported)
+		fmt.Printf("#### 3c groupResource=%v \n", c.groupResource)
 		c.stopWatcherLocked(w)
+		fmt.Printf("#### 3d groupResource=%v \n", c.groupResource)
 	}
 }
 
