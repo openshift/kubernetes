@@ -19,6 +19,8 @@ package cacher
 import (
 	"context"
 	"fmt"
+	"os"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -119,6 +121,9 @@ func (c *cacheWatcher) ResultChan() <-chan watch.Event {
 
 // Implements watch.Interface.
 func (c *cacheWatcher) Stop() {
+	fmt.Fprintf(os.Stderr, "#### 6a groupResource=%v stop stack next\n", c.groupResource)
+	debug.PrintStack()
+	fmt.Fprintf(os.Stderr, "#### 6b groupResource=%v \n", c.groupResource)
 	c.forget(false)
 }
 
