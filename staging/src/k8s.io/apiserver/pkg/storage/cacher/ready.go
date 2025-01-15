@@ -117,6 +117,7 @@ func (r *ready) checkAndReadGeneration() (int, bool) {
 func (r *ready) set(ok bool) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+
 	if r.state == Stopped {
 		return
 	}
