@@ -10,22 +10,19 @@ var (
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
 			`\[Feature:StorageVersionAPI\]`,
-			`\[Feature:InPlacePodVerticalScaling\]`,
-			`\[Feature:ServiceCIDRs\]`,
 			`\[Feature:ClusterTrustBundle\]`,
 			`\[Feature:SELinuxMount\]`,
 			`\[FeatureGate:SELinuxMount\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
-			`\[Feature:UserNamespacesSupport\]`, // disabled Beta
 			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:VolumeAttributesClass\]`, // disabled Beta
 			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`, // Alpha feature since k8s 1.27
 			// 4.19
 			`\[Feature:PodLevelResources\]`,
-			`\[Feature:SchedulerAsyncPreemption\]`,
-			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
-			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
+			// 4.20
+			`\[Feature:OffByDefault\]`,
+			`\[Feature:CBOR\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -161,7 +158,10 @@ var (
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-38839
-			`\[sig-network\] \[Feature:Traffic Distribution\] when Service has trafficDistribution=PreferClose should route traffic to an endpoint that is close to the client`,
+			`\[sig-network\] Traffic Distribution`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-45273
+			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
@@ -174,25 +174,20 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45214
-			// Even though this feature is not GA in k/k, it will be GA in OCP 4.19, so we should fix it and unskip this test
-			`\[Feature:volumegroupsnapshot\]`,
+			// Jan will look into this
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
+			`\[Feature:SchedulerAsyncPreemption\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45273
-			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
+			// Kevin to look into this
+			`\[Feature:OrderedNamespaceDeletion\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45273
-			`\[sig-cli\] Kubectl Port forwarding Shutdown client connection while the remote stream is writing data to the port-forward connection port-forward should keep working after detect broken connection`,
+			// Requires flipping the gate in o/api after branch cut
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743447032840259
+			`\[Feature:UserNamespacesSupport\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45274
-			// https://github.com/kubernetes/kubernetes/issues/129056
-			`\[sig-node\] PodRejectionStatus Kubelet should reject pod when the node didn't have enough resource`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-45359
-			`\[Feature:RecoverVolumeExpansionFailure\]`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-46477
-			`\[sig-storage\] In-tree Volumes \[Driver: azure-file\]`,
+			// Requires flipping the gate in o/api after branch cut
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1744285107158659?thread_ts=1743190159.388209&cid=C08KA82J2JF
+			`\[FeatureGate:SELinuxChangePolicy\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -261,6 +256,11 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-38840
 			`\[sig-network\] LoadBalancers \[Feature:LoadBalancer\] .* UDP`,
 			`\[sig-network\] LoadBalancers \[Feature:LoadBalancer\] .* session affinity`,
+		},
+		"[Skipped:external]": {
+			// LoadBalancer tests in 1.31 require explicit platform-specific skips
+			// https://issues.redhat.com/browse/OCPBUGS-53249
+			`\[sig-network\] LoadBalancers \[Feature:LoadBalancer\] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on`,
 		},
 		"[Skipped:azure]": {
 			"Networking should provide Internet connection for containers", // Azure does not allow ICMP traffic to internet.
