@@ -50,7 +50,7 @@ require (
 	github.com/opencontainers/selinux v1.11.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20241028125658-76ee2532d0bf
 	github.com/openshift/api v0.0.0-20241001152557-e415140e5d5f
-	github.com/openshift/apiserver-library-go v0.0.0-20241001175710-6064b62894a6
+	github.com/openshift/apiserver-library-go v0.0.0-20241021160823-f6d544efa1ab
 	github.com/openshift/client-go v0.0.0-20241001162912-da6d55e4611f
 	github.com/openshift/library-go v0.0.0-20241107160307-0064ad7bd060
 	github.com/pkg/errors v0.9.1
