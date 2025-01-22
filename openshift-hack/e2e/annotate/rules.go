@@ -10,22 +10,18 @@ var (
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
 			`\[Feature:StorageVersionAPI\]`,
-			`\[Feature:InPlacePodVerticalScaling\]`,
-			`\[Feature:ServiceCIDRs\]`,
 			`\[Feature:ClusterTrustBundle\]`,
 			`\[Feature:SELinuxMount\]`,
 			`\[FeatureGate:SELinuxMount\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
-			`\[Feature:UserNamespacesSupport\]`, // disabled Beta
 			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:VolumeAttributesClass\]`, // disabled Beta
 			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`, // Alpha feature since k8s 1.27
 			// 4.19
 			`\[Feature:PodLevelResources\]`,
-			`\[Feature:SchedulerAsyncPreemption\]`,
-			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
-			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
+			// 4.20
+			`\[Feature:OffByDefault\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -161,7 +157,10 @@ var (
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-38839
-			`\[sig-network\] \[Feature:Traffic Distribution\] when Service has trafficDistribution=PreferClose should route traffic to an endpoint that is close to the client`,
+			`\[sig-network\] Traffic Distribution`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-45273
+			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
@@ -174,25 +173,28 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45214
-			// Even though this feature is not GA in k/k, it will be GA in OCP 4.19, so we should fix it and unskip this test
-			`\[Feature:volumegroupsnapshot\]`,
+			// jsafrane had a PR to fix this, but it got reverted. Needs rework
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743190159388209
+			`SELinuxMount`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45273
-			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
+			// Jan will look into this
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
+			`\[Feature:SchedulerAsyncPreemption\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45273
-			`\[sig-cli\] Kubectl Port forwarding Shutdown client connection while the remote stream is writing data to the port-forward connection port-forward should keep working after detect broken connection`,
+			// Ryan is working with upstream
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743423013941239
+			`\[FeatureGate:KubeletFineGrainedAuthz\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45274
-			// https://github.com/kubernetes/kubernetes/issues/129056
-			`\[sig-node\] PodRejectionStatus Kubelet should reject pod when the node didn't have enough resource`,
+			// Requires flipping the gate in o/api after branch cut
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743447032840259
+			`\[Feature:UserNamespacesSupport\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45359
-			`\[Feature:RecoverVolumeExpansionFailure\]`,
+			// Kevin to look into this
+			`\[Feature:OrderedNamespaceDeletion\]`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-46477
-			`\[sig-storage\] In-tree Volumes \[Driver: azure-file\]`,
+			// Asked Joel Smith to take a look
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743781791943209
+			`\[sig-node\] Pod InPlace Resize Container \[FeatureGate:InPlacePodVerticalScaling\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
