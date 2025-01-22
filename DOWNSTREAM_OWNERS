@@ -8,8 +8,8 @@ filters:
     - deads2k
     - jerpeter1
     - p0lyn0mial
-    - soltysh
     - tkashem
+    - benluddy
 
     # Approvers are limited to the team that manages rebases and pays the price for carries that are introduced
     approvers:
@@ -17,8 +17,8 @@ filters:
     - deads2k
     - jerpeter1
     - p0lyn0mial
-    - soltysh
     - tkashem
+    - benluddy
 
   "^\\.go.(mod|sum)$":
     labels:
