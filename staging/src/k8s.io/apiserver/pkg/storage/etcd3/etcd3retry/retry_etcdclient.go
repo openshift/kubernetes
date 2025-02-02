@@ -2,6 +2,8 @@ package etcd3retry
 
 import (
 	"context"
+	"k8s.io/apiserver/pkg/audit"
+	"strings"
 	"time"
 
 	etcdrpc "go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -153,6 +155,8 @@ func OnError(ctx context.Context, backoff wait.Backoff, retriable func(error) (s
 	var retry bool
 	var retryCounter int
 	err := backoffWithRequestContext(ctx, backoff, func() (bool, error) {
+		startTime := time.Now()
+
 		err := fn()
 		if retry {
 			klog.V(1).Infof("etcd retry - counter: %v, lastErrLabel: %s lastError: %v, error: %v", retryCounter, lastErrLabel, lastErr, err)
@@ -160,6 +164,12 @@ func OnError(ctx context.Context, backoff wait.Backoff, retriable func(error) (s
 		}
 		if err == nil {
 			return true, nil
+		}
+
+		// add an audit annotation if we hit a no leader condition so we can track this failure in post-processing CI steps.
+		// We only mark the first time through.  Hopefully there's enough traffic that it doesn't matter
+		if strings.Contains(err.Error(), "no leader") {
+			audit.AddAuditAnnotation(ctx, "apiserver.internal.openshift.io/no-leader", startTime.Format(time.RFC3339))
 		}
 
 		lastErrLabel, retry = retriable(err)

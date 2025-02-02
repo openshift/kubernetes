@@ -158,7 +158,7 @@ func writeLatencyToAnnotation(ctx context.Context, ev *auditinternal.Event) {
 	// of the given request exceeds 500ms, this is in keeping with the
 	// traces in rest/handlers for create, delete, update,
 	// get, list, and deletecollection.
-	const threshold = 500 * time.Millisecond
+	const threshold = 0 * time.Millisecond
 	latency := ev.StageTimestamp.Time.Sub(ev.RequestReceivedTimestamp.Time)
 	if latency <= threshold {
 		return
