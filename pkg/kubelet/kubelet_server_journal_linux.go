@@ -52,6 +52,16 @@ func getLoggingCmd(n *nodeLogQuery, services []string) (cmd string, args []strin
 	if n.TailLines != nil {
 		args = append(args, "--pager-end", fmt.Sprintf("--lines=%d", *n.TailLines))
 	}
+
+	var output string
+	if len(n.Format) > 0 {
+		output = n.Format
+	} else {
+		output = "short-precise"
+	}
+
+	args = append(args, fmt.Sprintf("--output=%s", output))
+
 	for _, service := range services {
 		if len(service) > 0 {
 			args = append(args, "--unit="+service)
