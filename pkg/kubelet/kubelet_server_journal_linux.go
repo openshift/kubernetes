@@ -66,19 +66,7 @@ func getLoggingCmd(n *nodeLogQuery, services []string) (cmd string, args []strin
 		args = append(args, "--boot", fmt.Sprintf("%d", *n.Boot))
 	}
 
-<<<<<<< HEAD
-	var output string
-	if len(n.Format) > 0 {
-		output = n.Format
-	} else {
-		output = "short-precise"
-	}
-	args = append(args, fmt.Sprintf("--output=%s", output))
-
-	return "journalctl", args, nil
-=======
 	return "journalctl", args, nil, nil
->>>>>>> v1.29.13
 }
 
 // checkForNativeLogger checks journalctl output for a service
