@@ -3,6 +3,7 @@ package customresourcevalidationregistration
 import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/apirequestcount"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/staticpodoperator"
 
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/apiserver"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/authentication"
@@ -45,6 +46,7 @@ var AllCustomResourceValidators = []string{
 	node.PluginName,
 	route.DefaultingPluginName,
 	route.PluginName,
+	staticpodoperator.PluginName,
 
 	// the kubecontrollermanager operator resource has to exist in order to run deployments to deploy admission webhooks.
 	kubecontrollermanager.PluginName,
@@ -66,6 +68,7 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	operator.Register(plugins)
 	scheduler.Register(plugins)
 	kubecontrollermanager.Register(plugins)
+	staticpodoperator.Register(plugins)
 
 	// This plugin validates the quota.openshift.io/v1 ClusterResourceQuota resources.
 	// NOTE: This is only allowed because it is required to get a running control plane operator.
