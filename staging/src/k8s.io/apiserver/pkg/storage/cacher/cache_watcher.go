@@ -124,15 +124,20 @@ func (c *cacheWatcher) Stop() {
 
 // we rely on the fact that stopLocked is actually protected by Cacher.Lock()
 func (c *cacheWatcher) stopLocked() {
+	fmt.Printf("#### 4a groupResource=%v \n", c.groupResource)
 	if !c.stopped {
+		fmt.Printf("#### 4b groupResource=%v \n", c.groupResource)
 		c.stopped = true
 		// stop without draining the input channel was requested.
 		if !c.drainInputBuffer {
+			fmt.Printf("#### 4c groupResource=%v \n", c.groupResource)
 			close(c.done)
 		}
+		fmt.Printf("#### 4d groupResource=%v \n", c.groupResource)
 		close(c.input)
 	}
 
+	fmt.Printf("#### 4e groupResource=%v \n", c.groupResource)
 	// Even if the watcher was already stopped, if it previously was
 	// using draining mode and it's not using it now we need to
 	// close the done channel now. Otherwise we could leak the
@@ -140,8 +145,10 @@ func (c *cacheWatcher) stopLocked() {
 	// into result channel, the channel will be full and there will
 	// already be noone on the processing the events on the receiving end.
 	if !c.drainInputBuffer && !c.isDoneChannelClosedLocked() {
+		fmt.Printf("#### 4f groupResource=%v \n", c.groupResource)
 		close(c.done)
 	}
+	fmt.Printf("#### 4g groupResource=%v \n", c.groupResource)
 }
 
 func (c *cacheWatcher) nonblockingAdd(event *watchCacheEvent) bool {
