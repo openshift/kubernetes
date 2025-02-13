@@ -994,7 +994,7 @@ func TestCertificateIdentifier(t *testing.T) {
 		{
 			name:               "client cert",
 			cert:               getCert(t, clientCNCert),
-			expectedIdentifier: "SN=1, SKID=FB:77:D6:D0:84:A8:10:DF:FA:4E:A4:E0:F1:2A:BB:B4:80:FD:4F:3F, AKID=D3:07:CD:72:E6:BE:0A:5A:D8:E9:60:20:AF:C2:F2:36:7E:33:62:0B",
+			expectedIdentifier: "CN=client_cn, Issuer=ROOT CA, SN=1, SKID=FB:77:D6:D0:84:A8:10:DF:FA:4E:A4:E0:F1:2A:BB:B4:80:FD:4F:3F, AKID=D3:07:CD:72:E6:BE:0A:5A:D8:E9:60:20:AF:C2:F2:36:7E:33:62:0B",
 		},
 		{
 			name: "nil serial",
@@ -1003,7 +1003,7 @@ func TestCertificateIdentifier(t *testing.T) {
 				c.SerialNumber = nil
 				return c
 			}(),
-			expectedIdentifier: "SN=<nil>, SKID=FB:77:D6:D0:84:A8:10:DF:FA:4E:A4:E0:F1:2A:BB:B4:80:FD:4F:3F, AKID=D3:07:CD:72:E6:BE:0A:5A:D8:E9:60:20:AF:C2:F2:36:7E:33:62:0B",
+			expectedIdentifier: "CN=client_cn, Issuer=ROOT CA, SN=<nil>, SKID=FB:77:D6:D0:84:A8:10:DF:FA:4E:A4:E0:F1:2A:BB:B4:80:FD:4F:3F, AKID=D3:07:CD:72:E6:BE:0A:5A:D8:E9:60:20:AF:C2:F2:36:7E:33:62:0B",
 		},
 		{
 			name: "empty SKID",
@@ -1012,7 +1012,7 @@ func TestCertificateIdentifier(t *testing.T) {
 				c.SubjectKeyId = nil
 				return c
 			}(),
-			expectedIdentifier: "SN=1, SKID=, AKID=D3:07:CD:72:E6:BE:0A:5A:D8:E9:60:20:AF:C2:F2:36:7E:33:62:0B",
+			expectedIdentifier: "CN=client_cn, Issuer=ROOT CA, SN=1, SKID=, AKID=D3:07:CD:72:E6:BE:0A:5A:D8:E9:60:20:AF:C2:F2:36:7E:33:62:0B",
 		},
 		{
 			name: "empty AKID",
@@ -1021,12 +1021,12 @@ func TestCertificateIdentifier(t *testing.T) {
 				c.AuthorityKeyId = nil
 				return c
 			}(),
-			expectedIdentifier: "SN=1, SKID=FB:77:D6:D0:84:A8:10:DF:FA:4E:A4:E0:F1:2A:BB:B4:80:FD:4F:3F, AKID=",
+			expectedIdentifier: "CN=client_cn, Issuer=ROOT CA, SN=1, SKID=FB:77:D6:D0:84:A8:10:DF:FA:4E:A4:E0:F1:2A:BB:B4:80:FD:4F:3F, AKID=",
 		},
 		{
 			name:               "self-signed",
 			cert:               getCert(t, selfSignedCert),
-			expectedIdentifier: "SN=654708847004117259890317394342561449606220871090, SKID=56:A5:55:02:8C:97:FD:1E:A0:B8:DE:EF:5E:95:F0:AC:A6:23:6F:16, AKID=56:A5:55:02:8C:97:FD:1E:A0:B8:DE:EF:5E:95:F0:AC:A6:23:6F:16",
+			expectedIdentifier: "CN=self1, Issuer=self1, SN=654708847004117259890317394342561449606220871090, SKID=56:A5:55:02:8C:97:FD:1E:A0:B8:DE:EF:5E:95:F0:AC:A6:23:6F:16, AKID=56:A5:55:02:8C:97:FD:1E:A0:B8:DE:EF:5E:95:F0:AC:A6:23:6F:16",
 		},
 	}
 
