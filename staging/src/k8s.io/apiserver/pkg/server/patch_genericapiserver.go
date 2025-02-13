@@ -217,6 +217,24 @@ func WithLateConnectionFilter(handler http.Handler) http.Handler {
 	})
 }
 
+// WithRequestHeaders logs every non-probe request and logs interesting request headers.
+func WithRequestHeaders(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
+			if accept, ok := r.Header["Accept"]; ok {
+				audit.AddAuditAnnotation(r.Context(), "openshift.io/request-header-accept", strings.Join(accept, ","))
+			}
+			if accept_encoding, ok := r.Header["Accept-Encoding"]; ok {
+				audit.AddAuditAnnotation(r.Context(), "openshift.io/request-header-accept-encoding", strings.Join(accept_encoding, ","))
+			}
+			if content_length, ok := r.Header["Content-Length"]; ok {
+				audit.AddAuditAnnotation(r.Context(), "openshift.io/request-header-content-length", strings.Join(content_length, ","))
+			}
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
 // WithNonReadyRequestLogging rejects the request until the process has been ready once.
 func WithNonReadyRequestLogging(handler http.Handler, hasBeenReadySignal lifecycleSignal) http.Handler {
 	if hasBeenReadySignal == nil {
