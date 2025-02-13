@@ -256,11 +256,9 @@ func TestValidateConfigNodeForMinimumKubeletVersion(t *testing.T) {
 				},
 			}
 			v := &configNodeV1{
-				nodeLister: fakeNodeLister(testCase.nodes),
-				waitForReady: func() func() bool {
-					return func() bool {
-						return true
-					}
+				nodeListerFn: fakeNodeLister(testCase.nodes),
+				waitForNodeInformerSyncedFn: func() bool {
+					return true
 				},
 				minimumKubeletVersionEnabled: true,
 			}

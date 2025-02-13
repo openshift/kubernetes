@@ -39,22 +39,22 @@ const PluginName = "config.openshift.io/ValidateConfigNodeV1"
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
 	plugins.Register(PluginName, func(config io.Reader) (admission.Interface, error) {
-		ret := &validateCustomResourceWithNodeLister{}
+		ret := &configNodeV1Wrapper{}
 		delegate, err := customresourcevalidation.NewValidator(
 			map[schema.GroupResource]bool{
 				configv1.Resource("nodes"): true,
 			},
 			map[schema.GroupVersionKind]customresourcevalidation.ObjectValidator{
 				configv1.GroupVersion.WithKind("Node"): &configNodeV1{
-					nodeLister:                   ret.getNodeLister,
-					waitForReady:                 ret.getWaitForReady,
+					nodeListerFn:                 ret.getNodeLister,
+					waitForNodeInformerSyncedFn:  ret.waitForNodeInformerSyncedFn,
 					minimumKubeletVersionEnabled: feature.DefaultFeatureGate.Enabled(featuregate.Feature(openshiftfeatures.FeatureGateMinimumKubeletVersion)),
 				},
 			})
 		if err != nil {
 			return nil, err
 		}
-		ret.ValidationInterface = delegate
+		ret.delegate = delegate
 		return ret, nil
 	})
 }
@@ -77,10 +77,8 @@ func toConfigNodeV1(uncastObj runtime.Object) (*configv1.Node, field.ErrorList) 
 }
 
 type configNodeV1 struct {
-	admission.ValidationInterface
-
-	nodeLister                   func() corev1listers.NodeLister
-	waitForReady                 func() func() bool
+	nodeListerFn                 func() corev1listers.NodeLister
+	waitForNodeInformerSyncedFn  func() bool
 	minimumKubeletVersionEnabled bool
 }
 
@@ -142,13 +140,13 @@ func (c *configNodeV1) validateMinimumKubeletVersion(obj *configv1.Node) *field.
 		return nil
 	}
 	fieldPath := field.NewPath("spec", "minimumKubeletVersion")
-	if !c.waitForReady()() {
+	if !c.waitForNodeInformerSyncedFn() {
 		return field.InternalError(fieldPath, fmt.Errorf("caches not synchronized, cannot validate minimumKubeletVersion"))
 	}
 
-	nodes, err := c.nodeLister().List(labels.Everything())
+	nodes, err := c.nodeListerFn().List(labels.Everything())
 	if err != nil {
-		return field.Forbidden(fieldPath, fmt.Sprintf("Getting nodes to compare minimum version %v", err.Error()))
+		return field.NotFound(fieldPath, fmt.Sprintf("Getting nodes to compare minimum version %v", err.Error()))
 	}
 
 	if err := nodelib.ValidateMinimumKubeletVersion(nodes, obj.Spec.MinimumKubeletVersion); err != nil {
@@ -176,33 +174,45 @@ func (*configNodeV1) ValidateStatusUpdate(_ context.Context, uncastObj runtime.O
 	return errs
 }
 
-type validateCustomResourceWithNodeLister struct {
-	nodeLister corev1listers.NodeLister
-
+type configNodeV1Wrapper struct {
+	// handler is only used to know if the plugin is ready to process requests.
 	handler admission.Handler
-	admission.ValidationInterface
+
+	nodeLister corev1listers.NodeLister
+	delegate   admission.ValidationInterface
 }
 
-var _ = initializer.WantsExternalKubeInformerFactory(&validateCustomResourceWithNodeLister{})
+var (
+	_ = initializer.WantsExternalKubeInformerFactory(&configNodeV1Wrapper{})
+	_ = admission.ValidationInterface(&configNodeV1Wrapper{})
+)
 
-func (c *validateCustomResourceWithNodeLister) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+func (c *configNodeV1Wrapper) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
 	nodeInformer := kubeInformers.Core().V1().Nodes()
 	c.nodeLister = nodeInformer.Lister()
 	c.handler.SetReadyFunc(nodeInformer.Informer().HasSynced)
 }
 
-func (c *validateCustomResourceWithNodeLister) ValidateInitialization() error {
+func (c *configNodeV1Wrapper) ValidateInitialization() error {
 	if c.nodeLister == nil {
-		return fmt.Errorf("%s needs a nodes", PluginName)
+		return fmt.Errorf("%s needs a nodes lister", PluginName)
 	}
 
 	return nil
 }
 
-func (c *validateCustomResourceWithNodeLister) getNodeLister() corev1listers.NodeLister {
+func (c *configNodeV1Wrapper) getNodeLister() corev1listers.NodeLister {
 	return c.nodeLister
 }
 
-func (c *validateCustomResourceWithNodeLister) getWaitForReady() func() bool {
-	return c.handler.WaitForReady
+func (c *configNodeV1Wrapper) waitForNodeInformerSyncedFn() bool {
+	return c.handler.WaitForReady()
+}
+
+func (c *configNodeV1Wrapper) Validate(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) (err error) {
+	return c.delegate.Validate(ctx, a, o)
+}
+
+func (c *configNodeV1Wrapper) Handles(operation admission.Operation) bool {
+	return c.delegate.Handles(operation)
 }
