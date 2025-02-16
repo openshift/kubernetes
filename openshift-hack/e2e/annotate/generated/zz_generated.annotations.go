@@ -14385,6 +14385,8 @@ var Annotations = map[string]string{
 
 	"[sig-windows] [Feature:Windows] SecurityContext should be able create pods and run containers with a given username": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-windows] [Feature:Windows] SecurityContext should be able to create pod and run containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-windows] [Feature:Windows] SecurityContext should ignore Linux Specific SecurityContext if set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-windows] [Feature:Windows] SecurityContext should not be able to create pods with containers running as CONTAINERADMINISTRATOR when runAsNonRoot is true": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
