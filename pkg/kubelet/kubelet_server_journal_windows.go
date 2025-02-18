@@ -55,40 +55,30 @@ func getLoggingCmd(n *nodeLogQuery, services []string) (cmd string, args []strin
 		includeServices = append(includeServices, len(service) > 0)
 	}
 
-	args = getLoggingCmdArgs(includeSinceTime, includeUntilTime, includeTailLines, includePattern, includeServices)
+	args = getLoggingCmdArgs(n, includeSinceTime, includeUntilTime, includeTailLines, includePattern, includeServices)
 
 	return powershellExe, args, cmdEnv, nil
 }
 
 // getLoggingCmdArgs returns arguments that need to be passed to powershellExe
-func getLoggingCmdArgs(includeSinceTime, includeUntilTime, includeTailLines, includePattern bool, services []bool) (args []string) {
+func getLoggingCmdArgs(n *nodeLogQuery, includeSinceTime, includeUntilTime, includeTailLines, includePattern bool, services []bool) (args []string) {
 	args = []string{
 		"-NonInteractive",
 		"-ExecutionPolicy", "Bypass",
 		"-Command",
 	}
 
-<<<<<<< HEAD
 	psCmd := "Get-WinEvent -FilterHashtable @{LogName='Application'"
 	if len(n.Since) > 0 {
 		psCmd += fmt.Sprintf("; StartTime='%s'", n.Since)
-	} else if n.SinceTime != nil {
-		psCmd += fmt.Sprintf("; StartTime='%s'", n.SinceTime.Format(dateLayout))
+	} else if includeSinceTime {
+		psCmd += fmt.Sprintf(`; StartTime="$Env:kubelet_sinceTime"`)
 	}
 
 	if len(n.Until) > 0 {
 		psCmd += fmt.Sprintf("; EndTime='%s'", n.Until)
-	} else if n.UntilTime != nil {
-		psCmd += fmt.Sprintf("; EndTime='%s'", n.UntilTime.Format(dateLayout))
-=======
-	psCmd := `Get-WinEvent -FilterHashtable @{LogName='Application'`
-
-	if includeSinceTime {
-		psCmd += fmt.Sprintf(`; StartTime="$Env:kubelet_sinceTime"`)
-	}
-	if includeUntilTime {
+	} else if includeUntilTime {
 		psCmd += fmt.Sprintf(`; EndTime="$Env:kubelet_untilTime"`)
->>>>>>> v1.29.14
 	}
 
 	var providers []string

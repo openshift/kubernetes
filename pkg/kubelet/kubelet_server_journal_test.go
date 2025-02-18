@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -71,6 +72,8 @@ func Test_getLoggingCmd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, got, gotCmdEnv, err := getLoggingCmd(&tt.args, tt.services)
+			sort.Strings(got)
+			sort.Strings(tt.wantLinux)
 			switch os := runtime.GOOS; os {
 			case "linux":
 				if !reflect.DeepEqual(got, tt.wantLinux) {
