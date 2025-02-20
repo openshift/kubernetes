@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
@@ -48,10 +49,12 @@ type restrictUsersAdmission struct {
 	groupCache                    GroupCache
 }
 
-var _ = admissionrestconfig.WantsRESTClientConfig(&restrictUsersAdmission{})
-var _ = WantsUserInformer(&restrictUsersAdmission{})
-var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
-var _ = admission.ValidationInterface(&restrictUsersAdmission{})
+var (
+	_ = admissionrestconfig.WantsRESTClientConfig(&restrictUsersAdmission{})
+	_ = WantsUserInformer(&restrictUsersAdmission{})
+	_ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
+	_ = admission.ValidationInterface(&restrictUsersAdmission{})
+)
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.
@@ -87,6 +90,12 @@ func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Confi
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
+	if err := userInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+	}); err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 	q.groupCache = usercache.NewGroupCache(userInformers.User().V1().Groups())
 }
 
@@ -116,7 +125,6 @@ func subjectsDelta(elementsToIgnore, elements []rbac.Subject) []rbac.Subject {
 // each subject in the binding must be matched by some rolebinding restriction
 // in the namespace.
 func (q *restrictUsersAdmission) Validate(ctx context.Context, a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
-
 	// We only care about rolebindings
 	if a.GetResource().GroupResource() != rbac.Resource("rolebindings") {
 		return nil
