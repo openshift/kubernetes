@@ -368,7 +368,7 @@ func NewCacherFromConfig(config Config) (*Cacher, error) {
 	objType := reflect.TypeOf(obj)
 	cacher := &Cacher{
 		resourcePrefix: config.ResourcePrefix,
-		ready:          newReady(),
+		ready:          newReady(config.Clock),
 		storage:        config.Storage,
 		objectType:     objType,
 		groupResource:  config.GroupResource,
@@ -537,9 +537,10 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 	var readyGeneration int
 	if utilfeature.DefaultFeatureGate.Enabled(features.ResilientWatchCacheInitialization) {
 		var ok bool
-		readyGeneration, ok = c.ready.checkAndReadGeneration()
+		var downtime time.Duration
+		readyGeneration, downtime, ok = c.ready.checkAndReadGeneration()
 		if !ok {
-			return nil, errors.NewTooManyRequests("storage is (re)initializing", 1)
+			return nil, errors.NewTooManyRequests("storage is (re)initializing", calculateRetryAfterForUnreadyCache(downtime))
 		}
 	} else {
 		readyGeneration, err = c.ready.waitAndReadGeneration(ctx)
@@ -660,7 +661,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 		c.Lock()
 		defer c.Unlock()
 
-		if generation, ok := c.ready.checkAndReadGeneration(); generation != readyGeneration || !ok {
+		if generation, _, ok := c.ready.checkAndReadGeneration(); generation != readyGeneration || !ok {
 			// We went unready or are already on a different generation.
 			// Avoid registering and starting the watch as it will have to be
 			// terminated immediately anyway.
@@ -708,7 +709,8 @@ func (c *Cacher) Get(ctx context.Context, key string, opts storage.GetOptions, o
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.ResilientWatchCacheInitialization) {
-		if !c.ready.check() {
+		_, ok := c.ready.check()
+		if !ok {
 			// If Cache is not initialized, delegate Get requests to storage
 			// as described in https://kep.k8s.io/4568
 			span.AddEvent("About to Get from underlying storage - cache not initialized")
@@ -728,7 +730,8 @@ func (c *Cacher) Get(ctx context.Context, key string, opts storage.GetOptions, o
 	// of Get requests. We can add it if it will be really needed.
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.ResilientWatchCacheInitialization) {
-		if getRV == 0 && !c.ready.check() {
+		_, ok := c.ready.check()
+		if getRV == 0 && !ok {
 			// If Cacher is not yet initialized and we don't require any specific
 			// minimal resource version, simply forward the request to storage.
 			span.AddEvent("About to Get from underlying storage - cache not initialized and no resourceVersion set")
@@ -838,13 +841,15 @@ func (c *Cacher) GetList(ctx context.Context, key string, opts storage.ListOptio
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.ResilientWatchCacheInitialization) {
-		if !c.ready.check() && shouldDelegateListOnNotReadyCache(opts) {
+		_, ok := c.ready.check()
+		if !ok && shouldDelegateListOnNotReadyCache(opts) {
 			// If Cacher is not initialized, delegate List requests to storage
 			// as described in https://kep.k8s.io/4568
 			return c.storage.GetList(ctx, key, opts, listObj)
 		}
 	} else {
-		if listRV == 0 && !c.ready.check() {
+		_, ok := c.ready.check()
+		if listRV == 0 && !ok {
 			// If Cacher is not yet initialized and we don't require any specific
 			// minimal resource version, simply forward the request to storage.
 			return c.storage.GetList(ctx, key, opts, listObj)
@@ -873,10 +878,10 @@ func (c *Cacher) GetList(ctx context.Context, key string, opts storage.ListOptio
 	defer span.End(500 * time.Millisecond)
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.ResilientWatchCacheInitialization) {
-		if !c.ready.check() {
+		if downtime, ok := c.ready.check(); !ok {
 			// If Cacher is not initialized, reject List requests
 			// as described in https://kep.k8s.io/4568
-			return errors.NewTooManyRequests("storage is (re)initializing", 1)
+			return errors.NewTooManyRequests("storage is (re)initializing", calculateRetryAfterForUnreadyCache(downtime))
 		}
 	} else {
 		if err := c.ready.wait(ctx); err != nil {
@@ -991,7 +996,8 @@ func (c *Cacher) Count(pathPrefix string) (int64, error) {
 
 // ReadinessCheck implements storage.Interface.
 func (c *Cacher) ReadinessCheck() error {
-	if !c.ready.check() {
+	_, ok := c.ready.check()
+	if !ok {
 		return storage.ErrStorageNotReady
 	}
 	return nil
@@ -1473,7 +1479,11 @@ func (c *Cacher) setInitialEventsEndBookmarkIfRequested(cacheInterval *watchCach
 	}
 }
 
-// errWatcher implements watch.Interface to return a single error
+func (c *Cacher) Ready() bool {
+	_, ok := c.ready.check()
+	return ok
+}
+
 type errWatcher struct {
 	result chan watch.Event
 }
