@@ -930,6 +930,7 @@ func addLabels(metricNames sets.Set[string], volumePluginLabel string, accessMod
 
 func getDefaultContainerSELinuxLabels() (processLabel string, fileLabel string) {
 	defaultLabels := defaultSELinuxLabels[framework.TestContext.NodeOSDistro]
+	framework.Logf("JSAF got distro: %s", framework.TestContext.NodeOSDistro)
 	// This function can return "" for unknown distros!
 	// SELinux tests should be skipped on those in their ginkgo.It().
 	return defaultLabels.defaultProcessLabel, defaultLabels.defaultFileLabel
