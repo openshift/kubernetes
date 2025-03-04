@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -242,9 +243,34 @@ func (a *auditResponseWriter) processCode(code int) {
 	})
 }
 
+func (a *auditResponseWriter) Header() http.Header {
+	if a.event.Annotations == nil {
+		a.event.Annotations = map[string]string{}
+	}
+	for name, value := range a.ResponseWriter.Header() {
+		switch {
+		case name == "Content-Type":
+			a.event.Annotations["openshift.io/response-header-content-type"] = strings.Join(value, ",")
+		case name == "Content-Encoding":
+			a.event.Annotations["openshift.io/response-header-content-encoding"] = strings.Join(value, ",")
+		case name == "Content-Length":
+			a.event.Annotations["openshift.io/response-header-content-length"] = strings.Join(value, ",")
+		}
+	}
+	return a.ResponseWriter.Header()
+}
+
 func (a *auditResponseWriter) Write(bs []byte) (int, error) {
 	// the Go library calls WriteHeader internally if no code was written yet. But this will go unnoticed for us
 	a.processCode(http.StatusOK)
+	if a.event.Annotations != nil {
+		if _, ok := a.event.Annotations["openshift.io/response-header-content-length"]; !ok {
+			contentLength := len(bs)
+			if contentLength > 500 {
+				a.event.Annotations["openshift.io/response-header-content-length"] = fmt.Sprintf("%d", len(bs))
+			}
+		}
+	}
 	return a.ResponseWriter.Write(bs)
 }
 
