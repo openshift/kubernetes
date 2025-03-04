@@ -427,8 +427,6 @@ github.com/opencontainers/selinux v1.11.1 h1:nHFvthhM0qY8/m+vfhJylliSshm8G1jJ2jD
 github.com/opencontainers/selinux v1.11.1/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
 github.com/openshift-eng/openshift-tests-extension v0.0.0-20250220212757-b9c4d98a0c45 h1:hXpbYtP3iTh8oy/RKwKkcMziwchY3fIk95ciczf7cOA=
 github.com/openshift-eng/openshift-tests-extension v0.0.0-20250220212757-b9c4d98a0c45/go.mod h1:6gkP5f2HL0meusT0Aim8icAspcD1cG055xxBZ9yC68M=
-github.com/openshift/api v0.0.0-20250129162653-107848b719c5 h1:PzJJmofv/P9R1JUxO8X6tAMxKACVS6Quxo/xBzMkSmI=
-github.com/openshift/api v0.0.0-20250129162653-107848b719c5/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
 github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce h1:w0Up6YV1APcn20v/1h5IfuToz96o2pVqZyjzbw0yotU=
 github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce/go.mod h1:kkSwH4osgejnRIyHfsfkv0V0xfmgH4Yk/VDObaJukHU=
 github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c/go.mod h1:8jcm8UPtg2mCAsxfqKil1xrmRMI3a+XU2TZ9fF8A7TE=
@@ -512,6 +510,8 @@ github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcY
 github.com/xhit/go-str2duration/v2 v2.1.0/go.mod h1:ohY8p+0f07DiV6Em5LKB0s2YpLtXVyJfNt1+BlmyAsU=
 github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 h1:S2dVYn90KE98chqDkyE9Z4N61UnQd+KOfgp5Iu53llk=
 github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
+github.com/xingxingxia/api v0.0.0-20250304061700-1288fed89ed6 h1:N9wXDhdBN+EBmgvz9cLwiMjxpnZ5gJ00U4ikslGW+H4=
+github.com/xingxingxia/api v0.0.0-20250304061700-1288fed89ed6/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
 github.com/xlab/treeprint v1.2.0 h1:HzHnuAF1plUN2zGlAFHbSQP2qJ0ZAD3XF5XD7OesXRQ=
 github.com/xlab/treeprint v1.2.0/go.mod h1:gj5Gd3gPdKtR1ikdDK6fnFLdmIS0X30kTTuNd/WEJu0=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

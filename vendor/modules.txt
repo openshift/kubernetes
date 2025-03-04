@@ -504,7 +504,7 @@ github.com/openshift-eng/openshift-tests-extension/pkg/flags
 github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo
 github.com/openshift-eng/openshift-tests-extension/pkg/util/sets
 github.com/openshift-eng/openshift-tests-extension/pkg/version
-# github.com/openshift/api v0.0.0-20250129162653-107848b719c5
+# github.com/openshift/api v0.0.0-20250129162653-107848b719c5 => github.com/xingxingxia/api v0.0.0-20250304061700-1288fed89ed6
 ## explicit; go 1.23.0
 github.com/openshift/api/apiserver/v1
 github.com/openshift/api/apps/v1
@@ -1524,3 +1524,4 @@ sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 sigs.k8s.io/yaml/goyaml.v3
 # github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241205171354-8006f302fd12
+# github.com/openshift/api => github.com/xingxingxia/api v0.0.0-20250304061700-1288fed89ed6
