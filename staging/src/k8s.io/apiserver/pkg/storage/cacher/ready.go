@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	"k8s.io/apiserver/pkg/storage/cacher/metrics"
 )
 
 type status int
@@ -46,6 +48,7 @@ type ready struct {
 }
 
 func newReady() *ready {
+	metrics.RecordWatchCacheReady(false)
 	return &ready{
 		waitCh: make(chan struct{}),
 		state:  Pending,
@@ -123,6 +126,7 @@ func (r *ready) set(ok bool) {
 	if ok && r.state == Pending {
 		r.state = Ready
 		r.generation++
+		metrics.RecordWatchCacheReady(true)
 		select {
 		case <-r.waitCh:
 		default:
@@ -139,6 +143,7 @@ func (r *ready) set(ok bool) {
 		default:
 		}
 		r.state = Pending
+		metrics.RecordWatchCacheReady(false)
 	}
 }
 
@@ -148,6 +153,7 @@ func (r *ready) stop() {
 	defer r.lock.Unlock()
 	if r.state != Stopped {
 		r.state = Stopped
+		metrics.RecordWatchCacheReady(false)
 	}
 	select {
 	case <-r.waitCh:
