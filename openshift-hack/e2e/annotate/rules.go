@@ -26,7 +26,6 @@ var (
 			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
 			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
-			`\[Feature:volumegroupsnapshot\]`, // disabled Beta
 
 		},
 		// tests for features that are not implemented in openshift
@@ -159,6 +158,11 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-38839
 			`\[sig-network\] \[Feature:Traffic Distribution\] when Service has trafficDistribution=PreferClose should route traffic to an endpoint that is close to the client`,
+			
+			// Needs specific test yaml files updates done by a shell script upstream.
+			// In OCP, we implemented a separate [Driver: csi-hostpath-groupsnapshot] that is enabled
+			// and has [FeatureGate:VolumeGroupSnapshot].
+			`\[Driver: csi-hostpath\].*\[Feature:volumegroupsnapshot\]`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
