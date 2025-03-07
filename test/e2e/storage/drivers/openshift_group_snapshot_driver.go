@@ -72,7 +72,7 @@ func initGroupSnapshotHostpathCSIDriver(name string, capabilities map[storagefra
 					},
 				},
 			},
-			TestTags: []interface{}{"[OCPFeatureGate:VolumeGroupSnapshot]"},
+			TestTags: []interface{}{"[OCPFeatureGate:VolumeGroupSnapshot][FeatureGate:VolumeGroupSnapshot]"},
 		},
 		manifests:        manifests,
 		volumeAttributes: volumeAttributes,
