@@ -27,9 +27,7 @@ import (
 	clientgoinformers "k8s.io/client-go/informers"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers"
-	"k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers/usercache"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/managednode"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/autoscaling/managementcpusoverride"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/scheduler/nodeenv"
@@ -109,7 +107,8 @@ func OpenShiftKubeAPIServerConfigPatch(genericConfig *genericapiserver.Config, k
 	// END HANDLER CHAIN
 
 	openshiftAPIServiceReachabilityCheck := newOpenshiftAPIServiceReachabilityCheck(genericConfig.PublicAddress)
-	oauthAPIServiceReachabilityCheck := newOAuthPIServiceReachabilityCheck(genericConfig.PublicAddress)
+	oauthAPIServiceReachabilityCheck := newOAuthAPIServiceReachabilityCheck(genericConfig.PublicAddress)
+
 	genericConfig.ReadyzChecks = append(genericConfig.ReadyzChecks, openshiftAPIServiceReachabilityCheck, oauthAPIServiceReachabilityCheck)
 
 	genericConfig.AddPostStartHookOrDie("openshift.io-startkubeinformers", func(context genericapiserver.PostStartHookContext) error {
@@ -176,11 +175,6 @@ func newInformers(loopbackClientConfig *rest.Config) (*kubeAPIServerInformers, e
 		OpenshiftUserInformers:     userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 		OpenshiftConfigInformers:   configv1informer.NewSharedInformerFactory(configClient, defaultInformerResyncPeriod),
 	}
-	if err := ret.OpenshiftUserInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
-		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
-	}); err != nil {
-		return nil, err
-	}
 
 	return ret, nil
 }
@@ -195,12 +189,15 @@ type kubeAPIServerInformers struct {
 func (i *kubeAPIServerInformers) getOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.OpenshiftQuotaInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {
 	return i.OpenshiftSecurityInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.OpenshiftUserInformers
 }
+
 func (i *kubeAPIServerInformers) getOpenshiftInfraInformers() configv1informer.SharedInformerFactory {
 	return i.OpenshiftConfigInformers
 }
