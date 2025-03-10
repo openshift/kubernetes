@@ -17,8 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -154,49 +152,6 @@ func (c *constraint) Validate(ctx context.Context, a admission.Attributes, _ adm
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
-// these are the SCCs created by the cluster-kube-apiserver-operator.
-// see the list in https://github.com/openshift/cluster-kube-apiserver-operator/blob/3b0218cf9778cbcf2650ad5aa4e01d7b40a2d05e/bindata/bootkube/scc-manifests/0000_20_kube-apiserver-operator_00_scc-restricted.yaml
-// if these are not present, the lister isn't really finished listing.
-var standardSCCNames = sets.NewString(
-	"anyuid",
-	"hostaccess",
-	"hostmount-anyuid",
-	"hostnetwork",
-	"hostnetwork-v2",
-	"nonroot",
-	"nonroot-v2",
-	"privileged",
-	"restricted",
-	"restricted-v2",
-)
-
-func requireStandardSCCs(sccs []*securityv1.SecurityContextConstraints, err error) error {
-	if err != nil {
-		return err
-	}
-
-	allCurrentSCCNames := sets.NewString()
-	for _, curr := range sccs {
-		allCurrentSCCNames.Insert(curr.Name)
-	}
-
-	missingSCCs := standardSCCNames.Difference(allCurrentSCCNames)
-	if len(missingSCCs) == 0 {
-		return nil
-	}
-
-	return fmt.Errorf("securitycontextconstraints.security.openshift.io cache is missing %v", strings.Join(missingSCCs.List(), ", "))
-}
-
-func (c *constraint) areListersSynced() bool {
-	for _, syncFunc := range c.listersSynced {
-		if !syncFunc() {
-			return false
-		}
-	}
-	return true
-}
-
 func (c *constraint) computeSecurityContext(
 	ctx context.Context,
 	a admission.Attributes,
@@ -207,74 +162,18 @@ func (c *constraint) computeSecurityContext(
 	// get all constraints that are usable by the user
 	klog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(context.Context) (bool, error) {
-		return c.areListersSynced(), nil
-	})
+	if err := c.waitForReadyState(ctx); err != nil {
+		return nil, "", nil, admission.NewForbidden(a, err)
+	}
+
+	constraints, err := c.sccs(requiredSCCName, validatedSCCHint, specMutationAllowed)
 	if err != nil {
-		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("securitycontextconstraints.security.openshift.io cache is not synchronized"))
+		return nil, "", nil, admission.NewForbidden(a, err)
 	}
 
-	// wait a few seconds until the synchronized list returns all the required SCCs created by the kas-o.
-	// If this doesn't happen, then indicate which ones are missing.  This seems odd, but our CI system suggests that this happens occasionally.
-	// If the SCCs were all deleted, then no pod will pass SCC admission until the SCCs are recreated, but the kas-o (which recreates them)
-	// bypasses SCC admission, so this does not create a cycle.
-	var requiredSCCErr error
-	err = wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(context.Context) (bool, error) {
-		if requiredSCCErr = requireStandardSCCs(c.sccLister.List(labels.Everything())); requiredSCCErr != nil {
-			return false, nil
-		}
-		return true, nil
-	})
+	providers, err := c.providers(ctx, a, pod, constraints)
 	if err != nil {
-		if requiredSCCErr != nil {
-			return nil, "", nil, admission.NewForbidden(a, requiredSCCErr)
-		}
-		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("securitycontextconstraints.security.openshift.io required check failed oddly"))
-	}
-
-	var constraints []*securityv1.SecurityContextConstraints
-	if len(requiredSCCName) > 0 {
-		requiredSCC, err := c.sccLister.Get(requiredSCCName)
-		if err != nil {
-			return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("failed to retrieve the required SCC %q: %w", requiredSCCName, err))
-		}
-		constraints = []*securityv1.SecurityContextConstraints{requiredSCC}
-	} else {
-		constraints, err = c.sccLister.List(labels.Everything())
-		if err != nil {
-			return nil, "", nil, admission.NewForbidden(a, err)
-		}
-	}
-
-	if len(constraints) == 0 {
-		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in cluster"))
-	}
-	sort.Sort(sccsort.ByPriority(constraints))
-
-	// If mutation is not allowed and validatedSCCHint is provided, check the validated policy first.
-	// Keep the order the same for everything else
-	sort.SliceStable(constraints, func(i, j int) bool {
-		// disregard the ephemeral containers here, the rest of the pod should still
-		// not get mutated and so we are primarily interested in the SCC that matched previously
-		if !specMutationAllowed {
-			if constraints[i].Name == validatedSCCHint {
-				return true
-			}
-			if constraints[j].Name == validatedSCCHint {
-				return false
-			}
-		}
-		return i < j
-	})
-
-	providers, errs := sccmatching.CreateProvidersFromConstraints(ctx, a.GetNamespace(), constraints, c.namespaceLister)
-	logProviders(pod, providers, errs)
-	if len(errs) > 0 {
-		return nil, "", nil, kutilerrors.NewAggregate(errs)
-	}
-
-	if len(providers) == 0 {
-		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraintsProvider available to validate pod request"))
+		return nil, "", nil, err
 	}
 
 	// all containers in a single pod must validate under a single provider or we will reject the request
@@ -282,30 +181,10 @@ func (c *constraint) computeSecurityContext(
 		allowedPod       *coreapi.Pod
 		allowingProvider sccmatching.SecurityContextConstraintsProvider
 		validationErrs   field.ErrorList
-		saUserInfo       user.Info
+		sccChecker       = newSCCAuthorizationChecker(c.authorizer, a, pod.Spec.ServiceAccountName)
 	)
 
-	userInfo := a.GetUserInfo()
-	if len(pod.Spec.ServiceAccountName) > 0 {
-		saUserInfo = serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
-	}
-
-	allowedForUserOrSA := func(provider sccmatching.SecurityContextConstraintsProvider) bool {
-		sccName := provider.GetSCCName()
-		sccUsers := provider.GetSCCUsers()
-		sccGroups := provider.GetSCCGroups()
-		return sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) ||
-			(saUserInfo != nil && sccmatching.ConstraintAppliesTo(ctx, sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer))
-	}
-
-	appliesToPod := func(provider sccmatching.SecurityContextConstraintsProvider, pod *coreapi.Pod) (podCopy *coreapi.Pod, errs field.ErrorList) {
-		podCopy = pod.DeepCopy()
-		if errs := sccmatching.AssignSecurityContext(provider, podCopy, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
-			return nil, errs
-		}
-		return podCopy, nil
-	}
-
+	// loop state variables
 	var (
 		restrictedSCCProvider   sccmatching.SecurityContextConstraintsProvider
 		restrictedV2SCCProvider sccmatching.SecurityContextConstraintsProvider
@@ -314,6 +193,7 @@ func (c *constraint) computeSecurityContext(
 		failures                = map[string]string{}
 		i                       int
 	)
+
 loop:
 	for i, provider = range providers {
 		switch provider.GetSCCName() {
@@ -323,7 +203,7 @@ loop:
 			restrictedV2SCCProvider = providers[i]
 		}
 
-		if !allowedForUserOrSA(provider) {
+		if !sccChecker.allowedForUserOrSA(ctx, provider) {
 			denied = append(denied, provider.GetSCCName())
 			// this will cause every security context constraint attempted, in order, to the failure
 			validationErrs = append(validationErrs,
@@ -402,7 +282,7 @@ loop:
 		// find next provider that was not chosen
 		var nextNotChosenProvider sccmatching.SecurityContextConstraintsProvider
 		for _, provider := range providers[i+1:] {
-			if !allowedForUserOrSA(provider) {
+			if !sccChecker.allowedForUserOrSA(ctx, provider) {
 				continue
 			}
 			if _, errs := appliesToPod(provider, pod); len(errs) == 0 {
@@ -456,6 +336,14 @@ loop:
 	if !specMutationAllowed {
 		// the finally chosen SCC. Note that we are not allowed to set an annotation multiple times, hence only for !specMutationAllowed
 		a.AddAnnotation("securitycontextconstraints.admission.openshift.io/chosen", allowingProvider.GetSCCName())
+	}
+
+	if validatedSCCSubjectType := sccChecker.allowedFor(ctx, allowingProvider); validatedSCCSubjectType != "" {
+		if allowedPod.Annotations == nil {
+			allowedPod.Annotations = make(map[string]string)
+		}
+
+		allowedPod.Annotations[securityv1.ValidatedSCCSubjectTypeAnnotation] = validatedSCCSubjectType
 	}
 
 	return allowedPod, allowingProvider.GetSCCName(), validationErrs, nil
@@ -589,16 +477,176 @@ func (c *constraint) ValidateInitialization() error {
 	return nil
 }
 
-// logProviders logs what providers were found for the pod as well as any errors that were encountered
-// while creating providers.
-func logProviders(pod *coreapi.Pod, providers []sccmatching.SecurityContextConstraintsProvider, providerCreationErrs []error) {
+func (c *constraint) waitForReadyState(ctx context.Context) error {
+	const (
+		interval  = 1 * time.Second
+		timeout   = 10 * time.Second
+		immediate = true
+	)
+
+	err := wait.PollUntilContextTimeout(ctx, interval, timeout, immediate, c.areListersSynced)
+	if err != nil {
+		return fmt.Errorf("securitycontextconstraints.security.openshift.io cache is not synchronized")
+	}
+
+	// wait a few seconds until the synchronized list returns all the required SCCs created by the kas-o.
+	// If this doesn't happen, then indicate which ones are missing.  This seems odd, but our CI system suggests that this happens occasionally.
+	// If the SCCs were all deleted, then no pod will pass SCC admission until the SCCs are recreated, but the kas-o (which recreates them)
+	// bypasses SCC admission, so this does not create a cycle.
+	var requiredSCCErr error
+	err = wait.PollUntilContextTimeout(ctx, interval, timeout, immediate, func(context.Context) (bool, error) {
+		if requiredSCCErr = requireStandardSCCs(c.sccLister.List(labels.Everything())); requiredSCCErr != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err == nil {
+		return nil
+	}
+	if requiredSCCErr != nil {
+		return requiredSCCErr
+	}
+
+	// This is a wait.Interruped(err). This should be impossible, as a timeout can only happen
+	// when requiredSCCErr is set.
+	return fmt.Errorf("securitycontextconstraints.security.openshift.io required check failed oddly")
+}
+
+func (c *constraint) areListersSynced(_ context.Context) (bool, error) {
+	for _, syncFunc := range c.listersSynced {
+		if !syncFunc() {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// these are the SCCs created by the cluster-kube-apiserver-operator.
+// see the list in https://github.com/openshift/cluster-kube-apiserver-operator/blob/3b0218cf9778cbcf2650ad5aa4e01d7b40a2d05e/bindata/bootkube/scc-manifests/0000_20_kube-apiserver-operator_00_scc-restricted.yaml
+// if these are not present, the lister isn't really finished listing.
+var standardSCCNames = sets.NewString(
+	"anyuid",
+	"hostaccess",
+	"hostmount-anyuid",
+	"hostnetwork",
+	"hostnetwork-v2",
+	"nonroot",
+	"nonroot-v2",
+	"privileged",
+	"restricted",
+	"restricted-v2",
+)
+
+func requireStandardSCCs(sccs []*securityv1.SecurityContextConstraints, err error) error {
+	if err != nil {
+		return err
+	}
+
+	allCurrentSCCNames := sets.NewString()
+	for _, curr := range sccs {
+		allCurrentSCCNames.Insert(curr.Name)
+	}
+
+	missingSCCs := standardSCCNames.Difference(allCurrentSCCNames)
+	if len(missingSCCs) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("securitycontextconstraints.security.openshift.io cache is missing %v", strings.Join(missingSCCs.List(), ", "))
+}
+
+func (c *constraint) sccs(
+	requiredSCCName, validatedSCCHint string,
+	specMutationAllowed bool,
+) ([]*securityv1.SecurityContextConstraints, error) {
+	var err error
+	var constraints []*securityv1.SecurityContextConstraints
+
+	if len(requiredSCCName) > 0 {
+		requiredSCC, err := c.sccLister.Get(requiredSCCName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve the required SCC %q: %w", requiredSCCName, err)
+		}
+		constraints = []*securityv1.SecurityContextConstraints{requiredSCC}
+	} else {
+		constraints, err = c.sccLister.List(labels.Everything())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(constraints) == 0 {
+		return nil, fmt.Errorf("no SecurityContextConstraints found in cluster")
+	}
+
+	sort.Sort(sccsort.ByPriority(constraints))
+
+	// If mutation is not allowed and validatedSCCHint is provided, check the validated policy first.
+	// Keep the order the same for everything else
+	sort.SliceStable(constraints, func(i, j int) bool {
+		// disregard the ephemeral containers here, the rest of the pod should still
+		// not get mutated and so we are primarily interested in the SCC that matched previously
+		if !specMutationAllowed {
+			if constraints[i].Name == validatedSCCHint {
+				return true
+			}
+			if constraints[j].Name == validatedSCCHint {
+				return false
+			}
+		}
+		return i < j
+	})
+
+	return constraints, nil
+}
+
+func (c *constraint) providers(
+	ctx context.Context,
+	a admission.Attributes,
+	pod *coreapi.Pod,
+	constraints []*securityv1.SecurityContextConstraints,
+) ([]sccmatching.SecurityContextConstraintsProvider, error) {
+	providers, errs := sccmatching.CreateProvidersFromConstraints(
+		ctx, a.GetNamespace(),
+		constraints,
+		c.namespaceLister,
+	)
+
+	// logProviders logs what providers were found for the pod as well as any errors that were encountered
+	// while creating providers.
 	names := make([]string, len(providers))
 	for i, p := range providers {
 		names[i] = p.GetSCCName()
 	}
 	klog.V(4).Infof("validating pod %s (generate: %s) against providers %s", pod.Name, pod.GenerateName, strings.Join(names, ","))
 
-	for _, err := range providerCreationErrs {
+	for _, err := range errs {
 		klog.V(2).Infof("provider creation error: %v", err)
 	}
+
+	if len(errs) > 0 {
+		return nil, kutilerrors.NewAggregate(errs)
+	}
+
+	if len(providers) == 0 {
+		return nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraintsProvider available to validate pod request"))
+	}
+
+	return providers, nil
+}
+
+func appliesToPod(
+	provider sccmatching.SecurityContextConstraintsProvider,
+	pod *coreapi.Pod,
+) (podCopy *coreapi.Pod, errs field.ErrorList) {
+	podCopy = pod.DeepCopy()
+	if errs := sccmatching.AssignSecurityContext(
+		provider,
+		podCopy,
+		field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName())),
+	); len(errs) > 0 {
+		return nil, errs
+	}
+
+	return podCopy, nil
 }
