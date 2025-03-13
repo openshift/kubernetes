@@ -3,6 +3,7 @@ package sccmatching
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -92,19 +93,20 @@ func authorizedForSCC(ctx context.Context, sccName string, info user.Info, names
 // if it is usable by the userInfo.
 // Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
 func ConstraintAppliesTo(ctx context.Context, sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
-	for _, user := range sccUsers {
-		if userInfo.GetName() == user {
-			return true
-		}
+	if slices.Contains(sccUsers, userInfo.GetName()) {
+		return true
 	}
+
 	for _, userGroup := range userInfo.GetGroups() {
-		if constraintSupportsGroup(userGroup, sccGroups) {
+		if slices.Contains(sccGroups, userGroup) {
 			return true
 		}
 	}
+
 	if a != nil {
 		return authorizedForSCC(ctx, sccName, userInfo, namespace, a)
 	}
+
 	return false
 }
 
@@ -152,16 +154,6 @@ func assignContainerSecurityContext(provider SecurityContextConstraintsProvider,
 	return nil
 }
 
-// constraintSupportsGroup checks that group is in constraintGroups.
-func constraintSupportsGroup(group string, constraintGroups []string) bool {
-	for _, g := range constraintGroups {
-		if g == group {
-			return true
-		}
-	}
-	return false
-}
-
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
 func CreateProvidersFromConstraints(ctx context.Context, namespaceName string, sccs []*securityv1.SecurityContextConstraints, namespaceLister corev1listers.NamespaceLister) ([]SecurityContextConstraintsProvider, []error) {
@@ -176,7 +168,7 @@ func CreateProvidersFromConstraints(ctx context.Context, namespaceName string, s
 
 	// because we're willing to wait for 10s on a single request, we only use the namespace lister, not a live lookup.
 	var lastErr error
-	err := wait.PollImmediateWithContext(ctx, 1*time.Second, 10*time.Second, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
 		namespace, lastErr = namespaceLister.Get(namespaceName)
 		if lastErr != nil {
 			return false, nil
