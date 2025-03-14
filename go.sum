@@ -344,8 +344,8 @@ github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 h1:bkypFPDjIYGfCYD5mRBvpqxfYX1
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0/go.mod h1:P+Lt/0by1T8bfcF3z737NnSbmxQAppXMRziHUxPOC8k=
 github.com/hashicorp/golang-lru v0.5.4/go.mod h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=
 github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
-github.com/ibihim/apiserver-library-go v0.0.0-20250313095810-2b92db726dca h1:ECRbRlf6x/UmlVxgHxqjyBcsJ0pEo4ouSUzngk9krHA=
-github.com/ibihim/apiserver-library-go v0.0.0-20250313095810-2b92db726dca/go.mod h1:kkSwH4osgejnRIyHfsfkv0V0xfmgH4Yk/VDObaJukHU=
+github.com/ibihim/apiserver-library-go v0.0.0-20250314111732-b031590d0a23 h1:IoYvaGtuc5d4S9v+uOUpMY8f2HTZo/WCJP6CDG/z4nU=
+github.com/ibihim/apiserver-library-go v0.0.0-20250314111732-b031590d0a23/go.mod h1:kkSwH4osgejnRIyHfsfkv0V0xfmgH4Yk/VDObaJukHU=
 github.com/imdario/mergo v0.3.7/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=

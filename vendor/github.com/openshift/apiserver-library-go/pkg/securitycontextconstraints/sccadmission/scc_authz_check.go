@@ -3,11 +3,13 @@ package sccadmission
 import (
 	"context"
 
-	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccmatching"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/klog/v2"
+
+	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sccmatching"
 )
 
 type sccAuthorizationChecker struct {
@@ -57,16 +59,38 @@ func (c *sccAuthorizationChecker) allowedFor(ctx context.Context, provider sccma
 		user           = "user"
 	)
 
-	// ServiceAccounts have a higher priority than a user, as they indicate that the workloads is
-	// properly set up with the correct permissions for the ServiceAccount. It means that the PSA label
-	// syncer will be able to properly label the Namespace with the correct PodSecurityStandard.
-	if c.allowedForServiceAccount(ctx, provider) {
+	sccName := provider.GetSCCName()
+	sccUsers := provider.GetSCCUsers()
+	sccGroups := provider.GetSCCGroups()
+
+	// Detailed logging of inputs
+	klog.Infof("SCC debug [%s] - Checking authorization for:", sccName)
+	klog.Infof("SCC debug [%s] - UserInfo: Name=%s, Groups=%v", sccName, c.userInfo.GetName(), c.userInfo.GetGroups())
+	klog.Infof("SCC debug [%s] - ServiceAccount: Namespace=%s, Name=%s", sccName, c.namespace, c.serviceAccountName)
+	klog.Infof("SCC debug [%s] - SCC config: Users=%v, Groups=%v", sccName, sccUsers, sccGroups)
+
+	// Debug SA check
+	saUserInfo := serviceaccount.UserInfo(c.namespace, c.serviceAccountName, "")
+	klog.Infof("SCC debug [%s] - SA UserInfo: Name=%s, Groups=%v", sccName, saUserInfo.GetName(), saUserInfo.GetGroups())
+
+	// Now check actual authorization
+	saAllowed := c.allowedForServiceAccount(ctx, provider)
+	userAllowed := c.allowedForUser(ctx, provider)
+
+	klog.Infof("SCC debug [%s] - Authorization results: SA auth check=%v, User auth check=%v",
+		sccName, saAllowed, userAllowed)
+
+	if saAllowed {
+		klog.Infof("SCC debug [%s] - Selecting 'serviceaccount' as the subject type", sccName)
 		return serviceAccount
 	}
 
-	if c.allowedForUser(ctx, provider) {
+	if userAllowed {
+		klog.Infof("SCC debug [%s] - Selecting 'user' as the subject type", sccName)
 		return user
 	}
+
+	klog.Infof("SCC debug [%s] - No authorization found for either subject type", sccName)
 
 	return ""
 }
