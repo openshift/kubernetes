@@ -165,9 +165,6 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-7297
 			`DNS HostNetwork should resolve DNS of partial qualified names for services on hostNetwork pods with dnsPolicy`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45275
-			`\[sig-network\] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
