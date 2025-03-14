@@ -975,7 +975,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] Connectivity Pod Lifecycle should be able to connect from a Pod to a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Disabled:Unsupported] [Suite:k8s]",
 
 	"[sig-network] Conntrack proxy implementation should not be vulnerable to the invalid conntrack state bug [Privileged]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1337,7 +1337,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-network] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes": " [Disabled:Unsupported] [Suite:k8s]",
 
 	"[sig-network] Services should implement service.kubernetes.io/headless": " [Disabled:Broken] [Suite:k8s]",
 
