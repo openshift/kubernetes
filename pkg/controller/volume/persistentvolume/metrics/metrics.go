@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"encoding/json"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
@@ -184,7 +186,11 @@ func (collector *pvAndPVCCountCollector) CollectWithStability(ch chan<- metrics.
 
 func (collector *pvAndPVCCountCollector) getPVPluginName(pv *v1.PersistentVolume) string {
 	spec := volume.NewSpecFromPersistentVolume(pv, true)
-	klog.V(1).Infof("=== Spec is -> %v ===", &spec)
+	data, err := json.MarshalIndent(spec, "", "  ")
+	if err != nil {
+		klog.V(1).Infof("=== Error encoding PV: %v\n", err)
+	}
+	klog.V(1).Infof("=== Spec is -> %q ===", string(data))
 	fullPluginName := pluginNameNotAvailable
 	plugin, err := collector.pluginMgr.FindPluginBySpec(spec)
 	klog.V(1).Infof("=== Plugin is -> %v ===", plugin)
