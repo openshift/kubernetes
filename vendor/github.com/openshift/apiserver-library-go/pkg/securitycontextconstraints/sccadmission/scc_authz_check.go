@@ -35,6 +35,8 @@ func (c *sccAuthorizationChecker) allowedForUser(provider sccmatching.SecurityCo
 	sccUsers := provider.GetSCCUsers()
 	sccGroups := provider.GetSCCGroups()
 
+	klog.Infof("SCC Annotation debug - allowedForUser: userInfo: %q, sccUsers: %v, sccGroups: %v", c.userInfo.GetName(), sccUsers, sccGroups)
+
 	return sccmatching.ConstraintAppliesTo(
 		c.ctx,
 		sccName, sccUsers, sccGroups,
@@ -48,12 +50,12 @@ func (c *sccAuthorizationChecker) allowedForSA(provider sccmatching.SecurityCont
 	sccGroups := provider.GetSCCGroups()
 
 	klog.Infof(
-		"SCC Annotation debug - sccName: %q, sccUsers: %v, sccGroups: %v, serviceAccountName: %q",
+		"SCC Annotation debug - allowedForSA: %q, sccUsers: %v, sccGroups: %v, serviceAccountName: %q",
 		sccName, sccUsers, sccGroups, c.serviceAccountName,
 	)
 
 	if len(c.serviceAccountName) == 0 {
-		klog.Infof("SCC Annotation debug - serviceAccountName is empty")
+		klog.Infof("SCC Annotation debug - allowedForSA:serviceAccountName is empty")
 
 		return false
 	}
@@ -65,20 +67,20 @@ func (c *sccAuthorizationChecker) allowedForSA(provider sccmatching.SecurityCont
 		saUserInfo, c.namespace, c.authz,
 	)
 
-	klog.Infof("SCC Annotation debug - allowedForSA: %v", allowedForSA)
+	klog.Infof("SCC Annotation debug - allowedForSA: return %v", allowedForSA)
 
 	return allowedForSA
 }
 
 func (c *sccAuthorizationChecker) allowedForType(provider sccmatching.SecurityContextConstraintsProvider) string {
 	if c.allowedForSA(provider) {
-		klog.Infof("SCC Annotation debug - allowedForType: serviceAccount")
+		klog.Infof("SCC Annotation debug - allowedForType: return serviceAccount")
 
 		return "serviceAccount"
 	}
 
 	if c.allowedForUser(provider) {
-		klog.Infof("SCC Annotation debug - allowedForType: user")
+		klog.Infof("SCC Annotation debug - allowedForType: return user")
 
 		return "user"
 	}

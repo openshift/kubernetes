@@ -80,7 +80,11 @@ func authorizedForSCC(ctx context.Context, sccName string, info user.Info, names
 		Resource:        "securitycontextconstraints",
 		ResourceRequest: true,
 	}
+
 	decision, reason, err := a.Authorize(ctx, attr)
+
+	klog.Infof("SCC Annotation debug - authorizedForSCC: attr: %v => %v, reason: %v, err: %v", attr, decision, reason, err)
+
 	if err != nil {
 		klog.V(5).Infof("cannot authorize for SCC: %v %q %v", decision, reason, err)
 		return false
@@ -94,16 +98,24 @@ func authorizedForSCC(ctx context.Context, sccName string, info user.Info, names
 func ConstraintAppliesTo(ctx context.Context, sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
 	for _, user := range sccUsers {
 		if userInfo.GetName() == user {
+			klog.Infof("SCC Annotation debug - ConstraintAppliesTo: userInfo.GetName() == user (%s)", user)
+
 			return true
 		}
 	}
 	for _, userGroup := range userInfo.GetGroups() {
 		if constraintSupportsGroup(userGroup, sccGroups) {
+			klog.Infof("SCC Annotation debug - ConstraintAppliesTo: constraintSupportsGroup(%s, %v)", userGroup, sccGroups)
+
 			return true
 		}
 	}
 	if a != nil {
-		return authorizedForSCC(ctx, sccName, userInfo, namespace, a)
+		authorized := authorizedForSCC(ctx, sccName, userInfo, namespace, a)
+
+		klog.Infof("SCC Annotation debug - ConstraintAppliesTo: authorizedForSCC(%s, %s, %s, %s) => %t", sccName, userInfo.GetName(), namespace, a, authorized)
+
+		return authorized
 	}
 	return false
 }
