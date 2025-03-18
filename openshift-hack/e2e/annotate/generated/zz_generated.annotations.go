@@ -975,7 +975,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] Connectivity Pod Lifecycle should be able to connect from a Pod to a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Conntrack proxy implementation should not be vulnerable to the invalid conntrack state bug [Privileged]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
