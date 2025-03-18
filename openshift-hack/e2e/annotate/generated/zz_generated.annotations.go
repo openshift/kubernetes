@@ -213,7 +213,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] OpenAPIV3 should round trip OpenAPI V3 for all built-in group versions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should delete pod first [Feature:OrderedNamespaceDeletion] [FeatureGate:OrderedNamespaceDeletion] [Beta]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should delete pod first [Feature:OrderedNamespaceDeletion] [FeatureGate:OrderedNamespaceDeletion] [Beta]": " [Disabled:Alpha] [Suite:k8s]",
 
 	"[sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes.": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
