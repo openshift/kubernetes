@@ -83,7 +83,9 @@ func authorizedForSCC(ctx context.Context, sccName string, info user.Info, names
 
 	decision, reason, err := a.Authorize(ctx, attr)
 
-	klog.Infof("SCC Annotation debug - authorizedForSCC: attr: %v => %v, reason: %v, err: %v", attr, decision, reason, err)
+	if strings.HasPrefix(namespace, "krzys") {
+		klog.Infof("SCC Annotation debug - authorizedForSCC: attr: %+v => %v, reason: %v, err: %v", attr, decision, reason, err)
+	}
 
 	if err != nil {
 		klog.V(5).Infof("cannot authorize for SCC: %v %q %v", decision, reason, err)
@@ -98,14 +100,18 @@ func authorizedForSCC(ctx context.Context, sccName string, info user.Info, names
 func ConstraintAppliesTo(ctx context.Context, sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
 	for _, user := range sccUsers {
 		if userInfo.GetName() == user {
-			klog.Infof("SCC Annotation debug - ConstraintAppliesTo: userInfo.GetName() == user (%s)", user)
+			if strings.HasPrefix(namespace, "krzys") {
+				klog.Infof("SCC Annotation debug - ConstraintAppliesTo - %s: userInfo.GetName() == user (%s)", namespace, user)
+			}
 
 			return true
 		}
 	}
 	for _, userGroup := range userInfo.GetGroups() {
 		if constraintSupportsGroup(userGroup, sccGroups) {
-			klog.Infof("SCC Annotation debug - ConstraintAppliesTo: constraintSupportsGroup(%s, %v)", userGroup, sccGroups)
+			if strings.HasPrefix(namespace, "krzys") {
+				klog.Infof("SCC Annotation debug - ConstraintAppliesTo - %s: constraintSupportsGroup(%s, %v)", namespace, userGroup, sccGroups)
+			}
 
 			return true
 		}
@@ -113,7 +119,9 @@ func ConstraintAppliesTo(ctx context.Context, sccName string, sccUsers, sccGroup
 	if a != nil {
 		authorized := authorizedForSCC(ctx, sccName, userInfo, namespace, a)
 
-		klog.Infof("SCC Annotation debug - ConstraintAppliesTo: authorizedForSCC(%s, %s, %s, %s) => %t", sccName, userInfo.GetName(), namespace, a, authorized)
+		if strings.HasPrefix(namespace, "krzys") {
+			klog.Infof("SCC Annotation debug - ConstraintAppliesTo - %s: authorizedForSCC(%s, %s, %s) => %t", namespace, sccName, userInfo.GetName(), namespace, authorized)
+		}
 
 		return authorized
 	}

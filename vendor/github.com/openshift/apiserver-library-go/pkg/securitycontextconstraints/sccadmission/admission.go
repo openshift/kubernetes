@@ -291,6 +291,7 @@ func (c *constraint) computeSecurityContext(
 	)
 
 	sccChecker := newSCCAuthorizerChecker(ctx, c.authorizer, a, pod.Spec.ServiceAccountName)
+	sccChecker.specMutationAllowed = specMutationAllowed
 
 	appliesToPod := func(provider sccmatching.SecurityContextConstraintsProvider, pod *coreapi.Pod) (podCopy *coreapi.Pod, errs field.ErrorList) {
 		podCopy = pod.DeepCopy()

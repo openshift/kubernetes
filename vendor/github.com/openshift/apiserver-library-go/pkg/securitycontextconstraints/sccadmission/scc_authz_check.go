@@ -2,6 +2,8 @@ package sccadmission
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
@@ -18,6 +20,9 @@ type sccAuthorizationChecker struct {
 	userInfo           user.Info
 	namespace          string
 	serviceAccountName string
+
+	specMutationAllowed bool
+	logBuilder          strings.Builder
 }
 
 func newSCCAuthorizerChecker(ctx context.Context, authz authorizer.Authorizer, attr admission.Attributes, serviceAccountName string) *sccAuthorizationChecker {
@@ -30,18 +35,46 @@ func newSCCAuthorizerChecker(ctx context.Context, authz authorizer.Authorizer, a
 	}
 }
 
+func (c *sccAuthorizationChecker) addLog(message string) {
+	c.logBuilder.WriteString(message)
+	c.logBuilder.WriteRune('\n')
+}
+
+func (c *sccAuthorizationChecker) log() {
+	if !strings.HasPrefix(c.namespace, "krzys") || !c.specMutationAllowed {
+		return
+	}
+
+	c.addLog("namespace: " + c.namespace)
+	c.addLog("serviceAccountName: " + c.serviceAccountName)
+	c.addLog("userInfo.GetName(): " + c.userInfo.GetName())
+
+	klog.Infof(`SCC Annotation debug - log:
+namespace: %s
+serviceAccountName: %s
+userInfo.GetName(): %s
+%s
+`, c.namespace, c.serviceAccountName, c.userInfo.GetName(), c.logBuilder.String())
+}
+
 func (c *sccAuthorizationChecker) allowedForUser(provider sccmatching.SecurityContextConstraintsProvider) bool {
 	sccName := provider.GetSCCName()
 	sccUsers := provider.GetSCCUsers()
 	sccGroups := provider.GetSCCGroups()
 
-	klog.Infof("SCC Annotation debug - allowedForUser: userInfo: %q, sccUsers: %v, sccGroups: %v", c.userInfo.GetName(), sccUsers, sccGroups)
-
-	return sccmatching.ConstraintAppliesTo(
+	allowedForUser := sccmatching.ConstraintAppliesTo(
 		c.ctx,
 		sccName, sccUsers, sccGroups,
 		c.userInfo, c.namespace, c.authz,
 	)
+
+	c.addLog("  allowedForUser:")
+	c.addLog("    sccName: " + sccName)
+	c.addLog("    sccUsers: " + strings.Join(sccUsers, ", "))
+	c.addLog("    sccGroups: " + strings.Join(sccGroups, ", "))
+	c.addLog("    allowedForUser: " + strconv.FormatBool(allowedForUser))
+
+	return allowedForUser
 }
 
 func (c *sccAuthorizationChecker) allowedForSA(provider sccmatching.SecurityContextConstraintsProvider) bool {
@@ -49,14 +82,12 @@ func (c *sccAuthorizationChecker) allowedForSA(provider sccmatching.SecurityCont
 	sccUsers := provider.GetSCCUsers()
 	sccGroups := provider.GetSCCGroups()
 
-	klog.Infof(
-		"SCC Annotation debug - allowedForSA: %q, sccUsers: %v, sccGroups: %v, serviceAccountName: %q",
-		sccName, sccUsers, sccGroups, c.serviceAccountName,
-	)
+	c.addLog("  allowedForSA:")
+	c.addLog("    sccName: " + sccName)
+	c.addLog("    sccUsers: " + strings.Join(sccUsers, ", "))
+	c.addLog("    sccGroups: " + strings.Join(sccGroups, ", "))
 
 	if len(c.serviceAccountName) == 0 {
-		klog.Infof("SCC Annotation debug - allowedForSA:serviceAccountName is empty")
-
 		return false
 	}
 
@@ -67,21 +98,20 @@ func (c *sccAuthorizationChecker) allowedForSA(provider sccmatching.SecurityCont
 		saUserInfo, c.namespace, c.authz,
 	)
 
-	klog.Infof("SCC Annotation debug - allowedForSA: return %v", allowedForSA)
+	c.addLog("    allowedForSA: " + strconv.FormatBool(allowedForSA))
 
 	return allowedForSA
 }
 
 func (c *sccAuthorizationChecker) allowedForType(provider sccmatching.SecurityContextConstraintsProvider) string {
-	if c.allowedForSA(provider) {
-		klog.Infof("SCC Annotation debug - allowedForType: return serviceAccount")
+	defer c.log()
+	c.addLog("allowedForType:")
 
+	if c.allowedForSA(provider) {
 		return "serviceAccount"
 	}
 
 	if c.allowedForUser(provider) {
-		klog.Infof("SCC Annotation debug - allowedForType: return user")
-
 		return "user"
 	}
 
@@ -89,5 +119,8 @@ func (c *sccAuthorizationChecker) allowedForType(provider sccmatching.SecurityCo
 }
 
 func (c *sccAuthorizationChecker) allowedForUserOrSA(provider sccmatching.SecurityContextConstraintsProvider) bool {
+	defer c.log()
+	c.addLog("allowedForUserOrSA:")
+
 	return c.allowedForUser(provider) || c.allowedForSA(provider)
 }
