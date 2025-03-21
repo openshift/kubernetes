@@ -637,6 +637,7 @@ func (pm *VolumePluginMgr) FindPluginBySpec(spec *Spec) (VolumePlugin, error) {
 
 	var match VolumePlugin
 	matchedPluginNames := []string{}
+	klog.V(1).Infof("=== pm.plugins is -> %v ===", pm.plugins)
 	for _, v := range pm.plugins {
 		if v.CanSupport(spec) {
 			match = v
@@ -645,6 +646,7 @@ func (pm *VolumePluginMgr) FindPluginBySpec(spec *Spec) (VolumePlugin, error) {
 	}
 
 	pm.refreshProbedPlugins()
+	klog.V(1).Infof("=== pm.probedPlugins is -> %v ===", pm.probedPlugins)
 	for _, plugin := range pm.probedPlugins {
 		if plugin.CanSupport(spec) {
 			match = plugin
@@ -721,12 +723,18 @@ func (pm *VolumePluginMgr) refreshProbedPlugins() {
 // error
 func (pm *VolumePluginMgr) FindPersistentPluginBySpec(spec *Spec) (PersistentVolumePlugin, error) {
 	volumePlugin, err := pm.FindPluginBySpec(spec)
+	klog.V(1).Infof("=== volumePlugin -> %s ===", volumePlugin)
 	if err != nil {
+		klog.V(1).Infof("=== volumePluginErr -> %v ===", err)
 		return nil, fmt.Errorf("could not find volume plugin for spec: %#v", spec)
 	}
-	if persistentVolumePlugin, ok := volumePlugin.(PersistentVolumePlugin); ok {
+	persistentVolumePlugin, ok := volumePlugin.(PersistentVolumePlugin)
+	klog.V(1).Infof("=== persistentVolumePlugin -> %s ===", persistentVolumePlugin.GetPluginName())
+	if ok {
+		klog.V(1).Infof("=== persistentVolumePlugin is -> %v ===", persistentVolumePlugin)
 		return persistentVolumePlugin, nil
 	}
+	klog.V(1).Info("=== no persistent volume plugin matched ===")
 	return nil, fmt.Errorf("no persistent volume plugin matched")
 }
 
