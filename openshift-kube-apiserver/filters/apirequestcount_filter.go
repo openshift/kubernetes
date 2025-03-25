@@ -2,9 +2,11 @@ package filters
 
 import (
 	"net/http"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	versioninfo "k8s.io/component-base/version"
 	"k8s.io/kubernetes/openshift-kube-apiserver/filters/apirequestcount"
@@ -29,19 +31,21 @@ func WithAPIRequestCountLogging(handler http.Handler, requestLogger apirequestco
 		}
 		timestamp, ok := request.ReceivedTimestampFrom(req.Context())
 		if !ok {
-			return
+			timestamp = time.Now()
 		}
-		user, ok := request.UserFrom(req.Context())
+		u, ok := request.UserFrom(req.Context())
 		if !ok {
-			return
+			u = unknownUser
 		}
 		requestLogger.LogRequest(
 			gvr,
 			timestamp,
-			user.GetName(),
+			u.GetName(),
 			req.UserAgent(),
 			info.Verb,
 		)
 	})
 	return handlerFunc
 }
+
+var unknownUser = &user.DefaultInfo{Name: "Unknown"}
