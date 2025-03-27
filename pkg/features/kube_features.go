@@ -1722,13 +1722,13 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 	ServiceAccountTokenNodeBinding: {
 		{Version: version.MustParse("1.29"), Default: false, PreRelease: featuregate.Alpha},
 		{Version: version.MustParse("1.31"), Default: true, PreRelease: featuregate.Beta},
-		{Version: version.MustParse("1.33"), Default: true, PreRelease: featuregate.GA, LockToDefault: true},
+		{Version: version.MustParse("1.33"), Default: true, PreRelease: featuregate.GA, LockToDefault: false},
 	},
 
 	ServiceAccountTokenNodeBindingValidation: {
 		{Version: version.MustParse("1.29"), Default: false, PreRelease: featuregate.Alpha},
 		{Version: version.MustParse("1.30"), Default: true, PreRelease: featuregate.Beta},
-		{Version: version.MustParse("1.32"), Default: true, PreRelease: featuregate.GA, LockToDefault: true},
+		{Version: version.MustParse("1.32"), Default: true, PreRelease: featuregate.GA, LockToDefault: false},
 	},
 
 	ServiceAccountTokenPodNodeInfo: {
