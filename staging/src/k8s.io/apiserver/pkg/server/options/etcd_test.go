@@ -262,17 +262,6 @@ func TestParseWatchCacheSizes(t *testing.T) {
 	}
 }
 
-func excludeEtcdReadyzChecks(readyzChecks []string) []string {
-	includedReadyzChecks := []string{}
-	for _, checkName := range readyzChecks {
-		if checkName == "etcd" || checkName == "etcd-readiness" {
-			continue
-		}
-		includedReadyzChecks = append(includedReadyzChecks, checkName)
-	}
-	return includedReadyzChecks
-}
-
 func TestKMSHealthzEndpoint(t *testing.T) {
 	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.KMSv1, true)
 
@@ -378,9 +367,7 @@ func TestKMSHealthzEndpoint(t *testing.T) {
 			}
 
 			healthChecksAreEqual(t, tc.wantHealthzChecks, serverConfig.HealthzChecks, "healthz")
-			// Remove the excluded checks here to reduce the carry patch changes in case
-			// the changes drifts too much during rebases and similar scope-like changes.
-			healthChecksAreEqual(t, excludeEtcdReadyzChecks(tc.wantReadyzChecks), serverConfig.ReadyzChecks, "readyz")
+			healthChecksAreEqual(t, tc.wantReadyzChecks, serverConfig.ReadyzChecks, "readyz")
 			healthChecksAreEqual(t, tc.wantLivezChecks, serverConfig.LivezChecks, "livez")
 		})
 	}
@@ -420,9 +407,7 @@ func TestReadinessCheck(t *testing.T) {
 				t.Fatalf("Failed to add healthz error: %v", err)
 			}
 
-			// Remove the excluded checks here to reduce the carry patch changes in case
-			// the changes drifts too much during rebases and similar scope-like changes.
-			healthChecksAreEqual(t, excludeEtcdReadyzChecks(tc.wantReadyzChecks), serverConfig.ReadyzChecks, "readyz")
+			healthChecksAreEqual(t, tc.wantReadyzChecks, serverConfig.ReadyzChecks, "readyz")
 			healthChecksAreEqual(t, tc.wantHealthzChecks, serverConfig.HealthzChecks, "healthz")
 			healthChecksAreEqual(t, tc.wantLivezChecks, serverConfig.LivezChecks, "livez")
 		})

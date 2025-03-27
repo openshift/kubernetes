@@ -38,6 +38,17 @@ func (specs ExtensionTestSpecs) Select(selectFn SelectFunction) ExtensionTestSpe
 	return filtered
 }
 
+// MustSelect filters the ExtensionTestSpecs to only those that match the provided SelectFunction.
+// if no specs are selected, it will throw an error
+func (specs ExtensionTestSpecs) MustSelect(selectFn SelectFunction) (ExtensionTestSpecs, error) {
+	filtered := specs.Select(selectFn)
+	if len(filtered) == 0 {
+		return filtered, fmt.Errorf("no specs selected with specified SelectFunctions")
+	}
+
+	return filtered, nil
+}
+
 // SelectAny filters the ExtensionTestSpecs to only those that match any of the provided SelectFunctions
 func (specs ExtensionTestSpecs) SelectAny(selectFns []SelectFunction) ExtensionTestSpecs {
 	filtered := ExtensionTestSpecs{}
@@ -51,6 +62,17 @@ func (specs ExtensionTestSpecs) SelectAny(selectFns []SelectFunction) ExtensionT
 	}
 
 	return filtered
+}
+
+// MustSelectAny filters the ExtensionTestSpecs to only those that match any of the provided SelectFunctions.
+// if no specs are selected, it will throw an error
+func (specs ExtensionTestSpecs) MustSelectAny(selectFns []SelectFunction) (ExtensionTestSpecs, error) {
+	filtered := specs.SelectAny(selectFns)
+	if len(filtered) == 0 {
+		return filtered, fmt.Errorf("no specs selected with specified SelectFunctions")
+	}
+
+	return filtered, nil
 }
 
 // SelectAll filters the ExtensionTestSpecs to only those that match all the provided SelectFunctions
@@ -70,6 +92,17 @@ func (specs ExtensionTestSpecs) SelectAll(selectFns []SelectFunction) ExtensionT
 	}
 
 	return filtered
+}
+
+// MustSelectAll filters the ExtensionTestSpecs to only those that match all the provided SelectFunctions.
+// if no specs are selected, it will throw an error
+func (specs ExtensionTestSpecs) MustSelectAll(selectFns []SelectFunction) (ExtensionTestSpecs, error) {
+	filtered := specs.SelectAll(selectFns)
+	if len(filtered) == 0 {
+		return filtered, fmt.Errorf("no specs selected with specified SelectFunctions")
+	}
+
+	return filtered, nil
 }
 
 // NameContains returns a function that selects specs whose name contains the provided string

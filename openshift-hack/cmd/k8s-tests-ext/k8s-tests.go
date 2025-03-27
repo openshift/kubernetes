@@ -5,14 +5,12 @@ import (
 	"os"
 	"reflect"
 
-	"k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd"
-	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	e "github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
@@ -21,6 +19,7 @@ import (
 	"k8s.io/client-go/pkg/version"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	"k8s.io/kubernetes/test/utils/image"
 
 	// initialize framework extensions
@@ -131,8 +130,8 @@ func main() {
 // convertToImages converts an image.Config to an extension.Image, which
 // can easily be serialized to JSON. Since image.Config has unexported fields,
 // reflection is used to read its values.
-func convertToImage(obj interface{}) extension.Image {
-	image := extension.Image{}
+func convertToImage(obj interface{}) e.Image {
+	image := e.Image{}
 	val := reflect.ValueOf(obj)
 	typ := reflect.TypeOf(obj)
 	for i := 0; i < val.NumField(); i++ {
