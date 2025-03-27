@@ -1340,7 +1340,7 @@
     preRelease: Beta
     version: "1.31"
   - default: true
-    lockToDefault: true
+    lockToDefault: false
     preRelease: GA
     version: "1.33"
 - name: ServiceAccountTokenNodeBindingValidation
@@ -1354,7 +1354,7 @@
     preRelease: Beta
     version: "1.30"
   - default: true
-    lockToDefault: true
+    lockToDefault: false
     preRelease: GA
     version: "1.32"
 - name: ServiceAccountTokenPodNodeInfo
