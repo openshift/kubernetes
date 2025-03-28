@@ -26,7 +26,9 @@ var (
 			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
 			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
-			`\[Feature:OrderedNamespaceDeletion\]`, // disabled Beta
+			`\[Feature:volumegroupsnapshot\]`, // disabled Beta
+			// 4.20
+			`\[Feature:OffByDefault\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
