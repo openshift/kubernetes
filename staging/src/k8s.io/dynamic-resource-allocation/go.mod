@@ -14,11 +14,11 @@ require (
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/etcd/client/pkg/v3 v3.5.16
 	google.golang.org/grpc v1.68.1
-	k8s.io/api v0.32.3
-	k8s.io/apimachinery v0.32.3
-	k8s.io/apiserver v0.32.1
+	k8s.io/api v0.32.1
+	k8s.io/apimachinery v0.32.1
+	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v0.32.1
-	k8s.io/component-helpers v0.32.1
+	k8s.io/component-helpers v0.0.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.0.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
