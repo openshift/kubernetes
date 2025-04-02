@@ -6,7 +6,7 @@
 
 module k8s.io/kubernetes
 
-go 1.22.0
+go 1.23.0
 
 require (
 	bitbucket.org/bertimus9/systemstat v0.5.0
@@ -76,7 +76,7 @@ require (
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.27.0
 	golang.org/x/net v0.29.0
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.27.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.25.0
 	golang.org/x/term v0.24.0

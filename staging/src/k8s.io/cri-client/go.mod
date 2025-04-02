@@ -2,7 +2,7 @@
 
 module k8s.io/cri-client
 
-go 1.22.0
+go 1.23.0
 
 require (
 	github.com/Microsoft/go-winio v0.6.0
@@ -63,7 +63,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/oauth2 v0.21.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
