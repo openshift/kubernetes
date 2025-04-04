@@ -10,23 +10,19 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 	var disabledByReason = map[string][]string{
 		"Alpha": { // alpha features that are not gated
 			"[Feature:StorageVersionAPI]",
-			"[Feature:InPlacePodVerticalScaling]",
-			"[Feature:ServiceCIDRs]",
 			"[Feature:ClusterTrustBundle]",
 			"[Feature:SELinuxMount]",
 			"[FeatureGate:SELinuxMount]",
 			"[Feature:UserNamespacesPodSecurityStandards]",
-			"[Feature:UserNamespacesSupport]", // disabled Beta
 			"[Feature:DynamicResourceAllocation]",
 			"[Feature:VolumeAttributesClass]", // disabled Beta
 			"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
 			// 4.19
 			"[Feature:PodLevelResources]",
-			"[Feature:SchedulerAsyncPreemption]",
-			"[Feature:RelaxedDNSSearchValidation]",
 			"[Feature:PodLogsQuerySplitStreams]",
-			"[Feature:PodLifecycleSleepActionAllowZero]",
-			"[Feature:OrderedNamespaceDeletion]", // disabled Beta
+			"[Feature:volumegroupsnapshot]",
+			// 4.20
+			"[Feature:OffByDefault]",
 		},
 		// tests for features that are not implemented in openshift
 		"Unimplemented": {
@@ -67,11 +63,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// host. Enabling the test would result in the  bastion being created for every parallel test execution.
 			// Given that we have existing oc and WMCO tests that cover this functionality, we can safely disable it.
 			"[Feature:NodeLogQuery]",
-
-			// volumegroupsnapshot in csi-hostpath tests requires changes in the test yaml files,
-			// which are done by a script upstream. In OCP, we added a separate driver csi-hostpath-groupsnapshot,
-			// that will not be skipped by any rule here.
-			"[Driver: csi-hostpath] [Testpattern:  (delete policy)] volumegroupsnapshottable [Feature:volumegroupsnapshot]",
 		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
@@ -162,7 +153,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"[sig-node] [Feature:PodLifecycleSleepAction] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action",
 
 			// https://issues.redhat.com/browse/OCPBUGS-38839
-			"[sig-network] [Feature:Traffic Distribution] when Service has trafficDistribution=PreferClose should route traffic to an endpoint that is close to the client",
+			"[sig-network] Traffic Distribution",
 
 			// https://issues.redhat.com/browse/OCPBUGS-45273
 			"[sig-network] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes",
@@ -177,6 +168,28 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			"[sig-node] ImageCredentialProvider [Feature:KubeletCredentialProviders] should be able to create pod with image credentials fetched from external credential provider",
+
+			// jsafrane had a PR to fix this, but it got reverted. Needs rework
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743190159388209
+			"SELinuxMount",
+
+			// Jan will look into this
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
+			"[Feature:SchedulerAsyncPreemption]",
+
+			// Ryan is working with upstream
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743423013941239
+			"[Feature:KubeletFineGrainedAuthz]",
+
+			// Requires flipping the gate in o/api after branch cut
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743447032840259
+			"[Feature:UserNamespacesSupport]",
+
+			// Kevin to look into this
+			"[Feature:OrderedNamespaceDeletion]",
+
+			// Needs debugging
+			"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {

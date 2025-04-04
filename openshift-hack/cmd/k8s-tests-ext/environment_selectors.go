@@ -17,10 +17,6 @@ func addEnvironmentSelectors(specs et.ExtensionTestSpecs) {
 		et.NameContainsAll("[sig-network] LoadBalancers [Feature:LoadBalancer]", "UDP"),
 		et.NameContainsAll("[sig-network] LoadBalancers [Feature:LoadBalancer]", "session affinity"),
 	}).Exclude(et.PlatformEquals("aws"))
-
-	specs.SelectAny([]et.SelectFunction{ // Since these must use "NameContainsAll" they cannot be included in filterByNetwork
-		et.NameContainsAll("NetworkPolicy", "named port"),
-	}).Exclude(et.NetworkEquals("OVNKubernetes"))
 }
 
 // filterByPlatform is a helper function to do, simple, "NameContains" filtering on tests by platform
@@ -217,7 +213,12 @@ func filterByNoOptionalCapabilities(specs et.ExtensionTestSpecs) {
 
 // filterByNetwork is a helper function to do, simple, "NameContains" filtering on tests by network
 func filterByNetwork(specs et.ExtensionTestSpecs) {
-	var networkExclusions = map[string][]string{}
+	var networkExclusions = map[string][]string{
+		"OVNKubernetes": {
+			"NetworkPolicy",
+			"named port",
+		},
+	}
 
 	for network, exclusions := range networkExclusions {
 		var selectFunctions []et.SelectFunction
