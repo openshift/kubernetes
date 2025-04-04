@@ -10,23 +10,19 @@ var (
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
 			`\[Feature:StorageVersionAPI\]`,
-			`\[Feature:InPlacePodVerticalScaling\]`,
-			`\[Feature:ServiceCIDRs\]`,
 			`\[Feature:ClusterTrustBundle\]`,
 			`\[Feature:SELinuxMount\]`,
 			`\[FeatureGate:SELinuxMount\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
-			`\[Feature:UserNamespacesSupport\]`, // disabled Beta
 			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:VolumeAttributesClass\]`, // disabled Beta
 			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`, // Alpha feature since k8s 1.27
 			// 4.19
 			`\[Feature:PodLevelResources\]`,
-			`\[Feature:SchedulerAsyncPreemption\]`,
-			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
-			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
-			`\[Feature:OrderedNamespaceDeletion\]`, // disabled Beta
+			`\[Feature:volumegroupsnapshot\]`, // disabled Beta
+			// 4.20
+			`\[Feature:OffByDefault\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -162,7 +158,7 @@ var (
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-38839
-			`\[sig-network\] \[Feature:Traffic Distribution\] when Service has trafficDistribution=PreferClose should route traffic to an endpoint that is close to the client`,
+			`\[sig-network\] Traffic Distribution`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-45273
 			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
