@@ -531,6 +531,7 @@ func (d *namespacedResourcesDeleter) deleteAllContent(ctx context.Context, ns *v
 	podsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 
 	if _, hasPods := groupVersionResources[podsGVR]; hasPods && utilfeature.DefaultFeatureGate.Enabled(features.OrderedNamespaceDeletion) {
+		logger.V(0).Info("ordered deletion is configured, trying to delete pods first", "namespace", namespace)
 		// Ensure all pods in the namespace are deleted first
 		gvrDeletionMetadata, err := d.deleteAllContentForGroupVersionResource(ctx, podsGVR, namespace, namespaceDeletedAt)
 		if err != nil {
@@ -552,7 +553,8 @@ func (d *namespacedResourcesDeleter) deleteAllContent(ctx context.Context, ns *v
 
 		// Check if any pods remain before proceeding to delete other resources
 		if numRemainingTotals.gvrToNumRemaining[podsGVR] > 0 {
-			logger.V(5).Info("Namespace controller - pods still remain, delaying deletion of other resources", "namespace", namespace)
+			logger.V(0).Info("pods still remain", "namespace", namespace)
+			logger.V(0).Info("Namespace controller - pods still remain, delaying deletion of other resources", "namespace", namespace)
 			if hasChanged := conditionUpdater.Update(ns); hasChanged {
 				if _, err = d.nsClient.UpdateStatus(ctx, ns, metav1.UpdateOptions{}); err != nil {
 					utilruntime.HandleError(fmt.Errorf("couldn't update status condition for namespace %q: %w", namespace, err))
@@ -561,6 +563,8 @@ func (d *namespacedResourcesDeleter) deleteAllContent(ctx context.Context, ns *v
 			return estimate, utilerrors.NewAggregate(errs)
 		}
 	}
+
+	logger.V(0).Info("deleting other namespaced resources", "namespace", namespace)
 
 	// Proceed with deleting other resources in the namespace
 	for gvr := range groupVersionResources {
