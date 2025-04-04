@@ -1,6 +1,7 @@
 package e2e
 
 //go:generate go run -mod vendor ./annotate/cmd -- ./annotate/generated/zz_generated.annotations.go
+//go:generate go run -mod vendor ./label/cmd -- ./label/generated/zz_generated.labels.go
 
 // This file duplicates most of test/e2e/e2e_test.go but limits the included
 // tests (via include.go) to tests that are relevant to openshift.
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v2"
-
 	// Never, ever remove the line with "/ginkgo". Without it,
 	// the ginkgo test runner will not detect that this
 	// directory contains a Ginkgo test suite.
@@ -36,8 +36,8 @@ import (
 	testfixtures "k8s.io/kubernetes/test/fixtures"
 	"k8s.io/kubernetes/test/utils/image"
 
-	// Ensure test annotation
-	"k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
+	// Ensure test label generation
+	"k8s.io/kubernetes/openshift-hack/e2e/label/generated"
 )
 
 func TestMain(m *testing.M) {
@@ -109,17 +109,17 @@ func TestMain(m *testing.M) {
 }
 
 func TestE2E(t *testing.T) {
-	// TODO(soltysh): this is raw copy from end of openshift-hack/e2e/annotate/generated/zz_generated.annotations.go
-	// https://issues.redhat.com/browse/OCPBUGS-25641
 	ginkgo.GetSuite().SetAnnotateFn(func(name string, node types.TestSpec) {
-		if newLabels, ok := generated.Annotations[name]; ok {
-			node.AppendText(newLabels)
+		if newLabels, ok := generated.Labels[name]; ok {
+			node.AppendText(fmt.Sprintf(" %s", strings.Replace(newLabels, ",", " ", -1)))
 		} else {
-			panic(fmt.Sprintf("unable to find test %s", name))
+			// If the name isn't found in the generated labels file, it is because the test has been disabled via OTE
+			node.AppendText(" [Disabled:missing]")
 		}
 		if strings.Contains(name, "Kubectl client Kubectl prune with applyset should apply and prune objects") {
 			fmt.Printf("Trying to annotate %q\n", name)
 		}
+
 	})
 
 	e2e.RunE2ETests(t)

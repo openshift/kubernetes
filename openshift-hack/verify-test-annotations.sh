@@ -26,3 +26,4 @@ GO111MODULE=on go run ./openshift-hack/cmd/go-imports-diff \
 # Verify e2e test annotations that indicate openshift compatibility
 "${KUBE_ROOT}"/hack/update-test-annotations.sh
 git diff --quiet "${KUBE_ROOT}/openshift-hack/e2e/annotate/generated/"
+git diff --quiet "${KUBE_ROOT}/openshift-hack/e2e/label/generated/"
