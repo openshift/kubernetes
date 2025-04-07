@@ -87,6 +87,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - servicecidrs
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: v1
 kind: ServiceAccount
