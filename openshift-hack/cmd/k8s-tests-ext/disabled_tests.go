@@ -175,7 +175,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// jsafrane had a PR to fix this, but it got reverted. Needs rework
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743190159388209
-			"SELinuxMount",
+			// "SELinuxMount",
 
 			// Jan will look into this
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
