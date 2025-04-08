@@ -91,7 +91,7 @@ var _ = utils.SIGDescribe("CSI Mock selinux on mount", func() {
 	m := newMockDriverSetup(f)
 	recursive := v1.SELinuxChangePolicyRecursive
 	mount := v1.SELinuxChangePolicyMountOption
-	f.Context("SELinuxMount [LinuxOnly]", feature.SELinux, func() {
+	f.Context("SELinuxMount [LinuxOnly] with a really really really really really really really really really really really really really really really really really really really really really long test name with ~258 characters to check how the directory shortening works", feature.SELinux, func() {
 		processLabel, fileLabel := getDefaultContainerSELinuxLabels()
 		// Make sure all options are set so system specific defaults are not used.
 		seLinuxOpts1 := v1.SELinuxOptions{

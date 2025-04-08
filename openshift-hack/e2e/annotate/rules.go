@@ -173,10 +173,6 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
-			// jsafrane had a PR to fix this, but it got reverted. Needs rework
-			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743190159388209
-			`SELinuxMount`,
-
 			// Jan will look into this
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
 			`\[Feature:SchedulerAsyncPreemption\]`,
