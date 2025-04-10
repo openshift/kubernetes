@@ -4,7 +4,10 @@ import (
 	"flag"
 	"os"
 	"reflect"
+	"strconv"
 
+	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -14,7 +17,6 @@ import (
 	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	e "github.com/openshift-eng/openshift-tests-extension/pkg/extension"
-	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	v "github.com/openshift-eng/openshift-tests-extension/pkg/version"
 
@@ -97,11 +99,22 @@ func main() {
 	//		  the environmental skip code from the enhancement once its implemented.
 	//		- Make sure to account for test renames that occur because of removal of these
 	//		  annotations
-	specs.Walk(func(spec *et.ExtensionTestSpec) {
-		if annotations, ok := generated.Annotations[spec.Name]; ok {
-			spec.Name += annotations
+	var omitAnnotations bool
+	omitAnnotationsVal := os.Getenv("OMIT_ANNOTATIONS")
+	if omitAnnotationsVal != "" {
+		omitAnnotations, err = strconv.ParseBool(omitAnnotationsVal)
+		if err != nil {
+			logrus.WithError(err).Fatal("Failed to parse OMIT_ANNOTATIONS")
 		}
-	})
+	}
+	if !omitAnnotations {
+		logrus.Infof("adding annotations as OMIT_ANNOTATIONS was either false, or not provided")
+		specs.Walk(func(spec *et.ExtensionTestSpec) {
+			if annotations, ok := generated.Annotations[spec.Name]; ok {
+				spec.Name += annotations
+			}
+		})
+	}
 
 	specs = filterOutDisabledSpecs(specs)
 	addLabelsToSpecs(specs)
