@@ -2199,11 +2199,11 @@ var Annotations = map[string]string{
 
 	"[sig-node] [Feature:SidecarContainers] Restartable Init Container Lifecycle Hook when create a pod with lifecycle hook should execute prestop https hook properly [MinimumKubeletVersion:1.23]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [FeatureGate:KubeletFineGrainedAuthz] [Beta] when calling kubelet API check /healthz enpoint is accessible via nodes/healthz RBAC": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] [FeatureGate:KubeletFineGrainedAuthz] [Beta] when calling kubelet API check /healthz enpoint is accessible via nodes/healthz RBAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [FeatureGate:KubeletFineGrainedAuthz] [Beta] when calling kubelet API check /healthz enpoint is accessible via nodes/proxy RBAC": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] [FeatureGate:KubeletFineGrainedAuthz] [Beta] when calling kubelet API check /healthz enpoint is accessible via nodes/proxy RBAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [FeatureGate:KubeletFineGrainedAuthz] [Beta] when calling kubelet API check /healthz enpoint is not accessible via nodes/configz RBAC": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-node] [FeatureGate:KubeletFineGrainedAuthz] [Beta] when calling kubelet API check /healthz enpoint is not accessible via nodes/configz RBAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] [Serial] Pod InPlace Resize Container (scheduler-focused) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-scheduler-tests": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 

@@ -177,10 +177,6 @@ var (
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
 			`\[Feature:SchedulerAsyncPreemption\]`,
 
-			// Ryan is working with upstream
-			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743423013941239
-			`\[FeatureGate:KubeletFineGrainedAuthz\]`,
-
 			// Requires flipping the gate in o/api after branch cut
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743447032840259
 			`\[Feature:UserNamespacesSupport\]`,
