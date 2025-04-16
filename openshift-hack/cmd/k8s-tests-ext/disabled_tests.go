@@ -184,10 +184,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// Kevin to look into this
 			"[Feature:OrderedNamespaceDeletion]",
 
-			// Asked Joel Smith to take a look
-			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743781791943209
-			"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]",
-
 			// Requires flipping the gate in o/api after branch cut
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1744285107158659?thread_ts=1743190159.388209&cid=C08KA82J2JF
 			"[FeatureGate:SELinuxChangePolicy]",
