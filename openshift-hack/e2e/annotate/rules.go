@@ -10,23 +10,18 @@ var (
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
 			`\[Feature:StorageVersionAPI\]`,
-			`\[Feature:InPlacePodVerticalScaling\]`,
-			`\[Feature:ServiceCIDRs\]`,
 			`\[Feature:ClusterTrustBundle\]`,
 			`\[Feature:SELinuxMount\]`,
 			`\[FeatureGate:SELinuxMount\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
-			`\[Feature:UserNamespacesSupport\]`, // disabled Beta
 			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:VolumeAttributesClass\]`, // disabled Beta
 			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`, // Alpha feature since k8s 1.27
 			// 4.19
 			`\[Feature:PodLevelResources\]`,
-			`\[Feature:SchedulerAsyncPreemption\]`,
-			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
-			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
-			`\[Feature:OrderedNamespaceDeletion\]`, // disabled Beta
+			// 4.20
+			`\[Feature:OffByDefault\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -162,7 +157,7 @@ var (
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-38839
-			`\[sig-network\] \[Feature:Traffic Distribution\] when Service has trafficDistribution=PreferClose should route traffic to an endpoint that is close to the client`,
+			`\[sig-network\] Traffic Distribution`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-45273
 			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
@@ -177,6 +172,25 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
+
+			// Jan will look into this
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
+			`\[Feature:SchedulerAsyncPreemption\]`,
+
+			// Ryan is working with upstream
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743423013941239
+			`\[FeatureGate:KubeletFineGrainedAuthz\]`,
+
+			// Requires flipping the gate in o/api after branch cut
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743447032840259
+			`\[Feature:UserNamespacesSupport\]`,
+
+			// Kevin to look into this
+			`\[Feature:OrderedNamespaceDeletion\]`,
+
+			// Asked Joel Smith to take a look
+			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743781791943209
+			`\[sig-node\] Pod InPlace Resize Container \[FeatureGate:InPlacePodVerticalScaling\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
