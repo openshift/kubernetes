@@ -26,7 +26,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/kubernetes/pkg/cluster/ports"
 	"k8s.io/kubernetes/pkg/features"
@@ -60,7 +59,6 @@ var _ = SIGDescribe(framework.WithFeatureGate(features.KubeletFineGrainedAuthz),
 func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, authzSubresource string) string {
 	ns := f.Namespace.Name
 	saName := authzSubresource
-	crName := authzSubresource + string(uuid.NewUUID())
 	verb := "get"
 	resource := "nodes"
 
@@ -74,11 +72,11 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
 
-	ginkgo.By(fmt.Sprintf("Creating ClusterRole %s with for %s/%s", crName, resource, authzSubresource))
+	ginkgo.By(fmt.Sprintf("Creating ClusterRole with prefix %s with for %s/%s", authzSubresource, resource, authzSubresource))
 
-	_, err = f.ClientSet.RbacV1().ClusterRoles().Create(ctx, &rbacv1.ClusterRole{
+	clusterRole, err := f.ClientSet.RbacV1().ClusterRoles().Create(ctx, &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: crName,
+			GenerateName: authzSubresource + "-",
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -89,6 +87,10 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 		},
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
+	defer func() {
+		ginkgo.By(fmt.Sprintf("Destroying ClusterRoles %q for this suite.", clusterRole.Name))
+		framework.ExpectNoError(f.ClientSet.RbacV1().ClusterRoles().Delete(ctx, clusterRole.Name, metav1.DeleteOptions{}))
+	}()
 
 	subject := rbacv1.Subject{
 		Kind:      rbacv1.ServiceAccountKind,
@@ -96,10 +98,16 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 		Name:      saName,
 	}
 
-	ginkgo.By(fmt.Sprintf("Creating ClusterRoleBinding with ClusterRole %s with subject %s/%s", crName, ns, saName))
+	ginkgo.By(fmt.Sprintf("Creating ClusterRoleBinding with ClusterRole %s with subject %s/%s", clusterRole.Name, ns, saName))
 
-	err = e2eauth.BindClusterRole(ctx, f.ClientSet.RbacV1(), crName, ns, subject)
+	clusterRoleBinding, err := e2eauth.BindClusterRole(ctx, f.ClientSet.RbacV1(), clusterRole.Name, ns, subject)
 	framework.ExpectNoError(err)
+	defer func() {
+		if clusterRoleBinding != nil {
+			ginkgo.By(fmt.Sprintf("Destroying ClusterRoleBindings %q for this suite.", clusterRoleBinding.Name))
+			framework.ExpectNoError(f.ClientSet.RbacV1().ClusterRoleBindings().Delete(ctx, clusterRoleBinding.Name, metav1.DeleteOptions{}))
+		}
+	}()
 
 	ginkgo.By("Waiting for Authorization Update.")
 
