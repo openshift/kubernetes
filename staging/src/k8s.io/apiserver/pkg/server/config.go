@@ -829,9 +829,6 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 			return nil, fmt.Errorf("refusing to create new apiserver %q with support for media type %q (allowed media types are: %s)", name, info.MediaType, strings.Join(allowedMediaTypes, ", "))
 		}
 	}
-	if c.LoopbackClientConfig == nil {
-		return nil, fmt.Errorf("Genericapiserver.New() called with config.LoopbackClientConfig == nil")
-	}
 	if c.EquivalentResourceRegistry == nil {
 		return nil, fmt.Errorf("Genericapiserver.New() called with config.EquivalentResourceRegistry == nil")
 	}
