@@ -59,7 +59,6 @@ var _ = SIGDescribe(feature.KubeletFineGrainedAuthz, func() {
 func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, authzSubresource string) string {
 	ns := f.Namespace.Name
 	saName := authzSubresource
-	crName := authzSubresource
 	verb := "get"
 	resource := "nodes"
 
@@ -73,11 +72,11 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 	}, metav1.CreateOptions{})
 	framework.ExpectNoError(err)
 
-	ginkgo.By(fmt.Sprintf("Creating ClusterRole %s with for %s/%s", crName, resource, authzSubresource))
+	ginkgo.By(fmt.Sprintf("Creating ClusterRole with prefix %s with for %s/%s", authzSubresource, resource, authzSubresource))
 
-	_, err = f.ClientSet.RbacV1().ClusterRoles().Create(ctx, &rbacv1.ClusterRole{
+	clusterRole, err := f.ClientSet.RbacV1().ClusterRoles().Create(ctx, &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: crName,
+			GenerateName: authzSubresource + "-",
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -95,9 +94,9 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 		Name:      saName,
 	}
 
-	ginkgo.By(fmt.Sprintf("Creating ClusterRoleBinding with ClusterRole %s with subject %s/%s", crName, ns, saName))
+	ginkgo.By(fmt.Sprintf("Creating ClusterRoleBinding with ClusterRole %s with subject %s/%s", clusterRole.Name, ns, saName))
 
-	err = e2eauth.BindClusterRole(ctx, f.ClientSet.RbacV1(), crName, ns, subject)
+	err = e2eauth.BindClusterRole(ctx, f.ClientSet.RbacV1(), clusterRole.Name, ns, subject)
 	framework.ExpectNoError(err)
 
 	ginkgo.By("Waiting for Authorization Update.")
