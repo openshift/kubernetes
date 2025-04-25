@@ -103,6 +103,11 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 
 	err = e2eauth.WaitForAuthzUpdate(ctx, f.ClientSet.AuthorizationV1(),
 		serviceaccount.MakeUsername(ns, saName),
+		[]string{
+			"system:authenticated",
+			"system:serviceaccounts",
+			fmt.Sprintf("system:serviceaccounts:%s", ns),
+		},
 		&authorizationv1.ResourceAttributes{
 			Namespace:   ns,
 			Verb:        verb,
