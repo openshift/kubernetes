@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
 
@@ -15,15 +16,11 @@ const (
 
 type browserSafeAuthorizer struct {
 	delegate authorizer.Authorizer
-
-	// list of groups, any of which indicate the request is authenticated
-	authenticatedGroups sets.String
 }
 
-func NewBrowserSafeAuthorizer(delegate authorizer.Authorizer, authenticatedGroups ...string) authorizer.Authorizer {
+func NewBrowserSafeAuthorizer(delegate authorizer.Authorizer) authorizer.Authorizer {
 	return &browserSafeAuthorizer{
-		delegate:            delegate,
-		authenticatedGroups: sets.NewString(authenticatedGroups...),
+		delegate: delegate,
 	}
 }
 
@@ -54,13 +51,17 @@ func (a *browserSafeAuthorizer) getBrowserSafeAttributes(attributes authorizer.A
 		return attributes
 	}
 
-	if user := attributes.GetUser(); user != nil {
-		if a.authenticatedGroups.HasAny(user.GetGroups()...) {
+	// unauthenticatedGroup := sets.NewString()
+	if u := attributes.GetUser(); u != nil {
+		isAnonymous := u.GetName() == user.Anonymous
+		isUnauthenticated := sets.New[string](u.GetGroups()...).Has(user.AllUnauthenticated)
+		if !isAnonymous && !isUnauthenticated {
 			// An authenticated request indicates this isn't a browser page load.
 			// Browsers cannot make direct authenticated requests.
 			// This depends on the API not enabling basic or cookie-based auth.
 			return attributes
 		}
+
 	}
 
 	return &browserSafeAttributes{
