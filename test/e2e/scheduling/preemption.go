@@ -320,7 +320,7 @@ var _ = SIGDescribe("SchedulerPreemption", framework.WithSerial(), func() {
 		lowPriorityPods := make([]*v1.Pod, 0, 10*len(nodeList.Items))
 		// Create pods in the cluster.
 		for i, node := range nodeList.Items {
-			// Update each node to advertise 3 available extended resources
+			// Update each node to advertise 10 available extended resources
 			e2enode.AddExtendedResource(ctx, cs, node.Name, testExtendedResource, resource.MustParse("10"))
 
 			// Create 10 low priority pods on each node, which will use up 10/10 of the node's resources.
@@ -340,6 +340,13 @@ var _ = SIGDescribe("SchedulerPreemption", framework.WithSerial(), func() {
 					Resources: &v1.ResourceRequirements{
 						Requests: podRes,
 						Limits:   podRes,
+					},
+					Tolerations: []v1.Toleration{
+						{
+							Key:      "",
+							Operator: v1.TolerationOpExists,
+							Effect:   v1.TaintEffectNoExecute,
+						},
 					},
 					Affinity: &v1.Affinity{
 						NodeAffinity: &v1.NodeAffinity{
@@ -365,6 +372,8 @@ var _ = SIGDescribe("SchedulerPreemption", framework.WithSerial(), func() {
 			framework.ExpectNoError(e2epod.WaitForPodRunningInNamespace(ctx, cs, pod))
 		}
 
+		// at this point, all resources have been used
+
 		highPriorityPods := make([]*v1.Pod, 0, 5*len(nodeList.Items))
 		mediumPriorityPods := make([]*v1.Pod, 0, 10*len(nodeList.Items))
 
@@ -383,6 +392,13 @@ var _ = SIGDescribe("SchedulerPreemption", framework.WithSerial(), func() {
 						Requests: lowPriorityPods[0].Spec.Containers[0].Resources.Requests,
 						Limits:   lowPriorityPods[0].Spec.Containers[0].Resources.Requests,
 					},
+					Tolerations: []v1.Toleration{
+						{
+							Key:      "",
+							Operator: v1.TolerationOpExists,
+							Effect:   v1.TaintEffectNoExecute,
+						},
+					},
 				})
 				mediumPriorityPods = append(mediumPriorityPods, p)
 			}
@@ -395,6 +411,13 @@ var _ = SIGDescribe("SchedulerPreemption", framework.WithSerial(), func() {
 						// Set the pod request to the low priority pod's resources
 						Requests: lowPriorityPods[0].Spec.Containers[0].Resources.Requests,
 						Limits:   lowPriorityPods[0].Spec.Containers[0].Resources.Requests,
+					},
+					Tolerations: []v1.Toleration{
+						{
+							Key:      "",
+							Operator: v1.TolerationOpExists,
+							Effect:   v1.TaintEffectNoExecute,
+						},
 					},
 				})
 				highPriorityPods = append(highPriorityPods, p)
