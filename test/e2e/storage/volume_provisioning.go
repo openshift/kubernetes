@@ -442,14 +442,9 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 				Name:      serviceAccountName,
 			}
 
-			clusterRoleBinding, err := e2eauth.BindClusterRole(ctx, c.RbacV1(), "system:persistent-volume-provisioner", ns, subject)
+			cleanupFunc, err := e2eauth.BindClusterRole(ctx, c.RbacV1(), "system:persistent-volume-provisioner", ns, subject)
 			framework.ExpectNoError(err)
-			defer func() {
-				if clusterRoleBinding != nil {
-					ginkgo.By(fmt.Sprintf("Destroying ClusterRoleBindings %q for this suite.", clusterRoleBinding.Name))
-					framework.ExpectNoError(f.ClientSet.RbacV1().ClusterRoleBindings().Delete(ctx, clusterRoleBinding.Name, metav1.DeleteOptions{}))
-				}
-			}()
+			defer cleanupFunc(ctx)
 
 			roleName := "leader-locking-nfs-provisioner"
 			_, err = f.ClientSet.RbacV1().Roles(ns).Create(ctx, &rbacv1.Role{

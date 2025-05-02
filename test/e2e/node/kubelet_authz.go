@@ -100,14 +100,9 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 
 	ginkgo.By(fmt.Sprintf("Creating ClusterRoleBinding with ClusterRole %s with subject %s/%s", clusterRole.Name, ns, saName))
 
-	clusterRoleBinding, err := e2eauth.BindClusterRole(ctx, f.ClientSet.RbacV1(), clusterRole.Name, ns, subject)
+	cleanupFunc, err := e2eauth.BindClusterRole(ctx, f.ClientSet.RbacV1(), clusterRole.Name, ns, subject)
 	framework.ExpectNoError(err)
-	defer func() {
-		if clusterRoleBinding != nil {
-			ginkgo.By(fmt.Sprintf("Destroying ClusterRoleBindings %q for this suite.", clusterRoleBinding.Name))
-			framework.ExpectNoError(f.ClientSet.RbacV1().ClusterRoleBindings().Delete(ctx, clusterRoleBinding.Name, metav1.DeleteOptions{}))
-		}
-	}()
+	defer cleanupFunc(ctx)
 
 	ginkgo.By("Waiting for Authorization Update.")
 

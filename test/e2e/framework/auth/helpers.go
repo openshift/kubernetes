@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,9 +104,9 @@ func WaitForNamedAuthorizationUpdate(ctx context.Context, c v1authorization.Subj
 
 // BindClusterRole binds the cluster role at the cluster scope. If RBAC is not enabled, nil
 // is returned with no action.
-func BindClusterRole(ctx context.Context, c bindingsGetter, clusterRole, ns string, subjects ...rbacv1.Subject) (*rbacv1.ClusterRoleBinding, error) {
+func BindClusterRole(ctx context.Context, c bindingsGetter, clusterRole, ns string, subjects ...rbacv1.Subject) (func(ctx context.Context), error) {
 	if !IsRBACEnabled(ctx, c) {
-		return nil, nil
+		return func(ctx context.Context) {}, nil
 	}
 
 	// Since the namespace names are unique, we can leave this lying around so we don't have to race any caches
@@ -122,10 +123,15 @@ func BindClusterRole(ctx context.Context, c bindingsGetter, clusterRole, ns stri
 	}, metav1.CreateOptions{})
 
 	if err != nil {
-		return nil, fmt.Errorf("binding clusterrole/%s for %q for %v: %w", clusterRole, ns, subjects, err)
+		return func(ctx context.Context) {}, fmt.Errorf("binding clusterrole/%s for %q for %v: %w", clusterRole, ns, subjects, err)
 	}
 
-	return clusterRoleBinding, nil
+	cleanupFunc := func(ctx context.Context) {
+		ginkgo.By(fmt.Sprintf("Destroying ClusterRoleBindings %q for this suite.", clusterRoleBinding.Name))
+		framework.ExpectNoError(c.ClusterRoleBindings().Delete(ctx, clusterRoleBinding.Name, metav1.DeleteOptions{}))
+	}
+
+	return cleanupFunc, nil
 }
 
 // BindClusterRoleInNamespace binds the cluster role at the namespace scope. If RBAC is not enabled, nil
