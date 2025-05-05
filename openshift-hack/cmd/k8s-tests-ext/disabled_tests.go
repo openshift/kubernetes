@@ -177,10 +177,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// Kevin to look into this
 			"[Feature:OrderedNamespaceDeletion]",
 
-			// Jan will look into this
-			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743612984702079
-			"[Feature:SchedulerAsyncPreemption]",
-
 			// Requires flipping the gate in o/api after branch cut
 			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1743447032840259
 			"[Feature:UserNamespacesSupport]",
