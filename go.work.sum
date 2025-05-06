@@ -180,6 +180,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2 h1:hAHbPm5IJGijwng3PWk09
 github.com/moby/sys/user v0.3.0 h1:9ni5DlcW5an3SvRSx4MouotOygvzaXbaSrc/wGDFWPo=
 github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f h1:KUppIJq7/+SVif2QVs3tOP0zanoHgBEVAwHxUSIzRqU=
+github.com/openshift/apiserver-library-go v0.0.0-20250502092109-8d341e94467d h1:M/oS6u+K6AYb2pkQJWsnwfts8R85sPJDbB0wgv7KKKo=
+github.com/openshift/apiserver-library-go v0.0.0-20250502092109-8d341e94467d/go.mod h1:kkSwH4osgejnRIyHfsfkv0V0xfmgH4Yk/VDObaJukHU=
 github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c h1:6XcszPFZpan4qll5XbdLll7n1So3IsPn28aw2j1obMo=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=
