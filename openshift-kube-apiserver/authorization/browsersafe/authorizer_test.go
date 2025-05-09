@@ -20,13 +20,11 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 			attributes:   authorizer.AttributesRecord{ResourceRequest: false, Verb: "GET"},
 			expectedVerb: "GET",
 		},
-
 		"non-proxy": {
 			attributes:          authorizer.AttributesRecord{ResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "logs"},
 			expectedVerb:        "get",
 			expectedSubresource: "logs",
 		},
-
 		"unsafe proxy subresource": {
 			attributes:          authorizer.AttributesRecord{ResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
 			expectedVerb:        "get",
@@ -38,35 +36,53 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 			expectedVerb:   "unsafeproxy",
 			expectedReason: "proxy verb changed to unsafeproxy",
 		},
-		"unsafe proxy verb anonymous": {
+		"unsafe proxy verb anonymous only": {
+			attributes: authorizer.AttributesRecord{ResourceRequest: true, Verb: "proxy", Resource: "nodes",
+				User: &user.DefaultInfo{Name: "system:anonymous"}},
+			expectedVerb:   "unsafeproxy",
+			expectedReason: "proxy verb changed to unsafeproxy",
+		},
+		"unsafe proxy verb unauthenticated only": {
+			attributes: authorizer.AttributesRecord{ResourceRequest: true, Verb: "proxy", Resource: "nodes",
+				User: &user.DefaultInfo{Groups: []string{"system:unauthenticated"}}},
+			expectedVerb:   "unsafeproxy",
+			expectedReason: "proxy verb changed to unsafeproxy",
+		},
+		"unsafe proxy verb anonymous and unauthenticated": {
 			attributes: authorizer.AttributesRecord{ResourceRequest: true, Verb: "proxy", Resource: "nodes",
 				User: &user.DefaultInfo{Name: "system:anonymous", Groups: []string{"system:unauthenticated"}}},
 			expectedVerb:   "unsafeproxy",
 			expectedReason: "proxy verb changed to unsafeproxy",
 		},
-
 		"proxy subresource authenticated": {
 			attributes: authorizer.AttributesRecord{ResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy",
 				User: &user.DefaultInfo{Name: "bob", Groups: []string{"system:authenticated"}}},
 			expectedVerb:        "get",
 			expectedSubresource: "proxy",
 		},
+		"proxy subresource authenticated no group": {
+			attributes: authorizer.AttributesRecord{ResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy",
+				User: &user.DefaultInfo{Name: "bob"}},
+			expectedVerb:        "get",
+			expectedSubresource: "proxy",
+		},
 	} {
-		delegateAuthorizer := &recordingAuthorizer{}
-		safeAuthorizer := NewBrowserSafeAuthorizer(delegateAuthorizer, "system:authenticated")
+		t.Run(name, func(t *testing.T) {
+			delegateAuthorizer := &recordingAuthorizer{}
+			safeAuthorizer := NewBrowserSafeAuthorizer(delegateAuthorizer)
 
-		authorized, reason, err := safeAuthorizer.Authorize(context.TODO(), tc.attributes)
-		if authorized == authorizer.DecisionAllow || reason != tc.expectedReason || err != nil {
-			t.Errorf("%s: unexpected output: %v %s %v", name, authorized, reason, err)
-			continue
-		}
+			authorized, reason, err := safeAuthorizer.Authorize(context.TODO(), tc.attributes)
+			if authorized == authorizer.DecisionAllow || reason != tc.expectedReason || err != nil {
+				t.Errorf("%s: unexpected output: %v %s %v", name, authorized, reason, err)
+			}
 
-		if delegateAuthorizer.attributes.GetVerb() != tc.expectedVerb {
-			t.Errorf("%s: expected verb %s, got %s", name, tc.expectedVerb, delegateAuthorizer.attributes.GetVerb())
-		}
-		if delegateAuthorizer.attributes.GetSubresource() != tc.expectedSubresource {
-			t.Errorf("%s: expected verb %s, got %s", name, tc.expectedSubresource, delegateAuthorizer.attributes.GetSubresource())
-		}
+			if delegateAuthorizer.attributes.GetVerb() != tc.expectedVerb {
+				t.Errorf("%s: expected verb %s, got %s", name, tc.expectedVerb, delegateAuthorizer.attributes.GetVerb())
+			}
+			if delegateAuthorizer.attributes.GetSubresource() != tc.expectedSubresource {
+				t.Errorf("%s: expected verb %s, got %s", name, tc.expectedSubresource, delegateAuthorizer.attributes.GetSubresource())
+			}
+		})
 	}
 }
 
