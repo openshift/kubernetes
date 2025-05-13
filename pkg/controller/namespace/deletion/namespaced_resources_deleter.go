@@ -511,7 +511,7 @@ func (d *namespacedResourcesDeleter) deleteAllContent(ctx context.Context, ns *v
 	conditionUpdater := namespaceConditionUpdater{}
 	estimate := int64(0)
 	logger := klog.FromContext(ctx)
-	logger.V(4).Info("namespace controller - deleteAllContent", "namespace", namespace)
+	logger.V(0).Info("namespace controller - deleteAllContent", "namespace", namespace)
 
 	resources, err := d.discoverResourcesFn()
 	if err != nil {
