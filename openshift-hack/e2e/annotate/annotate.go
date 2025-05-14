@@ -231,26 +231,12 @@ func (r *ginkgoTestRenamer) generateRename(name string, node types.TestSpec) {
 			newLabels += " [Suite:openshift/conformance/parallel]"
 		}
 	}
-	codeLocations := node.CodeLocations()
-	if isGoModulePath(codeLocations[len(codeLocations)-1].FileName, "k8s.io/kubernetes", "test/e2e") {
-		newLabels += " [Suite:k8s]"
-	}
+	newLabels += " [Suite:k8s]"
 
 	if err := checkBalancedBrackets(newName); err != nil {
 		r.errors = append(r.errors, err.Error())
 	}
 	r.output[name] = newLabels
-}
-
-// isGoModulePath returns true if the packagePath reported by reflection is within a
-// module and given module path. When go mod is in use, module and modulePath are not
-// contiguous as they were in older golang versions with vendoring, so naive contains
-// tests fail.
-//
-// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
-// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
-func isGoModulePath(packagePath, module, modulePath string) bool {
-	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
 }
 
 // checkBalancedBrackets ensures that square brackets are balanced in generated test
