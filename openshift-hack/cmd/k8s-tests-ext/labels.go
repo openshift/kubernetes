@@ -38,6 +38,12 @@ func addLabelsToSpecs(specs et.ExtensionTestSpecs) {
 
 			"[sig-network] IngressClass [Feature:Ingress] should set default value on new IngressClass", //https://bugzilla.redhat.com/show_bug.cgi?id=1833583
 		},
+		// Copy TechPreview FeatureGates to OCPFeatureGates to run the tests for them only in jobs that have the feature gate enabled.
+		// openshift-tests understands only [OCPFeatureGate:xyz], it does not understand [FeatureGate:xyz].
+		// Feel free to add a new TP gates.
+		"[OCPFeatureGate:VolumeAttributesClass]": {
+			"[FeatureGate:VolumeAttributesClass]",
+		},
 	}
 
 	for label, names := range namesByLabel {
