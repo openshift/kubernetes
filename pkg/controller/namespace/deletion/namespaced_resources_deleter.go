@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -416,6 +417,9 @@ func (d *namespacedResourcesDeleter) deleteAllContentForGroupVersionResource(
 	namespaceDeletedAt metav1.Time) (gvrDeletionMetadata, error) {
 	logger := klog.FromContext(ctx)
 	logger.V(5).Info("Namespace controller - deleteAllContentForGroupVersionResource", "namespace", namespace, "resource", gvr)
+	if strings.Contains(namespace, "nsdeletetest") {
+		logger.V(0).Info("Namespace controller - deleteAllContentForGroupVersionResource", "namespace", namespace, "resource", gvr)
+	}
 
 	// estimate how long it will take for the resource to be deleted (needed for objects that support graceful delete)
 	estimate, err := d.estimateGracefulTermination(ctx, gvr, namespace, namespaceDeletedAt)
@@ -507,7 +511,7 @@ func (d *namespacedResourcesDeleter) deleteAllContent(ctx context.Context, ns *v
 	conditionUpdater := namespaceConditionUpdater{}
 	estimate := int64(0)
 	logger := klog.FromContext(ctx)
-	logger.V(4).Info("namespace controller - deleteAllContent", "namespace", namespace)
+	logger.V(0).Info("namespace controller - deleteAllContent", "namespace", namespace)
 
 	resources, err := d.discoverResourcesFn()
 	if err != nil {
@@ -529,6 +533,7 @@ func (d *namespacedResourcesDeleter) deleteAllContent(ctx context.Context, ns *v
 		finalizersToNumRemaining: map[string]int{},
 	}
 	podsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
+
 	if _, hasPods := groupVersionResources[podsGVR]; hasPods && utilfeature.DefaultFeatureGate.Enabled(features.OrderedNamespaceDeletion) {
 		// Ensure all pods in the namespace are deleted first
 		gvrDeletionMetadata, err := d.deleteAllContentForGroupVersionResource(ctx, podsGVR, namespace, namespaceDeletedAt)
