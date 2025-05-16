@@ -1905,13 +1905,13 @@ var Annotations = map[string]string{
 
 	"[sig-node] Security Context When creating a container with runAsUser should run the container with uid 65534 [LinuxOnly] [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-node] Security Context When creating a pod with HostUsers must create the user namespace if set to false [LinuxOnly] [Feature:UserNamespacesSupport]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] Security Context When creating a pod with HostUsers must create the user namespace if set to false [LinuxOnly] [Feature:UserNamespacesSupport]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Security Context When creating a pod with HostUsers must not create the user namespace if set to true [LinuxOnly] [Feature:UserNamespacesSupport]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] Security Context When creating a pod with HostUsers must not create the user namespace if set to true [LinuxOnly] [Feature:UserNamespacesSupport]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Security Context When creating a pod with HostUsers should mount all volumes with proper permissions with hostUsers=false [LinuxOnly] [Feature:UserNamespacesSupport]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] Security Context When creating a pod with HostUsers should mount all volumes with proper permissions with hostUsers=false [LinuxOnly] [Feature:UserNamespacesSupport]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Security Context When creating a pod with HostUsers should set FSGroup to user inside the container with hostUsers=false [LinuxOnly] [Feature:UserNamespacesSupport]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] Security Context When creating a pod with HostUsers should set FSGroup to user inside the container with hostUsers=false [LinuxOnly] [Feature:UserNamespacesSupport]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Security Context When creating a pod with privileged should run the container as privileged when true [LinuxOnly] [NodeFeature:HostAccess]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1967,7 +1967,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] Sysctls [LinuxOnly] [NodeConformance] should support sysctls with slashes as separator [MinimumKubeletVersion:1.23] [Environment:NotInUserNS]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] User Namespaces for Pod Security Standards [LinuxOnly] with UserNamespacesSupport and UserNamespacesPodSecurityStandards enabled should allow pod [Feature:UserNamespacesPodSecurityStandards]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] User Namespaces for Pod Security Standards [LinuxOnly] with UserNamespacesSupport and UserNamespacesPodSecurityStandards enabled should allow pod [Feature:UserNamespacesPodSecurityStandards]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Variable Expansion allow almost all printable ASCII characters as environment variable names [Feature:RelaxedEnvironmentVariableValidation]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
