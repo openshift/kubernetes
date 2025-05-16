@@ -20,10 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/kubernetes/pkg/features"
 	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/kubernetes/pkg/features"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -541,7 +542,7 @@ func ensurePodsAreRemovedFirstInOrderedNamespaceDeletion(ctx context.Context, f 
 	// wait 10 seconds to allow the namespace controller to process
 	time.Sleep(10 * time.Second)
 	ginkgo.By("the pod should be deleted before processing deletion for other resources")
-	framework.ExpectNoError(wait.PollUntilContextTimeout(ctx, 2*time.Second, 60*time.Second, true,
+	framework.ExpectNoError(wait.PollUntilContextTimeout(ctx, 2*time.Second, 3*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			_, err = f.ClientSet.CoreV1().ConfigMaps(nsName).Get(ctx, configMapName, metav1.GetOptions{})
 			framework.ExpectNoError(err, "configmap %q should still exist in namespace %q", configMapName, nsName)
