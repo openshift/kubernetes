@@ -2387,11 +2387,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-stress multiple pods should access different volumes repeatedly [Slow] [Serial]": " [Suite:k8s]",
 
@@ -2481,11 +2481,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-stress multiple pods should access different volumes repeatedly [Slow] [Serial]": " [Suite:k8s]",
 
@@ -2645,11 +2645,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Suite:k8s]",
 
@@ -2981,11 +2981,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-stress multiple pods should access different volumes repeatedly [Slow] [Serial]": " [Skipped:gce] [Suite:k8s]",
 
@@ -3075,11 +3075,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] volume-stress multiple pods should access different volumes repeatedly [Slow] [Serial]": " [Skipped:gce] [Suite:k8s]",
 
@@ -3239,11 +3239,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Skipped:gce] [Suite:k8s]",
 
@@ -12873,11 +12873,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-stress multiple pods should access different volumes repeatedly [Slow] [Serial]": " [Suite:k8s]",
 
@@ -12967,11 +12967,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-stress multiple pods should access different volumes repeatedly [Slow] [Serial]": " [Suite:k8s]",
 
@@ -13131,11 +13131,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already has a VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Suite:k8s]",
 
@@ -13709,7 +13709,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] VolumeAttachment Conformance should run through the lifecycle of a VolumeAttachment [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-storage] VolumeAttributesClass [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should run through the lifecycle of a VolumeAttributesClass": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] VolumeAttributesClass [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta] should run through the lifecycle of a VolumeAttributesClass": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] Volumes ConfigMap should be mountable": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13755,7 +13755,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] [Serial] Volume metrics PVController should create bound pv/pvc count metrics for pvc controller after creating both pv and pvc": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] [Serial] Volume metrics PVController should create bound pv/pvc count metrics for pvc controller with volume attributes class dimension after creating both pv and pvc [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] [Serial] Volume metrics PVController should create bound pv/pvc count metrics for pvc controller with volume attributes class dimension after creating both pv and pvc [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] [Serial] Volume metrics PVController should create none metrics for pvc controller before creating any PV or PVC": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -13765,7 +13765,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] [Serial] Volume metrics PVController should create unbound pvc count metrics for pvc controller after creating pvc only": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] [Serial] Volume metrics PVController should create unbound pvc count metrics for pvc controller with volume attributes class dimension after creating pvc only [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-storage] [Serial] Volume metrics PVController should create unbound pvc count metrics for pvc controller with volume attributes class dimension after creating pvc only [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass] [Beta]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-windows] Hybrid cluster network for all supported CNIs should have stable networking for Linux and Windows pods": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
