@@ -173,10 +173,6 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
-
-			// Requires flipping the gate in o/api after branch cut
-			// https://redhat-internal.slack.com/archives/C08KA82J2JF/p1744285107158659?thread_ts=1743190159.388209&cid=C08KA82J2JF
-			`\[FeatureGate:SELinuxChangePolicy\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
