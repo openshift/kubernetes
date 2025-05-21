@@ -30,34 +30,11 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/lifecycle"
 )
 
-// copied directly from github.com/openshift/origin/cmd/openshift-tests/provider.go
-// and github.com/openshift/origin/test/extended/util/test.go
-func initializeTestFramework(provider string) error {
-	providerInfo := &ClusterConfiguration{}
-	if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
-		return fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum: %v", err)
-	}
-	if len(providerInfo.ProviderName) == 0 {
-		return fmt.Errorf("provider must be a JSON object with the 'type' key")
-	}
-	config := &ClusterConfiguration{}
-	if err := json.Unmarshal([]byte(provider), config); err != nil {
-		return fmt.Errorf("provider must decode into the ClusterConfig object: %v", err)
-	}
-
+// Initialize a good enough test context for generating e2e tests,
+// so they can be listed and filtered.
+func initializeCommonTestFramework() error {
 	// update testContext with loaded config
 	testContext := &framework.TestContext
-	testContext.Provider = config.ProviderName
-	testContext.CloudConfig = framework.CloudConfig{
-		ProjectID:   config.ProjectID,
-		Region:      config.Region,
-		Zone:        config.Zone,
-		Zones:       config.Zones,
-		NumNodes:    config.NumNodes,
-		MultiMaster: config.MultiMaster,
-		MultiZone:   config.MultiZone,
-		ConfigFile:  config.ConfigFile,
-	}
 	testContext.AllowedNotReadyNodes = -1
 	testContext.MinStartupPods = -1
 	testContext.MaxNodesToGather = 0
@@ -91,6 +68,45 @@ func initializeTestFramework(provider string) error {
 	testContext.NodeOSDistro = "custom"
 	testContext.MasterOSDistro = "custom"
 
+	return nil
+}
+
+// Finish test context initialization. This is called before a real test is going to run.
+// It parses the cloud provider and file other parameters that are needed for running
+// already generated tests.
+func updateTestFrameworkForTests(provider string) error {
+	providerInfo := &ClusterConfiguration{}
+	if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
+		return fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum: %v", err)
+	}
+	if len(providerInfo.ProviderName) == 0 {
+		return fmt.Errorf("provider must be a JSON object with the 'type' key")
+	}
+	config := &ClusterConfiguration{}
+	if err := json.Unmarshal([]byte(provider), config); err != nil {
+		return fmt.Errorf("provider must decode into the ClusterConfig object: %v", err)
+	}
+
+	// update testContext with loaded config
+	testContext := &framework.TestContext
+	testContext.Provider = config.ProviderName
+	testContext.CloudConfig = framework.CloudConfig{
+		ProjectID:   config.ProjectID,
+		Region:      config.Region,
+		Zone:        config.Zone,
+		Zones:       config.Zones,
+		NumNodes:    config.NumNodes,
+		MultiMaster: config.MultiMaster,
+		MultiZone:   config.MultiZone,
+		ConfigFile:  config.ConfigFile,
+	}
+
+	// these constants are taken from kube e2e and used by tests
+	testContext.IPFamily = "ipv4"
+	if config.HasIPv6 && !config.HasIPv4 {
+		testContext.IPFamily = "ipv6"
+	}
+
 	// load and set the host variable for kubectl
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: testContext.KubeConfig}, &clientcmd.ConfigOverrides{})
 	cfg, err := clientConfig.ClientConfig()
@@ -108,13 +124,6 @@ func initializeTestFramework(provider string) error {
 
 	framework.AfterReadingAllFlags(testContext)
 	testContext.DumpLogsOnFailure = true
-
-	// these constants are taken from kube e2e and used by tests
-	testContext.IPFamily = "ipv4"
-	if config.HasIPv6 && !config.HasIPv4 {
-		testContext.IPFamily = "ipv6"
-	}
-
 	testContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
 
 	return nil
