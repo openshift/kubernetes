@@ -489,7 +489,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift-eng/openshift-tests-extension v0.0.0-20250220212757-b9c4d98a0c45
+# github.com/openshift-eng/openshift-tests-extension v0.0.0-20250521164908-537495efca83 => github.com/stbenjam/openshift-tests-extension v0.0.0-20250521164908-537495efca83
 ## explicit; go 1.23.0
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdimages
@@ -1524,4 +1524,5 @@ sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 sigs.k8s.io/yaml/goyaml.v3
 # github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241205171354-8006f302fd12
+# github.com/openshift-eng/openshift-tests-extension => github.com/stbenjam/openshift-tests-extension v0.0.0-20250521164908-537495efca83
 # github.com/openshift/apiserver-library-go => github.com/openshift/apiserver-library-go v0.0.0-20250502092109-8d341e94467d
