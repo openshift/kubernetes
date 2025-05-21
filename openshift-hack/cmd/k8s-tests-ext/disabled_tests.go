@@ -2,6 +2,7 @@ package main
 
 import (
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -18,7 +19,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"[Feature:UserNamespacesPodSecurityStandards]",
 			"[Feature:UserNamespacesSupport]", // disabled Beta
 			"[Feature:DynamicResourceAllocation]",
-			"[Feature:VolumeAttributesClass]", // disabled Beta
 			"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
 			// 4.19
 			"[Feature:PodLevelResources]",
