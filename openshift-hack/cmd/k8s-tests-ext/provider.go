@@ -40,16 +40,6 @@ func initializeCommonTestFramework() error {
 	testContext.MaxNodesToGather = 0
 	testContext.KubeConfig = os.Getenv("KUBECONFIG")
 
-	// allow the CSI tests to access test data, but only briefly
-	// TODO: ideally CSI would not use any of these test methods
-	// var err error
-	// exutil.WithCleanup(func() { err = initCSITests(dryRun) })
-	// TODO: for now I'm only initializing CSI directly, but we probably need that
-	// WithCleanup here as well
-	if err := initCSITests(); err != nil {
-		return err
-	}
-
 	if ad := os.Getenv("ARTIFACT_DIR"); len(strings.TrimSpace(ad)) == 0 {
 		os.Setenv("ARTIFACT_DIR", filepath.Join(os.TempDir(), "artifacts"))
 	}
@@ -125,6 +115,16 @@ func updateTestFrameworkForTests(provider string) error {
 	framework.AfterReadingAllFlags(testContext)
 	testContext.DumpLogsOnFailure = true
 	testContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+	// allow the CSI tests to access test data, but only briefly
+	// TODO: ideally CSI would not use any of these test methods
+	// var err error
+	// exutil.WithCleanup(func() { err = initCSITests(dryRun) })
+	// TODO: for now I'm only initializing CSI directly, but we probably need that
+	// WithCleanup here as well
+	if err := initCSITests(); err != nil {
+		return err
+	}
 
 	return nil
 }
