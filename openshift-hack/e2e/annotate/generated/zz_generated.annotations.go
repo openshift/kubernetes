@@ -247,7 +247,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] ResourceQuota should be able to update and delete ResourceQuota. [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a ResourceClaim [Feature:DynamicResourceAllocation]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a ResourceClaim [Feature:DynamicResourceAllocation]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a configMap. [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1499,79 +1499,79 @@ var Annotations = map[string]string{
 
 	"[sig-node] Containers should use the image defaults if command and args are blank [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] ResourceSlice Controller creates slices": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] ResourceSlice Controller creates slices": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster DaemonSet with admin access [Feature:DRAAdminAccess]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster DaemonSet with admin access [Feature:DRAAdminAccess]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster must apply per-node permission checks": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster must apply per-node permission checks": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster must manage ResourceSlices [Slow]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster must manage ResourceSlices [Slow]": " [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster support validating admission policy for admin access [Feature:DRAAdminAccess]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster support validating admission policy for admin access [Feature:DRAAdminAccess]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster supports count/resourceclaims.resource.k8s.io ResourceQuota": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster supports count/resourceclaims.resource.k8s.io ResourceQuota": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster truncates the name of a generated resource claim": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] cluster truncates the name of a generated resource claim": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must call NodePrepareResources even if not used by any container": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must call NodePrepareResources even if not used by any container": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must map configs and devices to the right containers": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must map configs and devices to the right containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must not run a pod if a claim is not ready": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must not run a pod if a claim is not ready": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must retry NodePrepareResources": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must retry NodePrepareResources": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must unprepare resources for force-deleted pod": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet must unprepare resources for force-deleted pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet registers plugin": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] kubelet registers plugin": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] multiple drivers using both drav1alpha4 and drapbv1beta1 work": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] multiple drivers using both drav1alpha4 and drapbv1beta1 work": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] multiple drivers using only drapbv1alpha4 work": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] multiple drivers using only drapbv1alpha4 work": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] multiple drivers using only drapbv1beta1 work": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] multiple drivers using only drapbv1beta1 work": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on multiple nodes with different ResourceSlices keeps pod pending because of CEL runtime errors": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on multiple nodes with different ResourceSlices keeps pod pending because of CEL runtime errors": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on multiple nodes with network-attached resources supports sharing a claim sequentially [Slow]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on multiple nodes with network-attached resources supports sharing a claim sequentially [Slow]": " [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on multiple nodes with node-local resources uses all resources": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on multiple nodes with node-local resources uses all resources": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node deletes generated claims when pod is done": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node deletes generated claims when pod is done": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node does not delete generated claims when pod is restarting": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node does not delete generated claims when pod is restarting": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node must be possible for the driver to update the ResourceClaim.Status.Devices once allocated [Feature:DRAResourceClaimDeviceStatus]": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node must be possible for the driver to update the ResourceClaim.Status.Devices once allocated [Feature:DRAResourceClaimDeviceStatus]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node must deallocate after use": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node must deallocate after use": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node removes reservation from claim when pod is done": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node removes reservation from claim when pod is done": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node retries pod scheduling after creating device class": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node retries pod scheduling after creating device class": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node retries pod scheduling after updating device class": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node retries pod scheduling after updating device class": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node runs a pod without a generated resource claim": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node runs a pod without a generated resource claim": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports claim and class parameters": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports claim and class parameters": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports external claim referenced by multiple containers of multiple pods": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports external claim referenced by multiple containers of multiple pods": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports external claim referenced by multiple pods": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports external claim referenced by multiple pods": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports init containers": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports init containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports inline claim referenced by multiple containers": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports inline claim referenced by multiple containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports reusing resources": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports reusing resources": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports sharing a claim concurrently": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports sharing a claim concurrently": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports simple pod referencing external resource claim": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports simple pod referencing external resource claim": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports simple pod referencing inline resource claim": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] on single node supports simple pod referencing inline resource claim": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] DRA [Feature:DynamicResourceAllocation] runs pod after driver starts": " [Disabled:Alpha] [Suite:k8s]",
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] runs pod after driver starts": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Downward API [Serial] [Disruptive] [NodeFeature:DownwardAPIHugePages] Downward API tests for hugepages should provide container's limits.hugepages-<pagesize> and requests.hugepages-<pagesize> as env vars": " [Suite:k8s]",
 

@@ -462,7 +462,7 @@ var (
 		flowcontrolv1beta2.SchemeGroupVersion,
 		flowcontrolv1beta3.SchemeGroupVersion,
 		networkingapiv1beta1.SchemeGroupVersion,
-		resourcev1beta1.SchemeGroupVersion,
+		// resourcev1beta1.SchemeGroupVersion,
 	}
 
 	// alphaAPIGroupVersionsDisabledByDefault holds the alpha APIs we have.  They are always disabled by default.
@@ -472,7 +472,7 @@ var (
 		authenticationv1alpha1.SchemeGroupVersion,
 		apiserverinternalv1alpha1.SchemeGroupVersion,
 		coordinationv1alpha2.SchemeGroupVersion,
-		resourcev1alpha3.SchemeGroupVersion,
+		// resourcev1alpha3.SchemeGroupVersion,
 		certificatesv1alpha1.SchemeGroupVersion,
 		networkingapiv1alpha1.SchemeGroupVersion,
 		storageapiv1alpha1.SchemeGroupVersion,
@@ -485,6 +485,7 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret := serverstorage.NewResourceConfig()
 	// NOTE: GroupVersions listed here will be enabled by default. Don't put alpha or beta versions in the list.
 	ret.EnableVersions(stableAPIGroupVersionsEnabledByDefault...)
+	ret.EnableVersions(resourcev1alpha3.SchemeGroupVersion, resourcev1beta1.SchemeGroupVersion)
 
 	// disable alpha and beta versions explicitly so we have a full list of what's possible to serve
 	ret.DisableVersions(betaAPIGroupVersionsDisabledByDefault...)
