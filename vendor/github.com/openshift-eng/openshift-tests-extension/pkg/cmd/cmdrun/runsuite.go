@@ -24,8 +24,9 @@ func NewRunSuiteCommand(registry *extension.Registry) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:          "run-suite NAME",
-		Short:        "Run a group of tests by suite",
+		Use: "run-suite NAME",
+		Short: "Run a group of tests by suite. This is more limited than origin, and intended for light local " +
+			"development use. Orchestration parameters, scheduling, isolation, etc are not obeyed, and Ginkgo tests are executed serially.",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ext := registry.Get(opts.componentFlags.Component)
