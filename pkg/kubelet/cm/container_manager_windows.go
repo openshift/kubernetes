@@ -251,7 +251,22 @@ func (cm *containerManagerImpl) UpdateAllocatedDevices() {
 	return
 }
 
-func (cm *containerManagerImpl) GetCPUs(_, _ string) []int64 {
+func (cm *containerManagerImpl) UpdateAllocatedMemory() {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.WindowsCPUAndMemoryAffinity) {
+		if cm.memoryManager != nil {
+			cm.memoryManager.RemoveStaleState()
+		}
+	}
+	return
+}
+
+func (cm *containerManagerImpl) GetCPUs(podUID, containerName string) []int64 {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.WindowsCPUAndMemoryAffinity) {
+		if cm.cpuManager != nil {
+			return int64Slice(cm.cpuManager.GetExclusiveCPUs(podUID, containerName).UnsortedList())
+		}
+		return []int64{}
+	}
 	return nil
 }
 
