@@ -98,6 +98,9 @@ type Manager interface {
 	// GetAllCPUs returns all the CPUs known by cpumanager, as reported by the
 	// hardware discovery. Maps to the CPU capacity.
 	GetAllCPUs() cpuset.CPUSet
+
+	// RemoveStaleState frees any exclusive CPUs that are bound to terminated pods.
+	RemoveStaleState()
 }
 
 type manager struct {
@@ -260,7 +263,7 @@ func (m *manager) Allocate(p *v1.Pod, c *v1.Container) error {
 	m.setPodPendingAdmission(p)
 
 	// Garbage collect any stranded resources before allocating CPUs.
-	m.removeStaleState()
+	m.RemoveStaleState()
 
 	m.Lock()
 	defer m.Unlock()
@@ -331,7 +334,7 @@ func (m *manager) GetTopologyHints(pod *v1.Pod, container *v1.Container) map[str
 	// being cleaned before the admission ended
 	m.setPodPendingAdmission(pod)
 	// Garbage collect any stranded resources before providing TopologyHints
-	m.removeStaleState()
+	m.RemoveStaleState()
 	// Delegate to active policy
 	return m.policy.GetTopologyHints(m.state, pod, container)
 }
@@ -341,7 +344,7 @@ func (m *manager) GetPodTopologyHints(pod *v1.Pod) map[string][]topologymanager.
 	// being cleaned before the admission ended
 	m.setPodPendingAdmission(pod)
 	// Garbage collect any stranded resources before providing TopologyHints
-	m.removeStaleState()
+	m.RemoveStaleState()
 	// Delegate to active policy
 	return m.policy.GetPodTopologyHints(m.state, pod)
 }
@@ -360,7 +363,7 @@ type reconciledContainer struct {
 	containerID   string
 }
 
-func (m *manager) removeStaleState() {
+func (m *manager) RemoveStaleState() {
 	// Only once all sources are ready do we attempt to remove any stale state.
 	// This ensures that the call to `m.activePods()` below will succeed with
 	// the actual active pods list.
@@ -421,7 +424,7 @@ func (m *manager) reconcileState() (success []reconciledContainer, failure []rec
 	success = []reconciledContainer{}
 	failure = []reconciledContainer{}
 
-	m.removeStaleState()
+	m.RemoveStaleState()
 	workloadEnabled := managed.IsEnabled()
 	for _, pod := range m.activePods() {
 		pstatus, ok := m.podStatusProvider.GetPodStatus(pod.UID)

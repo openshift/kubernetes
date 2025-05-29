@@ -150,6 +150,10 @@ func (cm *containerManagerStub) UpdateAllocatedMemory() {
 	return
 }
 
+func (cm *containerManagerStub) UpdateAllocatedCPUs() {
+	return
+}
+
 func (cm *containerManagerStub) GetCPUs(_, _ string) []int64 {
 	return nil
 }
