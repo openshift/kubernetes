@@ -15,6 +15,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	podhelpers "k8s.io/kubernetes/pkg/apis/core/pods"
 
@@ -256,12 +257,14 @@ func CreateProviderFromConstraint(namespace *corev1.Namespace, constraint *secur
 		}
 		constraint.SupplementalGroups.Ranges = supplementalGroups
 	}
+	fsGroupPolicy := getPodFsGroupChangePolicy(namespace)
 
 	// Create the provider
-	provider, err := NewSimpleProvider(constraint)
+	provider, err := NewSimpleProvider(constraint, fsGroupPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, namespace.GetName(), err)
 	}
+
 	return provider, nil
 }
 
@@ -284,6 +287,18 @@ func getPreallocatedUIDRange(ns *corev1.Namespace) (*int64, *int64, error) {
 	var max int64 = int64(uidBlock.End)
 	klog.V(4).Infof("got preallocated values for min: %d, max: %d for uid range in namespace %s", min, max, ns.Name)
 	return &min, &max, nil
+}
+
+func getPodFsGroupChangePolicy(ns *corev1.Namespace) *api.PodFSGroupChangePolicy {
+	fsGroupPolicy, ok := ns.Annotations[securityv1.OnRootMismatchFSGroupPolicy]
+	if !ok {
+		return nil
+	}
+	if fsGroupPolicy == "true" {
+		onRootMismatchPolicy := api.FSGroupChangeOnRootMismatch
+		return &onRootMismatchPolicy
+	}
+	return nil
 }
 
 // getPreallocatedLevel gets the annotated value from the namespace.
