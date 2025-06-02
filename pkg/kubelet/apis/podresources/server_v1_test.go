@@ -112,7 +112,12 @@ func TestListPodResourcesV1(t *testing.T) {
 			cpus:             []int64{},
 			memory:           []*podresourcesapi.ContainerMemory{},
 			dynamicResources: []*podresourcesapi.DynamicResource{},
-			expectedResponse: &podresourcesapi.ListPodResourcesResponse{},
+			expectedResponse: &podresourcesapi.ListPodResourcesResponse{
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
+				},
+			},
 		},
 		{
 			desc:             "pod without devices",
@@ -134,6 +139,10 @@ func TestListPodResourcesV1(t *testing.T) {
 							},
 						},
 					},
+				},
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
 				},
 			},
 		},
@@ -160,6 +169,10 @@ func TestListPodResourcesV1(t *testing.T) {
 						},
 					},
 				},
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
+				},
 			},
 		},
 		{
@@ -185,6 +198,10 @@ func TestListPodResourcesV1(t *testing.T) {
 						},
 					},
 				},
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
+				},
 			},
 		},
 		{
@@ -209,6 +226,10 @@ func TestListPodResourcesV1(t *testing.T) {
 							},
 						},
 					},
+				},
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
 				},
 			},
 		},
@@ -348,6 +369,10 @@ func TestListPodResourcesWithInitContainersV1(t *testing.T) {
 							},
 						},
 					},
+				},
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
 				},
 			},
 		},
@@ -516,6 +541,10 @@ func TestListPodResourcesWithInitContainersV1(t *testing.T) {
 							},
 						},
 					},
+				},
+				AppliedFilters: &podresourcesapi.ListPodResourcesFilterResponse{},
+				SupportedFilters: &podresourcesapi.ListPodResourcesFilterResponse{
+					ActiveOnly: true,
 				},
 			},
 		},

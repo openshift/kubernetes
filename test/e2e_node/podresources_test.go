@@ -302,11 +302,28 @@ func convertToMap(podsResources []*kubeletpodresourcesv1.PodResources) podResMap
 }
 
 func getActivePodResourcesValues(ctx context.Context, cli kubeletpodresourcesv1.PodResourcesListerClient) (podResMap, error) {
-	resp, err := cli.List(ctx, &kubeletpodresourcesv1.ListPodResourcesRequest{
+	filters := kubeletpodresourcesv1.ListPodResourcesFilterRequest{
 		ActiveOnly: true,
+	}
+	resp, err := cli.List(ctx, &kubeletpodresourcesv1.ListPodResourcesRequest{
+		Filters: &filters,
 	})
 	if err != nil {
 		return nil, err
+	}
+	suppFilters := resp.GetSupportedFilters()
+	if suppFilters == nil {
+		return nil, fmt.Errorf("server does not support List filters, which can't happen")
+	}
+	if !suppFilters.GetActiveOnly() {
+		return nil, fmt.Errorf("server does not support the activeOnly List filters, which can't happen")
+	}
+	appFilters := resp.GetAppliedFilters()
+	if appFilters == nil {
+		return nil, fmt.Errorf("server did not apply List filters")
+	}
+	if !appFilters.GetActiveOnly() {
+		return nil, fmt.Errorf("server did not apply activeOnly List filters")
 	}
 	return convertToMap(resp.GetPodResources()), nil
 }
@@ -315,6 +332,14 @@ func getPodResourcesValues(ctx context.Context, cli kubeletpodresourcesv1.PodRes
 	resp, err := cli.List(ctx, &kubeletpodresourcesv1.ListPodResourcesRequest{})
 	if err != nil {
 		return nil, err
+	}
+	// supported filters must always be reported, even if unused.
+	suppFilters := resp.GetSupportedFilters()
+	if suppFilters == nil {
+		return nil, fmt.Errorf("server does not support List filters, which can't happen")
+	}
+	if !suppFilters.GetActiveOnly() {
+		return nil, fmt.Errorf("server does not support the activeOnly List filters, which can't happen")
 	}
 	return convertToMap(resp.GetPodResources()), nil
 }
