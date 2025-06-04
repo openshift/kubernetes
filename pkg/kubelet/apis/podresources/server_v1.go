@@ -21,10 +21,11 @@ import (
 	"fmt"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/klog/v2"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 
-	"k8s.io/kubelet/pkg/apis/podresources/v1"
+	v1 "k8s.io/kubelet/pkg/apis/podresources/v1"
 )
 
 // v1PodResourcesServer implements PodResourcesListerServer
@@ -34,17 +35,21 @@ type v1PodResourcesServer struct {
 	cpusProvider             CPUsProvider
 	memoryProvider           MemoryProvider
 	dynamicResourcesProvider DynamicResourcesProvider
+	useActivePods            bool
 }
 
 // NewV1PodResourcesServer returns a PodResourcesListerServer which lists pods provided by the PodsProvider
 // with device information provided by the DevicesProvider
-func NewV1PodResourcesServer(providers PodResourcesProviders) v1.PodResourcesListerServer {
+func NewV1PodResourcesServer(providers PodResourcesProviders) podresourcesv1.PodResourcesListerServer {
+	useActivePods := utilfeature.DefaultFeatureGate.Enabled(kubefeatures.KubeletPodResourcesListUseActivePods)
+	klog.InfoS("podresources", "method", "list", "useActivePods", useActivePods)
 	return &v1PodResourcesServer{
 		podsProvider:             providers.Pods,
 		devicesProvider:          providers.Devices,
 		cpusProvider:             providers.Cpus,
 		memoryProvider:           providers.Memory,
 		dynamicResourcesProvider: providers.DynamicResources,
+		useActivePods:            useActivePods,
 	}
 }
 
@@ -53,8 +58,14 @@ func (p *v1PodResourcesServer) List(ctx context.Context, req *v1.ListPodResource
 	metrics.PodResourcesEndpointRequestsTotalCount.WithLabelValues("v1").Inc()
 	metrics.PodResourcesEndpointRequestsListCount.WithLabelValues("v1").Inc()
 
-	pods := p.podsProvider.GetPods()
-	podResources := make([]*v1.PodResources, len(pods))
+	var pods []*v1.Pod
+	if p.useActivePods {
+		pods = p.podsProvider.GetActivePods()
+	} else {
+		pods = p.podsProvider.GetPods()
+	}
+
+	podResources := make([]*podresourcesv1.PodResources, len(pods))
 	p.devicesProvider.UpdateAllocatedDevices()
 
 	for i, pod := range pods {
