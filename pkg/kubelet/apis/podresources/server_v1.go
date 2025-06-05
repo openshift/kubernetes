@@ -55,7 +55,19 @@ func (p *v1PodResourcesServer) List(ctx context.Context, req *podresourcesv1.Lis
 	metrics.PodResourcesEndpointRequestsTotalCount.WithLabelValues("v1").Inc()
 	metrics.PodResourcesEndpointRequestsListCount.WithLabelValues("v1").Inc()
 
-	pods := p.podsProvider.GetPods()
+	// filters
+	activeOnly := false
+	if reqFilters := req.GetFilters(); reqFilters != nil {
+		activeOnly = reqFilters.GetActiveOnly()
+	}
+
+	var pods []*v1.Pod
+	if activeOnly {
+		pods = p.podsProvider.GetActivePods()
+	} else {
+		pods = p.podsProvider.GetPods()
+	}
+
 	podResources := make([]*podresourcesv1.PodResources, len(pods))
 	p.devicesProvider.UpdateAllocatedDevices()
 
@@ -86,6 +98,12 @@ func (p *v1PodResourcesServer) List(ctx context.Context, req *podresourcesv1.Lis
 
 	response := &podresourcesv1.ListPodResourcesResponse{
 		PodResources: podResources,
+		SupportedFilters: &podresourcesv1.ListPodResourcesFilterResponse{
+			ActiveOnly: true,
+		},
+		AppliedFilters: &podresourcesv1.ListPodResourcesFilterResponse{
+			ActiveOnly: activeOnly,
+		},
 	}
 	return response, nil
 }
