@@ -39,6 +39,10 @@ func main() {
 	framework.RegisterCommonFlags(flag.CommandLine)
 	framework.RegisterClusterFlags(flag.CommandLine)
 
+	if err := initializeCommonTestFramework(); err != nil {
+		panic(err)
+	}
+
 	// Get version info from kube
 	kubeVersion := version.Get()
 	v.GitTreeState = kubeVersion.GitTreeState
@@ -85,7 +89,7 @@ func main() {
 
 	// Initialization for kube ginkgo test framework needs to run before all tests execute
 	specs.AddBeforeAll(func() {
-		if err := initializeTestFramework(os.Getenv("TEST_PROVIDER")); err != nil {
+		if err := updateTestFrameworkForTests(os.Getenv("TEST_PROVIDER")); err != nil {
 			panic(err)
 		}
 	})
