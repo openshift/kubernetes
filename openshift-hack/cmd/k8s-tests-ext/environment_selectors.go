@@ -149,7 +149,7 @@ func filterByExternalConnectivity(specs et.ExtensionTestSpecs) {
 		// These tests are skipped when openshift-tests needs to use a proxy to reach the
 		// cluster -- either because the test won't work while proxied, or because the test
 		// itself is testing a functionality using it's own proxy.
-		"Proxy": {
+		"Proxied": {
 			// These tests setup their own proxy, which won't work when we need to access the
 			// cluster through a proxy.
 			"[sig-cli] Kubectl client Simple pod should support exec through an HTTP proxy",
@@ -184,7 +184,7 @@ func filterByExternalConnectivity(specs et.ExtensionTestSpecs) {
 // filterByTopology is a helper function to do, simple, "NameContains" filtering on tests by topology
 func filterByTopology(specs et.ExtensionTestSpecs) {
 	var topologyExclusions = map[string][]string{
-		"SingleReplicaTopology": {
+		"SingleReplica": {
 			"[sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]",
 			"[sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes",
 			"[sig-node] NoExecuteTaintManager Single Pod [Serial] eventually evict pod with finite tolerations from tainted nodes",
