@@ -14,6 +14,7 @@ func addEnvironmentSelectors(specs et.ExtensionTestSpecs) {
 	filterByTopology(specs)
 	filterByNoOptionalCapabilities(specs)
 	filterByNetwork(specs)
+	filterByFeatureGate(specs)
 
 	// LoadBalancer tests in 1.31 require explicit platform-specific skips
 	// https://issues.redhat.com/browse/OCPBUGS-38840
@@ -245,5 +246,16 @@ func filterByNetwork(specs et.ExtensionTestSpecs) {
 		specs.SelectAny(selectFunctions).
 			Exclude(et.NetworkEquals(network)).
 			AddLabel(fmt.Sprintf("[Skipped:%s]", network))
+	}
+}
+
+// filterByFeatureGate is a helper to exclude tests that only work when a particular feature gate is enabled
+func filterByFeatureGate(specs et.ExtensionTestSpecs) {
+	techPreviewFeatureGates := []string{
+		"VolumeAttributesClass", // Kubernetes beta, disabled by default
+	}
+
+	for _, featureGate := range techPreviewFeatureGates {
+		specs.Select(et.NameContains("[FeatureGate:" + featureGate)).Include(et.FeatureGateEnabled(featureGate))
 	}
 }
