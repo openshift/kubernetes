@@ -37,6 +37,7 @@ type simpleProvider struct {
 	supplementalGroupStrategy group.GroupSecurityContextConstraintsStrategy
 	capabilitiesStrategy      capabilities.CapabilitiesSecurityContextConstraintsStrategy
 	seccompStrategy           seccomp.SeccompStrategy
+	fsGroupChangePolicy       *api.PodFSGroupChangePolicy
 	sysctlsStrategy           sysctl.SysctlsStrategy
 }
 
@@ -44,7 +45,7 @@ type simpleProvider struct {
 var _ SecurityContextConstraintsProvider = &simpleProvider{}
 
 // NewSimpleProvider creates a new SecurityContextConstraintsProvider instance.
-func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
+func NewSimpleProvider(scc *securityv1.SecurityContextConstraints, fsGroupPolicy *api.PodFSGroupChangePolicy) (SecurityContextConstraintsProvider, error) {
 	if scc == nil {
 		return nil, fmt.Errorf("NewSimpleProvider requires a SecurityContextConstraints")
 	}
@@ -93,6 +94,7 @@ func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityCont
 		capabilitiesStrategy:      capStrat,
 		seccompStrategy:           seccompStrat,
 		sysctlsStrategy:           sysctlsStrat,
+		fsGroupChangePolicy:       fsGroupPolicy,
 	}, nil
 }
 
@@ -118,6 +120,11 @@ func (s *simpleProvider) CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurit
 			return nil, nil, err
 		}
 		sc.SetFSGroup(fsGroup)
+	}
+
+	// set the FSGroupChangePolicy if it is not set on the pod and the SCC has a policy
+	if sc.FSGroup() != nil && s.fsGroupChangePolicy != nil && sc.FSGroupChangePolicy() == nil {
+		sc.SetFSGroupChangePolicy(s.fsGroupChangePolicy)
 	}
 
 	if sc.SELinuxOptions() == nil {
