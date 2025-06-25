@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io"
 
+	openshiftfeatures "github.com/openshift/api/features"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/component-base/featuregate"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -62,6 +65,11 @@ func (c *performantSecurityPolicy) ValidateInitialization() error {
 }
 
 func (c *performantSecurityPolicy) Admit(ctx context.Context, attributes admission.Attributes, _ admission.ObjectInterfaces) error {
+	if !feature.DefaultFeatureGate.Enabled(featuregate.Feature(openshiftfeatures.
+		FeatureGateStoragePerformantSecurityPolicy)) {
+		return nil
+	}
+
 	if attributes.GetResource().GroupResource() != kapi.Resource("pods") ||
 		len(attributes.GetSubresource()) > 0 {
 		return nil
