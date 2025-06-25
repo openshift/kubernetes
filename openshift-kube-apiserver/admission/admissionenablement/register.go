@@ -45,6 +45,7 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
 	csiinlinevolumesecurity.Register(plugins)
+	performantsecuritypolicy.Register(plugins)
 }
 
 var (

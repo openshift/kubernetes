@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"io"
 
+	openshiftfeatures "github.com/openshift/api/features"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/component-base/featuregate"
+	"k8s.io/klog/v2"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -32,8 +36,8 @@ func Register(plugins *admission.Plugins) {
 		})
 }
 
-// csiInlineVolSec validates whether the namespace has permission to use a given
-// CSI driver as an inline volume.
+// performantSecurityPolicy checks and applies if a default FSGroupChangePolicy and SELinuxChangePolicy
+// should be applied to the pod.
 type performantSecurityPolicy struct {
 	*admission.Handler
 	//enabled               bool
@@ -56,12 +60,17 @@ func (c *performantSecurityPolicy) ValidateInitialization() error {
 		return fmt.Errorf("%s plugin needs a namespace lister", PluginName)
 	}
 	if c.nsListerSynced == nil {
-		return fmt.Errorf("%s plugin needs a namespace lister synced", PluginName)
+		return fmt.Errorf("%s plugin needs a method to sync namespace lister", PluginName)
 	}
 	return nil
 }
 
 func (c *performantSecurityPolicy) Admit(ctx context.Context, attributes admission.Attributes, _ admission.ObjectInterfaces) error {
+	if !feature.DefaultFeatureGate.Enabled(featuregate.Feature(openshiftfeatures.
+		FeatureGateStoragePerformantSecurityPolicy)) {
+		return nil
+	}
+
 	if attributes.GetResource().GroupResource() != kapi.Resource("pods") ||
 		len(attributes.GetSubresource()) > 0 {
 		return nil
@@ -80,19 +89,48 @@ func (c *performantSecurityPolicy) Admit(ctx context.Context, attributes admissi
 
 	if currentFSGroupChangePolicy == nil {
 		currentFSGroupChangePolicy = c.getDefaultFSGroupChangePolicy(ns)
-		pod.Spec.SecurityContext.FSGroupChangePolicy = currentFSGroupChangePolicy
+		if currentFSGroupChangePolicy != nil {
+			klog.Infof("Setting default FSGroupChangePolicy %s for pod %s/%s", *currentFSGroupChangePolicy, pod.Namespace, pod.Name)
+			if pod.Spec.SecurityContext != nil {
+				pod.Spec.SecurityContext.FSGroupChangePolicy = currentFSGroupChangePolicy
+			} else {
+				pod.Spec.SecurityContext = &kapi.PodSecurityContext{
+					FSGroupChangePolicy: currentFSGroupChangePolicy,
+				}
+			}
+		}
 	}
 
-	currentSELinuxChangePolicy := pod.Spec.SecurityContext.SELinuxChangePolicy
+	currentSELinuxChangePolicy := extractCurrentSELinuxChangePolicy(pod)
 	if currentSELinuxChangePolicy == nil {
 		currentSELinuxChangePolicy = c.getDefaultSELinuxChangePolicy(ns)
-		pod.Spec.SecurityContext.SELinuxChangePolicy = currentSELinuxChangePolicy
+		if currentSELinuxChangePolicy != nil {
+			klog.Infof("Setting default SELinuxChangePolicy %s for pod %s/%s", *currentSELinuxChangePolicy, pod.Namespace, pod.Name)
+			if pod.Spec.SecurityContext != nil {
+				pod.Spec.SecurityContext.SELinuxChangePolicy = currentSELinuxChangePolicy
+			} else {
+				pod.Spec.SecurityContext = &kapi.PodSecurityContext{
+					SELinuxChangePolicy: currentSELinuxChangePolicy,
+				}
+			}
+		}
 	}
 	return nil
 }
 
+func extractCurrentSELinuxChangePolicy(pod *kapi.Pod) *kapi.PodSELinuxChangePolicy {
+	if pod.Spec.SecurityContext != nil {
+		return pod.Spec.SecurityContext.SELinuxChangePolicy
+	}
+
+	return nil
+}
+
 func extractCurrentFSGroupChangePolicy(pod *kapi.Pod) *kapi.PodFSGroupChangePolicy {
-	return pod.Spec.SecurityContext.FSGroupChangePolicy
+	if pod.Spec.SecurityContext != nil {
+		return pod.Spec.SecurityContext.FSGroupChangePolicy
+	}
+	return nil
 }
 
 func (c *performantSecurityPolicy) getDefaultFSGroupChangePolicy(ns *corev1.Namespace) *kapi.PodFSGroupChangePolicy {
@@ -100,7 +138,12 @@ func (c *performantSecurityPolicy) getDefaultFSGroupChangePolicy(ns *corev1.Name
 	if !ok {
 		return nil
 	}
-	return (*kapi.PodFSGroupChangePolicy)(&fsGroupPolicy)
+	policy := kapi.PodFSGroupChangePolicy(fsGroupPolicy)
+
+	if policy == kapi.FSGroupChangeOnRootMismatch || policy == kapi.FSGroupChangeAlways {
+		return &policy
+	}
+	return nil
 }
 
 func (c *performantSecurityPolicy) getDefaultSELinuxChangePolicy(ns *corev1.Namespace) *kapi.PodSELinuxChangePolicy {
@@ -109,5 +152,11 @@ func (c *performantSecurityPolicy) getDefaultSELinuxChangePolicy(ns *corev1.Name
 		return nil
 	}
 
-	return (*kapi.PodSELinuxChangePolicy)(&selinuxChangePolicy)
+	policy := kapi.PodSELinuxChangePolicy(selinuxChangePolicy)
+
+	if policy == kapi.SELinuxChangePolicyMountOption || policy == kapi.SELinuxChangePolicyRecursive {
+		return &policy
+	}
+	return nil
+
 }
