@@ -19,6 +19,7 @@ package instrumentation
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -57,14 +58,28 @@ var _ = common.SIGDescribe("Metrics", func() {
 	   Description: Should attempt to grab all resource metrics from kubelet metrics/resource endpoint.
 	*/
 	ginkgo.It("should grab all metrics from kubelet /metrics/resource endpoint", func(ctx context.Context) {
-		ginkgo.By("Connecting to kubelet's /metrics/resource endpoint")
-		node, err := e2enode.GetRandomReadySchedulableNode(ctx, f.ClientSet)
-		if errors.Is(err, e2emetrics.MetricsGrabbingDisabledError) {
-			e2eskipper.Skipf("%v", err)
-		}
-		framework.ExpectNoError(err)
-		response, err := grabber.GrabResourceMetricsFromKubelet(ctx, node.Name)
-		framework.ExpectNoError(err)
-		gomega.Expect(response).NotTo(gomega.BeEmpty())
+		// Each attempt to grab metrics from the Kubelet has an internal proxyTimeout (2 minutes).
+		// The Gomega.Eventually ensures we retry the entire grab operation (including potential internal proxy timeouts)
+		// for up to 7 minutes, polling every 10 seconds. This allows for multiple retries if the Kubelet is temporarily
+		// unresponsive or has transient proxy issues. Also helps select another node.
+		gomega.Eventually(ctx, func() error {
+			ginkgo.By("Connecting to kubelet's /metrics/resource endpoint")
+			node, err := e2enode.GetRandomReadySchedulableNode(ctx, f.ClientSet)
+			if errors.Is(err, e2emetrics.MetricsGrabbingDisabledError) {
+				e2eskipper.Skipf("%v", err)
+			}
+			framework.ExpectNoError(err)
+			response, err := grabber.GrabResourceMetricsFromKubelet(ctx, node.Name)
+			if isProxyTimeoutError(err) {
+				return err // This will cause a retry. For other error fail immediately.
+			}
+			framework.ExpectNoError(err)
+			gomega.Expect(response).NotTo(gomega.BeEmpty())
+			return nil
+		}, 7*time.Minute, 10*time.Second).Should(gomega.BeNil())
 	})
 })
+
+func isProxyTimeoutError(err error) bool {
+	return err != nil && strings.HasPrefix(err.Error(), "Timed out when waiting for proxy to gather metrics")
+}
