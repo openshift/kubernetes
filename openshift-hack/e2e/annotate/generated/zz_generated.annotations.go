@@ -963,7 +963,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] Logging soak [Performance] [Slow] [Disruptive] should survive logging 1KB every 1s seconds, for a duration of 2m0s": " [Serial] [Suite:k8s]",
 
-	"[sig-instrumentation] Metrics should grab all metrics from kubelet /metrics/resource endpoint": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-instrumentation] Metrics should grab all metrics from kubelet /metrics/resource endpoint": " [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-instrumentation] MetricsGrabber should grab all metrics from API server.": " [Disabled:Broken] [Suite:k8s]",
 
