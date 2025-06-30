@@ -140,6 +140,7 @@ func probeControllerVolumePlugins(logger klog.Logger, config persistentvolumecon
 			}
 		}
 	}
+	allPlugins = append(allPlugins, csi.ProbeVolumePlugins()...)
 
 	return filteredPlugins, nil
 }
