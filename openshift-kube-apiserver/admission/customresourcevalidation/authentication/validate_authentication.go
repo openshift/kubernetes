@@ -12,6 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	configv1 "github.com/openshift/api/config/v1"
+	authenticationcel "k8s.io/apiserver/pkg/authentication/cel"
 	crvalidation "k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation"
 )
 
@@ -121,7 +122,12 @@ func validateAuthenticationSpec(spec configv1.AuthenticationSpec) field.ErrorLis
 				spec.WebhookTokenAuthenticator, fmt.Sprintf("this field cannot be set with the %q .spec.type", spec.Type),
 			))
 		}
+	}
 
+	if spec.Type == configv1.AuthenticationTypeOIDC {
+		for i, provider := range spec.OIDCProviders {
+			errs = append(errs, validateOIDCProvider(specField.Child("oidcProviders").Index(i), provider)...)
+		}
 	}
 
 	errs = append(errs, crvalidation.ValidateConfigMapReference(specField.Child("oauthMetadata"), spec.OAuthMetadata, false)...)
@@ -131,4 +137,59 @@ func validateAuthenticationSpec(spec configv1.AuthenticationSpec) field.ErrorLis
 
 func validateAuthenticationStatus(status configv1.AuthenticationStatus) field.ErrorList {
 	return crvalidation.ValidateConfigMapReference(field.NewPath("status", "integratedOAuthMetadata"), status.IntegratedOAuthMetadata, false)
+}
+
+func validateOIDCProvider(path *field.Path, provider configv1.OIDCProvider) field.ErrorList {
+	errs := field.ErrorList{}
+	return errs
+}
+
+func validateClaimMappings(path *field.Path, claimMappings configv1.TokenClaimMappings) field.ErrorList {
+	path = path.Child("claimMappings")
+	errs := field.ErrorList{}
+	errs = append(errs, validateUIDClaimMapping(path, claimMappings.UID))
+	errs = append(errs, validateExtraClaimMapping(path, claimMappings.Extra...)...)
+	return errs
+}
+
+func validateUIDClaimMapping(path *field.Path, uid *configv1.TokenClaimOrExpressionMapping) *field.Error {
+	if uid == nil {
+		return nil
+	}
+
+	if uid.Expression != "" {
+		err := validateCELExpression(&authenticationcel.ClaimMappingExpression{
+			Expression: uid.Expression,
+		})
+		if err != nil {
+			return field.Invalid(path.Child("uid", "expression"), uid.Expression, err.Error())
+		}
+	}
+
+	return nil
+}
+
+func validateExtraClaimMapping(path *field.Path, extras ...configv1.ExtraMapping) field.ErrorList {
+	errs := field.ErrorList{}
+	for i, extra := range extras {
+		errs = append(errs, validateExtra(path.Child("extra").Index(i), extra))
+	}
+	return errs
+}
+
+func validateExtra(path *field.Path, extra configv1.ExtraMapping) *field.Error {
+	err := validateCELExpression(&authenticationcel.ExtraMappingExpression{
+		Key:        extra.Key,
+		Expression: extra.ValueExpression,
+	})
+	if err != nil {
+		return field.Invalid(path, extra.ValueExpression, err.Error())
+	}
+
+	return nil
+}
+
+func validateCELExpression(accessor authenticationcel.ExpressionAccessor) error {
+	_, err := authenticationcel.NewDefaultCompiler().CompileClaimsExpression(accessor)
+	return err
 }
