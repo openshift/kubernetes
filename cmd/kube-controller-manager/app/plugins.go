@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume/fc"
 	"k8s.io/kubernetes/pkg/volume/flexvolume"
 	"k8s.io/kubernetes/pkg/volume/hostpath"
+	"k8s.io/kubernetes/pkg/volume/local"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 
@@ -130,18 +131,9 @@ func probeControllerVolumePlugins(logger klog.Logger, config persistentvolumecon
 		return allPlugins, err
 	}
 
-	var filteredPlugins []volume.VolumePlugin
-	if filter == nil {
-		filteredPlugins = allPlugins
-	} else {
-		for _, plugin := range allPlugins {
-			if filter(plugin) {
-				filteredPlugins = append(filteredPlugins, plugin)
-			}
-		}
-	}
-
-	return filteredPlugins, nil
+	allPlugins = append(allPlugins, local.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, csi.ProbeVolumePlugins()...)
+	return allPlugins, nil
 }
 
 // AttemptToLoadRecycler tries decoding a pod from a filepath for use as a recycler for a volume.
