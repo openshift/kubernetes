@@ -170,7 +170,7 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 
 		l.resource = storageframework.CreateVolumeResource(ctx, driver, l.config, pattern, testVolumeSizeRange)
 		ginkgo.DeferCleanup(l.resource.CleanupResource)
-		ginkgo.DeferCleanup(cleanupTest, l.cs, l.ns.Name, l.podNames, l.pvcNames, l.pvNames, testSlowMultiplier*f.Timeouts.PVDelete)
+		ginkgo.DeferCleanup(cleanupTest, l.cs, l.ns.Name, l.pvNames, testSlowMultiplier*f.Timeouts.PVDelete)
 
 		selection := e2epod.NodeSelection{Name: nodeName}
 
@@ -280,24 +280,26 @@ func (t *volumeLimitsTestSuite) DefineTests(driver storageframework.TestDriver, 
 	})
 }
 
-func cleanupTest(ctx context.Context, cs clientset.Interface, ns string, podNames, pvcNames []string, pvNames sets.Set[string], timeout time.Duration) error {
+func cleanupTest(ctx context.Context, cs clientset.Interface, ns string, pvNames sets.Set[string], timeout time.Duration) error {
 	var cleanupErrors []string
-	for _, podName := range podNames {
-		err := cs.CoreV1().Pods(ns).Delete(ctx, podName, metav1.DeleteOptions{})
+
+	// Delete the namespace. Since OrderedNamespaceDeletion feature is enabled by default
+	// in 1.33, this should be enough to delete all pods and PVCs from the test namespace
+	err := cs.CoreV1().Namespaces().Delete(ctx, ns, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete namespace %s: %s", ns, err))
+	}
+	if err == nil {
+		err := framework.WaitForNamespacesDeleted(ctx, cs, []string{ns}, framework.DefaultNamespaceDeletionTimeout)
 		if err != nil {
-			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete pod %s: %s", podName, err))
+			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete namespace %s: %s", ns, err))
 		}
 	}
-	for _, pvcName := range pvcNames {
-		err := cs.CoreV1().PersistentVolumeClaims(ns).Delete(ctx, pvcName, metav1.DeleteOptions{})
-		if !apierrors.IsNotFound(err) {
-			cleanupErrors = append(cleanupErrors, fmt.Sprintf("failed to delete PVC %s: %s", pvcName, err))
-		}
-	}
+
 	// Wait for the PVs to be deleted. It includes also pod and PVC deletion because of PVC protection.
 	// We use PVs to make sure that the test does not leave orphan PVs when a CSI driver is destroyed
 	// just after the test ends.
-	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, false, func(ctx context.Context) (bool, error) {
 		existing := 0
 		for _, pvName := range pvNames.UnsortedList() {
 			_, err := cs.CoreV1().PersistentVolumes().Get(ctx, pvName, metav1.GetOptions{})
