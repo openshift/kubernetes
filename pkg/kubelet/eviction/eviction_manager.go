@@ -552,6 +552,7 @@ func (m *managerImpl) podEphemeralStorageLimitEviction(podStats statsapi.PodStat
 	podLimits := resourcehelper.PodLimits(pod, resourcehelper.PodResourcesOptions{})
 	_, found := podLimits[v1.ResourceEphemeralStorage]
 	if !found {
+		klog.Info("POD EPHEMERAL EVICTION: No resource ephemeral storage found")
 		return false
 	}
 
@@ -559,6 +560,7 @@ func (m *managerImpl) podEphemeralStorageLimitEviction(podStats statsapi.PodStat
 	podEphemeralStorageTotalUsage := &resource.Quantity{}
 	if podStats.EphemeralStorage != nil && podStats.EphemeralStorage.UsedBytes != nil {
 		podEphemeralStorageTotalUsage = resource.NewQuantity(int64(*podStats.EphemeralStorage.UsedBytes), resource.BinarySI)
+		klog.InfoS("POD EPHEMERAL EVICTION", "total usage", podEphemeralStorageTotalUsage)
 	}
 	podEphemeralStorageLimit := podLimits[v1.ResourceEphemeralStorage]
 	if podEphemeralStorageTotalUsage.Cmp(podEphemeralStorageLimit) > 0 {
@@ -566,10 +568,13 @@ func (m *managerImpl) podEphemeralStorageLimitEviction(podStats statsapi.PodStat
 		message := fmt.Sprintf(podEphemeralStorageMessageFmt, podEphemeralStorageLimit.String())
 		if m.evictPod(pod, immediateEvictionGracePeriodSeconds, message, nil, nil) {
 			metrics.Evictions.WithLabelValues(signalEphemeralPodFsLimit).Inc()
+			klog.InfoS("POD EPHEMERAL EVICTION: evicted")
 			return true
 		}
+		klog.InfoS("POD EPHEMERAL EVICTION: not evicted.. critical?")
 		return false
 	}
+	klog.InfoS("POD EPHEMERAL EVICTION: not evicted.. within limit", "total usage", podEphemeralStorageTotalUsage, "limit", podEphemeralStorageLimit)
 	return false
 }
 
@@ -579,6 +584,7 @@ func (m *managerImpl) containerEphemeralStorageLimitEviction(podStats statsapi.P
 		ephemeralLimit := container.Resources.Limits.StorageEphemeral()
 		if ephemeralLimit != nil && ephemeralLimit.Value() != 0 {
 			thresholdsMap[container.Name] = ephemeralLimit
+			klog.InfoS("CTR EPHEMERAL EVICTION", "container", container.Name, "limit", ephemeralLimit)
 		}
 	}
 
@@ -586,18 +592,22 @@ func (m *managerImpl) containerEphemeralStorageLimitEviction(podStats statsapi.P
 		containerUsed := diskUsage(containerStat.Logs)
 		if !*m.dedicatedImageFs {
 			containerUsed.Add(*diskUsage(containerStat.Rootfs))
+			klog.InfoS("CTR EPHEMERAL EVICTION: dedicated")
 		}
 
 		if ephemeralStorageThreshold, ok := thresholdsMap[containerStat.Name]; ok {
 			if ephemeralStorageThreshold.Cmp(*containerUsed) < 0 {
 				if m.evictPod(pod, immediateEvictionGracePeriodSeconds, fmt.Sprintf(containerEphemeralStorageMessageFmt, containerStat.Name, ephemeralStorageThreshold.String()), nil, nil) {
 					metrics.Evictions.WithLabelValues(signalEphemeralContainerFsLimit).Inc()
+					klog.InfoS("CTR EPHEMERAL EVICTION: evicted", "container", containerStat.Name, "total usage", containerUsed, "limit", ephemeralStorageThreshold)
 					return true
 				}
+				klog.InfoS("CTR EPHEMERAL EVICTION: not evicted", "container", containerStat.Name, "total usage", containerUsed, "limit", ephemeralStorageThreshold)
 				return false
 			}
 		}
 	}
+	klog.InfoS("CTR EPHEMERAL EVICTION: not evicted")
 	return false
 }
 
