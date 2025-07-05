@@ -15,6 +15,7 @@ import (
 	v1listers "k8s.io/client-go/listers/core/v1"
 	cache "k8s.io/client-go/tools/cache"
 	"k8s.io/component-base/featuregate"
+	"k8s.io/klog/v2"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 )
@@ -47,6 +48,7 @@ func NewMinimumKubeletVersion(minVersion *semver.Version,
 
 func (m *minimumKubeletVersionAuth) Authorize(ctx context.Context, attrs authorizer.Attributes) (authorizer.Decision, string, error) {
 	if m.minVersion == nil {
+		klog.Infof("XXXXXXXX not enabled %v", attrs.GetUser())
 		return authorizer.DecisionNoOpinion, "", nil
 	}
 
@@ -57,34 +59,42 @@ func (m *minimumKubeletVersionAuth) Authorize(ctx context.Context, attrs authori
 		switch requestResource {
 		case api.Resource("nodes"):
 			if v := attrs.GetVerb(); v == "get" || v == "update" {
+				klog.Infof("XXXXXXXX nodes %v", attrs.GetUser())
 				return authorizer.DecisionNoOpinion, "", nil
 			}
 		case authorizationv1.Resource("subjectaccessreviews"):
+			klog.Infof("XXXXXXXX SAR %v", attrs.GetUser())
 			return authorizer.DecisionNoOpinion, "", nil
 		}
 	}
 
 	nodeName, isNode := m.nodeIdentifier.NodeIdentity(attrs.GetUser())
 	if !isNode {
+		klog.Infof("XXXXXXXX not a node %v", attrs.GetUser())
 		// ignore requests from non-nodes
 		return authorizer.DecisionNoOpinion, "", nil
 	}
 
 	if !m.hasNodeInformerSyncedFn() {
+		klog.Infof("XXXXXXXX not synced %v", attrs.GetUser())
 		return authorizer.DecisionDeny, "", fmt.Errorf("node informer not synced, cannot check if node %s is new enough", nodeName)
 	}
 
 	node, err := m.nodeLister.Get(nodeName)
 	if err != nil {
+		klog.Infof("XXXXXXXX failed to get %v", attrs.GetUser())
 		return authorizer.DecisionDeny, "", err
 	}
 
 	if err := nodelib.IsNodeTooOld(node, m.minVersion); err != nil {
 		if errors.Is(err, nodelib.ErrKubeletOutdated) {
+			klog.Infof("XXXXXXXX outdated %v", attrs.GetUser())
 			return authorizer.DecisionDeny, err.Error(), nil
 		}
+		klog.Infof("XXXXXXXX other err %v", attrs.GetUser())
 		return authorizer.DecisionDeny, "", err
 	}
 
+	klog.Infof("XXXXXXXX success %v", attrs.GetUser())
 	return authorizer.DecisionNoOpinion, "", nil
 }
