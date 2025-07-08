@@ -130,6 +130,8 @@ func main() {
 		})
 	}
 
+	copyTechPreviewFeatureGates(specs)
+
 	specs = filterOutDisabledSpecs(specs)
 	addLabelsToSpecs(specs)
 
