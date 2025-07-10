@@ -49,6 +49,41 @@ func TestFailValidateAuthenticationSpec(t *testing.T) {
 			errorType:  field.ErrorTypeInvalid,
 			errorField: "spec.webhookTokenAuthenticator",
 		},
+		"invalid UID CEL expression": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						ClaimMappings: configv1.TokenClaimMappings{
+							UID: &configv1.TokenClaimOrExpressionMapping{
+								Expression: "!@^#&(!^@(*#&(",
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].claimMappings.uid.expression",
+		},
+		"invalid Extra CEL expression": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						ClaimMappings: configv1.TokenClaimMappings{
+							Extra: []configv1.ExtraMapping{
+								{
+									Key:             "foo/bar",
+									ValueExpression: "!@*(&#^(!@*)&^&",
+								},
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].claimMappings.extra[0].valueExpression",
+		},
 	}
 
 	for tcName, tc := range errorCases {
@@ -107,6 +142,33 @@ func TestSucceedValidateAuthenticationSpec(t *testing.T) {
 				{KubeConfig: configv1.SecretNameReference{Name: "thisisawebhook"}},
 				{KubeConfig: configv1.SecretNameReference{Name: "thisisawebhook2"}},
 				{KubeConfig: configv1.SecretNameReference{Name: "thisisawebhook33"}},
+			},
+		},
+		"valid uid CEL expression": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					ClaimMappings: configv1.TokenClaimMappings{
+						UID: &configv1.TokenClaimOrExpressionMapping{
+							Expression: "claims.uid",
+						},
+					},
+				},
+			},
+		},
+		"valid Extra CEL expression": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					ClaimMappings: configv1.TokenClaimMappings{
+						Extra: []configv1.ExtraMapping{
+							{
+								Key:             "foo/bar",
+								ValueExpression: "claims.roles",
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -175,5 +237,4 @@ func TestSucceedValidateAuthenticationStatus(t *testing.T) {
 			t.Errorf("'%s': expected success, but failed: %v", tcName, errs.ToAggregate().Error())
 		}
 	}
-
 }
