@@ -148,18 +148,19 @@ func validateOIDCProvider(path *field.Path, provider configv1.OIDCProvider) fiel
 func validateClaimMappings(path *field.Path, claimMappings configv1.TokenClaimMappings) field.ErrorList {
 	path = path.Child("claimMappings")
 	errs := field.ErrorList{}
-	errs = append(errs, validateUIDClaimMapping(path, claimMappings.UID)...)
-	errs = append(errs, validateExtraClaimMapping(path, claimMappings.Extra...)...)
+	compiler := authenticationcel.NewDefaultCompiler()
+	errs = append(errs, validateUIDClaimMapping(path, compiler, claimMappings.UID)...)
+	errs = append(errs, validateExtraClaimMapping(path, compiler, claimMappings.Extra...)...)
 	return errs
 }
 
-func validateUIDClaimMapping(path *field.Path, uid *configv1.TokenClaimOrExpressionMapping) field.ErrorList {
+func validateUIDClaimMapping(path *field.Path, compiler authenticationcel.Compiler, uid *configv1.TokenClaimOrExpressionMapping) field.ErrorList {
 	if uid == nil {
 		return nil
 	}
 
 	if uid.Expression != "" {
-		err := validateCELExpression(&authenticationcel.ClaimMappingExpression{
+		err := validateCELExpression(compiler, &authenticationcel.ClaimMappingExpression{
 			Expression: uid.Expression,
 		})
 		if err != nil {
@@ -170,16 +171,16 @@ func validateUIDClaimMapping(path *field.Path, uid *configv1.TokenClaimOrExpress
 	return nil
 }
 
-func validateExtraClaimMapping(path *field.Path, extras ...configv1.ExtraMapping) field.ErrorList {
+func validateExtraClaimMapping(path *field.Path, compiler authenticationcel.Compiler, extras ...configv1.ExtraMapping) field.ErrorList {
 	errs := field.ErrorList{}
 	for i, extra := range extras {
-		errs = append(errs, validateExtra(path.Child("extra").Index(i), extra)...)
+		errs = append(errs, validateExtra(path.Child("extra").Index(i), compiler, extra)...)
 	}
 	return errs
 }
 
-func validateExtra(path *field.Path, extra configv1.ExtraMapping) field.ErrorList {
-	err := validateCELExpression(&authenticationcel.ExtraMappingExpression{
+func validateExtra(path *field.Path, compiler authenticationcel.Compiler, extra configv1.ExtraMapping) field.ErrorList {
+	err := validateCELExpression(compiler, &authenticationcel.ExtraMappingExpression{
 		Key:        extra.Key,
 		Expression: extra.ValueExpression,
 	})
@@ -190,7 +191,7 @@ func validateExtra(path *field.Path, extra configv1.ExtraMapping) field.ErrorLis
 	return nil
 }
 
-func validateCELExpression(accessor authenticationcel.ExpressionAccessor) error {
-	_, err := authenticationcel.NewDefaultCompiler().CompileClaimsExpression(accessor)
+func validateCELExpression(compiler authenticationcel.Compiler, accessor authenticationcel.ExpressionAccessor) error {
+	_, err := compiler.CompileClaimsExpression(accessor)
 	return err
 }
