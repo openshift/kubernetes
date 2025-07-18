@@ -12,9 +12,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/cel/library"
 	"k8s.io/apiserver/pkg/warning"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/lru"
+
+	"github.com/google/cel-go/checker"
 
 	configv1 "github.com/openshift/api/config/v1"
 	authenticationcel "k8s.io/apiserver/pkg/authentication/cel"
@@ -22,6 +25,13 @@ import (
 )
 
 const PluginName = "config.openshift.io/ValidateAuthentication"
+
+const (
+	individualExpressionExcessiveCostThreshold = 10000000
+	fixedCost                                  = 1 << 20
+	wholeResourceExcessiveCostThreshold        = 100000000
+	excessiveCompileDuration                   = time.Second
+)
 
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
@@ -36,6 +46,9 @@ func Register(plugins *admission.Plugins) {
 						compiledStore:  lru.New(100),
 						compilingGroup: new(singleflight.Group),
 						compiler:       authenticationcel.NewDefaultCompiler(),
+						sizeEstimator: &fixedCostSizeEstimator{
+							cost: fixedCost,
+						},
 					},
 				},
 			})
@@ -62,6 +75,7 @@ type celStore struct {
 	compilingGroup *singleflight.Group
 	compiledStore  *lru.Cache
 	compiler       authenticationcel.Compiler
+	sizeEstimator  checker.CostEstimator
 }
 
 type authenticationV1 struct {
@@ -165,9 +179,38 @@ func validateAuthenticationSpec(ctx context.Context, spec configv1.Authenticatio
 	// If/when the openshift/api admission validations are updated to enforce that this field is not configured
 	// when Type != OIDC, this loop should be a no-op due to an empty list.
 	for i, provider := range spec.OIDCProviders {
-		err, warnings := validateOIDCProvider(ctx, specField.Child("oidcProviders").Index(i), cel, provider)
-		errs = append(errs, err...)
-		warns = append(warns, warnings...)
+		results := validateOIDCProvider(ctx, specField.Child("oidcProviders").Index(i), cel, provider)
+		var expressionCost uint64 = 0
+		excessiveCosts := []string{}
+		for _, result := range results {
+			if result.internalErr != nil {
+				errs = append(errs, field.InternalError(result.path, result.internalErr))
+				continue
+			}
+
+			if result.val != nil {
+				if result.val.Error() != nil {
+					errs = append(errs, field.Invalid(result.path, result.value, result.val.Error().Error()))
+				}
+
+				if result.val.Warning() != "" {
+					warns = append(warns, result.val.Warning())
+				}
+
+				if coster, ok := result.val.(Coster); ok {
+					cost := coster.Cost()
+					if cost >= individualExpressionExcessiveCostThreshold {
+						excessiveCosts = append(excessiveCosts, result.path.String())
+					}
+
+					expressionCost += cost
+				}
+			}
+		}
+
+		if expressionCost > wholeResourceExcessiveCostThreshold {
+			warns = append(warns, fmt.Sprintf("runtime cost of all CEL expressions exceeds %d points. expressions larger than %d points: %v", wholeResourceExcessiveCostThreshold, individualExpressionExcessiveCostThreshold, excessiveCosts))
+		}
 	}
 	// ----------------
 
@@ -178,132 +221,167 @@ func validateAuthenticationStatus(status configv1.AuthenticationStatus) field.Er
 	return crvalidation.ValidateConfigMapReference(field.NewPath("status", "integratedOAuthMetadata"), status.IntegratedOAuthMetadata, false)
 }
 
-func validateOIDCProvider(ctx context.Context, path *field.Path, cel *celStore, provider configv1.OIDCProvider) (field.ErrorList, []string) {
+type oidcProviderValidationResult struct {
+	path        *field.Path
+	value       any
+	val         ValidationResult
+	internalErr error
+}
+
+type ValidationResult interface {
+	Error() error
+	Warning() string
+}
+
+type Coster interface {
+	Cost() uint64
+}
+
+func validateOIDCProvider(ctx context.Context, path *field.Path, cel *celStore, provider configv1.OIDCProvider) []oidcProviderValidationResult {
 	return validateClaimMappings(ctx, path, cel, provider.ClaimMappings)
 }
 
-func validateClaimMappings(ctx context.Context, path *field.Path, cel *celStore, claimMappings configv1.TokenClaimMappings) (field.ErrorList, []string) {
+func validateClaimMappings(ctx context.Context, path *field.Path, cel *celStore, claimMappings configv1.TokenClaimMappings) []oidcProviderValidationResult {
 	path = path.Child("claimMappings")
-	errs := field.ErrorList{}
-	warns := []string{}
 
-	err, warn := validateUIDClaimMapping(ctx, path, cel, claimMappings.UID)
-	errs = append(errs, err...)
-	if len(warn) > 0 {
-		warns = append(warns, warn)
-	}
+	out := []oidcProviderValidationResult{}
 
-	err, warnings := validateExtraClaimMapping(ctx, path, cel, claimMappings.Extra...)
-	errs = append(errs, err...)
-	warns = append(warns, warnings...)
+	out = append(out, validateUIDClaimMapping(ctx, path, cel, claimMappings.UID)...)
+	out = append(out, validateExtraClaimMapping(ctx, path, cel, claimMappings.Extra...)...)
 
-	return errs, warns
+	return out
 }
 
-func validateUIDClaimMapping(ctx context.Context, path *field.Path, cel *celStore, uid *configv1.TokenClaimOrExpressionMapping) (field.ErrorList, string) {
+func validateUIDClaimMapping(ctx context.Context, path *field.Path, cel *celStore, uid *configv1.TokenClaimOrExpressionMapping) []oidcProviderValidationResult {
 	if uid == nil {
-		return nil, ""
+		return nil
 	}
 
-	var warn string
+	out := []oidcProviderValidationResult{}
 	if uid.Expression != "" {
 		childPath := path.Child("uid", "expression")
-		var err error
-		err, warn = validateCELExpression(ctx, cel, &authenticationcel.ClaimMappingExpression{
+		res, err := validateCELExpression(ctx, cel, &authenticationcel.ClaimMappingExpression{
 			Expression: uid.Expression,
 		})
 
-		if len(warn) > 0 {
-			warn = fmt.Sprintf("validating %s: %s", childPath, warn)
-		}
-
-		if err != nil {
-			return field.ErrorList{field.Invalid(childPath, uid.Expression, err.Error())}, warn
-		}
+		out = append(out, oidcProviderValidationResult{
+			path:        childPath,
+			val:         res,
+			value:       uid.Expression,
+			internalErr: err,
+		})
 	}
 
-	return nil, warn
+	return out
 }
 
-func validateExtraClaimMapping(ctx context.Context, path *field.Path, cel *celStore, extras ...configv1.ExtraMapping) (field.ErrorList, []string) {
-	errs := field.ErrorList{}
-	warns := []string{}
+func validateExtraClaimMapping(ctx context.Context, path *field.Path, cel *celStore, extras ...configv1.ExtraMapping) []oidcProviderValidationResult {
+	out := []oidcProviderValidationResult{}
 	for i, extra := range extras {
-		err, warn := validateExtra(ctx, path.Child("extra").Index(i), cel, extra)
-		errs = append(errs, err...)
-		if len(warn) > 0 {
-			warns = append(warns, warn)
-		}
+		out = append(out, validateExtra(ctx, path.Child("extra").Index(i), cel, extra))
 	}
-	return errs, warns
+
+	return out
 }
 
-func validateExtra(ctx context.Context, path *field.Path, cel *celStore, extra configv1.ExtraMapping) (field.ErrorList, string) {
+func validateExtra(ctx context.Context, path *field.Path, cel *celStore, extra configv1.ExtraMapping) oidcProviderValidationResult {
 	childPath := path.Child("valueExpression")
-	err, warn := validateCELExpression(ctx, cel, &authenticationcel.ExtraMappingExpression{
+	res, err := validateCELExpression(ctx, cel, &authenticationcel.ExtraMappingExpression{
 		Key:        extra.Key,
 		Expression: extra.ValueExpression,
 	})
 
-	if len(warn) > 0 {
-		warn = fmt.Sprintf("validating %s: %s", childPath, warn)
+	return oidcProviderValidationResult{
+		path:        childPath,
+		val:         res,
+		value:       extra.ValueExpression,
+		internalErr: err,
 	}
-
-	if err != nil {
-		return field.ErrorList{field.Invalid(childPath, extra.ValueExpression, err.Error())}, warn
-	}
-
-	return nil, warn
 }
 
-type compileResult struct {
+type celCompileResult struct {
 	err  error
-	warn string
+	cost uint64
 }
 
-func validateCELExpression(ctx context.Context, cel *celStore, accessor authenticationcel.ExpressionAccessor) (error, string) {
+type validationResult struct {
+	compRes celCompileResult
+	warn    string
+}
+
+func (vr validationResult) Error() error {
+	return vr.compRes.err
+}
+
+func (vr validationResult) Warning() string {
+	return vr.warn
+}
+
+func (vr validationResult) Cost() uint64 {
+	return vr.compRes.cost
+}
+
+type panickedErr struct {
+	error
+}
+
+func validateCELExpression(ctx context.Context, cel *celStore, accessor authenticationcel.ExpressionAccessor) (*validationResult, error) {
 	// if context has been canceled, don't try to compile any expressions
 	if err := ctx.Err(); err != nil {
-		return err, ""
+		return nil, err
 	}
 
 	result, err, _ := cel.compilingGroup.Do(accessor.GetExpression(), func() (interface{}, error) {
 		// if the expression is not currently being compiled, it might have already been compiled
 		if val, ok := cel.compiledStore.Get(accessor.GetExpression()); ok {
-			if val != nil {
-				res := val.(compileResult)
-				return res, nil
+			res, ok := val.(celCompileResult)
+			if !ok {
+				return nil, fmt.Errorf("expected return value from cache of compiled expressions to be of type celCompileResult but was %T", val)
 			}
 
-			return nil, nil
+			return validationResult{
+				compRes: res,
+			}, nil
 		}
 
 		// expression is not currently being compiled, and has not been compiled before (or has been long enough since it was last compiled that we dropped it).
 		// Let's compile it.
 		warningString := ""
-		compiled := make(chan error)
+		compiled := make(chan celCompileResult)
 		defer close(compiled)
 
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
 					// convert the panic into an error state for the expression
-					compiled <- fmt.Errorf("recovered from a panic while compiling expression %q: %v", accessor.GetExpression(), r)
+					compiled <- celCompileResult{
+						err: panickedErr{fmt.Errorf("recovered from a panic while compiling: %v", r)},
+					}
 				}
 			}()
 
-			_, err := cel.compiler.CompileClaimsExpression(accessor)
+			res, compErr := cel.compiler.CompileClaimsExpression(accessor)
+			cost, err := checker.Cost(res.AST.NativeRep(), &library.CostEstimator{
+				SizeEstimator: cel.sizeEstimator,
+			})
+			if err != nil {
+				klog.Errorf("unable to estimate cost for expression %q: %v. Defaulting cost to %d", accessor.GetExpression(), err, fixedCost)
+				cost = checker.CostEstimate{Max: fixedCost}
+			}
 
-			compiled <- err
+			compiled <- celCompileResult{
+				err:  compErr,
+				cost: cost.Max,
+			}
 		}()
 
 		warning := make(chan string, 1)
-		timer := time.AfterFunc(time.Second, func() {
+		timer := time.AfterFunc(excessiveCompileDuration, func() {
 			defer close(warning)
-			warning <- fmt.Sprintf("cel expression %q took more than 1 second to compile", accessor.GetExpression())
+			warning <- fmt.Sprintf("cel expression %q took excessively long to compile (%s)", accessor.GetExpression(), excessiveCompileDuration)
 		})
 
-		err := <-compiled
+		res := <-compiled
 
 		timer.Stop()
 
@@ -315,18 +393,37 @@ func validateCELExpression(ctx context.Context, cel *celStore, accessor authenti
 			break
 		}
 
-		compilationResult := compileResult{
-			err, warningString,
+		if res.err != nil {
+			if panicErr, ok := res.err.(panickedErr); ok {
+				return nil, panicErr
+			}
 		}
 
-		cel.compiledStore.Add(accessor.GetExpression(), compilationResult)
+		validationRes := validationResult{
+			compRes: res,
+			warn:    warningString,
+		}
 
-		return compilationResult, nil
+		cel.compiledStore.Add(accessor.GetExpression(), res)
+
+		return validationRes, nil
 	})
 	if err != nil {
-		return fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err), ""
+		return nil, fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err)
 	}
 
-	compileRes := result.(compileResult)
-	return compileRes.err, compileRes.warn
+	validRes := result.(validationResult)
+	return &validRes, nil
+}
+
+type fixedCostSizeEstimator struct {
+	cost uint64
+}
+
+func (fcse *fixedCostSizeEstimator) EstimateSize(element checker.AstNode) *checker.SizeEstimate {
+	return &checker.SizeEstimate{Min: fcse.cost, Max: fcse.cost}
+}
+
+func (fcse *fixedCostSizeEstimator) EstimateCallCost(function, overloadID string, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
+	return nil
 }

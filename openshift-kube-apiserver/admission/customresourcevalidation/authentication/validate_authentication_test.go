@@ -3,6 +3,8 @@ package authentication
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -255,11 +257,12 @@ func TestSucceedValidateAuthenticationStatus(t *testing.T) {
 
 func TestValidateCELExpression(t *testing.T) {
 	type testcase struct {
-		name       string
-		cel        func() *celStore
-		ctx        func() context.Context
-		shouldErr  bool
-		shouldWarn bool
+		name        string
+		cel         func() *celStore
+		ctx         func() context.Context
+		shouldErr   bool
+		shouldWarn  bool
+		internalErr bool
 	}
 
 	expression := &authenticationcel.ClaimMappingExpression{
@@ -329,7 +332,7 @@ func TestValidateCELExpression(t *testing.T) {
 				cancel()
 				return ctx
 			},
-			shouldErr: true,
+			internalErr: true,
 		},
 		{
 			name: "waits for already compiling expression to finish compiling and returns its results",
@@ -340,8 +343,10 @@ func TestValidateCELExpression(t *testing.T) {
 					// Hog the group for a bit
 					time.Sleep(time.Second)
 
-					return compileResult{
-						err:  errors.New("boom"),
+					return validationResult{
+						compRes: celCompileResult{
+							err: errors.New("boom"),
+						},
 						warn: "warning",
 					}, nil
 				})
@@ -360,9 +365,8 @@ func TestValidateCELExpression(t *testing.T) {
 			name: "returns already compiled expression results if the expression has been compiled before",
 			cel: func() *celStore {
 				compiledLRU := lru.New(1)
-				res := compileResult{
-					err:  errors.New("boom"),
-					warn: "warning",
+				res := celCompileResult{
+					err: errors.New("boom"),
 				}
 				compiledLRU.Add(expression.Expression, res)
 
@@ -374,7 +378,7 @@ func TestValidateCELExpression(t *testing.T) {
 			},
 			ctx:        func() context.Context { return context.TODO() },
 			shouldErr:  true,
-			shouldWarn: true,
+			shouldWarn: false,
 		},
 		{
 			name: "handles panic in compilation goroutine",
@@ -385,29 +389,41 @@ func TestValidateCELExpression(t *testing.T) {
 					compiledStore:  lru.New(1),
 				}
 			},
-			ctx:       func() context.Context { return context.TODO() },
-			shouldErr: true,
+			ctx:         func() context.Context { return context.TODO() },
+			internalErr: true,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err, warn := validateCELExpression(tc.ctx(), tc.cel(), expression)
+			res, err := validateCELExpression(tc.ctx(), tc.cel(), expression)
 
-			if tc.shouldErr != (err != nil) {
-				t.Fatalf("error expectation does not match actual. expected? %v . received: %v", tc.shouldErr, err)
+			if tc.internalErr != (err != nil) {
+				t.Fatalf("internal error expectation does not match actual. expected? %v . received: %v", tc.internalErr, err)
 			}
 
-			if tc.shouldWarn != (len(warn) > 0) {
-				t.Fatalf("warning expectation does not match actual. expected? %v . received: %s", tc.shouldErr, warn)
+			if tc.internalErr && res != nil {
+				t.Fatalf("a non-nil validation result was returned despite an internal error being expected to occur")
+			}
+
+			if res != nil {
+				if tc.shouldErr != (res.compRes.err != nil) {
+					t.Fatalf("error expectation does not match actual. expected? %v . received: %v", tc.shouldErr, res.compRes.err)
+				}
+
+				if tc.shouldWarn != (len(res.warn) > 0) {
+					t.Fatalf("warning expectation does not match actual. expected? %v . received: %s", tc.shouldErr, res.warn)
+				}
 			}
 		})
 	}
 }
 
 type mockCompiler struct {
-	delay time.Duration
-	err   error
+	delay       time.Duration
+	err         error
+	useDelegate bool
+	delegate    authenticationcel.Compiler
 }
 
 func (mc *mockCompiler) CompileClaimsExpression(expressionAccessor authenticationcel.ExpressionAccessor) (authenticationcel.CompilationResult, error) {
@@ -418,4 +434,81 @@ func (mc *mockCompiler) CompileClaimsExpression(expressionAccessor authenticatio
 func (mc *mockCompiler) CompileUserExpression(expressionAccessor authenticationcel.ExpressionAccessor) (authenticationcel.CompilationResult, error) {
 	time.Sleep(mc.delay)
 	return authenticationcel.CompilationResult{}, mc.err
+}
+
+func TestValidAuthenticationSpecWithExcessivelyLongCELExpressionCompileTime(t *testing.T) {
+	// Create an expression that takes excessively long to compile
+	// but would not blow the top off the entire resource runtime cost estimation
+	// warning threshold
+	var sb strings.Builder
+	sb.WriteString(`["foo","bar"]`)
+	const toappend = `.map(x, [x+x,x+x])`
+	for 4096-sb.Len() >= len(toappend) {
+		sb.WriteString(toappend)
+	}
+	expr := sb.String()
+
+	authn := configv1.AuthenticationSpec{
+		Type: "OIDC",
+		OIDCProviders: []configv1.OIDCProvider{
+			{
+				ClaimMappings: configv1.TokenClaimMappings{
+					UID: &configv1.TokenClaimOrExpressionMapping{
+						Expression: expr,
+					},
+				},
+			},
+		},
+	}
+
+	errs, warns := validateAuthenticationSpec(context.TODO(), authn, &celStore{
+		compiler:       authenticationcel.NewDefaultCompiler(),
+		compilingGroup: new(singleflight.Group),
+		compiledStore:  lru.New(100),
+	})
+
+	if len(errs) > 0 {
+		t.Fatalf("should not have received any errors, but got: %v", errs.ToAggregate())
+	}
+
+	if len(warns) != 1 {
+		t.Fatalf("expected to receive one warning about excessively long cel compilation time, got: %v", warns)
+	}
+
+	if !strings.Contains(warns[0], "took excessively long to compile") {
+		t.Fatalf("expected warning to mention excessively long compile time but instead got: %s", warns[0])
+	}
+}
+
+func TestValidAuthenticationSpecWithExcessiveCELExpressionRuntimeCost(t *testing.T) {
+	authn := configv1.AuthenticationSpec{
+		Type: "OIDC",
+		OIDCProviders: []configv1.OIDCProvider{
+			{
+				ClaimMappings: configv1.TokenClaimMappings{
+					UID: &configv1.TokenClaimOrExpressionMapping{
+						Expression: fmt.Sprintf("claims%s", strings.Repeat(".map(x, x+x)", 10)),
+					},
+				},
+			},
+		},
+	}
+
+	errs, warns := validateAuthenticationSpec(context.TODO(), authn, &celStore{
+		compiler:       authenticationcel.NewDefaultCompiler(),
+		compilingGroup: new(singleflight.Group),
+		compiledStore:  lru.New(100),
+	})
+
+	if len(errs) > 0 {
+		t.Fatalf("should not have received any errors, but got: %v", errs.ToAggregate())
+	}
+
+	if len(warns) != 1 {
+		t.Fatalf("expected to receive one warning about excessive runtime cost, got: %v", warns)
+	}
+
+	if !strings.Contains(warns[0], "runtime cost of all CEL expressions exceeds") {
+		t.Fatalf("expected warning to mention excessive runtime cost but instead got: %s", warns[0])
+	}
 }
