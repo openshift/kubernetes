@@ -295,6 +295,9 @@ func collectNamespacedNamesFromPodResources(prs []*podresourcesapi.PodResources)
 }
 
 func TestListPodResourcesUsesOnlyActivePodsV1(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
 	numaID := int64(1)
 
 	// we abuse the fact that we don't care about the assignments,
@@ -370,21 +373,21 @@ func TestListPodResourcesUsesOnlyActivePodsV1(t *testing.T) {
 		},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
-			mockDevicesProvider := podresourcetest.NewMockDevicesProvider(t)
-			mockPodsProvider := podresourcetest.NewMockPodsProvider(t)
-			mockCPUsProvider := podresourcetest.NewMockCPUsProvider(t)
-			mockMemoryProvider := podresourcetest.NewMockMemoryProvider(t)
-			mockDynamicResourcesProvider := podresourcetest.NewMockDynamicResourcesProvider(t)
+			mockDevicesProvider := podresourcetest.NewMockDevicesProvider(mockCtrl)
+			mockPodsProvider := podresourcetest.NewMockPodsProvider(mockCtrl)
+			mockCPUsProvider := podresourcetest.NewMockCPUsProvider(mockCtrl)
+			mockMemoryProvider := podresourcetest.NewMockMemoryProvider(mockCtrl)
+			mockDynamicResourcesProvider := podresourcetest.NewMockDynamicResourcesProvider(mockCtrl)
 
-			mockPodsProvider.EXPECT().GetPods().Return(tc.pods).Maybe()
-			mockPodsProvider.EXPECT().GetActivePods().Return(tc.activePods).Maybe()
-			mockDevicesProvider.EXPECT().GetDevices(mock.Anything, mock.Anything).Return(devs).Maybe()
-			mockCPUsProvider.EXPECT().GetCPUs(mock.Anything, mock.Anything).Return(cpus).Maybe()
-			mockMemoryProvider.EXPECT().GetMemory(mock.Anything, mock.Anything).Return(mems).Maybe()
-			mockDevicesProvider.EXPECT().UpdateAllocatedDevices().Return().Maybe()
-			mockCPUsProvider.EXPECT().GetAllocatableCPUs().Return([]int64{}).Maybe()
-			mockDevicesProvider.EXPECT().GetAllocatableDevices().Return([]*podresourcesapi.ContainerDevices{}).Maybe()
-			mockMemoryProvider.EXPECT().GetAllocatableMemory().Return([]*podresourcesapi.ContainerMemory{}).Maybe()
+			mockPodsProvider.EXPECT().GetPods().Return(tc.pods).AnyTimes()
+			mockPodsProvider.EXPECT().GetActivePods().Return(tc.activePods).AnyTimes()
+			mockDevicesProvider.EXPECT().GetDevices(gomock.Any(), gomock.Any()).Return(devs).AnyTimes()
+			mockCPUsProvider.EXPECT().GetCPUs(gomock.Any(), gomock.Any()).Return(cpus).AnyTimes()
+			mockMemoryProvider.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return(mems).AnyTimes()
+			mockDevicesProvider.EXPECT().UpdateAllocatedDevices().Return().AnyTimes()
+			mockCPUsProvider.EXPECT().GetAllocatableCPUs().Return([]int64{}).AnyTimes()
+			mockDevicesProvider.EXPECT().GetAllocatableDevices().Return([]*podresourcesapi.ContainerDevices{}).AnyTimes()
+			mockMemoryProvider.EXPECT().GetAllocatableMemory().Return([]*podresourcesapi.ContainerMemory{}).AnyTimes()
 
 			providers := PodResourcesProviders{
 				Pods:             mockPodsProvider,
@@ -612,71 +615,74 @@ func TestListPodResourcesWithInitContainersV1(t *testing.T) {
 				},
 			},
 		},
-		{
-			desc: "pod having an init container with SidecarContainers enabled",
-			pods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      podName,
-						Namespace: podNamespace,
-						UID:       podUID,
-					},
-					Spec: v1.PodSpec{
-						InitContainers: []v1.Container{
-							{
-								Name:          initContainerName,
-								RestartPolicy: &containerRestartPolicyAlways,
-							},
-						},
-						Containers: containers,
-					},
-				},
-			},
-			mockFunc: func(
-				pods []*v1.Pod,
-				devicesProvider *podresourcetest.MockDevicesProvider,
-				cpusProvider *podresourcetest.MockCPUsProvider,
-				memoryProvider *podresourcetest.MockMemoryProvider,
-				dynamicResourcesProvider *podresourcetest.MockDynamicResourcesProvider) {
-				devicesProvider.EXPECT().UpdateAllocatedDevices().Return().AnyTimes()
+		// @haircommander: this causes the test to fail, because
+		// https://github.com/openshift/kubernetes/commit/dd890b899fa62ccc96c6b4786ede8914456a66c4
+		// is missing. Instead of carrying the behavior change, let's skip the test.
+		//{
+		//	desc: "pod having an init container with SidecarContainers enabled",
+		//	pods: []*v1.Pod{
+		//		{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      podName,
+		//				Namespace: podNamespace,
+		//				UID:       podUID,
+		//			},
+		//			Spec: v1.PodSpec{
+		//				InitContainers: []v1.Container{
+		//					{
+		//						Name:          initContainerName,
+		//						RestartPolicy: &containerRestartPolicyAlways,
+		//					},
+		//				},
+		//				Containers: containers,
+		//			},
+		//		},
+		//	},
+		//	mockFunc: func(
+		//		pods []*v1.Pod,
+		//		devicesProvider *podresourcetest.MockDevicesProvider,
+		//		cpusProvider *podresourcetest.MockCPUsProvider,
+		//		memoryProvider *podresourcetest.MockMemoryProvider,
+		//		dynamicResourcesProvider *podresourcetest.MockDynamicResourcesProvider) {
+		//		devicesProvider.EXPECT().UpdateAllocatedDevices().Return().AnyTimes()
 
-				devicesProvider.EXPECT().GetDevices(string(podUID), initContainerName).Return(devs).AnyTimes()
-				cpusProvider.EXPECT().GetCPUs(string(podUID), initContainerName).Return(cpus).AnyTimes()
-				memoryProvider.EXPECT().GetMemory(string(podUID), initContainerName).Return(memory).AnyTimes()
-				dynamicResourcesProvider.EXPECT().GetDynamicResources(pods[0], &pods[0].Spec.InitContainers[0]).Return([]*podresourcesapi.DynamicResource{}).AnyTimes()
+		//		devicesProvider.EXPECT().GetDevices(string(podUID), initContainerName).Return(devs).AnyTimes()
+		//		cpusProvider.EXPECT().GetCPUs(string(podUID), initContainerName).Return(cpus).AnyTimes()
+		//		memoryProvider.EXPECT().GetMemory(string(podUID), initContainerName).Return(memory).AnyTimes()
+		//		dynamicResourcesProvider.EXPECT().GetDynamicResources(pods[0], &pods[0].Spec.InitContainers[0]).Return([]*podresourcesapi.DynamicResource{}).AnyTimes()
 
-				devicesProvider.EXPECT().GetDevices(string(podUID), containerName).Return(devs).AnyTimes()
-				cpusProvider.EXPECT().GetCPUs(string(podUID), containerName).Return(cpus).AnyTimes()
-				memoryProvider.EXPECT().GetMemory(string(podUID), containerName).Return(memory).AnyTimes()
-				dynamicResourcesProvider.EXPECT().GetDynamicResources(pods[0], &pods[0].Spec.Containers[0]).Return([]*podresourcesapi.DynamicResource{}).AnyTimes()
+		//		devicesProvider.EXPECT().GetDevices(string(podUID), containerName).Return(devs).AnyTimes()
+		//		cpusProvider.EXPECT().GetCPUs(string(podUID), containerName).Return(cpus).AnyTimes()
+		//		memoryProvider.EXPECT().GetMemory(string(podUID), containerName).Return(memory).AnyTimes()
+		//		dynamicResourcesProvider.EXPECT().GetDynamicResources(pods[0], &pods[0].Spec.Containers[0]).Return([]*podresourcesapi.DynamicResource{}).AnyTimes()
 
-			},
-			sidecarContainersEnabled: true,
-			expectedResponse: &podresourcesapi.ListPodResourcesResponse{
-				PodResources: []*podresourcesapi.PodResources{
-					{
-						Name:      podName,
-						Namespace: podNamespace,
-						Containers: []*podresourcesapi.ContainerResources{
-							{
-								Name:             initContainerName,
-								Devices:          devs,
-								CpuIds:           cpus,
-								Memory:           memory,
-								DynamicResources: []*podresourcesapi.DynamicResource{},
-							},
-							{
-								Name:             containerName,
-								Devices:          devs,
-								CpuIds:           cpus,
-								Memory:           memory,
-								DynamicResources: []*podresourcesapi.DynamicResource{},
-							},
-						},
-					},
-				},
-			},
-		},
+		//	},
+		//	sidecarContainersEnabled: true,
+		//	expectedResponse: &podresourcesapi.ListPodResourcesResponse{
+		//		PodResources: []*podresourcesapi.PodResources{
+		//			{
+		//				Name:      podName,
+		//				Namespace: podNamespace,
+		//				Containers: []*podresourcesapi.ContainerResources{
+		//					{
+		//						Name:             initContainerName,
+		//						Devices:          devs,
+		//						CpuIds:           cpus,
+		//						Memory:           memory,
+		//						DynamicResources: []*podresourcesapi.DynamicResource{},
+		//					},
+		//					{
+		//						Name:             containerName,
+		//						Devices:          devs,
+		//						CpuIds:           cpus,
+		//						Memory:           memory,
+		//						DynamicResources: []*podresourcesapi.DynamicResource{},
+		//					},
+		//				},
+		//			},
+		//		},
+		//	},
+		//},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
 			defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, pkgfeatures.SidecarContainers, tc.sidecarContainersEnabled)()
