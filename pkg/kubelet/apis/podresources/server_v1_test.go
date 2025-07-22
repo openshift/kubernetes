@@ -23,13 +23,9 @@ import (
 	"sort"
 	"testing"
 
-	"sort"
-	"testing"
-
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/stretchr/testify/mock"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -299,6 +295,9 @@ func collectNamespacedNamesFromPodResources(prs []*podresourcesapi.PodResources)
 }
 
 func TestListPodResourcesUsesOnlyActivePodsV1(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
 	numaID := int64(1)
 
 	// we abuse the fact that we don't care about the assignments,
@@ -374,21 +373,21 @@ func TestListPodResourcesUsesOnlyActivePodsV1(t *testing.T) {
 		},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
-			mockDevicesProvider := podresourcetest.NewMockDevicesProvider(t)
-			mockPodsProvider := podresourcetest.NewMockPodsProvider(t)
-			mockCPUsProvider := podresourcetest.NewMockCPUsProvider(t)
-			mockMemoryProvider := podresourcetest.NewMockMemoryProvider(t)
-			mockDynamicResourcesProvider := podresourcetest.NewMockDynamicResourcesProvider(t)
+			mockDevicesProvider := podresourcetest.NewMockDevicesProvider(mockCtrl)
+			mockPodsProvider := podresourcetest.NewMockPodsProvider(mockCtrl)
+			mockCPUsProvider := podresourcetest.NewMockCPUsProvider(mockCtrl)
+			mockMemoryProvider := podresourcetest.NewMockMemoryProvider(mockCtrl)
+			mockDynamicResourcesProvider := podresourcetest.NewMockDynamicResourcesProvider(mockCtrl)
 
-			mockPodsProvider.EXPECT().GetPods().Return(tc.pods).Maybe()
-			mockPodsProvider.EXPECT().GetActivePods().Return(tc.activePods).Maybe()
-			mockDevicesProvider.EXPECT().GetDevices(mock.Anything, mock.Anything).Return(devs).Maybe()
-			mockCPUsProvider.EXPECT().GetCPUs(mock.Anything, mock.Anything).Return(cpus).Maybe()
-			mockMemoryProvider.EXPECT().GetMemory(mock.Anything, mock.Anything).Return(mems).Maybe()
-			mockDevicesProvider.EXPECT().UpdateAllocatedDevices().Return().Maybe()
-			mockCPUsProvider.EXPECT().GetAllocatableCPUs().Return([]int64{}).Maybe()
-			mockDevicesProvider.EXPECT().GetAllocatableDevices().Return([]*podresourcesapi.ContainerDevices{}).Maybe()
-			mockMemoryProvider.EXPECT().GetAllocatableMemory().Return([]*podresourcesapi.ContainerMemory{}).Maybe()
+			mockPodsProvider.EXPECT().GetPods().Return(tc.pods).AnyTimes()
+			mockPodsProvider.EXPECT().GetActivePods().Return(tc.activePods).AnyTimes()
+			mockDevicesProvider.EXPECT().GetDevices(gomock.Any(), gomock.Any()).Return(devs).AnyTimes()
+			mockCPUsProvider.EXPECT().GetCPUs(gomock.Any(), gomock.Any()).Return(cpus).AnyTimes()
+			mockMemoryProvider.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return(mems).AnyTimes()
+			mockDevicesProvider.EXPECT().UpdateAllocatedDevices().Return().AnyTimes()
+			mockCPUsProvider.EXPECT().GetAllocatableCPUs().Return([]int64{}).AnyTimes()
+			mockDevicesProvider.EXPECT().GetAllocatableDevices().Return([]*podresourcesapi.ContainerDevices{}).AnyTimes()
+			mockMemoryProvider.EXPECT().GetAllocatableMemory().Return([]*podresourcesapi.ContainerMemory{}).AnyTimes()
 
 			providers := PodResourcesProviders{
 				Pods:             mockPodsProvider,
