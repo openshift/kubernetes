@@ -347,7 +347,15 @@ func (o *AuditOptions) newPolicyRuleEvaluator() (audit.PolicyRuleEvaluator, erro
 		return nil, nil
 	}
 
-	p, err := policy.LoadPolicyFromFile(o.PolicyFile)
+	// Support both absolute and relative paths for the policy file.
+	// If the path is relative, it will be joined with /tmp.
+	policyFilePath := o.PolicyFile
+	if !filepath.IsAbs(policyFilePath) {
+		policyFilePath = filepath.Join("/tmp", policyFilePath)
+	}
+
+	klog.Infof("Loading policy file from %q (originally %q)", policyFilePath, o.PolicyFile)
+	p, err := policy.LoadPolicyFromFile(policyFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("loading audit policy file: %v", err)
 	}
