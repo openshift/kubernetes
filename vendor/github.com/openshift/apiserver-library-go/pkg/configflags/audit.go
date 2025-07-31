@@ -11,7 +11,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-const defaultAuditPolicyFilePath = "openshift.local.audit/policy.yaml"
+const defaultAuditPolicyFilePath = "/tmp/openshift.local.audit/policy.yaml"
 
 func AuditFlags(c *configv1.AuditConfig, args map[string][]string) map[string][]string {
 	if !c.Enabled {
