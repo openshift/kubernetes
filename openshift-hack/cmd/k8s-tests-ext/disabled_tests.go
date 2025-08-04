@@ -7,7 +7,7 @@ import (
 
 // filterOutDisabledSpecs returns the specs with those that are disabled removed from the list
 func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
-	var disabledByReason = map[string][]string{
+	disabledByReason := map[string][]string{
 		"Alpha": { // alpha features that are not gated
 			"[Feature:StorageVersionAPI]",
 			"[Feature:ClusterTrustBundle]",
@@ -189,6 +189,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		},
 		// tests too slow to be part of conformance
 		"Slow": {
+			"[Feature:NetworkPolicy]",
 			"[sig-scalability]",                            // disable from the default set for now
 			"should create and stop a working application", // Inordinately slow tests
 
