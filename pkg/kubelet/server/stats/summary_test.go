@@ -77,7 +77,6 @@ func TestSummaryProviderGetStatsNoSplitFileSystem(t *testing.T) {
 
 	mockStatsProvider := statstest.NewMockProvider(t)
 
-	mockStatsProvider.EXPECT().GetNode().Return(node, nil)
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig)
 	mockStatsProvider.EXPECT().GetPodCgroupRoot().Return(cgroupRoot)
 	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).Maybe()
@@ -178,7 +177,6 @@ func TestSummaryProviderGetStatsSplitImageFs(t *testing.T) {
 
 	mockStatsProvider := statstest.NewMockProvider(t)
 
-	mockStatsProvider.EXPECT().GetNode().Return(node, nil)
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig)
 	mockStatsProvider.EXPECT().GetPodCgroupRoot().Return(cgroupRoot)
 	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).Maybe()
@@ -278,7 +276,6 @@ func TestSummaryProviderGetCPUAndMemoryStats(t *testing.T) {
 
 	mockStatsProvider := statstest.NewMockProvider(t)
 
-	mockStatsProvider.EXPECT().GetNode().Return(node, nil)
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig)
 	mockStatsProvider.EXPECT().GetPodCgroupRoot().Return(cgroupRoot)
 	mockStatsProvider.EXPECT().ListPodCPUAndMemoryStats(ctx).Return(podStats, nil)
