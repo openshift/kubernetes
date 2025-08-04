@@ -69,12 +69,6 @@ func NewSummaryProvider(statsProvider Provider) SummaryProvider {
 }
 
 func (sp *summaryProviderImpl) Get(ctx context.Context, updateStats bool) (*statsapi.Summary, error) {
-	// TODO(timstclair): Consider returning a best-effort response if any of
-	// the following errors occur.
-	node, err := sp.provider.GetNode()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get node info: %v", err)
-	}
 	nodeConfig := sp.provider.GetNodeConfig()
 	rootStats, networkStats, err := sp.provider.GetCgroupStats("/", updateStats)
 	if err != nil {
@@ -104,7 +98,7 @@ func (sp *summaryProviderImpl) Get(ctx context.Context, updateStats bool) (*stat
 	}
 
 	nodeStats := statsapi.NodeStats{
-		NodeName:         node.Name,
+		NodeName:         string(nodeConfig.NodeName),
 		CPU:              rootStats.CPU,
 		Memory:           rootStats.Memory,
 		Swap:             rootStats.Swap,
@@ -126,12 +120,6 @@ func (sp *summaryProviderImpl) Get(ctx context.Context, updateStats bool) (*stat
 }
 
 func (sp *summaryProviderImpl) GetCPUAndMemoryStats(ctx context.Context) (*statsapi.Summary, error) {
-	// TODO(timstclair): Consider returning a best-effort response if any of
-	// the following errors occur.
-	node, err := sp.provider.GetNode()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get node info: %v", err)
-	}
 	nodeConfig := sp.provider.GetNodeConfig()
 	rootStats, err := sp.provider.GetCgroupCPUAndMemoryStats("/", false)
 	if err != nil {
@@ -144,7 +132,7 @@ func (sp *summaryProviderImpl) GetCPUAndMemoryStats(ctx context.Context) (*stats
 	}
 
 	nodeStats := statsapi.NodeStats{
-		NodeName:         node.Name,
+		NodeName:         string(nodeConfig.NodeName),
 		CPU:              rootStats.CPU,
 		Memory:           rootStats.Memory,
 		Swap:             rootStats.Swap,
