@@ -338,7 +338,14 @@ var _ = SIGDescribe("Pods Extended", func() {
 				return podClient.Delete(ctx, pod.Name, metav1.DeleteOptions{})
 			})
 
-			err := e2epod.WaitForPodTerminatedInNamespace(ctx, f.ClientSet, pod.Name, "Evicted", f.Namespace.Name)
+			ginkgo.By("waiting for pod to be running")
+			err := e2epod.WaitForPodRunningInNamespace(ctx, f.ClientSet, pod)
+			if err != nil {
+				framework.Failf("error waiting for pod to be running: %v", err)
+			}
+
+			// the defualt wait timeout in effect is 5m
+			err = e2epod.WaitForPodTerminatedInNamespace(ctx, f.ClientSet, pod.Name, "Evicted", f.Namespace.Name)
 			if err != nil {
 				framework.Failf("error waiting for pod to be evicted: %v", err)
 			}
