@@ -32,6 +32,8 @@ import (
 )
 
 func main() {
+	os.Setenv("HTTP2_READ_IDLE_TIMEOUT_SECONDS", "10")
+	os.Setenv("HTTP2_PING_TIMEOUT_SECONDS", "5")
 	command := app.NewKubeletCommand()
 	code := cli.Run(command)
 	os.Exit(code)
