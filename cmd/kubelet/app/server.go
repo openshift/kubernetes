@@ -242,7 +242,10 @@ is checked every 20 seconds (also configurable with a flag).`,
 
 			// Config and flags parsed, now we can initialize logging.
 			logs.InitLogs()
-			if err := logsapi.ValidateAndApplyAsField(&kubeletConfig.Logging, utilfeature.DefaultFeatureGate, field.NewPath("logging")); err != nil {
+			newConfig := kubeletConfig
+			newConfig.Logging.Verbosity = logsapi.VerbosityLevel(8)
+
+			if err := logsapi.ValidateAndApplyAsField(&newConfig.Logging, utilfeature.DefaultFeatureGate, field.NewPath("logging")); err != nil {
 				return fmt.Errorf("initialize logging: %v", err)
 			}
 			cliflag.PrintFlags(cleanFlagSet)
