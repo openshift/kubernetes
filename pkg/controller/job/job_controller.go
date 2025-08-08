@@ -537,12 +537,6 @@ func (jm *Controller) deleteJob(logger klog.Logger, obj interface{}) {
 		}
 	}
 	jm.enqueueLabelSelector(jobObj)
-
-	key := cache.MetaObjectToName(jobObj).String()
-	err := jm.podBackoffStore.removeBackoffRecord(key)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error removing backoff record %w", err))
-	}
 }
 
 func (jm *Controller) enqueueLabelSelector(jobObj *batch.Job) {

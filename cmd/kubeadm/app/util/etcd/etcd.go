@@ -576,15 +576,6 @@ func (c *Client) MemberPromote(learnerID uint64) error {
 			ctx, cancel := context.WithTimeout(context.Background(), etcdTimeout)
 			defer cancel()
 
-			isLearner, err := c.isLearner(learnerID)
-			if err != nil {
-				return false, err
-			}
-			if !isLearner {
-				klog.V(1).Infof("[etcd] Member %s was already promoted.", strconv.FormatUint(learnerID, 16))
-				return true, nil
-			}
-
 			_, err = cli.MemberPromote(ctx, learnerID)
 			if err == nil {
 				klog.V(1).Infof("[etcd] The learner was promoted as a voting member: %s", strconv.FormatUint(learnerID, 16))
