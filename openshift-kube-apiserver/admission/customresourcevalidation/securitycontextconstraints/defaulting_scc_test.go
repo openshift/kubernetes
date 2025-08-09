@@ -102,7 +102,7 @@ func TestDefaultingHappens(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedUnstructured.Object, inputUnstructured.Object) {
-		t.Fatal(diff.ObjectDiff(expectedUnstructured.Object, inputUnstructured.Object))
+		t.Fatal(diff.Diff(expectedUnstructured.Object, inputUnstructured.Object))
 	}
 }
 
