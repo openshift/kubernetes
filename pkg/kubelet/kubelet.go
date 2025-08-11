@@ -712,6 +712,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	klet.allocationManager = allocation.NewManager(klet.getRootDir())
 
 	klet.resourceAnalyzer = serverstats.NewResourceAnalyzer(klet, kubeCfg.VolumeStatsAggPeriod.Duration, kubeDeps.Recorder)
+	klet.resourceAnalyzer = NewAsyncInvokerForGetCPUAndMemoryStats(ctx, klet.resourceAnalyzer)
 
 	klet.runtimeService = kubeDeps.RemoteRuntimeService
 

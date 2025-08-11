@@ -131,5 +131,9 @@ func (t *SummaryProviderTracker) GetCPUAndMemoryStats(ctx context.Context) (*sta
 	defer func() {
 		klog.InfoS("GetCPUAndMemoryStats", "latency", time.Since(now))
 	}()
-	return t.ResourceAnalyzer.GetCPUAndMemoryStats(ctx)
+	summary, err := t.ResourceAnalyzer.GetCPUAndMemoryStats(ctx)
+	if err != nil {
+		klog.Infof("GetCPUAndMemoryStats: err - %v", err)
+	}
+	return summary, err
 }
