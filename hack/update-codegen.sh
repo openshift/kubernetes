@@ -50,7 +50,7 @@ if [[ "${DBG_CODEGEN}" == 1 ]]; then
 fi
 
 echo "installing goimports from hack/tools"
-go -C "${KUBE_ROOT}/hack/tools" install golang.org/x/tools/cmd/goimports
+go -C "${KUBE_ROOT}/hack/tools" install -mod=readonly golang.org/x/tools/cmd/goimports
 
 kube::protoc::install
 
