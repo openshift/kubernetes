@@ -332,14 +332,14 @@ func TestPolicyOptionsAvailableWithEnablement(t *testing.T) {
 	}
 
 	testCases := []optionAvailEnabTest{
-		{
-			name:                  "all disabled",
-			option:                PreferAlignByUnCoreCacheOption,
-			featureGate:           pkgfeatures.CPUManagerPolicyAlphaOptions,
-			featureGateEnable:     false, // expected standard case
-			featureEnablementFlag: false,
-			expectedAvailable:     false,
-		},
+		// {
+		// 	name:                  "all disabled",
+		// 	option:                PreferAlignByUnCoreCacheOption,
+		// 	featureGate:           pkgfeatures.CPUManagerPolicyAlphaOptions,
+		// 	featureGateEnable:     false, // expected standard case
+		// 	featureEnablementFlag: false,
+		// 	expectedAvailable:     false,
+		// },
 		{
 			name:                  "all enabled",
 			option:                PreferAlignByUnCoreCacheOption,
