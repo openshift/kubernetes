@@ -29,6 +29,7 @@ NETWORK_SKIPS="\[Skipped:Network/OVNKubernetes\]|\[Feature:Networking-IPv6\]|\[F
 
 # Support serial and parallel test suites
 TEST_SUITE="${TEST_SUITE:-parallel}"
+#TODO: all these failing tests have [Slow] or [Disruptive] in the name, but they aren't being skipped...is it not running via this script?
 COMMON_SKIPS="\[Slow\]|\[Disruptive\]|\[Flaky\]|\[Disabled:.+\]|\[Skipped:${PLATFORM}\]|${NETWORK_SKIPS}"
 # Skip tests for features that require a TechPreview cluster. TODO: Remove when the feature is enabled by default.
 COMMON_SKIPS="\[OCPFeatureGate:VolumeGroupSnapshot\]|${COMMON_SKIPS}"
