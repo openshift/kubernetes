@@ -57,7 +57,7 @@ type cpuUsageRecord struct {
 }
 
 // criStatsProvider implements the containerStatsProvider interface by getting
-// the container stats from CRI.
+// the container stats from CRI..
 type criStatsProvider struct {
 	// cadvisor is used to get the node root filesystem's stats (such as the
 	// capacity/available bytes/inodes) that will be populated in per container
