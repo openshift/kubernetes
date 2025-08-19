@@ -50,6 +50,15 @@ func toFeatureGateV1(uncastObj runtime.Object) (*configv1.FeatureGate, field.Err
 type featureGateV1 struct {
 }
 
+func validateOKDFeatureSet(spec configv1.FeatureGateSpec) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if spec.FeatureSet == configv1.OKD {
+		allErrs = append(allErrs, field.NotSupported(field.NewPath("spec.featureSet"), spec.FeatureSet, []string{"OKD"}))
+	}
+
+	return allErrs
+}
+
 func (featureGateV1) ValidateCreate(_ context.Context, uncastObj runtime.Object) field.ErrorList {
 	obj, allErrs := toFeatureGateV1(uncastObj)
 	if len(allErrs) > 0 {
@@ -57,7 +66,7 @@ func (featureGateV1) ValidateCreate(_ context.Context, uncastObj runtime.Object)
 	}
 
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
-
+	allErrs = append(allErrs, validateOKDFeatureSet(obj.Spec)...)
 	return allErrs
 }
 
@@ -72,6 +81,7 @@ func (featureGateV1) ValidateUpdate(_ context.Context, uncastObj runtime.Object,
 	}
 
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
+	allErrs = append(allErrs, validateOKDFeatureSet(obj.Spec)...)
 
 	return allErrs
 }
