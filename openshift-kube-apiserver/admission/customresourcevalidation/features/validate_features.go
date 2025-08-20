@@ -13,6 +13,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation"
+	"k8s.io/kubernetes/openshift-kube-apiserver/version"
 )
 
 const PluginName = "config.openshift.io/ValidateFeatureGate"
@@ -52,8 +53,8 @@ type featureGateV1 struct {
 
 func validateOKDFeatureSet(spec configv1.FeatureGateSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if spec.FeatureSet == configv1.OKD {
-		allErrs = append(allErrs, field.NotSupported(field.NewPath("spec.featureSet"), spec.FeatureSet, []string{"OKD"}))
+	if spec.FeatureSet == configv1.OKD && !version.IsSCOS() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.featureSet"), "OKD featureset is not supported on OpenShift clusters"))
 	}
 
 	return allErrs

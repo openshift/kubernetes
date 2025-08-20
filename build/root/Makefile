@@ -39,6 +39,8 @@ PRINT_HELP ?=
 WHAT ?=
 TESTS ?=
 BRANCH ?=
+TAGS ?=
+GO_BUILD_FLAGS := $(if ${TAGS},-tags=${TAGS},)
 
 # We don't need make's built-in rules.
 MAKEFLAGS += --no-builtin-rules
@@ -59,6 +61,11 @@ unexport KUBE_GOFLAGS
 else
 $(error Both KUBE_GOFLAGS and GOFLAGS are set. Please use just GOFLAGS)
 endif
+endif
+
+# Add build tags to GOFLAGS
+ifneq ($(TAGS),)
+GOFLAGS := $(GOFLAGS) $(GO_BUILD_FLAGS)
 endif
 
 # This controls the verbosity of the build.  Higher numbers mean more output.
