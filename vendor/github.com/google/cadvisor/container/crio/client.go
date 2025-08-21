@@ -59,6 +59,7 @@ type ContainerInfo struct {
 	Root        string            `json:"root"`
 	IP          string            `json:"ip_address"`
 	IPs         []string          `json:"ip_addresses"`
+	HostNetwork *bool             `json:"host_network"`
 }
 
 type CrioClient interface {
