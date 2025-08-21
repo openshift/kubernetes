@@ -19,11 +19,15 @@ package collectors
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	compbasemetrics "k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/testutil"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	summaryprovidertest "k8s.io/kubernetes/pkg/kubelet/server/stats/testing"
@@ -418,4 +422,113 @@ func TestCollectResourceMetrics(t *testing.T) {
 
 func uint64Ptr(u uint64) *uint64 {
 	return &u
+}
+
+type fakeSummaryProvider struct {
+	stats *statsapi.Summary
+}
+
+func (p *fakeSummaryProvider) Get(ctx context.Context, updateStats bool) (*statsapi.Summary, error) {
+	return nil, fmt.Errorf("should not be invoked")
+}
+
+func (p *fakeSummaryProvider) GetCPUAndMemoryStats(ctx context.Context) (*statsapi.Summary, error) {
+	return p.stats, nil
+}
+
+func createSummary() *statsapi.Summary {
+	staticTimestamp := time.Unix(0, 1624396278302091597)
+	testTime := metav1.NewTime(staticTimestamp)
+
+	pods := make([]statsapi.PodStats, 0)
+	for i := 0; i < 500; i++ {
+		podstat := statsapi.PodStats{
+			PodRef: statsapi.PodReference{
+				Name:      fmt.Sprintf("pod_%d", i),
+				Namespace: fmt.Sprintf("namespace_%d", i),
+			},
+			CPU: &statsapi.CPUStats{
+				Time:                 testTime,
+				UsageCoreNanoSeconds: uint64Ptr(10000000000),
+			},
+			Memory: &statsapi.MemoryStats{
+				Time:            testTime,
+				WorkingSetBytes: uint64Ptr(1000),
+			},
+			Swap: &statsapi.SwapStats{
+				Time:           testTime,
+				SwapUsageBytes: uint64Ptr(5000),
+			},
+		}
+		for j := 0; j < 10; j++ {
+			podstat.Containers = append(podstat.Containers, statsapi.ContainerStats{
+				Name:      fmt.Sprintf("container_%d", j),
+				StartTime: metav1.NewTime(staticTimestamp.Add(-30 * time.Second)),
+				CPU: &statsapi.CPUStats{
+					Time:                 testTime,
+					UsageCoreNanoSeconds: uint64Ptr(10000000000),
+				},
+				Memory: &statsapi.MemoryStats{
+					Time:            testTime,
+					WorkingSetBytes: uint64Ptr(1000),
+				},
+				Swap: &statsapi.SwapStats{
+					Time:           testTime,
+					SwapUsageBytes: uint64Ptr(1000),
+				},
+			})
+		}
+		pods = append(pods, podstat)
+	}
+
+	return &statsapi.Summary{
+		Node: statsapi.NodeStats{
+			CPU: &statsapi.CPUStats{
+				Time:                 testTime,
+				UsageCoreNanoSeconds: uint64Ptr(10000000000),
+			},
+			Memory: &statsapi.MemoryStats{
+				Time:            testTime,
+				WorkingSetBytes: uint64Ptr(1000),
+			},
+			Swap: &statsapi.SwapStats{
+				Time:           testTime,
+				SwapUsageBytes: uint64Ptr(500),
+			},
+		},
+		Pods: pods,
+	}
+}
+
+func TestResourceMetricsCollector(t *testing.T) {
+	provider := &fakeSummaryProvider{stats: createSummary()}
+	collector := NewResourceMetricsCollector(provider)
+
+	registry := compbasemetrics.NewKubeRegistry()
+	registry.CustomMustRegister(collector)
+
+	handler := compbasemetrics.HandlerFor(registry, compbasemetrics.HandlerOpts{ErrorHandling: compbasemetrics.ContinueOnError})
+	// handler = http.HandlerFunc(WithHTTPLogging(handler))
+
+	server := httptest.NewUnstartedServer(handler)
+	defer server.Close()
+	server.EnableHTTP2 = false
+	server.StartTLS()
+
+	client := server.Client()
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
+	if err != nil {
+		t.Errorf("failed to create a new http request - %v", err)
+		return
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("unexpected error from client.Do - %v", err)
+	}
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("unexpected error while reading the response body - %v", err)
+	}
+	t.Logf("%v", len(bytes)/1024)
 }
