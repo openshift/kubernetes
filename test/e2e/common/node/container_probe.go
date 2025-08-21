@@ -297,7 +297,8 @@ var _ = SIGDescribe("Probing container", func() {
 		livenessProbe := &v1.Probe{
 			ProbeHandler:        httpGetHandler("/redirect?loc="+url.QueryEscape("http://0.0.0.0/"), 8080),
 			InitialDelaySeconds: 15,
-			FailureThreshold:    1,
+			TimeoutSeconds:      5,
+			FailureThreshold:    2,
 		}
 		pod := livenessPodSpec(f.Namespace.Name, nil, livenessProbe)
 		RunLivenessTest(ctx, f, pod, 0, defaultObservationTimeout)
@@ -1014,7 +1015,8 @@ var _ = SIGDescribe(feature.SidecarContainers, "Probing restartable init contain
 		livenessProbe := &v1.Probe{
 			ProbeHandler:        httpGetHandler("/redirect?loc="+url.QueryEscape("http://0.0.0.0/"), 8080),
 			InitialDelaySeconds: 15,
-			FailureThreshold:    1,
+			TimeoutSeconds:      5,
+			FailureThreshold:    2,
 		}
 		pod := livenessSidecarPodSpec(f.Namespace.Name, nil, livenessProbe)
 		RunSidecarLivenessTest(ctx, f, pod, 0, defaultObservationTimeout)
