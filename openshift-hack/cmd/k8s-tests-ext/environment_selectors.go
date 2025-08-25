@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"k8s.io/kubernetes/pkg/features"
@@ -16,7 +15,6 @@ func addEnvironmentSelectors(specs et.ExtensionTestSpecs) {
 	filterByTopology(specs)
 	filterByNoOptionalCapabilities(specs)
 	filterByNetwork(specs)
-	filterByFeatureGates(specs)
 
 	// LoadBalancer tests in 1.31 require explicit platform-specific skips
 	// https://issues.redhat.com/browse/OCPBUGS-38840
@@ -273,17 +271,5 @@ func filterByNetwork(specs et.ExtensionTestSpecs) {
 		specs.SelectAny(selectFunctions).
 			Exclude(et.NetworkEquals(network)).
 			AddLabel(fmt.Sprintf("[Skipped:%s]", network))
-	}
-}
-
-// filter all tests from feature gates that are not explicitly enabled
-func filterByFeatureGates(specs et.ExtensionTestSpecs) {
-	for _, spec := range specs {
-		for label := range spec.Labels {
-			if strings.Contains(label, "FeatureGate:") {
-				featureGate := strings.TrimPrefix(label, "FeatureGate:")
-				spec.Exclude(et.FeatureGateDisabled(featureGate))
-			}
-		}
 	}
 }
