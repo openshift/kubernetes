@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/randfill"
 
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
@@ -40,7 +39,6 @@ func TestSummaryProvider(t *testing.T) {
 		podStats       = []statsapi.PodStats{*getPodStats()}
 		imageFsStats   = getFsStats()
 		rootFsStats    = getFsStats()
-		node           = &v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test-node"}}
 		nodeConfig     = cm.NodeConfig{}
 		cgroupRoot     = "/kubepods"
 		cgroupStatsMap = map[string]struct {
@@ -55,7 +53,6 @@ func TestSummaryProvider(t *testing.T) {
 	assert := assert.New(t)
 
 	mockStatsProvider := statstest.NewMockProvider(t)
-	mockStatsProvider.EXPECT().GetNode().Return(node, nil).Maybe()
 	mockStatsProvider.EXPECT().GetNodeConfig().Return(nodeConfig).Maybe()
 	mockStatsProvider.EXPECT().GetPodCgroupRoot().Return(cgroupRoot).Maybe()
 	mockStatsProvider.EXPECT().ListPodStats(ctx).Return(podStats, nil).Maybe()
