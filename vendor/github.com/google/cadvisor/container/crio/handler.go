@@ -28,6 +28,7 @@ import (
 	containerlibcontainer "github.com/google/cadvisor/container/libcontainer"
 	"github.com/google/cadvisor/fs"
 	info "github.com/google/cadvisor/info/v1"
+	"k8s.io/klog/v2"
 )
 
 type crioContainerHandler struct {
@@ -155,6 +156,9 @@ func newCrioContainerHandler(
 	// reported. This stops metrics being reported multiple times for each
 	// container in a pod.
 	removeNetMetrics := cInfo.Labels["io.kubernetes.container.name"] != "POD" || (cInfo.HostNetwork != nil && *cInfo.HostNetwork)
+	if cInfo.HostNetwork != nil && *cInfo.HostNetwork {
+		klog.Infof("skipping because host network")
+	}
 	metrics := common.RemoveNetMetrics(includedMetrics, removeNetMetrics)
 
 	libcontainerHandler := containerlibcontainer.NewHandler(cgroupManager, rootFs, cInfo.Pid, metrics)
