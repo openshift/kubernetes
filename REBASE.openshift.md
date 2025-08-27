@@ -531,6 +531,7 @@ where `k8s-tag` is the [kubernetes/kubernetes](https://github.com/kubernetes/kub
 is the OpenShift release branch in [openshift/kubernetes](https://github.com/openshift/kubernetes/) and the `bugzilla-id` is the
 BugZilla ID created in step (1).
 
+
 5. In case of conflicts, it will ask you to step into another shell to resolve those. The script will continue by committing the resolution with `UPSTREAM: <drop>`.
 6. At the end, there will be a "rebase-$VERSION" branch pushed to your fork.
 7. If you have `gh` installed and are logged in, it will attempt to create a PR for you by opening a web browser.
