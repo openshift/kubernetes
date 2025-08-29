@@ -143,6 +143,20 @@ func (mr *MockPodsProviderMockRecorder) GetPods() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPods", reflect.TypeOf((*MockPodsProvider)(nil).GetPods))
 }
 
+// GetActivePods mocks base method.
+func (m *MockPodsProvider) GetActivePods() []*v1.Pod {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActivePods")
+	ret0, _ := ret[0].([]*v1.Pod)
+	return ret0
+}
+
+// GetActivePods indicates an expected call of GetActivePods.
+func (mr *MockPodsProviderMockRecorder) GetActivePods() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActivePods", reflect.TypeOf((*MockPodsProvider)(nil).GetActivePods))
+}
+
 // MockCPUsProvider is a mock of CPUsProvider interface.
 type MockCPUsProvider struct {
 	ctrl     *gomock.Controller
