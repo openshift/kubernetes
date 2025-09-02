@@ -20,6 +20,8 @@ type Extension struct {
 
 	Images []Image `json:"images"`
 
+	TestImages map[string][]Image `json:"test_images"`
+
 	// Private data
 	specs         extensiontests.ExtensionTestSpecs
 	obsoleteTests sets.Set[string]

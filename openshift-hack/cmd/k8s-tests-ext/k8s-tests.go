@@ -88,10 +88,23 @@ func main() {
 		Qualifiers: []string{withExcludedTestsFilter(`name.contains('[Serial]')`)},
 	})
 
-	for k, v := range image.GetOriginalImageConfigs() {
+	originals := image.GetOriginalImageConfigs()
+	for k, v := range originals {
 		image := convertToImage(v)
 		image.Index = int(k)
-		kubeTestsExtension.RegisterImage(image)
+		kubeTestsExtension.RegisterImage("original", image)
+	}
+
+	mirror := "quay.io/openshift/community-e2e-images"
+	if v := os.Getenv("TEST_IMAGE_MIRROR"); len(v) > 0 {
+		mirror = v
+	}
+	mapped := image.GetMappedImageConfigs(originals, mirror)
+
+	for k, v := range mapped {
+		image := convertToImage(v)
+		image.Index = int(k)
+		kubeTestsExtension.RegisterImage("mapped", image)
 	}
 
 	//FIXME(stbenjam): what other suites does k8s-test contribute to?

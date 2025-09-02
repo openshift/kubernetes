@@ -22,6 +22,10 @@ func NewExtension(product, kind, name string) *Extension {
 			Kind:    kind,
 			Name:    name,
 		},
+		TestImages: map[string][]Image{
+			"original": nil,
+			"mapped":   nil,
+		},
 	}
 }
 
@@ -124,8 +128,8 @@ func (e *Extension) AddSuite(suite Suite) *Extension {
 	return e
 }
 
-func (e *Extension) RegisterImage(image Image) *Extension {
-	e.Images = append(e.Images, image)
+func (e *Extension) RegisterImage(key string, image Image) *Extension {
+	e.TestImages[key] = append(e.TestImages[key], image)
 	return e
 }
 
