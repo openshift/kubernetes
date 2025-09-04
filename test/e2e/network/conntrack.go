@@ -664,6 +664,11 @@ var _ = common.SIGDescribe("Conntrack", func() {
 		}
 		framework.Logf("boom-server pod logs: %s", logs)
 		framework.Logf("boom-server OK: did not receive any RST packet")
+
+		// Dump flow rules from ovnkube-node pods for debugging
+		for _, node := range []string{serverNodeInfo.name, clientNodeInfo.name} {
+			dumpFlowRules(ctx, fr, node)
+		}
 	})
 })
 
@@ -674,45 +679,54 @@ func dumpFlowRules(ctx context.Context, fr *framework.Framework, node string) {
 		LabelSelector: "app=ovnkube-node",
 		FieldSelector: "spec.nodeName=" + node,
 	})
-	if err != nil {
-		framework.Logf("could not list ovnkube-node pods on node %s: %v", node, err)
-		return
-	}
-	if len(ovnkPods.Items) == 0 {
-		framework.Logf("could not find ovnkube-node pod on node %s", node)
-		return
-	}
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	// if err != nil {
+	// 	framework.Logf("could not list ovnkube-node pods on node %s: %v", node, err)
+	// 	return
+	// }
+	gomega.Expect(len(ovnkPods.Items)).NotTo(gomega.Equal(0))
+	// if len(ovnkPods.Items) == 0 {
+	// 	framework.Logf("could not find ovnkube-node pod on node %s", node)
+	// 	return
+	// }
 	ovnkPod := ovnkPods.Items[0]
 
 	cmd := "ovs-dpctl dump-flows"
 	stdout, stderr, err := e2epod.ExecWithOptionsContext(ctx, fr, e2epod.ExecOptions{
-		Command:            []string{cmd},
+		Command:            []string{"/bin/sh", "-c", cmd},
 		Namespace:          ovnkNamespace,
 		PodName:            ovnkPod.Name,
-		ContainerName:      "ovnkube-controller",
+		ContainerName:      "ovn-controller",
 		CaptureStdout:      true,
 		CaptureStderr:      true,
 		PreserveWhitespace: true,
 	})
-	if err != nil || len(stderr) > 0 {
-		framework.Logf("error running command %s in pod %s: %v. \nstdout: %s, \nstderr: %s", cmd, ovnkPod.Name, err, stdout, stderr)
-		return
-	}
+	framework.Logf("stdout: %s", stdout)
+	framework.Logf("stderr: %s", stderr)
+	framework.Logf("err: %v", err)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(len(stderr)).NotTo(gomega.Equal(0))
+	// if err != nil || len(stderr) > 0 {
+	// 	framework.Logf("error running command %s in pod %s: %v. \nstdout: %s, \nstderr: %s", cmd, ovnkPod.Name, err, stdout, stderr)
+	// 	return
+	// }
 	// Write the output of the command to a file in the report directory if the report directory is set.
 	// Otherwise, print the output as a log.
 	if framework.TestContext.ReportDir != "" {
 		dirPath := filepath.Join(framework.TestContext.ReportDir, fr.Namespace.Name, node)
 		err := os.MkdirAll(dirPath, 0755)
-		if err != nil {
-			framework.Logf("Unable to create directory '%s'. Err: %v", dirPath, err)
-			return
-		}
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// if err != nil {
+		// 	framework.Logf("Unable to create directory '%s'. Err: %v", dirPath, err)
+		// 	return
+		// }
 		logPath := filepath.Join(dirPath, "ovs-dpctl-dump-flows.txt")
 		err = os.WriteFile(logPath, []byte(stdout), 0644)
-		if err != nil {
-			framework.Logf("Could not write the output of command %s in %s. Err: %v", cmd, logPath, err)
-			return
-		}
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		// if err != nil {
+		// 	framework.Logf("Could not write the output of command %s in %s. Err: %v", cmd, logPath, err)
+		// 	return
+		// }
 	} else {
 		framework.Logf("output of command %s from pod %s on node %s:\n%s", cmd, ovnkPod.Name, node, stdout)
 	}
