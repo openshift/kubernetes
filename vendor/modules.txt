@@ -508,6 +508,7 @@ github.com/openshift-eng/openshift-tests-extension/pkg/cmd
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdimages
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdinfo
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdlist
+github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdlistimages
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdrun
 github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdupdate
 github.com/openshift-eng/openshift-tests-extension/pkg/dbtime
