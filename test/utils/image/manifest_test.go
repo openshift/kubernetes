@@ -19,6 +19,7 @@ package image
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -170,5 +171,107 @@ func TestGetMappedImageConfigs(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expected, actual) {
 		t.Fatal(cmp.Diff(expected, actual))
+	}
+}
+
+func TestGetImageConfigsWithMappedImage(t *testing.T) {
+	tests := []struct {
+		name                 string
+		originalImageConfigs map[ImageID]Config
+		repo                 string
+		specialImages        []ImageID // Images that should not be mapped
+	}{
+		{
+			name: "maps normal images to new repository",
+			originalImageConfigs: map[ImageID]Config{
+				Agnhost: {registry: "registry.k8s.io/e2e-test-images", name: "agnhost", version: "2.47"},
+				BusyBox: {registry: "registry.k8s.io/e2e-test-images", name: "busybox", version: "1.36.1-1"},
+			},
+			repo:          "quay.io/test/repo",
+			specialImages: []ImageID{},
+		},
+		{
+			name: "does not map special images",
+			originalImageConfigs: map[ImageID]Config{
+				InvalidRegistryImage:           {registry: "invalid.registry.k8s.io/invalid", name: "alpine", version: "3.1"},
+				AuthenticatedAlpine:            {registry: "gcr.io/authenticated-image-pulling", name: "alpine", version: "3.7"},
+				AuthenticatedWindowsNanoServer: {registry: "gcr.io/authenticated-image-pulling", name: "windows-nanoserver", version: "v1"},
+				AgnhostPrivate:                 {registry: "gcr.io/k8s-authenticated-test", name: "agnhost", version: "2.6"},
+			},
+			repo:          "quay.io/test/repo",
+			specialImages: []ImageID{InvalidRegistryImage, AuthenticatedAlpine, AuthenticatedWindowsNanoServer, AgnhostPrivate},
+		},
+		{
+			name: "handles mixed normal and special images",
+			originalImageConfigs: map[ImageID]Config{
+				Nginx:                {registry: "registry.k8s.io/e2e-test-images", name: "nginx", version: "1.14-4"},
+				AuthenticatedAlpine:  {registry: "gcr.io/authenticated-image-pulling", name: "alpine", version: "3.7"},
+				Pause:                {registry: "registry.k8s.io", name: "pause", version: "3.9"},
+				InvalidRegistryImage: {registry: "invalid.registry.k8s.io/invalid", name: "alpine", version: "3.1"},
+			},
+			repo:          "my-registry.io/my-repo",
+			specialImages: []ImageID{AuthenticatedAlpine, InvalidRegistryImage},
+		},
+		{
+			name:                 "handles empty input",
+			originalImageConfigs: map[ImageID]Config{},
+			repo:                 "quay.io/test/repo",
+			specialImages:        []ImageID{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetImageConfigsWithMappedImage(tt.originalImageConfigs, tt.repo)
+
+			if len(result) != len(tt.originalImageConfigs) {
+				t.Errorf("expected %d mapped configs, got %d", len(tt.originalImageConfigs), len(result))
+			}
+
+			for imageID, originalConfig := range tt.originalImageConfigs {
+				actualConfigWithMapped, exists := result[imageID]
+				if !exists {
+					t.Errorf("expected imageID %v to be present in result", imageID)
+					continue
+				}
+
+				// Check that original config is preserved
+				actualOriginalImage := actualConfigWithMapped.Config.GetE2EImage()
+				expectedOriginalImage := originalConfig.GetE2EImage()
+				if actualOriginalImage != expectedOriginalImage {
+					t.Errorf("original config mismatch for imageID %v: expected %q, got %q", imageID, expectedOriginalImage, actualOriginalImage)
+				}
+
+				// Check if this is a special image that should not be mapped
+				isSpecial := false
+				for _, specialID := range tt.specialImages {
+					if imageID == specialID {
+						isSpecial = true
+						break
+					}
+				}
+
+				actualMappedImage := actualConfigWithMapped.mapped.GetE2EImage()
+				if isSpecial {
+					// Special images should have empty mapped config (which results in "/:")
+					if actualMappedImage != "/:" {
+						t.Errorf("special image %v should have empty mapped config (resulting in '/:'), got %q", imageID, actualMappedImage)
+					}
+				} else {
+					// Normal images should have a mapped config that's different from original
+					if actualMappedImage == "" || actualMappedImage == "/:" {
+						t.Errorf("normal image %v should have non-empty mapped config, got %q", imageID, actualMappedImage)
+					}
+					if actualMappedImage == actualOriginalImage {
+						t.Errorf("mapped image should be different from original for imageID %v", imageID)
+					}
+					// Verify the mapped image uses the new repository
+					expectedRepoPrefix := strings.Split(tt.repo, "/")[0]
+					if !strings.HasPrefix(actualMappedImage, expectedRepoPrefix) {
+						t.Errorf("mapped image %q should start with repository %q", actualMappedImage, expectedRepoPrefix)
+					}
+				}
+			}
+		})
 	}
 }

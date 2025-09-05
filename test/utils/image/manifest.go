@@ -52,6 +52,11 @@ type Config struct {
 	version  string
 }
 
+type ConfigWithMapped struct {
+	Config
+	mapped Config
+}
+
 // SetRegistry sets an image registry in a Config struct
 func (i *Config) SetRegistry(registry string) {
 	i.registry = registry
@@ -281,6 +286,32 @@ func GetMappedImageConfigs(originalImageConfigs map[ImageID]Config, repo string)
 		// Build a new tag with the ImageID, a hash of the image spec (to be unique) and
 		// shorten and make the pull spec "safe" so it will fit in the tag
 		configs[i] = getRepositoryMappedConfig(i, config, repo)
+	}
+	return configs
+}
+
+func GetImageConfigsWithMappedImage(originalImageConfigs map[ImageID]Config, repo string) map[ImageID]ConfigWithMapped {
+	configs := make(map[ImageID]ConfigWithMapped)
+	for i, config := range originalImageConfigs {
+		switch i {
+		case InvalidRegistryImage, AuthenticatedAlpine,
+			AuthenticatedWindowsNanoServer, AgnhostPrivate:
+			// These images are special and can't be run out of the cloud - some because they
+			// are authenticated, and others because they are not real images. Tests that depend
+			// on these images can't be run without access to the public internet.
+			configs[i] = ConfigWithMapped{
+				Config: config,
+			}
+			continue
+		}
+
+		// Build a new tag with the ImageID, a hash of the image spec (to be unique) and
+		// shorten and make the pull spec "safe" so it will fit in the tag
+		mappedConfig := getRepositoryMappedConfig(i, config, repo)
+		configs[i] = ConfigWithMapped{
+			Config: config,
+			mapped: mappedConfig,
+		}
 	}
 	return configs
 }
