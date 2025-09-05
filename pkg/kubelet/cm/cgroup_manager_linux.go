@@ -101,7 +101,7 @@ func ParseSystemdToCgroupName(name string) CgroupName {
 	driverName := path.Base(name)
 	driverName = strings.TrimSuffix(driverName, systemdSuffix)
 	parts := strings.Split(driverName, "-")
-	result := []string{}
+	result := make([]string, 0, len(parts))
 	for _, part := range parts {
 		result = append(result, unescapeSystemdCgroupName(part))
 	}
