@@ -99,7 +99,7 @@ func SerializeObject(mediaType string, encoder runtime.Encoder, hw http.Response
 		attribute.String("mediaType", mediaType),
 		attribute.String("encoder", string(encoder.Identifier())))
 	req = req.WithContext(ctx)
-	defer span.End(5 * time.Second)
+	defer span.End(300 * time.Millisecond)
 
 	w := &deferredResponseWriter{
 		mediaType:       mediaType,
