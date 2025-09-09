@@ -33,6 +33,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"[Feature:BoundServiceAccountTokenVolume]", // upgrades are run separately
 			"[Feature:StatefulUpgrade]",                // upgrades are run separately
 			"Service CIDRs",                            // requires extra support from some components
+			"[Feature:KubeProxyNFAcct]",                // RHEL does not include the relevant kernel module
 		},
 		// tests that rely on special configuration that we do not yet support
 		"SpecialConfig": {
