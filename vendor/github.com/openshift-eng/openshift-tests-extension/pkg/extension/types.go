@@ -84,6 +84,14 @@ type Suite struct {
 }
 
 type Image struct {
+	Index    int         `json:"index"`
+	Registry string      `json:"registry"`
+	Name     string      `json:"name"`
+	Version  string      `json:"version"`
+	Mapped   MappedImage `json:"mapped,omitempty"`
+}
+
+type MappedImage struct {
 	Index    int    `json:"index"`
 	Registry string `json:"registry"`
 	Name     string `json:"name"`

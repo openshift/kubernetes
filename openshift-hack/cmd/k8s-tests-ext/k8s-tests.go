@@ -88,9 +88,20 @@ func main() {
 		Qualifiers: []string{withExcludedTestsFilter(`name.contains('[Serial]')`)},
 	})
 
-	for k, v := range image.GetOriginalImageConfigs() {
-		image := convertToImage(v)
-		image.Index = int(k)
+	originals := image.GetOriginalImageConfigs()
+	for k, v := range originals {
+		image := convertToImage(v, k)
+		kubeTestsExtension.RegisterImage(image)
+	}
+
+	mirror := "quay.io/openshift/community-e2e-images"
+	if v := os.Getenv("TEST_IMAGE_MIRROR"); len(v) > 0 {
+		mirror = v
+	}
+
+	mapped := image.GetMappedImageConfigs(originals, mirror)
+	for k, v := range mapped {
+		image := convertToImage(v, k)
 		kubeTestsExtension.RegisterImage(image)
 	}
 
@@ -158,10 +169,10 @@ func main() {
 	}
 }
 
-// convertToImages converts an image.Config to an extension.Image, which
+// convertToImage converts an image.Config to an extension.Image, which
 // can easily be serialized to JSON. Since image.Config has unexported fields,
 // reflection is used to read its values.
-func convertToImage(obj interface{}) e.Image {
+func convertToImage(obj interface{}, index image.ImageID) e.Image {
 	image := e.Image{}
 	val := reflect.ValueOf(obj)
 	typ := reflect.TypeOf(obj)
@@ -171,11 +182,16 @@ func convertToImage(obj interface{}) e.Image {
 		switch structField.Name {
 		case "registry":
 			image.Registry = fieldValue.String()
+			image.Mapped.Registry = fieldValue.String()
 		case "name":
 			image.Name = fieldValue.String()
+			image.Mapped.Name = fieldValue.String()
 		case "version":
 			image.Version = fieldValue.String()
+			image.Mapped.Version = fieldValue.String()
 		}
+		image.Index = int(index)
+		image.Mapped.Index = int(index)
 	}
 	return image
 }
