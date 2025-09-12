@@ -100,17 +100,18 @@ func probe(ip string) {
 
 		log.Printf("tcp packet: %+v, flag: %v, data: %v, addr: %v", pkt, pkt.FlagString(), data, addr)
 
+		connectionKey := fmt.Sprintf("%s_%d", addr.String(), pkt.SrcPort)
 		if pkt.Flags&SYN != 0 {
-			pending[addr.String()] = pkt.Seq + 1
+			pending[connectionKey] = pkt.Seq + 1
 			continue
 		}
 		if pkt.Flags&RST != 0 {
 			log.Println("ERROR: RST received")
 		}
 		if pkt.Flags&ACK != 0 {
-			if seq, ok := pending[addr.String()]; ok {
+			if seq, ok := pending[connectionKey]; ok {
 				log.Println("connection established")
-				delete(pending, addr.String())
+				delete(pending, connectionKey)
 
 				badPkt := &tcpPacket{
 					SrcPort:    pkt.DestPort,
