@@ -131,16 +131,15 @@ func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogR
 		req = req.WithContext(context.WithValue(ctx, respLoggerContextKey, rl))
 
 		var logFunc func()
-		logFunc = rl.Log
+		if klog.V(3).Enabled() || (rl.isTerminating && klog.V(1).Enabled()) {
+			logFunc = rl.Log
+		}
 		defer func() {
 			if logFunc != nil {
 				logFunc()
 			}
 		}()
 
-		if klog.V(3).Enabled() || (rl.isTerminating && klog.V(1).Enabled()) {
-			defer rl.Log()
-		}
 		w = responsewriter.WrapForHTTP1Or2(rl)
 		handler.ServeHTTP(w, req)
 
@@ -149,7 +148,7 @@ func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogR
 		// WithRoutine handler in the handler chain (i.e. above handler.ServeHTTP()
 		// would return request is completely responsed), we want the logging to
 		// happen in that goroutine too, so we append it to the task.
-		if routine.AppendTask(ctx, &routine.Task{Func: rl.Log}) {
+		if logFunc != nil && routine.AppendTask(ctx, &routine.Task{Func: logFunc}) {
 			logFunc = nil
 		}
 	})
