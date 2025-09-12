@@ -19,6 +19,8 @@ package network
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -646,6 +648,11 @@ var _ = common.SIGDescribe("Conntrack", func() {
 			logs, err := e2epod.GetPodLogs(ctx, cs, ns, "boom-server", "boom-server")
 			framework.ExpectNoError(err)
 			framework.Logf("boom-server pod logs: %s", logs)
+
+			// Dump flow rules from ovnkube-node pods for debugging
+			for _, node := range []string{serverNodeInfo.name, clientNodeInfo.name} {
+				dumpFlowRules(ctx, fr, node)
+			}
 			framework.Failf("boom-server pod received a RST from the client, enabling nf_conntrack_tcp_be_liberal or dropping packets marked invalid by conntrack might help here.")
 		}
 
@@ -659,3 +666,54 @@ var _ = common.SIGDescribe("Conntrack", func() {
 		framework.Logf("boom-server OK: did not receive any RST packet")
 	})
 })
+
+func dumpFlowRules(ctx context.Context, fr *framework.Framework, node string) {
+	// Find ovnkube-node pod on the same node
+	ovnkNamespace := "openshift-ovn-kubernetes"
+	ovnkPods, err := fr.ClientSet.CoreV1().Pods(ovnkNamespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app=ovnkube-node",
+		FieldSelector: "spec.nodeName=" + node,
+	})
+	if err != nil {
+		framework.Logf("could not list ovnkube-node pods on node %s: %v", node, err)
+		return
+	}
+	if len(ovnkPods.Items) == 0 {
+		framework.Logf("could not find ovnkube-node pod on node %s", node)
+		return
+	}
+	ovnkPod := ovnkPods.Items[0]
+
+	cmd := "ovs-dpctl dump-flows"
+	stdout, stderr, err := e2epod.ExecWithOptionsContext(ctx, fr, e2epod.ExecOptions{
+		Command:            []string{"/bin/sh", "-c", cmd},
+		Namespace:          ovnkNamespace,
+		PodName:            ovnkPod.Name,
+		ContainerName:      "ovn-controller",
+		CaptureStdout:      true,
+		CaptureStderr:      true,
+		PreserveWhitespace: true,
+	})
+	if err != nil || len(stderr) > 0 {
+		framework.Logf("error running command %s in pod %s: %v. \nstdout: %s, \nstderr: %s", cmd, ovnkPod.Name, err, stdout, stderr)
+		return
+	}
+	// Write the output of the command to a file in the report directory if the report directory is set.
+	// Otherwise, print the output as a log.
+	if framework.TestContext.ReportDir != "" {
+		dirPath := filepath.Join(framework.TestContext.ReportDir, fr.Namespace.Name, node)
+		err := os.MkdirAll(dirPath, 0755)
+		if err != nil {
+			framework.Logf("Unable to create directory '%s'. Err: %v", dirPath, err)
+			return
+		}
+		logPath := filepath.Join(dirPath, "ovs-dpctl-dump-flows.txt")
+		err = os.WriteFile(logPath, []byte(stdout), 0644)
+		if err != nil {
+			framework.Logf("Could not write the output of command %s in %s. Err: %v", cmd, logPath, err)
+			return
+		}
+	} else {
+		framework.Logf("output of command %s from pod %s on node %s:\n%s", cmd, ovnkPod.Name, node, stdout)
+	}
+}
