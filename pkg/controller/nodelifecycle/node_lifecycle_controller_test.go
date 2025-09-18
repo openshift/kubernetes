@@ -52,7 +52,7 @@ import (
 )
 
 const (
-	testNodeMonitorGracePeriod = 50 * time.Second
+	testNodeMonitorGracePeriod = 40 * time.Second
 	testNodeStartupGracePeriod = 60 * time.Second
 	testNodeMonitorPeriod      = 5 * time.Second
 	testRateLimiterQPS         = float32(100000)
