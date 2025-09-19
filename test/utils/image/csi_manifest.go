@@ -99,7 +99,7 @@ func appendCSIImageConfigs(configs map[ImageID]Config) {
 		return nil
 	}
 
-	for _, dir := range []string{"storage-csi", "dra"} {
+	for _, dir := range []string{"storage-csi"} {
 		err := fs.WalkDir(embeddedFS, dir, walkDirFn)
 		if err != nil {
 			panic(fmt.Errorf("error while extracting CSI image configs from directory: %q - %w", dir, err))
