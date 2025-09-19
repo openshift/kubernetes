@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	auditinternal "k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/apiserver/pkg/audit"
 	authenticationuser "k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -257,7 +256,6 @@ func TestWithStartupEarlyAnnotation(t *testing.T) {
 			if ac == nil {
 				t.Fatalf("expected audit context inside the request context")
 			}
-			ac.Init(audit.RequestAuditConfig{Level: auditinternal.LevelMetadata}, nil)
 
 			w := httptest.NewRecorder()
 			w.Code = 0
