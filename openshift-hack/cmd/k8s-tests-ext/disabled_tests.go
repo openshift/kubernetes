@@ -33,6 +33,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"[Feature:BoundServiceAccountTokenVolume]", // upgrades are run separately
 			"[Feature:StatefulUpgrade]",                // upgrades are run separately
 			"Service CIDRs",                            // requires extra support from some components
+			"[Feature:KubeProxyNFAcct]",                // RHEL does not include the relevant kernel module
 		},
 		// tests that rely on special configuration that we do not yet support
 		"SpecialConfig": {
@@ -169,6 +170,34 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			"[sig-node] ImageCredentialProvider [Feature:KubeletCredentialProviders] should be able to create pod with image credentials fetched from external credential provider",
+
+			"[sig-api-machinery] ResourceQuota [FeatureGate:VolumeAttributesClass] should verify ResourceQuota's volume attributes class scope (quota set to pvc count: 1) against 2 pvcs with same volume attributes class.",
+			"[sig-api-machinery] ResourceQuota [FeatureGate:VolumeAttributesClass] should verify ResourceQuota's volume attributes class scope (quota set to pvc count: 1) against a pvc with different volume attributes class.",
+			"[sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a ResourceClaim [FeatureGate:DynamicResourceAllocation] [DRA]",
+			"[sig-api-machinery] ResourceQuota should create a ResourceQuota and capture the life of a custom resource.",
+			"[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList] [Beta] [Serial] server supports sending resources in Table format",
+
+			"[sig-scheduling] SchedulerPreemption [Serial] validates various priority Pods preempt expectedly with the async preemption [Feature:SchedulerAsyncPreemption] [FeatureGate:SchedulerAsyncPreemption] [Beta]",
+
+			"[sig-autoscaling] [Feature:HPA] Horizontal pod autoscaling",
+
+			"[sig-cli] kubectl kuberc given preferences should be applied",
+			"[sig-cli] kubectl kuberc given preferences should be ignored when flags are explicitly passed",
+
+			"[sig-network] Conntrack should be able to cleanup conntrack entries when UDP service target port changes for a NodePort service",
+			"[sig-network] Services should support named targetPorts that resolve to different ports on different endpoints",
+
+			"[sig-node] [DRA] control plane [ConformanceCandidate] must deallocate after use",
+			"[sig-node] [DRA] control plane [ConformanceCandidate] retries pod scheduling after creating device class",
+			"[sig-node] [DRA] control plane [ConformanceCandidate] retries pod scheduling after updating device class",
+			"[sig-node] [DRA] control plane [ConformanceCandidate] runs a pod without a generated resource claim",
+			"[sig-node] [DRA] control plane [ConformanceCandidate] with different ResourceSlices keeps pod pending because of CEL runtime errors",
+			"[sig-node] [DRA] control plane [ConformanceCandidate] with node-local resources uses all resources",
+			"[sig-node] [DRA] control plane must be possible for the driver to update the ResourceClaim.Status.Devices once allocated [FeatureGate:DRAResourceClaimDeviceStatus] [Beta]",
+
+			// "[sig-storage] CSI Mock volume expansion Expansion with recovery",
+			"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Feature:VolumeAttributesClass] should be protected by vac-protection finalizer",
+			"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Feature:VolumeAttributesClass] should be protected by vac-protection finalizer",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {

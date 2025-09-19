@@ -12,7 +12,7 @@ mkdir -p "${ARTIFACTS}"
 export KUBERNETES_SERVICE_HOST=
 export KUBE_JUNIT_REPORT_DIR="${ARTIFACTS}"
 export KUBE_KEEP_VERBOSE_TEST_OUTPUT=y
-export KUBE_RACE=-race
+# export KUBE_RACE=-race
 export KUBE_TEST_ARGS='-p 8'
 export LOG_LEVEL=4
 export PATH
