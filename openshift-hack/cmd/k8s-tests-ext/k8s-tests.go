@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 
@@ -88,7 +89,19 @@ func main() {
 		Qualifiers: []string{withExcludedTestsFilter(`name.contains('[Serial]')`)},
 	})
 
+	// ignoredImagePrefixes we don't want to mirror, i.e. things that are intentionally invalid.
+	ignoredImagePrefixes := []string{
+		"invalid.registry.k8s.io/invalid",
+	}
+
+imageLoop:
 	for k, v := range image.GetOriginalImageConfigs() {
+		for _, i := range ignoredImagePrefixes {
+			if strings.HasPrefix(v.GetE2EImage(), i) {
+				continue imageLoop
+			}
+		}
+
 		image := convertToImage(v)
 		image.Index = int(k)
 		kubeTestsExtension.RegisterImage(image)
