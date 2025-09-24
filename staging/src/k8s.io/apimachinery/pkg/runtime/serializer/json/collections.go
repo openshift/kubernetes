@@ -20,12 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"maps"
-	"slices"
 	"sort"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -153,7 +152,7 @@ func streamingEncodeUnstructuredList(w io.Writer, list *unstructured.Unstructure
 	if err != nil {
 		return err
 	}
-	keys := slices.Collect(maps.Keys(list.Object))
+	keys := sets.List(sets.KeySet(list.Object))
 	if _, exists := list.Object["items"]; !exists {
 		keys = append(keys, "items")
 	}
