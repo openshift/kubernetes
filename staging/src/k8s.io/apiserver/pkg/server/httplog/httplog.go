@@ -67,7 +67,6 @@ type respLogger struct {
 	addedInfo          strings.Builder
 	addedKeyValuePairs []interface{}
 	startTime          time.Time
-	isTerminating      bool
 
 	captureErrorOutput bool
 
@@ -75,7 +74,8 @@ type respLogger struct {
 	userAgent string
 	w         http.ResponseWriter
 
-	logStacktracePred StacktracePred
+	logStacktracePred    StacktracePred
+	shouldLogRequestPred func(ctx context.Context) bool
 }
 
 var _ http.ResponseWriter = &respLogger{}
@@ -102,19 +102,24 @@ const withLoggingLevel = 3
 
 // WithLogging wraps the handler with logging.
 func WithLogging(handler http.Handler, pred StacktracePred, isTerminatingFn func() bool) http.Handler {
-	return withLogging(handler, pred, func() bool {
-		return klog.V(withLoggingLevel).Enabled()
-	}, isTerminatingFn)
+	return withLogging(handler, pred, func(ctx context.Context) bool {
+		isTerminating := false
+		if isTerminatingFn != nil {
+			isTerminating = isTerminatingFn()
+		}
+		logger := klog.FromContext(ctx)
+		return logger.V(withLoggingLevel).Enabled() || (isTerminating && logger.V(1).Enabled())
+	})
 }
 
-func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogRequest ShouldLogRequestPred, isTerminatingFn func() bool) http.Handler {
+func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogRequest func(context.Context) bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if !shouldLogRequest() {
+		ctx := req.Context()
+		if !shouldLogRequest(ctx) {
 			handler.ServeHTTP(w, req)
 			return
 		}
 
-		ctx := req.Context()
 		if old := respLoggerFromRequest(req); old != nil {
 			panic("multiple WithLogging calls!")
 		}
@@ -123,24 +128,19 @@ func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogR
 			startTime = receivedTimestamp
 		}
 
-		isTerminating := false
-		if isTerminatingFn != nil {
-			isTerminating = isTerminatingFn()
-		}
-		rl := newLoggedWithStartTime(req, w, startTime).StacktraceWhen(stackTracePred).IsTerminating(isTerminating)
+		rl := newLoggedWithStartTime(req, w, startTime).StacktraceWhen(stackTracePred).ShouldLogRequest(shouldLogRequest)
 		req = req.WithContext(context.WithValue(ctx, respLoggerContextKey, rl))
 
 		var logFunc func()
-		logFunc = rl.Log
+		logFunc = func() {
+			rl.Log(ctx)
+		}
 		defer func() {
 			if logFunc != nil {
 				logFunc()
 			}
 		}()
 
-		if klog.V(3).Enabled() || (rl.isTerminating && klog.V(1).Enabled()) {
-			defer rl.Log()
-		}
 		w = responsewriter.WrapForHTTP1Or2(rl)
 		handler.ServeHTTP(w, req)
 
@@ -149,7 +149,7 @@ func withLogging(handler http.Handler, stackTracePred StacktracePred, shouldLogR
 		// WithRoutine handler in the handler chain (i.e. above handler.ServeHTTP()
 		// would return request is completely responsed), we want the logging to
 		// happen in that goroutine too, so we append it to the task.
-		if routine.AppendTask(ctx, &routine.Task{Func: rl.Log}) {
+		if routine.AppendTask(ctx, &routine.Task{Func: logFunc}) {
 			logFunc = nil
 		}
 	})
@@ -211,9 +211,9 @@ func (rl *respLogger) StacktraceWhen(pred StacktracePred) *respLogger {
 	return rl
 }
 
-// IsTerminating informs the logger that the server is terminating.
-func (rl *respLogger) IsTerminating(is bool) *respLogger {
-	rl.isTerminating = is
+// ShouldLogRequest can be used to set a custom logging condition for Log.
+func (rl *respLogger) ShouldLogRequest(shouldLogRequestPred func(context.Context) bool) *respLogger {
+	rl.shouldLogRequestPred = shouldLogRequestPred
 	return rl
 }
 
@@ -268,7 +268,7 @@ func SetStacktracePredicate(ctx context.Context, pred StacktracePred) {
 }
 
 // Log is intended to be called once at the end of your request handler, via defer
-func (rl *respLogger) Log() {
+func (rl *respLogger) Log(ctx context.Context) {
 	latency := time.Since(rl.startTime)
 	auditID := audit.GetAuditIDTruncated(rl.req.Context())
 	verb := metrics.NormalizedVerb(rl.req)
@@ -304,7 +304,14 @@ func (rl *respLogger) Log() {
 		}
 	}
 
-	klog.V(withLoggingLevel).InfoSDepth(1, "HTTP", keysAndValues...)
+	logger := klog.FromContext(ctx)
+	shouldLogRequest := logger.V(withLoggingLevel).Enabled()
+	if rl.shouldLogRequestPred != nil {
+		shouldLogRequest = rl.shouldLogRequestPred(ctx)
+	}
+	if shouldLogRequest {
+		logger.WithCallDepth(1).Info("HTTP", keysAndValues...)
+	}
 }
 
 // Header implements http.ResponseWriter.

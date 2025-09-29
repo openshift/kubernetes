@@ -17,12 +17,15 @@ limitations under the License.
 package httplog
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 
 	"k8s.io/apiserver/pkg/endpoints/responsewriter"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/ktesting"
 )
 
 func TestDefaultStacktracePred(t *testing.T) {
@@ -64,10 +67,10 @@ func TestWithLogging(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	shouldLogRequest := func() bool { return true }
+	shouldLogRequest := func(_ context.Context) bool { return true }
 	var handler http.Handler
 	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	handler = withLogging(withLogging(handler, DefaultStacktracePred, shouldLogRequest, nil), DefaultStacktracePred, shouldLogRequest, nil)
+	handler = withLogging(withLogging(handler, DefaultStacktracePred, shouldLogRequest), DefaultStacktracePred, shouldLogRequest)
 
 	func() {
 		defer func() {
@@ -78,6 +81,78 @@ func TestWithLogging(t *testing.T) {
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 	}()
+}
+
+func TestWithLogging_PredicateFunctions(t *testing.T) {
+	tests := []struct {
+		name             string
+		loggerVerbosity  int
+		isTerminating    bool
+		expectedLogCount int
+	}{
+		{
+			name:             "should not log request on verbosity 1",
+			loggerVerbosity:  1,
+			expectedLogCount: 0,
+		},
+		{
+			name:             "should log request on verbosity 1 when terminating",
+			loggerVerbosity:  1,
+			isTerminating:    true,
+			expectedLogCount: 1,
+		},
+		{
+			name:             "should not log request on verbosity 2",
+			loggerVerbosity:  2,
+			expectedLogCount: 0,
+		},
+		{
+			name:             "should log request on verbosity 2 when terminating",
+			loggerVerbosity:  2,
+			isTerminating:    true,
+			expectedLogCount: 1,
+		},
+		{
+			name:             "should log request on verbosity 3",
+			loggerVerbosity:  3,
+			expectedLogCount: 1,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var handler http.Handler
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+			handler = WithLogging(handler, DefaultStacktracePred, func() bool {
+				return test.isTerminating
+			})
+
+			var b ktesting.BufferTL
+			logger := ktesting.NewLogger(&b, ktesting.NewConfig(
+				ktesting.BufferLogs(true),
+				ktesting.Verbosity(test.loggerVerbosity),
+			))
+
+			ctx := klog.NewContext(context.Background(), logger)
+			r, err := http.NewRequestWithContext(ctx, "GET", "http://example.com", nil)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, r)
+
+			testingLogger, ok := logger.GetSink().(ktesting.Underlier)
+			if !ok {
+				t.Fatal("Failed to cast logger sink to ktesting.Underlier")
+			}
+
+			data := testingLogger.GetBuffer().Data()
+			if len(data) != test.expectedLogCount {
+				t.Errorf("Log entry count expected=%d, got=%d", test.expectedLogCount, len(data))
+			}
+		})
+	}
 }
 
 func TestLogOf(t *testing.T) {
@@ -111,7 +186,7 @@ func TestLogOf(t *testing.T) {
 					t.Errorf("Expected %v, got %v", test.want, got)
 				}
 			})
-			handler = withLogging(handler, DefaultStacktracePred, func() bool { return test.shouldLogRequest }, nil)
+			handler = withLogging(handler, DefaultStacktracePred, func(_ context.Context) bool { return test.shouldLogRequest })
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 		})
@@ -216,7 +291,7 @@ func TestRespLoggerWithDecoratedResponseWriter(t *testing.T) {
 				}
 			})
 
-			handler = withLogging(handler, DefaultStacktracePred, func() bool { return true }, nil)
+			handler = withLogging(handler, DefaultStacktracePred, func(_ context.Context) bool { return true })
 			handler.ServeHTTP(test.r(), req)
 		})
 	}
