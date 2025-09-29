@@ -402,11 +402,11 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 	},
 
 	StreamingCollectionEncodingToJSON: {
-		{Version: version.MustParse("1.33"), Default: true, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Beta},
 	},
 
 	StreamingCollectionEncodingToProtobuf: {
-		{Version: version.MustParse("1.33"), Default: true, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Beta},
 	},
 
 	StrictCostEnforcementForVAP: {

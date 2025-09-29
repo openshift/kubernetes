@@ -1316,16 +1316,16 @@
     version: "1.30"
 - name: StreamingCollectionEncodingToJSON
   versionedSpecs:
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
-    version: "1.33"
+    version: "1.32"
 - name: StreamingCollectionEncodingToProtobuf
   versionedSpecs:
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
-    version: "1.33"
+    version: "1.32"
 - name: StrictCostEnforcementForVAP
   versionedSpecs:
   - default: false
