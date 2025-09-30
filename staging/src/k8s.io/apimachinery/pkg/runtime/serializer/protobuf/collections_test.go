@@ -25,7 +25,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	"sigs.k8s.io/randfill"
+	fuzz "github.com/google/gofuzz"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testapigroupv1 "k8s.io/apimachinery/pkg/apis/testapigroup/v1"
@@ -265,14 +265,14 @@ func (b *writeCountingBuffer) Reset() {
 }
 
 func TestFuzzCollection(t *testing.T) {
-	f := randfill.New()
+	f := fuzz.New()
 	streamingEncoder := NewSerializerWithOptions(nil, nil, SerializerOptions{StreamingCollectionsEncoding: true})
 	streamingBuffer := &bytes.Buffer{}
 	normalEncoder := NewSerializerWithOptions(nil, nil, SerializerOptions{StreamingCollectionsEncoding: false})
 	normalBuffer := &bytes.Buffer{}
 	for i := 0; i < 1000; i++ {
 		list := &testapigroupv1.CarpList{}
-		f.FillNoCustom(list)
+		f.FuzzNoCustom(list)
 		streamingBuffer.Reset()
 		normalBuffer.Reset()
 		if err := streamingEncoder.Encode(list, streamingBuffer); err != nil {
