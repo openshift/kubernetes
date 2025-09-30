@@ -7,14 +7,12 @@ import (
 
 // filterOutDisabledSpecs returns the specs with those that are disabled removed from the list
 func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
-	var disabledByReason = map[string][]string{
+	disabledByReason := map[string][]string{
 		"Alpha": { // alpha features that are not gated
 			"[Feature:StorageVersionAPI]",
 			"[Feature:ClusterTrustBundle]",
-			"[Feature:DynamicResourceAllocation]",
 			"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
 			// 4.19
-			"[Feature:PodLevelResources]",
 			"[Feature:PodLogsQuerySplitStreams]",
 			// 4.20
 			"[Feature:CBOR]",
@@ -159,6 +157,9 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-45273
 			"[sig-network] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes",
+
+			// https://issues.redhat.com/browse/OCPBUGS-61376
+			"[sig-autoscaling] [Feature:HPA] Horizontal pod autoscaling",
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"RebaseInProgress": {
@@ -170,6 +171,18 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			"[sig-node] ImageCredentialProvider [Feature:KubeletCredentialProviders] should be able to create pod with image credentials fetched from external credential provider",
+
+			// Below this line is new for 1.34 rebase
+
+			// https://issues.redhat.com/browse/OCPBUGS-61515
+			"[sig-scheduling] SchedulerPreemption [Serial] validates various priority Pods preempt expectedly with the async preemption [Feature:SchedulerAsyncPreemption] [FeatureGate:SchedulerAsyncPreemption] [Beta]",
+
+			// https://issues.redhat.com/browse/OCPBUGS-61377
+			"[sig-cli] kubectl kuberc given preferences should be applied",
+			"[sig-cli] kubectl kuberc given preferences should be ignored when flags are explicitly passed",
+
+			// https://issues.redhat.com/browse/OCPBUGS-61378
+			"[sig-network] Conntrack should be able to cleanup conntrack entries when UDP service target port changes for a NodePort service",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
@@ -184,6 +197,9 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should provision a volume and schedule a pod with AllowedTopologies",
 			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies",
 			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should provision a volume and schedule a pod with AllowedTopologies",
+
+			// May become conformance in 4.22+, will need to revisit per https://issues.redhat.com/browse/OCPBUGS-61380
+			"[sig-network] Services should support named targetPorts that resolve to different ports on different endpoints",
 		},
 		// tests too slow to be part of conformance
 		"Slow": {
