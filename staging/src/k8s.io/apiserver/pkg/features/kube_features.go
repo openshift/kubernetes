@@ -218,6 +218,10 @@ const (
 	// document.
 	StorageVersionHash featuregate.Feature = "StorageVersionHash"
 
+	// owner: @serathius
+	// Allow API server to encode collections item by item, instead of all at once.
+	StreamingCollectionEncodingToJSON featuregate.Feature = "StreamingCollectionEncodingToJSON"
+
 	// owner: @aramase, @enj, @nabokihms
 	// kep: https://kep.k8s.io/3331
 	// alpha: v1.29
@@ -327,6 +331,8 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	StorageVersionHash: {Default: true, PreRelease: featuregate.Beta},
 
 	StructuredAuthenticationConfiguration: {Default: false, PreRelease: featuregate.Alpha},
+
+	StreamingCollectionEncodingToJSON: {Default: true, PreRelease: featuregate.Beta},
 
 	StructuredAuthorizationConfiguration: {Default: false, PreRelease: featuregate.Alpha},
 
