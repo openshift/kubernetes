@@ -320,7 +320,7 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 		if err != nil {
 			return nil, err
 		}
-		metrics.Register(cm.draManager.NewMetricsCollector())
+		metrics.RegisterCollectors(cm.draManager.NewMetricsCollector())
 	}
 	cm.kubeClient = kubeClient
 
