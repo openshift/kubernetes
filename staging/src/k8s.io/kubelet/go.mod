@@ -15,7 +15,7 @@ require (
 	google.golang.org/protobuf v1.36.5
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
-	k8s.io/apiserver v0.34.1
+	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v0.34.1
 	k8s.io/component-base v0.34.1
 	k8s.io/cri-api v0.0.0
