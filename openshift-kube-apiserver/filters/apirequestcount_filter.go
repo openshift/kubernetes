@@ -24,7 +24,9 @@ func WithAPIRequestCountLogging(handler http.Handler, requestLogger apirequestco
 			Version:  info.APIVersion,
 			Resource: info.Resource,
 		}
-		if minor, ok := apirequestcount.DeprecatedAPIRemovedRelease[gvr]; !ok || minor <= currentMinor {
+		// If the minor value is zero (i.e. 0), it means no minor version was found.
+		// Therefore the API is not deprecated.
+		if minor := apirequestcount.DeprecatedAPIRemovedRelease[gvr]; minor == 0 || minor <= currentMinor {
 			return
 		}
 		timestamp, ok := request.ReceivedTimestampFrom(req.Context())
