@@ -5,11 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 
-	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
-
-	"k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/spf13/cobra"
@@ -108,30 +104,6 @@ func main() {
 			panic(err)
 		}
 	})
-
-	// Annotations get appended to test names, these are additions to upstream
-	// tests for controlling skips, suite membership, etc.
-	//
-	// TODO:
-	//		- Remove this annotation code, and migrate to Labels/Tags and
-	//		  the environmental skip code from the enhancement once its implemented.
-	//		- Make sure to account for test renames that occur because of removal of these
-	//		  annotations
-	var omitAnnotations bool
-	omitAnnotationsVal := os.Getenv("OMIT_ANNOTATIONS")
-	if omitAnnotationsVal != "" {
-		omitAnnotations, err = strconv.ParseBool(omitAnnotationsVal)
-		if err != nil {
-			panic("Failed to parse OMIT_ANNOTATIONS: " + err.Error())
-		}
-	}
-	if !omitAnnotations {
-		specs.Walk(func(spec *et.ExtensionTestSpec) {
-			if annotations, ok := generated.Annotations[spec.Name]; ok {
-				spec.Name += annotations
-			}
-		})
-	}
 
 	specs = filterOutDisabledSpecs(specs)
 	addLabelsToSpecs(specs)
