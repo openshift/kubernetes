@@ -11,7 +11,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		"Alpha": { // alpha features that are not gated
 			"[Feature:StorageVersionAPI]",
 			"[Feature:ClusterTrustBundle]",
-			"[Feature:DynamicResourceAllocation]",
 			"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
 			// 4.19
 			"[Feature:PodLevelResources]",
@@ -169,6 +168,12 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			"[sig-node] ImageCredentialProvider [Feature:KubeletCredentialProviders] should be able to create pod with image credentials fetched from external credential provider",
+		},
+		// tests for beta APIs that are not enabled
+		"DisabledResourceBetaAPI": {
+			// Disabling ALL DRA tests with beta api i.e. off-by-default,
+			// which means ALL tests under tag/decorator [Beta] and [Feature:OffByDefault] labels automatically.
+			"[Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation] [Beta] [Feature:OffByDefault]",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
