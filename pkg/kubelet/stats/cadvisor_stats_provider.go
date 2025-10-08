@@ -97,18 +97,7 @@ func (p *cadvisorStatsProvider) ListPodStats(ctx context.Context) ([]statsapi.Po
 	filteredInfos, allInfos := filterTerminatedContainerInfoAndAssembleByPodCgroupKey(infos)
 	// Map each container to a pod and update the PodStats with container data.
 	podToStats := map[statsapi.PodReference]*statsapi.PodStats{}
-	for key, cinfo := range filteredInfos {
-		// On systemd using devicemapper each mount into the container has an
-		// associated cgroup. We ignore them to ensure we do not get duplicate
-		// entries in our summary. For details on .mount units:
-		// http://man7.org/linux/man-pages/man5/systemd.mount.5.html
-		if strings.HasSuffix(key, ".mount") {
-			continue
-		}
-		// Build the Pod key if this container is managed by a Pod
-		if !isPodManagedContainer(&cinfo) {
-			continue
-		}
+	for _, cinfo := range filteredInfos {
 		ref := buildPodRef(cinfo.Spec.Labels)
 
 		// Lookup the PodStats for the pod using the PodRef. If none exists,
@@ -190,18 +179,7 @@ func (p *cadvisorStatsProvider) ListPodCPUAndMemoryStats(_ context.Context) ([]s
 	filteredInfos, allInfos := filterTerminatedContainerInfoAndAssembleByPodCgroupKey(infos)
 	// Map each container to a pod and update the PodStats with container data.
 	podToStats := map[statsapi.PodReference]*statsapi.PodStats{}
-	for key, cinfo := range filteredInfos {
-		// On systemd using devicemapper each mount into the container has an
-		// associated cgroup. We ignore them to ensure we do not get duplicate
-		// entries in our summary. For details on .mount units:
-		// http://man7.org/linux/man-pages/man5/systemd.mount.5.html
-		if strings.HasSuffix(key, ".mount") {
-			continue
-		}
-		// Build the Pod key if this container is managed by a Pod
-		if !isPodManagedContainer(&cinfo) {
-			continue
-		}
+	for _, cinfo := range filteredInfos {
 		ref := buildPodRef(cinfo.Spec.Labels)
 
 		// Lookup the PodStats for the pod using the PodRef. If none exists,
@@ -394,19 +372,27 @@ func filterTerminatedContainerInfoAndAssembleByPodCgroupKey(containerInfo map[st
 	cinfoMap := make(map[containerID][]containerInfoWithCgroup)
 	cinfosByPodCgroupKey := make(map[string]cadvisorapiv2.ContainerInfo)
 	for key, cinfo := range containerInfo {
+		if !isPodManagedContainer(&cinfo) {
+			continue
+		}
+
 		var podCgroupKey string
 		if cm.IsSystemdStyleName(key) {
 			// Convert to internal cgroup name and take the last component only.
 			internalCgroupName := cm.ParseSystemdToCgroupName(key)
 			podCgroupKey = internalCgroupName[len(internalCgroupName)-1]
+		} else if strings.HasSuffix(key, ".mount") {
+			// On systemd using devicemapper each mount into the container has an
+			// associated cgroup. We ignore them to ensure we do not get duplicate
+			// entries in our summary. For details on .mount units:
+			// http://man7.org/linux/man-pages/man5/systemd.mount.5.html
+			continue
 		} else {
 			// Take last component only.
 			podCgroupKey = filepath.Base(key)
 		}
+
 		cinfosByPodCgroupKey[podCgroupKey] = cinfo
-		if !isPodManagedContainer(&cinfo) {
-			continue
-		}
 		cinfoID := containerID{
 			podRef:        buildPodRef(cinfo.Spec.Labels),
 			containerName: kubetypes.GetContainerName(cinfo.Spec.Labels),
@@ -419,9 +405,9 @@ func filterTerminatedContainerInfoAndAssembleByPodCgroupKey(containerInfo map[st
 	result := make(map[string]cadvisorapiv2.ContainerInfo)
 	for _, refs := range cinfoMap {
 		if len(refs) == 1 {
-			// ContainerInfo with no CPU/memory/network usage for uncleaned cgroups of
+			// ContainerInfo with no CPU/memory usage for uncleaned cgroups of
 			// already terminated containers, which should not be shown in the results.
-			if !isContainerTerminated(&refs[0].cinfo) {
+			if hasMemoryAndCPUInstUsage(&refs[0].cinfo) {
 				result[refs[0].cgroup] = refs[0].cinfo
 			}
 			continue
@@ -477,39 +463,10 @@ func hasMemoryAndCPUInstUsage(info *cadvisorapiv2.ContainerInfo) bool {
 	if !found {
 		return false
 	}
-	if cstat.CpuInst == nil {
+	if cstat.CpuInst == nil || cstat.Memory == nil {
 		return false
 	}
 	return cstat.CpuInst.Usage.Total != 0 && cstat.Memory.RSS != 0
-}
-
-// isContainerTerminated returns true if the specified container meet one of the following conditions
-// 1. info.spec both cpu memory and network are false conditions
-// 2. info.Stats both network and cpu or memory are nil
-// 3. both zero CPU instantaneous usage zero memory RSS usage and zero network usage,
-// and false otherwise.
-func isContainerTerminated(info *cadvisorapiv2.ContainerInfo) bool {
-	if !info.Spec.HasCpu && !info.Spec.HasMemory && !info.Spec.HasNetwork {
-		return true
-	}
-	cstat, found := latestContainerStats(info)
-	if !found {
-		return true
-	}
-	if cstat.Network != nil {
-		iStats := cadvisorInfoToNetworkStats(info)
-		if iStats != nil {
-			for _, iStat := range iStats.Interfaces {
-				if *iStat.RxErrors != 0 || *iStat.TxErrors != 0 || *iStat.RxBytes != 0 || *iStat.TxBytes != 0 {
-					return false
-				}
-			}
-		}
-	}
-	if cstat.CpuInst == nil || cstat.Memory == nil {
-		return true
-	}
-	return cstat.CpuInst.Usage.Total == 0 && cstat.Memory.RSS == 0
 }
 
 func getCadvisorContainerInfo(ca cadvisor.Interface) (map[string]cadvisorapiv2.ContainerInfo, error) {
