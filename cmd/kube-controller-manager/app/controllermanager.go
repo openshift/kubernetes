@@ -143,7 +143,8 @@ controller, and serviceaccounts controller.`,
 				os.Exit(1)
 			}
 
-			c, err := s.Config(KnownControllers(), ControllersDisabledByDefault(), ControllerAliases())
+			ctx := context.Background()
+			c, err := s.Config(ctx, KnownControllers(), ControllersDisabledByDefault(), ControllerAliases())
 			if err != nil {
 				return err
 			}
@@ -156,7 +157,8 @@ controller, and serviceaccounts controller.`,
 			// add feature enablement metrics
 			fg := s.ComponentGlobalsRegistry.FeatureGateFor(basecompatibility.DefaultKubeComponent)
 			fg.(featuregate.MutableFeatureGate).AddMetrics()
-
+			// add component version metrics
+			s.ComponentGlobalsRegistry.AddMetrics()
 			stopCh := server.SetupSignalHandler()
 			return Run(context.Background(), c.Complete(), stopCh)
 		},
@@ -604,6 +606,7 @@ func NewControllerDescriptors() map[string]*ControllerDescriptor {
 	register(newCertificateSigningRequestSigningControllerDescriptor())
 	register(newCertificateSigningRequestApprovingControllerDescriptor())
 	register(newCertificateSigningRequestCleanerControllerDescriptor())
+	register(newPodCertificateRequestCleanerControllerDescriptor())
 	register(newTTLControllerDescriptor())
 	register(newBootstrapSignerControllerDescriptor())
 	register(newTokenCleanerControllerDescriptor())
@@ -613,7 +616,6 @@ func NewControllerDescriptors() map[string]*ControllerDescriptor {
 	register(newServiceLBControllerDescriptor())          // cloud provider controller
 	register(newNodeRouteControllerDescriptor())          // cloud provider controller
 	register(newCloudNodeLifecycleControllerDescriptor()) // cloud provider controller
-	// TODO: persistent volume controllers into the IncludeCloudLoops only set as a cloud provider controller.
 
 	register(newPersistentVolumeBinderControllerDescriptor())
 	register(newPersistentVolumeAttachDetachControllerDescriptor())
