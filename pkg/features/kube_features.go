@@ -1230,9 +1230,9 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	StorageVersionMigrator: {Default: false, PreRelease: featuregate.Alpha},
 
-	StreamingCollectionEncodingToJSON: {Default: true, PreRelease: featuregate.Beta},
+	StreamingCollectionEncodingToJSON: {Default: false, PreRelease: featuregate.Beta},
 
-	StreamingCollectionEncodingToProtobuf: {Default: true, PreRelease: featuregate.Beta},
+	StreamingCollectionEncodingToProtobuf: {Default: false, PreRelease: featuregate.Beta},
 
 	TopologyAwareHints: {Default: true, PreRelease: featuregate.Beta},
 
