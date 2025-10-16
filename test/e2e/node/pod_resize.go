@@ -235,6 +235,7 @@ func doPodResizeSchedulerTests(f *framework.Framework) {
 			framework.Logf("Found %d pods on node '%s'", len(podList.Items), n.Name)
 			for _, pod := range podList.Items {
 				podRequestMilliCPU := resourceapi.GetResourceRequest(&pod, v1.ResourceCPU)
+				framework.Logf("Pod '%s' has CPU request of '%dm'", pod.Name, podRequestMilliCPU)
 				podAllocatedMilliCPU += podRequestMilliCPU
 			}
 			nodeAvailableMilliCPU := nodeAllocatableMilliCPU - podAllocatedMilliCPU
@@ -298,6 +299,10 @@ func doPodResizeSchedulerTests(f *framework.Framework) {
 
 		ginkgo.By(fmt.Sprintf("TEST1: Create pod '%s' that won't fit node '%s' with pod '%s' on it", testPod2.Name, node.Name, testPod1.Name))
 		testPod2 = podClient.Create(ctx, testPod2)
+		time.Sleep(10 * time.Second)
+		nodeAllocatableMilliCPU, nodeAvailableMilliCPU = getNodeAllocatableAndAvailableMilliCPUValues(&node)
+		framework.Logf("Node '%s': NodeAllocatable MilliCPUs = %dm. MilliCPUs currently available to allocate = %dm.",
+			node.Name, nodeAllocatableMilliCPU, nodeAvailableMilliCPU)
 		err = e2epod.WaitForPodNameUnschedulableInNamespace(ctx, f.ClientSet, testPod2.Name, testPod2.Namespace)
 		framework.ExpectNoError(err)
 		gomega.Expect(testPod2.Status.Phase).To(gomega.Equal(v1.PodPending))
