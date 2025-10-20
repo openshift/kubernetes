@@ -26,7 +26,7 @@ func Register(plugins *admission.Plugins) {
 				configv1.Resource("deschedulers"): true,
 			},
 			map[schema.GroupVersionKind]customresourcevalidation.ObjectValidator{
-				configv1.GroupVersion.WithKind("Descheduler"): deschedulerv1.KubeDescheduler{},
+				configv1.GroupVersion.WithKind("Descheduler"): deschedulerV1{},
 			})
 	})
 }
@@ -52,7 +52,7 @@ func toDeschedulerV1(uncastObj runtime.Object) (*deschedulerv1.KubeDescheduler, 
 type deschedulerV1 struct{}
 
 func validateDeschedulerSpec(spec deschedulerv1.KubeDeschedulerSpec) field.ErrorList {
-	allErrs := field.ErrorList
+	allErrs := field.ErrorList{}
 
 	if name := spec.Policy.Name; len(name) > 0 {
 		for _, msg := range validation.NameIsDNSSubdomain(spec.Policy.Name, false) {
@@ -63,7 +63,7 @@ func validateDeschedulerSpec(spec deschedulerv1.KubeDeschedulerSpec) field.Error
 	return allErrs
 }
 
-func (schedulerV1) ValidateCreate(_ context.Context, uncastObj runtime.Object) field.ErrorList {
+func (deschedulerV1) ValidateCreate(_ context.Context, uncastObj runtime.Object) field.ErrorList {
 	obj, allErrs := toDeschedulerV1(uncastObj)
 	if len(allErrs) > 0 {
 		return allErrs
@@ -86,12 +86,12 @@ func (deschedulerV1) ValidateUpdate(_ context.Context, uncastObj runtime.Object,
 	}
 
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validation.validateDeschedulerSpec(obj.Spec)...)
+	allErrs = append(allErrs, validateDeschedulerSpec(obj.Spec)...)
 
 	return allErrs
 }
 
-func (schedulerV1) ValidateStatusUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (deschedulerV1) ValidateStatusUpdate(_ context.Context, uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	obj, errs := toDeschedulerV1(uncastObj)
 	if len(errs) > 0 {
 		return errs
@@ -102,6 +102,6 @@ func (schedulerV1) ValidateStatusUpdate(_ context.Context, uncastObj runtime.Obj
 	}
 
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateDeschedulerSpec(obj.Spec)...)
+	errs = append(errs, validateDeschedulerSpec(obj.Spec)...)
 	return errs
 }
