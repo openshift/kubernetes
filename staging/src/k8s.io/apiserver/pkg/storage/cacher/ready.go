@@ -18,12 +18,19 @@ package cacher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/utils/clock"
 )
+
+// ErrStorageInitializing is returned when the cacher is still initializing.
+// This allows callers to detect this specific condition and handle it
+// (e.g., add an audit annotation or return HTTP 429).
+var ErrStorageInitializing = errors.New("storage is (re)initializing")
 
 type status int
 
@@ -80,7 +87,6 @@ func (r *ready) wait(ctx context.Context) error {
 // of times we entered ready state if Ready and error otherwise.
 func (r *ready) waitAndReadGeneration(ctx context.Context) (int, error) {
 	for {
-		// r.done() only blocks if state is Pending
 		select {
 		case <-ctx.Done():
 			return 0, ctx.Err()
@@ -89,18 +95,22 @@ func (r *ready) waitAndReadGeneration(ctx context.Context) (int, error) {
 
 		r.lock.RLock()
 		if r.state == Pending {
-			// since we allow to switch between the states Pending and Ready
-			// if there is a quick transition from Pending -> Ready -> Pending
-			// a process that was waiting can get unblocked and see a Pending
-			// state again. If the state is Pending we have to wait again to
-			// avoid an inconsistent state on the system, with some processes not
-			// waiting despite the state moved back to Pending.
 			r.lock.RUnlock()
 			continue
 		}
+
 		generation, err := r.readGenerationLocked()
 		r.lock.RUnlock()
-		return generation, err
+
+		if err != nil {
+			if errors.Is(err, ErrStorageInitializing) {
+				audit.AddAuditAnnotationForRejectWithReason(ctx, "storage_initializing")
+				audit.AddAuditAnnotationForRejectMessage(ctx, err.Error())
+			}
+			return 0, err
+		}
+
+		return generation, nil
 	}
 }
 
@@ -122,10 +132,9 @@ func (r *ready) readGenerationLocked() (int, error) {
 	switch r.state {
 	case Pending:
 		if r.lastErr == nil {
-			return 0, fmt.Errorf("storage is (re)initializing")
-		} else {
-			return 0, fmt.Errorf("storage is (re)initializing: %w", r.lastErr)
+			return 0, ErrStorageInitializing
 		}
+		return 0, fmt.Errorf("%w: %v", ErrStorageInitializing, r.lastErr)
 	case Ready:
 		return r.generation, nil
 	case Stopped:
