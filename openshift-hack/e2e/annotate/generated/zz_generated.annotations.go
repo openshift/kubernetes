@@ -221,9 +221,13 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should mutate a Deployment": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicy API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicy v1alpha1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicy v1beta1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding v1alpha1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding v1beta1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-api-machinery] Namespaces [Serial] should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -1849,13 +1853,15 @@ var Annotations = map[string]string{
 
 	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod with container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod with yet some other container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, 1 container with resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, no container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod with container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod with other container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod, 1 container with resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
