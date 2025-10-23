@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/utils/clock"
 )
 
@@ -87,6 +86,7 @@ func (r *ready) wait(ctx context.Context) error {
 // of times we entered ready state if Ready and error otherwise.
 func (r *ready) waitAndReadGeneration(ctx context.Context) (int, error) {
 	for {
+		// r.done() only blocks if state is Pending
 		select {
 		case <-ctx.Done():
 			return 0, ctx.Err()
@@ -95,22 +95,18 @@ func (r *ready) waitAndReadGeneration(ctx context.Context) (int, error) {
 
 		r.lock.RLock()
 		if r.state == Pending {
+			// since we allow to switch between the states Pending and Ready
+			// if there is a quick transition from Pending -> Ready -> Pending
+			// a process that was waiting can get unblocked and see a Pending
+			// state again. If the state is Pending we have to wait again to
+			// avoid an inconsistent state on the system, with some processes not
+			// waiting despite the state moved back to Pending.
 			r.lock.RUnlock()
 			continue
 		}
-
 		generation, err := r.readGenerationLocked()
 		r.lock.RUnlock()
-
-		if err != nil {
-			if errors.Is(err, ErrStorageInitializing) {
-				audit.AddAuditAnnotationForRejectWithReason(ctx, "storage_initializing")
-				audit.AddAuditAnnotationForRejectMessage(ctx, err.Error())
-			}
-			return 0, err
-		}
-
-		return generation, nil
+		return generation, err
 	}
 }
 

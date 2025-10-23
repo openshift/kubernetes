@@ -281,21 +281,6 @@ func AddAuditAnnotation(ctx context.Context, key, value string) {
 	addAuditAnnotationLocked(ac, key, value)
 }
 
-// AddAuditAnnotationForRejectWithReason records an audit annotation
-// indicating that a watch request was rejected for the given reason.
-func AddAuditAnnotationForRejectWithReason(ctx context.Context, reason string) {
-	AddAuditAnnotation(ctx, "audit.k8s.io/watch-reject-reason", reason)
-}
-
-// AddAuditAnnotationForRejectMessage adds a human-readable message annotation
-// truncated to 1024 characters to avoid excessive log size.
-func AddAuditAnnotationForRejectMessage(ctx context.Context, msg string) {
-	if len(msg) > 1024 {
-		msg = msg[:1024] + "…"
-	}
-	AddAuditAnnotation(ctx, "audit.k8s.io/watch-reject-message", msg)
-}
-
 // AddAuditAnnotations is a bulk version of AddAuditAnnotation. Refer to AddAuditAnnotation for
 // restrictions on when this can be called.
 // keysAndValues are the key-value pairs to add, and must have an even number of items.

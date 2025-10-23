@@ -182,18 +182,3 @@ func withAuditContextAndLevel(ctx context.Context, t *testing.T, l auditinternal
 	}
 	return ctx
 }
-func TestAddAuditAnnotationForRejectWithReason(t *testing.T) {
-	ctx := WithAuditContext(context.Background())
-	AddAuditAnnotationForRejectWithReason(ctx, "storage_initializing")
-	AddAuditAnnotationForRejectMessage(ctx, "storage is (re)initializing")
-
-	ac := AuditContextFrom(ctx)
-	annotations := ac.GetEventAnnotations()
-
-	if got := annotations["audit.k8s.io/watch-reject-reason"]; got != "storage_initializing" {
-		t.Errorf("expected reason 'storage_initializing', got %q", got)
-	}
-	if got := annotations["audit.k8s.io/watch-reject-message"]; got != "storage is (re)initializing" {
-		t.Errorf("expected message 'storage is (re)initializing', got %q", got)
-	}
-}
