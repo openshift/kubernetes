@@ -180,7 +180,7 @@ func roundtripType[U runtime.Unstructured](t *testing.T) {
 	fuzzer := fuzzer.FuzzerFor(fuzzer.MergeFuzzerFuncs(metafuzzer.Funcs, unstructuredFuzzerFuncs), rand.NewSource(getSeed(t)), serializer.NewCodecFactory(scheme))
 
 	jS := jsonserializer.NewSerializerWithOptions(jsonserializer.DefaultMetaFactory, scheme, scheme, jsonserializer.SerializerOptions{})
-	cS := cborserializer.NewSerializer(scheme, scheme)
+	cS := cborserializer.NewSerializer(scheme, scheme, cborserializer.Transcode(false))
 
 	for i := 0; i < 50; i++ {
 		original := reflect.New(reflect.TypeFor[U]().Elem()).Interface().(runtime.Unstructured)
