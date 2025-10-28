@@ -170,10 +170,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// https://issues.redhat.com/browse/OCPBUGS-61515
 			"[sig-scheduling] SchedulerPreemption [Serial] validates various priority Pods preempt expectedly with the async preemption [Feature:SchedulerAsyncPreemption] [FeatureGate:SchedulerAsyncPreemption] [Beta]",
 
-			// https://issues.redhat.com/browse/OCPBUGS-61377
-			"[sig-cli] kubectl kuberc given preferences should be applied",
-			"[sig-cli] kubectl kuberc given preferences should be ignored when flags are explicitly passed",
-
 			// https://issues.redhat.com/browse/OCPBUGS-61378
 			"[sig-network] Conntrack should be able to cleanup conntrack entries when UDP service target port changes for a NodePort service",
 
