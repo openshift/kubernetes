@@ -40,7 +40,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	policyv1 "k8s.io/api/policy/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -4087,34 +4086,6 @@ func TestDescribeCSINode(t *testing.T) {
 	}
 }
 
-func TestDescribePodDisruptionBudgetV1beta1(t *testing.T) {
-	minAvailable := intstr.FromInt32(22)
-	f := fake.NewSimpleClientset(&policyv1beta1.PodDisruptionBudget{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:         "ns1",
-			Name:              "pdb1",
-			CreationTimestamp: metav1.Time{Time: time.Now().Add(1.9e9)},
-		},
-		Spec: policyv1beta1.PodDisruptionBudgetSpec{
-			MinAvailable: &minAvailable,
-		},
-		Status: policyv1beta1.PodDisruptionBudgetStatus{
-			DisruptionsAllowed: 5,
-		},
-	})
-	s := PodDisruptionBudgetDescriber{f}
-	out, err := s.Describe("ns1", "pdb1", DescriberSettings{ShowEvents: true})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out, "pdb1") ||
-		!strings.Contains(out, "ns1") ||
-		!strings.Contains(out, "22") ||
-		!strings.Contains(out, "5") {
-		t.Errorf("unexpected out: %s", out)
-	}
-}
-
 func TestDescribePodDisruptionBudgetV1(t *testing.T) {
 	minAvailable := intstr.FromInt32(22)
 	f := fake.NewSimpleClientset(&policyv1.PodDisruptionBudget{
@@ -6238,9 +6209,7 @@ func TestDescribeServiceAccount(t *testing.T) {
 Namespace:           foo
 Labels:              <none>
 Annotations:         <none>
-Image pull secrets:  test-local-ref (not found)
-Mountable secrets:   test-objectref (not found)
-Tokens:              <none>
+Image pull secrets:  test-local-ref
 Events:              <none>` + "\n"
 	if out != expectedOut {
 		t.Errorf("expected : %q\n but got output:\n %q", expectedOut, out)

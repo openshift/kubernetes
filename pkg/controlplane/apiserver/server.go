@@ -293,7 +293,7 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 				IdentityLeaseGCPeriod,
 				metav1.NamespaceSystem,
 				IdentityLeaseComponentLabelKey+"="+name,
-			).Run(hookContext.Done())
+			).RunWithContext(hookContext)
 			return nil
 		})
 	}
@@ -303,7 +303,7 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 	}
 
 	s.GenericAPIServer.AddPostStartHookOrDie("start-legacy-token-tracking-controller", func(hookContext genericapiserver.PostStartHookContext) error {
-		go legacytokentracking.NewController(client).Run(hookContext.Done())
+		go legacytokentracking.NewController(client).RunWithContext(hookContext)
 		return nil
 	})
 

@@ -1081,6 +1081,7 @@ func pvcWithDataSource(dataSource *core.TypedLocalObjectReference) *core.Persist
 		},
 	}
 }
+
 func pvcWithDataSourceRef(ref *core.TypedObjectReference) *core.PersistentVolumeClaim {
 	return &core.PersistentVolumeClaim{
 		Spec: core.PersistentVolumeClaimSpec{
@@ -3104,8 +3105,10 @@ func TestValidatePersistentVolumeClaimUpdate(t *testing.T) {
 
 	for name, scenario := range scenarios {
 		t.Run(name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RecoverVolumeExpansionFailure, scenario.enableRecoverFromExpansion)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.VolumeAttributesClass, scenario.enableVolumeAttributesClass)
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.RecoverVolumeExpansionFailure: scenario.enableRecoverFromExpansion,
+				features.VolumeAttributesClass:         scenario.enableVolumeAttributesClass,
+			})
 
 			scenario.oldClaim.ResourceVersion = "1"
 			scenario.newClaim.ResourceVersion = "1"
@@ -7100,13 +7103,7 @@ func TestValidateEnvVarValueFromFileKeyRef(t *testing.T) {
 			},
 			opts: PodValidationOptions{},
 			expectedErrs: field.ErrorList{
-				{
-					Type:     field.ErrorTypeInvalid,
-					Field:    field.NewPath("valueFrom.fileKeyRef.volumeName").String(),
-					BadValue: "INVALID_NAME!",
-					Detail:   "a lowercase RFC 1123 label must consist of",
-					Origin:   "format=dns-label",
-				},
+				field.Invalid(field.NewPath("valueFrom.fileKeyRef.volumeName"), "INVALID_NAME!", "").WithOrigin("format=k8s-short-name"),
 			},
 		},
 		{
@@ -7158,13 +7155,7 @@ func TestValidateEnvVarValueFromFileKeyRef(t *testing.T) {
 			opts: PodValidationOptions{},
 			expectedErrs: field.ErrorList{
 				field.Invalid(field.NewPath("valueFrom.fileKeyRef.key"), "bad=key", "environment variable"),
-				{
-					Type:     field.ErrorTypeInvalid,
-					Field:    field.NewPath("valueFrom.fileKeyRef.volumeName").String(),
-					BadValue: "!badname",
-					Detail:   "a lowercase RFC 1123 label must consist of",
-					Origin:   "format=dns-label",
-				},
+				field.Invalid(field.NewPath("valueFrom.fileKeyRef.volumeName"), "!badname", "").WithOrigin("format=k8s-short-name"),
 				field.Invalid(field.NewPath("valueFrom.fileKeyRef.path"), "../badpath", "must not contain '..'"),
 			},
 		},
@@ -17578,9 +17569,11 @@ func TestValidateServiceCreate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PreferSameTrafficDistribution, tc.newTrafficDist)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RelaxedServiceNameValidation, tc.relaxedServiceNames)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.PreferSameTrafficDistribution: tc.newTrafficDist,
+				features.RelaxedServiceNameValidation:  tc.relaxedServiceNames,
+				features.StrictIPCIDRValidation:        !tc.legacyIPs,
+			})
 			svc := makeValidService()
 			tc.tweakSvc(&svc)
 			errs := ValidateServiceCreate(&svc)
@@ -17964,7 +17957,7 @@ func TestValidateReplicationControllerUpdate(t *testing.T) {
 				rc.Spec.Selector = invalid
 			}),
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("labelKey"),
+				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid pod": {
@@ -18113,7 +18106,7 @@ func TestValidateReplicationController(t *testing.T) {
 				}
 			}),
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("metadata.labels"), nil, "").WithOrigin("labelKey"),
+				field.Invalid(field.NewPath("metadata.labels"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid label 2": {
@@ -18124,7 +18117,7 @@ func TestValidateReplicationController(t *testing.T) {
 			}),
 			expectedErrs: field.ErrorList{
 				field.Invalid(field.NewPath("spec.template.metadata.labels"), nil, "does not match template"),
-				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("labelKey"),
+				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid annotation": {
@@ -18134,7 +18127,7 @@ func TestValidateReplicationController(t *testing.T) {
 				}
 			}),
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("metadata.annotations"), nil, "name part must consist of"),
+				field.Invalid(field.NewPath("metadata.annotations"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid restart policy 1": {
@@ -20302,8 +20295,10 @@ func TestValidateServiceUpdate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RelaxedServiceNameValidation, tc.relaxedServiceNames)
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.StrictIPCIDRValidation:       true,
+				features.RelaxedServiceNameValidation: tc.relaxedServiceNames,
+			})
 
 			oldSvc := makeValidService()
 			newSvc := makeValidService()
@@ -24207,8 +24202,10 @@ func TestCrossNamespaceSource(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.AnyVolumeDataSource, true)
-		featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.CrossNamespaceVolumeDataSource, true)
+		featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+			features.AnyVolumeDataSource:            true,
+			features.CrossNamespaceVolumeDataSource: true,
+		})
 		opts := PersistentVolumeClaimSpecValidationOptions{}
 		if tc.expectedFail {
 			if errs := ValidatePersistentVolumeClaimSpec(tc.claimSpec, field.NewPath("spec"), opts); len(errs) == 0 {
@@ -24469,7 +24466,7 @@ func TestValidateTopologySpreadConstraints(t *testing.T) {
 			MatchLabelKeys:    []string{"/simple"},
 		}},
 		wantFieldErrors: field.ErrorList{
-			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("labelKey"),
+			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("format=k8s-label-key"),
 		},
 		opts: PodValidationOptions{
 			AllowMatchLabelKeysInPodTopologySpread:              true,
@@ -24485,7 +24482,7 @@ func TestValidateTopologySpreadConstraints(t *testing.T) {
 			MatchLabelKeys:    []string{"/simple"},
 		}},
 		wantFieldErrors: field.ErrorList{
-			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("labelKey"),
+			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("format=k8s-label-key"),
 		},
 		opts: PodValidationOptions{
 			AllowMatchLabelKeysInPodTopologySpread:              true,
@@ -24584,7 +24581,7 @@ func TestValidateTopologySpreadConstraints(t *testing.T) {
 			LabelSelector:     &metav1.LabelSelector{MatchLabels: map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "foo"}},
 		}},
 		wantFieldErrors: field.ErrorList{
-			field.Invalid(labelSelectorField.Child("matchLabels"), nil, "").WithOrigin("labelKey"),
+			field.Invalid(labelSelectorField.Child("matchLabels"), nil, "").WithOrigin("format=k8s-label-key"),
 		},
 		opts: PodValidationOptions{
 			AllowMatchLabelKeysInPodTopologySpread:              true,
@@ -26093,7 +26090,7 @@ func TestValidatePodHostName(t *testing.T) {
 				HostnameOverride: ptr.To(""),
 			},
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.hostnameOverride"), "", "RFC 1123"),
+				field.Invalid(field.NewPath("spec.hostnameOverride"), nil, "").WithOrigin("format=k8s-long-name"),
 			},
 		},
 		{
@@ -26132,7 +26129,7 @@ func TestValidatePodHostName(t *testing.T) {
 				HostnameOverride: ptr.To("Not-RFC1123"),
 			},
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.hostnameOverride"), "", "RFC 1123"),
+				field.Invalid(field.NewPath("spec.hostnameOverride"), nil, "").WithOrigin("format=k8s-long-name"),
 			},
 		},
 		{
@@ -27081,8 +27078,10 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 				// when testing !ipModeEnabled.)
 				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
 			}
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.LoadBalancerIPMode, tc.ipModeEnabled)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.AllowServiceLBStatusOnNonLB, tc.nonLBAllowed)
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.LoadBalancerIPMode:          tc.ipModeEnabled,
+				features.AllowServiceLBStatusOnNonLB: tc.nonLBAllowed,
+			})
 			oldStatus := core.LoadBalancerStatus{}
 			if tc.tweakOldLBStatus != nil {
 				tc.tweakOldLBStatus(&oldStatus)

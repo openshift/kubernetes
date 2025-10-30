@@ -76,7 +76,8 @@ var (
 			"KubeletCrashLoopBackOffMax": true,
 		},
 		Logging: logsapi.LoggingConfiguration{
-			Format: "text",
+			Format:         "text",
+			FlushFrequency: logsapi.TimeOrMetaDuration{Duration: metav1.Duration{Duration: logsapi.LogFlushFreqDefault}},
 		},
 		ContainerRuntimeEndpoint:    "unix:///run/containerd/containerd.sock",
 		ContainerLogMaxWorkers:      1,
@@ -360,7 +361,12 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 	}, {
 		name: "specify ShutdownGracePeriod without enabling GracefulNodeShutdown",
 		configure: func(conf *kubeletconfig.KubeletConfiguration) *kubeletconfig.KubeletConfiguration {
-			conf.FeatureGates = map[string]bool{"GracefulNodeShutdown": false}
+			conf.FeatureGates = map[string]bool{
+				"GracefulNodeShutdown": false,
+				// Disable dependents.
+				"GracefulNodeShutdownBasedOnPodPriority": false,
+				"WindowsGracefulNodeShutdown":            false,
+			}
 			conf.ShutdownGracePeriod = metav1.Duration{Duration: 1 * time.Second}
 			return conf
 		},
@@ -368,7 +374,12 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 	}, {
 		name: "specify ShutdownGracePeriodCriticalPods without enabling GracefulNodeShutdown",
 		configure: func(conf *kubeletconfig.KubeletConfiguration) *kubeletconfig.KubeletConfiguration {
-			conf.FeatureGates = map[string]bool{"GracefulNodeShutdown": false}
+			conf.FeatureGates = map[string]bool{
+				"GracefulNodeShutdown": false,
+				// Disable dependents.
+				"GracefulNodeShutdownBasedOnPodPriority": false,
+				"WindowsGracefulNodeShutdown":            false,
+			}
 			conf.ShutdownGracePeriodCriticalPods = metav1.Duration{Duration: 1 * time.Second}
 			return conf
 		},
@@ -606,7 +617,7 @@ func TestValidateKubeletConfiguration(t *testing.T) {
 				conf.EnableSystemLogQuery = true
 				return conf
 			},
-			errMsg: "invalid configuration: NodeLogQuery feature gate is required for enableSystemLogHandler",
+			errMsg: "invalid configuration: NodeLogQuery feature gate is required for enableSystemLogQuery",
 		}, {
 			name: "enableSystemLogQuery is enabled without enableSystemLogHandler",
 			configure: func(conf *kubeletconfig.KubeletConfiguration) *kubeletconfig.KubeletConfiguration {

@@ -83,7 +83,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] AggregatedDiscovery should support raw aggregated discovery request for CRDs [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-api-machinery] Aggregator Should be able to support the 1.17 Sample API Server using the current Aggregator [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-api-machinery] Aggregator Should be able to support the 1.17 Sample API Server using the current Aggregator [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-api-machinery] CBOR [Feature:CBOR] clients remain compatible with the 1.17 sample-apiserver [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -221,9 +221,13 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should mutate a Deployment": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicy API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicy v1alpha1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicy v1beta1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding v1alpha1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin] [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Beta] [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding v1beta1 API operations": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-api-machinery] Namespaces [Serial] should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -491,7 +495,7 @@ var Annotations = map[string]string{
 
 	"[sig-apps] DisruptionController should update/patch PodDisruptionBudget status [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-apps] Job containers restarted by container restart policy should not trigger PodFailurePolicy [Feature:ContainerRestartRules] [FeatureGate:ContainerRestartRules] [Alpha] [Feature:OffByDefault]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-apps] Job containers restarted by container restart policy should not trigger PodFailurePolicy [Feature:ContainerRestartRules] [FeatureGate:ContainerRestartRules] [Beta]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] Job should adopt matching orphans and release non-matching pods [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -608,6 +612,8 @@ var Annotations = map[string]string{
 	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications with PVCs": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates with maxUnavailable [FeatureGate:MaxUnavailableStatefulSet] [Beta]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should provide basic identity": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -761,7 +767,9 @@ var Annotations = map[string]string{
 
 	"[sig-autoscaling] [Feature:ClusterSizeAutoscalingScaleUp] [Slow] Autoscaling Autoscaling a service from 1 pod and 3 nodes to 8 pods and >=4 nodes takes less than 15 minutes": " [Suite:k8s]",
 
-	"[sig-autoscaling] [Feature:HPAConfigurableTolerance] [FeatureGate:HPAConfigurableTolerance] [Alpha] [Feature:OffByDefault] Horizontal pod autoscaling (configurable tolerance) with large configurable tolerance should not scale": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-autoscaling] [Feature:HPAConfigurableTolerance] [FeatureGate:HPAConfigurableTolerance] [Beta] Horizontal pod autoscaling (configurable tolerance) with large configurable tolerance should not scale": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-autoscaling] [Feature:HPAConfigurableTolerance] [FeatureGate:HPAConfigurableTolerance] [Beta] Horizontal pod autoscaling (configurable tolerance) with small scale-up, large scale-down tolerances should not scale": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-autoscaling] [Feature:HPA] Horizontal pod autoscaling (non-default behavior) with autoscaling disabled shouldn't scale down": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1055,6 +1063,10 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] MetricsGrabber should grab all metrics slis from API server.": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-network] API Server should have Endpoints and EndpointSlices pointing to API Server [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+
+	"[sig-network] API Server should provide secure master service [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+
 	"[sig-network] Connectivity Pod Lifecycle should be able to connect from a Pod to a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -1117,9 +1129,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] EndpointSlice should create Endpoints and EndpointSlices for Pods matching a Service [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] EndpointSlice should create and delete Endpoints and EndpointSlices for a Service with a selector specified [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
-
-	"[sig-network] EndpointSlice should have Endpoints and EndpointSlices pointing to API Server [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+	"[sig-network] EndpointSlice should create and delete EndpointSlices for a Service with a selector that matches no pods [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-network] EndpointSlice should support a Service with multiple endpoint IPs specified in multiple EndpointSlices [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1130,6 +1140,12 @@ var Annotations = map[string]string{
 	"[sig-network] EndpointSliceMirroring should mirror a custom Endpoint with multiple subsets and same IP address": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] EndpointSliceMirroring should mirror a custom Endpoints resource through create update and delete [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+
+	"[sig-network] Endpoints should test the lifecycle of an Endpoint [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+
+	"[sig-network] EndpointsController should create Endpoints for Pods matching a Service [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
+
+	"[sig-network] EndpointsController should create and delete Endpoints for a Service with a selector that matches no pods [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-network] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1147,7 +1163,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] KubeProxy should set TCP CLOSE_WAIT timeout [Privileged]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] KubeProxyNFAcct [Feature:KubeProxyNFAcct] should update metric for tracking accepted packets destined for localhost nodeports": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] KubeProxy should update metric for tracking accepted packets destined for localhost nodeports [Feature:KubeProxyNFAcct]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] LoadBalancers ExternalTrafficPolicy: Local [Feature:LoadBalancer] [Slow] should only target nodes with endpoints": " [Suite:k8s]",
 
@@ -1447,8 +1463,6 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should prevent NodePort collisions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] Services should provide secure master service [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
-
 	"[sig-network] Services should release NodePorts on delete": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Services should respect internalTrafficPolicy=Local Pod (hostNetwork: true) to Pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -1468,8 +1482,6 @@ var Annotations = map[string]string{
 	"[sig-network] Services should support externalTrafficPolicy=Local for type=NodePort": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] Services should support named targetPorts that resolve to different ports on different endpoints": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[sig-network] Services should test the lifecycle of an Endpoint [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-network] Services should work after restarting apiserver [Disruptive]": " [Serial] [Suite:k8s]",
 
@@ -1561,7 +1573,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] ConfigMap should run through a ConfigMap lifecycle [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-node] ConfigMap should update ConfigMap successfully": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] ConfigMap should update ConfigMap successfully [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-node] Container Lifecycle Hook when create a pod with lifecycle hook should execute poststart exec hook properly [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1721,145 +1733,245 @@ var Annotations = map[string]string{
 
 	"[sig-node] NodeProblemDetector [Feature:NodeProblemDetector] should run without error": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod has hostnameOverride field with value that is a valid DNS subdomain.": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod has hostnameOverride field with value that is a valid DNS subdomain.": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod with hostNetwork and hostnameOverride fields will fail to be created": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod with hostNetwork and hostnameOverride fields will fail to be created": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod with hostname and hostnameOverride fields will have hostnameOverride as hostname": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod with hostname and hostnameOverride fields will have hostnameOverride as hostname": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod with non-RFC1123 subdomain string for hostnameOverride field will fail to be created": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod with non-RFC1123 subdomain string for hostnameOverride field will fail to be created": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod with only hostnameOverride field will have hostnameOverride as hostname": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod with only hostnameOverride field will have hostnameOverride as hostname": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod with setHostnameAsFQDN and hostnameOverride fields will fail to be created": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod with setHostnameAsFQDN and hostnameOverride fields will fail to be created": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Alpha] [Feature:OffByDefault] a pod with subdomain and hostnameOverride fields will have hostnameOverride as hostname": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Override hostname of Pod [FeatureGate:HostnameOverride] [Beta] a pod with subdomain and hostnameOverride fields will have hostnameOverride as hostname": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Alpha] [Feature:OffByDefault] Container Restart Rules should not restart container on rule mismatch, container restart policy Never": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Beta] Container Restart Rules should not restart container on rule mismatch, container restart policy Never": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Alpha] [Feature:OffByDefault] Container Restart Rules should restart container on container-level restart policy Always": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Beta] Container Restart Rules should restart container on container-level restart policy Always": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Alpha] [Feature:OffByDefault] Container Restart Rules should restart container on container-level restart policy Never": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Beta] Container Restart Rules should restart container on container-level restart policy Never": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Alpha] [Feature:OffByDefault] Container Restart Rules should restart container on pod-level restart policy Always when no container-level restart policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Beta] Container Restart Rules should restart container on pod-level restart policy Always when no container-level restart policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Alpha] [Feature:OffByDefault] Container Restart Rules should restart container on rule match": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod Extended (container restart policy) [FeatureGate:ContainerRestartRules] [Beta] Container Restart Rules should restart container on rule match": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] BestEffort QoS pod - empty resize": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test exceed maximum CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] BestEffort pod - try requesting memory, expect error": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test exceed maximum Memory and CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod with memory requests + limits - decrease memory limit": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test exceed maximum Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, mixed containers - add limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test request below min CPU and min Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, mixed containers - add requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test request below min CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, mixed containers - scale up cpu and memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test request below min Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container - decrease CPU (NotRequired) & memory (RestartContainer)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test valid decrease of CPU and Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container - decrease memory request (RestartContainer memory resize policy)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test valid decrease of CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container - increase memory request (NoRestart memory resize policy)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test valid decrease of Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with CPU requests + limits, cpu requests - remove memory requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test valid increase of CPU and Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test valid increase of CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and increase CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (limit-ranger) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test valid increase of Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and increase memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (resource-quota) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test exceed maximum CPU and Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (resource-quota) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test exceed maximum CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease CPU requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (resource-quota) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test exceed maximum Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (resource-quota) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test valid increase for both CPU and Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (resource-quota) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test valid increase of CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container (resource-quota) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test valid increase of Memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests BestEffort pod - request cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and decrease CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests BestEffort pod - request memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - nonrestartable initContainer": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase CPU requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - remove cpu & memory limits + increase requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory limits only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - remove cpu requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and decrease CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - remove memory requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests and limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - reorder containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - increase memory requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - resize ephemeral storage": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - remove CPU limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Burstable pod - set requests == limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - remove memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Guaranteed pod - remove cpu & memory limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests - decrease memory request": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] apply invalid resize patch requests Guaranteed pod - rename containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests - increase cpu request": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing all resources in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu requests and limits - resize with equivalents": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with memory requests + limits, cpu requests - remove CPU requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing cpu limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container, one restartable init container - decrease init container CPU only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing cpu requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container, one restartable init container - decrease init container memory requests only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing mem limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container, one restartable init container - increase init container CPU & memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing mem requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container, one restartable init container - increase init container CPU only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu & mem restart resizing requests & limits in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container, one restartable init container - increase init container memory only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing all resources in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, three containers - decrease c1 resources, increase c2 resources, no change for c3 (net increase for pod)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, three containers - increase c1 resources, no change for c2, decrease c3 resources (no net change for pod)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing cpu limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, three containers - no change for c1, increase c2 resources, decrease c3 (net decrease for pod)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing cpu requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, two containers with cpu & memory requests + limits - reorder containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing mem limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one container - decrease CPU only": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing mem requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one container - increase CPU & memory with an extended resource": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy cpu restart resizing requests & limits in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one container - increase CPU & memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing all resources in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one container - increase CPU (NotRequired) & memory (RestartContainer)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one container, one restartable init container - decrease init container CPU": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing cpu limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one restartable init container - decrease CPU & increase memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing cpu requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, one restartable init container - increase CPU & memory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing mem limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Guaranteed QoS pod, three containers (c1, c2, c3) - increase: CPU (c1,c3), memory (c2, c3) ; decrease: CPU (c2)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing mem requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing requests & limits in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing all resources in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing cpu limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing cpu requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing mem limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing mem requests": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - 1 container with all requests & limits set and resize policy no restart resizing requests & limits in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - extended 6 containers - various operations performed (including adding limits and requests)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] burstable pods - extended resize with equivalents": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] decrease memory limit below usage": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-limit-ranger-test": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed pods with multiple containers 3 containers - increase cpu & mem on c1, c2, decrease cpu & mem on c3 - net increase": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-resource-quota-test": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed pods with multiple containers 3 containers - increase cpu & mem on c1, decrease cpu & mem on c2, c3 - net decrease": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod with container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed pods with multiple containers 3 containers - increase: CPU (c1,c3), memory (c2, c3) ; decrease: CPU (c2)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart + resize initContainers resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart + resize initContainers resizing cpu & mem in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart + resize initContainers resizing cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart + resize initContainers resizing mem": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart resizing cpu & mem in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart resizing cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu & mem restart resizing mem": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu restart resizing cpu & mem in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu restart resizing cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy cpu restart resizing mem": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy mem restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy mem restart resizing cpu & mem in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy mem restart resizing cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy mem restart resizing mem": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart + resize initContainers resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart + resize initContainers resizing cpu & mem in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart + resize initContainers resizing cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart + resize initContainers resizing mem": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart resizing cpu & mem in opposite directions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart resizing cpu & mem in the same direction": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart resizing cpu": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] guaranteed qos - 1 container with resize policy no restart resizing mem": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] resize pod via the replace endpoint": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] BestEffort QoS no pod resources, no container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod with yet some other container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, 1 container with resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, no container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod with container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, partial requests in pod level resources, 1 container with guaranteed resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources limits, container resources limits": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources limits, container resources requests": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests and limits, container resources limits": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests and limits, container resources requests": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests, container resources limits": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests, container resources requests and limits": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests, container resources requests and partial limits": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests, container resources requests": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests, no container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Burstable QoS pod, pod resources requests, partial container resources limits": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod with only container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod with other container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod, 1 container with resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod, no container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-node] Pod Level Resources [Serial] [Feature:PodLevelResources] [FeatureGate:PodLevelResources] [Beta] Guaranteed QoS pod, pod resources limits, no container resources": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-node] Pod garbage collector [Feature:PodGarbageCollector] [Slow] should handle the creation of 1000 pods": " [Suite:k8s]",
 
@@ -2111,7 +2223,21 @@ var Annotations = map[string]string{
 
 	"[sig-node] Variable Expansion should verify that a failing subpath expansion can be modified during the lifecycle of a container [Slow] [Conformance]": " [Suite:k8s]",
 
+	"[sig-node] [DRA] CRUD Tests resource.k8s.io/v1 DeviceClass": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] CRUD Tests resource.k8s.io/v1 ResourceClaim": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] CRUD Tests resource.k8s.io/v1 ResourceClaimTemplate": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] CRUD Tests resource.k8s.io/v1 ResourceSlice": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-node] [DRA] ResourceSlice Controller creates slices [ConformanceCandidate]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] [FeatureGate:DRAExtendedResource] [Alpha] [Feature:OffByDefault] must cleanup extended resource claims when pods complete": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] [FeatureGate:DRAExtendedResource] [Alpha] [Feature:OffByDefault] must cleanup extended resource claims when pods fail": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] [FeatureGate:DRAExtendedResource] [Alpha] [Feature:OffByDefault] must run a pod with both implicit and explicit extended resource with one container two resources": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] [DRA] [FeatureGate:DRAExtendedResource] [Alpha] [Feature:OffByDefault] must run a pod with extended resource with one container one resource": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2167,11 +2293,15 @@ var Annotations = map[string]string{
 
 	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRAConsumableCapacity] [Alpha] [Feature:OffByDefault] must allow multiple allocations and consume capacity [KubeletMinVersion:1.34]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceTaint keeps pod pending": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
 	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceTaintRule evicts pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceToleration enables pod scheduling": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] NoExecute can be tolerated": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] NoExecute keeps pod pending": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] NoSchedule can be tolerated": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] NoSchedule keeps pod pending": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] [DRA] kubelet [Feature:DynamicResourceAllocation] [FeatureGate:DRAPartitionableDevices] [Alpha] [Feature:OffByDefault] must consume and free up counters": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2784,6 +2914,14 @@ var Annotations = map[string]string{
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] read-write-once-pod [MinimumKubeletVersion:1.27] should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] read-write-once-pod [MinimumKubeletVersion:1.27] should preempt lower priority pods using ReadWriteOncePod volumes": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWO and recursive policy should mount volumes without SELinux mount option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWO volume and mount policy should mount volumes with SELinux mount option [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWOP volume and recursive policy should mount volumes without SELinux mount option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWOP volume and the default policy should mount volumes with SELinux mount option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3408,6 +3546,14 @@ var Annotations = map[string]string{
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod [MinimumKubeletVersion:1.27] should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod [MinimumKubeletVersion:1.27] should preempt lower priority pods using ReadWriteOncePod volumes": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWO and recursive policy should mount volumes without SELinux mount option": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWO volume and mount policy should mount volumes with SELinux mount option [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWOP volume and recursive policy should mount volumes without SELinux mount option": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWOP volume and the default policy should mount volumes with SELinux mount option": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -13967,6 +14113,14 @@ var Annotations = map[string]string{
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] read-write-once-pod [MinimumKubeletVersion:1.27] should preempt lower priority pods using ReadWriteOncePod volumes": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWO and recursive policy should mount volumes without SELinux mount option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWO volume and mount policy should mount volumes with SELinux mount option [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWOP volume and recursive policy should mount volumes without SELinux mount option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] seLinuxMount [Feature:SELinux] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] Pod with RWOP volume and the default policy should mount volumes with SELinux mount option": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] subPath should fail if non-existent subpath is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
@@ -14491,6 +14645,8 @@ var Annotations = map[string]string{
 
 	"[sig-storage] PersistentVolumes NFS with Single PV - PVC pairs create a PVC and non-pre-bound PV: test write access": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-storage] PersistentVolumes NFS with Single PV - PVC pairs create a PVC and use it multiple times in a single pod": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-storage] PersistentVolumes NFS with Single PV - PVC pairs should create a non-pre-bound PV and PVC: test write access ": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] PersistentVolumes NFS with multiple PVs and PVCs all in same ns should create 2 PVs and 4 PVCs: test write access": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -14765,7 +14921,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] VolumeAttachment Conformance should run through the lifecycle of a VolumeAttachment [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-storage] VolumeAttributesClass [FeatureGate:VolumeAttributesClass] should run through the lifecycle of a VolumeAttributesClass": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] VolumeAttributesClass [FeatureGate:VolumeAttributesClass] should run through the lifecycle of a VolumeAttributesClass [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-storage] [Disruptive] [LinuxOnly] NonGracefulNodeShutdown [NonGracefulNodeShutdown] pod that uses a persistent volume via gce pd driver should get immediately rescheduled to a different node after non graceful node shutdown ": " [Serial] [Suite:k8s]",
 

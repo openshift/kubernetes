@@ -41,6 +41,10 @@
     lockToDefault: false
     preRelease: Deprecated
     version: "1.32"
+  - default: false
+    lockToDefault: true
+    preRelease: Deprecated
+    version: "1.35"
 - name: AllowParsingUserUIDFromCertAuth
   versionedSpecs:
   - default: true
@@ -149,6 +153,12 @@
     lockToDefault: true
     preRelease: GA
     version: "1.34"
+- name: AuthorizePodWebsocketUpgradeCreatePermission
+  versionedSpecs:
+  - default: true
+    lockToDefault: false
+    preRelease: Beta
+    version: "1.35"
 - name: AuthorizeWithSelectors
   versionedSpecs:
   - default: false
@@ -217,20 +227,6 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.32"
-- name: ComponentSLIs
-  versionedSpecs:
-  - default: false
-    lockToDefault: false
-    preRelease: Alpha
-    version: "1.26"
-  - default: true
-    lockToDefault: false
-    preRelease: Beta
-    version: "1.27"
-  - default: true
-    lockToDefault: true
-    preRelease: GA
-    version: "1.32"
 - name: ComponentStatusz
   versionedSpecs:
   - default: false
@@ -273,6 +269,10 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.34"
+  - default: true
+    lockToDefault: false
+    preRelease: Beta
+    version: "1.35"
 - name: ContainerStopSignals
   versionedSpecs:
   - default: false
@@ -345,16 +345,6 @@
     lockToDefault: true
     preRelease: GA
     version: "1.33"
-- name: CronJobsScheduledAnnotation
-  versionedSpecs:
-  - default: true
-    lockToDefault: false
-    preRelease: Beta
-    version: "1.28"
-  - default: true
-    lockToDefault: true
-    preRelease: GA
-    version: "1.32"
 - name: CrossNamespaceVolumeDataSource
   versionedSpecs:
   - default: false
@@ -437,6 +427,10 @@
     lockToDefault: false
     preRelease: GA
     version: "1.34"
+  - default: true
+    lockToDefault: true
+    preRelease: GA
+    version: "1.35"
 - name: DisableCPUQuotaWithExclusiveCPUs
   versionedSpecs:
   - default: true
@@ -555,6 +549,10 @@
     lockToDefault: false
     preRelease: GA
     version: "1.20"
+  - default: true
+    lockToDefault: true
+    preRelease: GA
+    version: "1.35"
 - name: ExternalServiceAccountTokenSigner
   versionedSpecs:
   - default: false
@@ -615,12 +613,20 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.34"
+  - default: true
+    lockToDefault: false
+    preRelease: Beta
+    version: "1.35"
 - name: HPAConfigurableTolerance
   versionedSpecs:
   - default: false
     lockToDefault: false
     preRelease: Alpha
     version: "1.33"
+  - default: true
+    lockToDefault: false
+    preRelease: Beta
+    version: "1.35"
 - name: HPAScaleToZero
   versionedSpecs:
   - default: false
@@ -973,6 +979,10 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.24"
+  - default: true
+    lockToDefault: false
+    preRelease: Beta
+    version: "1.35"
 - name: MemoryManager
   versionedSpecs:
   - default: false
@@ -1139,16 +1149,6 @@
     lockToDefault: false
     preRelease: Beta
     version: "1.22"
-- name: PodIndexLabel
-  versionedSpecs:
-  - default: true
-    lockToDefault: false
-    preRelease: Beta
-    version: "1.28"
-  - default: true
-    lockToDefault: true
-    preRelease: GA
-    version: "1.32"
 - name: PodLevelResources
   versionedSpecs:
   - default: false
@@ -1258,12 +1258,6 @@
   - default: true
     lockToDefault: false
     preRelease: Beta
-    version: "1.34"
-- name: ProbeHostPodSecurityStandards
-  versionedSpecs:
-  - default: true
-    lockToDefault: true
-    preRelease: GA
     version: "1.34"
 - name: ProcMountType
   versionedSpecs:
@@ -1417,7 +1411,7 @@
     version: "1.29"
 - name: SchedulerAsyncAPICalls
   versionedSpecs:
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
     version: "1.34"
@@ -1605,34 +1599,6 @@
     lockToDefault: false
     preRelease: Beta
     version: "1.34"
-- name: SizeMemoryBackedVolumes
-  versionedSpecs:
-  - default: false
-    lockToDefault: false
-    preRelease: Alpha
-    version: "1.20"
-  - default: true
-    lockToDefault: false
-    preRelease: Beta
-    version: "1.22"
-  - default: true
-    lockToDefault: true
-    preRelease: GA
-    version: "1.32"
-- name: StatefulSetAutoDeletePVC
-  versionedSpecs:
-  - default: false
-    lockToDefault: false
-    preRelease: Alpha
-    version: "1.23"
-  - default: true
-    lockToDefault: false
-    preRelease: Beta
-    version: "1.27"
-  - default: true
-    lockToDefault: true
-    preRelease: GA
-    version: "1.32"
 - name: StorageCapacityScoring
   versionedSpecs:
   - default: false
