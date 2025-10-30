@@ -1,0 +1,305 @@
+[Attempt 6 +54m 54s] debconf: delaying package configuration, since apt-utils is not installed
+[Attempt 6 +54m 54s] Selecting previously unselected package libpopt0:amd64.
+[Attempt 6 +54m 54s] (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 15617 files and directories currently installed.)
+[Attempt 6 +54m 54s] Preparing to unpack .../00-libpopt0_1.19+dfsg-1_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libpopt0:amd64 (1.19+dfsg-1) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package rsync.
+[Attempt 6 +54m 54s] Preparing to unpack .../01-rsync_3.2.7-1+deb12u2_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking rsync (3.2.7-1+deb12u2) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libelf1:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../02-libelf1_0.188-2.1_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libelf1:amd64 (0.188-2.1) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libbpf1:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../03-libbpf1_1%3a1.1.2-0+deb12u1_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libbpf1:amd64 (1:1.1.2-0+deb12u1) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libmnl0:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../04-libmnl0_1.0.4-3_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libmnl0:amd64 (1.0.4-3) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libxtables12:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../05-libxtables12_1.8.9-2_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libxtables12:amd64 (1.8.9-2) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libcap2-bin.
+[Attempt 6 +54m 54s] Preparing to unpack .../06-libcap2-bin_1%3a2.66-4+deb12u2_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libcap2-bin (1:2.66-4+deb12u2) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package iproute2.
+[Attempt 6 +54m 54s] Preparing to unpack .../07-iproute2_6.1.0-3_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking iproute2 (6.1.0-3) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libonig5:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../08-libonig5_6.9.8-1_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libonig5:amd64 (6.9.8-1) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libjq1:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../09-libjq1_1.6-2.1+deb12u1_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libjq1:amd64 (1.6-2.1+deb12u1) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package jq.
+[Attempt 6 +54m 54s] Preparing to unpack .../10-jq_1.6-2.1+deb12u1_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking jq (1.6-2.1+deb12u1) ...
+[Attempt 6 +54m 54s] Selecting previously unselected package libatm1:amd64.
+[Attempt 6 +54m 54s] Preparing to unpack .../11-libatm1_1%3a2.5.1-4+b2_amd64.deb ...
+[Attempt 6 +54m 54s] Unpacking libatm1:amd64 (1:2.5.1-4+b2) ...
+[Attempt 6 +54m 55s] Selecting previously unselected package libpam-cap:amd64.
+[Attempt 6 +54m 55s] Preparing to unpack .../12-libpam-cap_1%3a2.66-4+deb12u2_amd64.deb ...
+[Attempt 6 +54m 55s] Unpacking libpam-cap:amd64 (1:2.66-4+deb12u2) ...
+[Attempt 6 +54m 55s] Selecting previously unselected package unzip.
+[Attempt 6 +54m 55s] Preparing to unpack .../13-unzip_6.0-28_amd64.deb ...
+[Attempt 6 +54m 55s] Unpacking unzip (6.0-28) ...
+[Attempt 6 +54m 55s] Setting up unzip (6.0-28) ...
+[Attempt 6 +54m 55s] Setting up libatm1:amd64 (1:2.5.1-4+b2) ...
+[Attempt 6 +54m 55s] Setting up libcap2-bin (1:2.66-4+deb12u2) ...
+[Attempt 6 +54m 55s] Setting up libmnl0:amd64 (1.0.4-3) ...
+[Attempt 6 +54m 55s] Setting up libxtables12:amd64 (1.8.9-2) ...
+[Attempt 6 +54m 55s] Setting up libelf1:amd64 (0.188-2.1) ...
+[Attempt 6 +54m 55s] Setting up libpam-cap:amd64 (1:2.66-4+deb12u2) ...
+[Attempt 6 +54m 55s] debconf: unable to initialize frontend: Dialog
+[Attempt 6 +54m 55s] debconf: (No usable dialog-like program is installed, so the dialog based frontend cannot be used. at /usr/share/perl5/Debconf/FrontEnd/Dialog.pm line 78.)
+[Attempt 6 +54m 55s] debconf: falling back to frontend: Readline
+[Attempt 6 +54m 55s] Setting up libonig5:amd64 (6.9.8-1) ...
+[Attempt 6 +54m 55s] Setting up libbpf1:amd64 (1:1.1.2-0+deb12u1) ...
+[Attempt 6 +54m 55s] Setting up libpopt0:amd64 (1.19+dfsg-1) ...
+[Attempt 6 +54m 55s] Setting up libjq1:amd64 (1.6-2.1+deb12u1) ...
+[Attempt 6 +54m 55s] Setting up iproute2 (6.1.0-3) ...
+[Attempt 6 +54m 55s] debconf: unable to initialize frontend: Dialog
+[Attempt 6 +54m 55s] debconf: (No usable dialog-like program is installed, so the dialog based frontend cannot be used. at /usr/share/perl5/Debconf/FrontEnd/Dialog.pm line 78.)
+[Attempt 6 +54m 55s] debconf: falling back to frontend: Readline
+[Attempt 6 +54m 55s] Setting up jq (1.6-2.1+deb12u1) ...
+[Attempt 6 +54m 55s] Setting up rsync (3.2.7-1+deb12u2) ...
+[Attempt 6 +54m 55s] invoke-rc.d: could not determine current runlevel
+[Attempt 6 +54m 55s] invoke-rc.d: policy-rc.d denied execution of start.
+[Attempt 6 +54m 55s] Processing triggers for libc-bin (2.36-9+deb12u13) ...
+[Attempt 6 +54m 56s] go: downloading github.com/spf13/pflag v1.0.9
+[Attempt 6 +54m 56s] go: downloading github.com/google/go-cmp v0.7.0
+[Attempt 6 +54m 56s] go: downloading github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
+[Attempt 6 +54m 56s] go: downloading github.com/spf13/cobra v1.10.0
+[Attempt 6 +54m 56s] go: downloading github.com/cpuguy83/go-md2man/v2 v2.0.6
+[Attempt 6 +54m 56s] go: downloading github.com/blang/semver/v4 v4.0.0
+[Attempt 6 +54m 56s] go: downloading github.com/prometheus/client_model v0.6.2
+[Attempt 6 +54m 56s] go: downloading k8s.io/klog/v2 v2.130.1
+[Attempt 6 +54m 56s] go: downloading github.com/mrunalp/fileutils v0.5.1
+[Attempt 6 +54m 56s] go: downloading github.com/stretchr/testify v1.11.1
+[Attempt 6 +54m 56s] go: downloading google.golang.org/protobuf v1.36.8
+[Attempt 6 +54m 56s] go: downloading go.etcd.io/etcd/client/v3 v3.6.4
+[Attempt 6 +54m 56s] go: downloading k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
+[Attempt 6 +54m 56s] go: downloading go.yaml.in/yaml/v2 v2.4.2
+[Attempt 6 +54m 56s] go: downloading google.golang.org/grpc v1.72.2
+[Attempt 6 +54m 56s] go: downloading golang.org/x/tools v0.36.0
+[Attempt 6 +54m 56s] go: downloading github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
+[Attempt 6 +54m 56s] go: downloading sigs.k8s.io/yaml v1.6.0
+[Attempt 6 +54m 56s] go: downloading github.com/openshift/library-go v0.0.0-20251029104758-277736d6f195
+[Attempt 6 +54m 57s] go: downloading github.com/fsnotify/fsnotify v1.9.0
+[Attempt 6 +54m 57s] go: downloading github.com/google/cadvisor v0.53.0
+[Attempt 6 +54m 57s] go: downloading k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+[Attempt 6 +54m 57s] go: downloading go.etcd.io/etcd/client/pkg/v3 v3.6.4
+[Attempt 6 +54m 57s] go: downloading sigs.k8s.io/randfill v1.0.0
+[Attempt 6 +54m 57s] go: downloading go.opentelemetry.io/otel/trace v1.36.0
+[Attempt 6 +54m 57s] go: downloading go.opentelemetry.io/otel v1.36.0
+[Attempt 6 +54m 58s] go: downloading k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b
+[Attempt 6 +54m 58s] go: downloading sigs.k8s.io/structured-merge-diff/v6 v6.3.0
+[Attempt 6 +54m 58s] go: downloading github.com/lithammer/dedent v1.1.0
+[Attempt 6 +54m 58s] go: downloading github.com/gogo/protobuf v1.3.2
+[Attempt 6 +54m 58s] go: downloading github.com/coreos/go-systemd/v22 v22.5.0
+[Attempt 6 +54m 58s] go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.34.0
+[Attempt 6 +54m 58s] go: downloading go.opentelemetry.io/otel/metric v1.36.0
+[Attempt 6 +54m 58s] go: downloading go.opentelemetry.io/otel/sdk v1.36.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/sys v0.36.0
+[Attempt 6 +54m 58s] go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.34.0
+[Attempt 6 +54m 58s] go: downloading gopkg.in/evanphx/json-patch.v4 v4.13.0
+[Attempt 6 +54m 58s] go: downloading github.com/prometheus/client_golang v1.23.2
+[Attempt 6 +54m 58s] go: downloading github.com/prometheus/procfs v0.16.1
+[Attempt 6 +54m 58s] go: downloading github.com/prometheus/common v0.66.1
+[Attempt 6 +54m 58s] go: downloading github.com/distribution/reference v0.6.0
+[Attempt 6 +54m 58s] go: downloading github.com/go-logr/logr v1.4.3
+[Attempt 6 +54m 58s] go: downloading github.com/russross/blackfriday/v2 v2.1.0
+[Attempt 6 +54m 58s] go: downloading github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+[Attempt 6 +54m 58s] go: downloading github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+[Attempt 6 +54m 58s] go: downloading github.com/fxamacker/cbor/v2 v2.9.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/net v0.43.0
+[Attempt 6 +54m 58s] go: downloading github.com/google/uuid v1.6.0
+[Attempt 6 +54m 58s] go: downloading gopkg.in/natefinch/lumberjack.v2 v2.2.1
+[Attempt 6 +54m 58s] go: downloading github.com/emicklei/go-restful/v3 v3.12.2
+[Attempt 6 +54m 58s] go: downloading go.uber.org/atomic v1.11.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/crypto v0.42.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/time v0.9.0
+[Attempt 6 +54m 58s] go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+[Attempt 6 +54m 58s] go: downloading sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
+[Attempt 6 +54m 58s] go: downloading go.uber.org/goleak v1.3.0
+[Attempt 6 +54m 58s] go: downloading gopkg.in/yaml.v3 v3.0.1
+[Attempt 6 +54m 58s] go: downloading github.com/inconshreveable/mousetrap v1.1.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/oauth2 v0.30.0
+[Attempt 6 +54m 58s] go: downloading go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0
+[Attempt 6 +54m 58s] go: downloading go.yaml.in/yaml/v3 v3.0.4
+[Attempt 6 +54m 58s] go: downloading sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2
+[Attempt 6 +54m 58s] go: downloading github.com/onsi/gomega v1.35.1
+[Attempt 6 +54m 58s] go: downloading go.etcd.io/etcd/api/v3 v3.6.4
+[Attempt 6 +54m 58s] go: downloading github.com/coreos/go-semver v0.3.1
+[Attempt 6 +54m 58s] go: downloading go.uber.org/zap v1.27.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/term v0.35.0
+[Attempt 6 +54m 58s] go: downloading github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
+[Attempt 6 +54m 58s] go: downloading github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+[Attempt 6 +54m 58s] go: downloading github.com/openshift/api v0.0.0-20251028221238-1b67472a2ba8
+[Attempt 6 +54m 58s] go: downloading github.com/moby/term v0.5.0
+[Attempt 6 +54m 58s] go: downloading golang.org/x/sync v0.17.0
+[Attempt 6 +54m 58s] go: downloading go.etcd.io/etcd/server/v3 v3.6.4
+[Attempt 6 +54m 58s] go: downloading github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d
+[Attempt 6 +54m 58s] go: downloading gopkg.in/go-jose/go-jose.v2 v2.6.3
+[Attempt 6 +54m 59s] go: downloading gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+[Attempt 6 +54m 59s] go: downloading github.com/coredns/corefile-migration v1.0.27
+[Attempt 6 +54m 59s] go: downloading github.com/go-openapi/jsonreference v0.20.2
+[Attempt 6 +54m 59s] go: downloading github.com/vishvananda/netlink v1.3.1
+[Attempt 6 +54m 59s] go: downloading github.com/moby/ipvs v1.1.0
+[Attempt 6 +54m 59s] go: downloading sigs.k8s.io/knftables v0.0.17
+[Attempt 6 +54m 59s] go: downloading github.com/Microsoft/hnslib v0.1.1
+[Attempt 6 +54m 59s] go: downloading github.com/Microsoft/go-winio v0.6.2
+[Attempt 6 +54m 59s] go: downloading k8s.io/system-validators v1.11.1
+[Attempt 6 +54m 59s] go: downloading github.com/opencontainers/cgroups v0.0.3
+[Attempt 6 +54m 59s] go: downloading github.com/google/cel-go v0.26.0
+[Attempt 6 +54m 59s] go: downloading github.com/google/gnostic-models v0.7.0
+[Attempt 6 +54m 59s] go: downloading github.com/moby/sys/mountinfo v0.7.2
+[Attempt 6 +54m 59s] go: downloading github.com/robfig/cron/v3 v3.0.1
+[Attempt 6 +54m 59s] go: downloading github.com/openshift-eng/openshift-tests-extension v0.0.0-20251024155203-c498f9efe478
+[Attempt 6 +54m 59s] go: downloading gopkg.in/yaml.v2 v2.4.0
+[Attempt 6 +54m 59s] go: downloading golang.org/x/text v0.29.0
+[Attempt 6 +54m 59s] go: downloading gopkg.in/inf.v0 v0.9.1
+[Attempt 6 +54m 59s] go: downloading github.com/container-storage-interface/spec v1.9.0
+[Attempt 6 +54m 59s] go: downloading github.com/opencontainers/selinux v1.11.1
+[Attempt 6 +54m 59s] go: downloading github.com/libopenstorage/openstorage v1.0.0
+[Attempt 6 +54m 59s] go: downloading github.com/cyphar/filepath-securejoin v0.4.1
+[Attempt 6 +54m 59s] go: downloading github.com/moby/sys/userns v0.1.0
+[Attempt 6 +54m 59s] go: downloading github.com/docker/go-units v0.5.0
+[Attempt 6 +54m 59s] go: downloading github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+[Attempt 6 +54m 59s] go: downloading github.com/godbus/dbus/v5 v5.1.0
+[Attempt 6 +54m 59s] go: downloading go.opentelemetry.io/contrib/instrumentation/github.com/emicklei/go-restful/otelrestful v0.44.0
+[Attempt 6 +54m 59s] go: downloading github.com/JeffAshton/win_pdh v0.0.0-20161109143554-76bb4ee9f0ab
+[Attempt 6 +54m 59s] go: downloading github.com/vishvananda/netns v0.0.5
+[Attempt 6 +54m 59s] go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a
+[Attempt 6 +54m 59s] go: downloading github.com/ishidawataru/sctp v0.0.0-20250521072954-ae8eb7fa7995
+[Attempt 6 +54m 59s] go: downloading github.com/coreos/go-oidc v2.3.0+incompatible
+[Attempt 6 +54m 59s] go: downloading bitbucket.org/bertimus9/systemstat v0.5.0
+[Attempt 6 +54m 59s] go: downloading go.opentelemetry.io/proto/otlp v1.5.0
+[Attempt 6 +54m 59s] go: downloading github.com/jonboulle/clockwork v0.5.0
+[Attempt 6 +54m 59s] go: downloading github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
+[Attempt 6 +54m 59s] go: downloading sigs.k8s.io/kustomize/kustomize/v5 v5.7.1
+[Attempt 6 +54m 59s] go: downloading sigs.k8s.io/kustomize/kyaml v0.20.1
+[Attempt 6 +54m 59s] go: downloading github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f
+[Attempt 6 +54m 59s] go: downloading github.com/chai2010/gettext-go v1.0.2
+[Attempt 6 +54m 59s] go: downloading github.com/MakeNowJust/heredoc v1.0.0
+[Attempt 6 +54m 59s] go: downloading github.com/mitchellh/go-wordwrap v1.0.1
+[Attempt 6 +54m 59s] go: downloading github.com/json-iterator/go v1.1.12
+[Attempt 6 +54m 59s] go: downloading github.com/go-logr/stdr v1.2.2
+[Attempt 6 +54m 59s] go: downloading github.com/opencontainers/go-digest v1.0.0
+[Attempt 6 +54m 59s] go: downloading github.com/go-logr/zapr v1.3.0
+[Attempt 6 +54m 59s] go: downloading github.com/go-openapi/swag v0.23.0
+[Attempt 6 +54m 59s] go: downloading github.com/google/btree v1.1.3
+[Attempt 6 +54m 59s] go: downloading github.com/x448/float16 v0.8.4
+[Attempt 6 +54m 59s] go: downloading github.com/beorn7/perks v1.0.1
+[Attempt 6 +54m 59s] go: downloading github.com/cespare/xxhash/v2 v2.3.0
+[Attempt 6 +54m 59s] go: downloading github.com/klauspost/compress v1.18.0
+[Attempt 6 +54m 59s] go: downloading github.com/kylelemons/godebug v1.1.0
+[Attempt 6 +54m 59s] go: downloading github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+[Attempt 6 +54m 59s] go: downloading go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
+[Attempt 6 +54m 59s] go: downloading github.com/NYTimes/gziphandler v1.1.1
+[Attempt 6 +54m 59s] go: downloading github.com/stretchr/objx v0.5.2
+[Attempt 6 +54m 59s] go: downloading golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
+[Attempt 6 +54m 59s] go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+[Attempt 6 +54m 59s] go: downloading github.com/felixge/httpsnoop v1.0.4
+[Attempt 6 +54m 59s] go: downloading go.opentelemetry.io/otel/sdk/metric v1.36.0
+[Attempt 6 +54m 59s] go: downloading github.com/golang/protobuf v1.5.4
+[Attempt 6 +54m 59s] go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
+[Attempt 6 +54m 59s] go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb
+[Attempt 6 +54m 59s] go: downloading github.com/moby/spdystream v0.5.0
+[Attempt 6 +54m 59s] go: downloading github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
+[Attempt 6 +54m 59s] go: downloading golang.org/x/mod v0.27.0
+[Attempt 6 +54m 59s] go: downloading github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
+[Attempt 6 +54m 59s] go: downloading github.com/creack/pty v1.1.18
+[Attempt 6 +54m 59s] go: downloading go.uber.org/multierr v1.11.0
+[Attempt 6 +54m 59s] go: downloading github.com/kr/pretty v0.3.1
+[Attempt 6 +54m 59s] go: downloading github.com/soheilhy/cmux v0.1.5
+[Attempt 6 +54m 59s] go: downloading github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75
+[Attempt 6 +54m 59s] go: downloading go.etcd.io/bbolt v1.4.2
+[Attempt 6 +54m 59s] go: downloading go.etcd.io/etcd/pkg/v3 v3.6.4
+[Attempt 6 +54m 59s] go: downloading github.com/go-openapi/jsonpointer v0.21.0
+[Attempt 6 +54m 59s] go: downloading github.com/sirupsen/logrus v1.9.3
+[Attempt 6 +55m 0s] go: downloading github.com/pkg/errors v0.9.1
+[Attempt 6 +55m 0s] go: downloading github.com/karrick/godirwalk v1.17.0
+[Attempt 6 +55m 0s] go: downloading github.com/containerd/containerd/api v1.9.0
+[Attempt 6 +55m 0s] go: downloading github.com/containerd/errdefs v1.0.0
+[Attempt 6 +55m 0s] go: downloading github.com/containerd/errdefs/pkg v0.3.0
+[Attempt 6 +55m 0s] go: downloading github.com/opencontainers/runtime-spec v1.2.1
+[Attempt 6 +55m 0s] go: downloading github.com/containerd/typeurl/v2 v2.2.3
+[Attempt 6 +55m 0s] go: downloading github.com/go-ldap/ldap/v3 v3.4.11
+[Attempt 6 +55m 0s] go: downloading sigs.k8s.io/kustomize/api v0.20.1
+[Attempt 6 +55m 0s] go: downloading cel.dev/expr v0.24.0
+[Attempt 6 +55m 0s] go: downloading github.com/stoewer/go-strcase v1.3.0
+[Attempt 6 +55m 0s] go: downloading github.com/euank/go-kmsg-parser v2.0.0+incompatible
+[Attempt 6 +55m 0s] go: downloading github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
+[Attempt 6 +55m 0s] go: downloading github.com/peterbourgon/diskv v2.0.1+incompatible
+[Attempt 6 +55m 0s] go: downloading go.opentelemetry.io/contrib/propagators/b3 v1.19.0
+[Attempt 6 +55m 0s] go: downloading github.com/pquerna/cachecontrol v0.1.0
+[Attempt 6 +55m 0s] go: downloading github.com/fatih/camelcase v1.0.0
+[Attempt 6 +55m 0s] go: downloading go.opentelemetry.io/auto/sdk v1.1.0
+[Attempt 6 +55m 0s] go: downloading github.com/cenkalti/backoff/v4 v4.3.0
+[Attempt 6 +55m 0s] go: downloading github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
+[Attempt 6 +55m 0s] go: downloading github.com/mailru/easyjson v0.7.7
+[Attempt 6 +55m 0s] go: downloading github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db
+[Attempt 6 +55m 0s] go: downloading github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+[Attempt 6 +55m 0s] go: downloading github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
+[Attempt 6 +55m 0s] go: downloading golang.org/x/tools/go/expect v0.1.1-deprecated
+[Attempt 6 +55m 0s] go: downloading github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161
+[Attempt 6 +55m 0s] go: downloading github.com/dustin/go-humanize v1.0.1
+[Attempt 6 +55m 0s] go: downloading go.etcd.io/raft/v3 v3.6.0
+[Attempt 6 +55m 0s] go: downloading github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510
+[Attempt 6 +55m 0s] go: downloading github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
+[Attempt 6 +55m 0s] go: downloading github.com/golang-jwt/jwt/v5 v5.2.2
+[Attempt 6 +55m 0s] go: downloading github.com/coredns/caddy v1.1.1
+[Attempt 6 +55m 0s] go: downloading github.com/kr/text v0.2.0
+[Attempt 6 +55m 0s] go: downloading github.com/rogpeppe/go-internal v1.13.1
+[Attempt 6 +55m 0s] go: downloading github.com/containerd/ttrpc v1.2.7
+[Attempt 6 +55m 0s] go: downloading github.com/antlr4-go/antlr/v4 v4.13.0
+[Attempt 6 +55m 0s] go: downloading github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
+[Attempt 6 +55m 0s] go: downloading github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667
+[Attempt 6 +55m 0s] go: downloading github.com/josharian/intern v1.0.0
+[Attempt 6 +55m 0s] go: downloading github.com/go-errors/errors v1.4.2
+[Attempt 6 +55m 0s] go: downloading github.com/docker/docker v28.2.2+incompatible
+[Attempt 6 +55m 0s] go: downloading github.com/docker/go-connections v0.5.0
+[Attempt 6 +55m 0s] go: downloading github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.0
+[Attempt 6 +55m 0s] go: downloading github.com/alexbrainman/sspi v0.0.0-20231016080023-1a75b4708caa
+[Attempt 6 +55m 0s] go: downloading github.com/jcmturner/gokrb5/v8 v8.4.4
+[Attempt 6 +55m 0s] go: downloading github.com/sergi/go-diff v1.2.0
+[Attempt 6 +55m 0s] go: downloading github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
+[Attempt 6 +55m 0s] go: downloading github.com/xlab/treeprint v1.2.0
+[Attempt 6 +55m 0s] go: downloading github.com/opencontainers/image-spec v1.1.1
+[Attempt 6 +55m 0s] go: downloading github.com/containerd/log v0.1.0
+[Attempt 6 +55m 0s] go: downloading golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+[Attempt 6 +55m 0s] go: downloading github.com/cockroachdb/datadriven v1.0.2
+[Attempt 6 +55m 0s] go: downloading github.com/jcmturner/dnsutils/v2 v2.0.0
+[Attempt 6 +55m 0s] go: downloading github.com/hashicorp/go-uuid v1.0.3
+[Attempt 6 +55m 0s] go: downloading github.com/jcmturner/gofork v1.7.6
+[Attempt 6 +55m 0s] go: downloading github.com/jcmturner/goidentity/v6 v6.0.1
+[Attempt 6 +55m 0s] go: downloading github.com/jcmturner/aescts/v2 v2.0.0
+[Attempt 6 +55m 0s] go: downloading github.com/jcmturner/rpc/v2 v2.0.3
+[Attempt 6 +55m 1s] go: downloading github.com/moby/docker-image-spec v1.3.1
+[Attempt 6 +55m 2s] export PATH="${PATH}:/go/k8s.io/kubernetes/third_party/etcd"
+[Attempt 6 +55m 2s] +++ [1030 14:38:19] logfile at /tmp/update-vendor.870a/update-vendor.log
+[Attempt 6 +55m 2s] +++ [1030 14:38:19] go.mod: update staging module references
+[Attempt 6 +55m 4s] +++ [1030 14:38:21] go.mod: go work use
+[Attempt 6 +55m 5s] +++ [1030 14:38:22] go.mod: go work sync
+[Attempt 6 +55m 7s] +++ [1030 14:38:24] go.mod: tidy
+[Attempt 6 +55m 9s] +++ [1030 14:38:26] go.mod: prune
+[Attempt 6 +55m 10s] +++ [1030 14:38:27] go.mod: adding generated comments
+[Attempt 6 +55m 11s] +++ [1030 14:38:28] vendor: updating internal modules
+[Attempt 6 +55m 13s] +++ [1030 14:38:30] vendor: running 'go work vendor'
+[Attempt 6 +55m 14s] +++ [1030 14:38:31] vendor: updating vendor/LICENSES
+[Attempt 6 +55m 23s] +++ [1030 14:38:40] vendor: creating OWNERS file
+[Attempt 6 +55m 23s] +++ [1030 14:38:40] go.mod: prevent staging --> k8s.io/kubernetes dep
+[Attempt 6 +55m 30s] +++ [1030 14:38:47] go.mod: prevent k8s.io/kubernetes --> * --> k8s.io/kubernetes dep
+[Attempt 6 +55m 30s] +++ [1030 14:38:47] NOTE: don't forget to handle vendor/* and LICENSE/* files that were added or removed
+[Attempt 6 +55m 30s] Running in silent mode, run with SILENT=false if you want to see script logs.
+[Attempt 6 +55m 30s] Running in short-circuit mode; run with FORCE_ALL=true to force all scripts to run.
+[Attempt 6 +55m 30s] [0;33mRunning update-kubensenter[0m
+[Attempt 6 +55m 30s] [0;33mRunning update-test-annotations[0m
+[Attempt 6 +55m 43s] [0;33mRunning update-codegen[0m
+[Attempt 6 +58m 0s] [0;33mRunning update-featuregates[0m
+[Attempt 6 +58m 8s] [0;33mRunning update-generated-api-compatibility-data[0m
+[Attempt 6 +58m 13s] [0;33mRunning update-generated-docs[0m
+[Attempt 6 +58m 37s] [0;33mRunning update-openapi-spec[0m
+[Attempt 6 +58m 58s] [0;33mRunning update-gofmt[0m
+[Attempt 6 +59m 1s] [0;33mRunning update-golangci-lint-config[0m
+[Attempt 6 +59m 1s] [0;32mUpdate scripts completed successfully[0m

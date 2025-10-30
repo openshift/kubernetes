@@ -47,10 +47,10 @@ require (
 	github.com/opencontainers/cgroups v0.0.3
 	github.com/opencontainers/selinux v1.11.1
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20251024155203-c498f9efe478
-	github.com/openshift/api v0.0.0-20251028221238-1b67472a2ba8
-	github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d
-	github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
-	github.com/openshift/library-go v0.0.0-20251029104758-277736d6f195
+	github.com/openshift/api release-4.22
+	github.com/openshift/apiserver-library-go release-4.22
+	github.com/openshift/client-go release-4.22
+	github.com/openshift/library-go release-4.22
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
