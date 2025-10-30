@@ -110,7 +110,7 @@ func RoundtripToUnstructured(t *testing.T, scheme *runtime.Scheme, funcs fuzzer.
 				item.GetObjectKind().SetGroupVersionKind(gvk)
 
 				jsonSerializer := jsonserializer.NewSerializerWithOptions(jsonserializer.DefaultMetaFactory, scheme, scheme, jsonserializer.SerializerOptions{})
-				cborSerializer := cborserializer.NewSerializer(scheme, scheme, cborserializer.Transcode(false))
+				cborSerializer := cborserializer.NewSerializer(scheme, scheme)
 
 				// original->JSON->Unstructured
 				buf.Reset()
