@@ -1,0 +1,28 @@
+# Ignore build outputs (except binaries we need)
+_output/*
+!_output/local
+!_output/local/bin
+!_output/local/bin/linux
+!_output/local/bin/linux/amd64
+!_output/local/bin/linux/amd64/kube-apiserver
+!_output/local/bin/linux/amd64/kube-controller-manager
+!_output/local/bin/linux/amd64/kube-scheduler
+!_output/local/bin/linux/amd64/kubelet
+!_output/local/bin/linux/amd64/watch-termination
+!_output/local/bin/linux/amd64/k8s-tests-ext
+.git
+.github
+
+# Ignore test artifacts
+*.test
+*.log
+
+# Ignore IDE files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Ignore cache
+.cache
