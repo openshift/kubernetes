@@ -161,9 +161,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-45275
 			"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod",
-
-			// https://issues.redhat.com/browse/OCPBUGS-61376
-			"[sig-autoscaling] [Feature:HPA] Horizontal pod autoscaling",
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"RebaseInProgress": {
