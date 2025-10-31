@@ -92,6 +92,31 @@ var (
 						enableIn(configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
 						mustRegister()
 
+	// DRA dependent features - must be disabled when DRA is disabled to prevent apiserver startup failures
+	FeatureGateDRAAdminAccess = newFeatureGate("DRAAdminAccess").
+					reportProblemsToJiraComponent("scheduling").
+					contactPerson("jchaloup").
+					productScope(kubernetes).
+					enhancementPR("https://github.com/kubernetes/enhancements/issues/5075").
+					enableIn(configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
+					mustRegister()
+
+	FeatureGateDRAPrioritizedList = newFeatureGate("DRAPrioritizedList").
+					reportProblemsToJiraComponent("scheduling").
+					contactPerson("jchaloup").
+					productScope(kubernetes).
+					enhancementPR("https://github.com/kubernetes/enhancements/issues/4817").
+					enableIn(configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
+					mustRegister()
+
+	FeatureGateDRASchedulerFilterTimeout = newFeatureGate("DRASchedulerFilterTimeout").
+						reportProblemsToJiraComponent("scheduling").
+						contactPerson("jchaloup").
+						productScope(kubernetes).
+						enhancementPR("https://github.com/kubernetes/enhancements/issues/3973").
+						enableIn(configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
+						mustRegister()
+
 	FeatureGateAzureWorkloadIdentity = newFeatureGate("AzureWorkloadIdentity").
 						reportProblemsToJiraComponent("cloud-credential-operator").
 						contactPerson("abutcher").
