@@ -44,7 +44,7 @@ type simpleProvider struct {
 var _ SecurityContextConstraintsProvider = &simpleProvider{}
 
 // NewSimpleProvider creates a new SecurityContextConstraintsProvider instance.
-func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
+func NewSimpleProvider(scc *securityv1.SecurityContextConstraints, availableSysCtls []string) (SecurityContextConstraintsProvider, error) {
 	if scc == nil {
 		return nil, fmt.Errorf("NewSimpleProvider requires a SecurityContextConstraints")
 	}
@@ -79,7 +79,7 @@ func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityCont
 		return nil, err
 	}
 
-	sysctlsStrat, err := createSysctlsStrategy(sysctl.SafeSysctlAllowlist(), scc.AllowedUnsafeSysctls, scc.ForbiddenSysctls)
+	sysctlsStrat, err := createSysctlsStrategy(availableSysCtls, scc.AllowedUnsafeSysctls, scc.ForbiddenSysctls)
 	if err != nil {
 		return nil, err
 	}
