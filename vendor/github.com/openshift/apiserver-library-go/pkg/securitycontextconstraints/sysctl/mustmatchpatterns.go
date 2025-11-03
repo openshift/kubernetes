@@ -21,8 +21,10 @@ import (
 	"slices"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog/v2"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	utilkernel "k8s.io/kubernetes/pkg/util/kernel"
@@ -70,8 +72,10 @@ var newerSysctls = []sysctl{
 // A sysctl is called safe iff
 // - it is namespaced in the container or the pod
 // - it is isolated, i.e. has no influence on any other pod on the same node.
-func SafeSysctlAllowlist() []string {
-	return getSafeSysctlAllowlist(utilkernel.GetVersion)
+func SafeSysctlAllowlist(nodeLister corev1listers.NodeLister) []string {
+	return getSafeSysctlAllowlist(func() (*version.Version, error) {
+		return getMinKernelVersionAcrossAllNodes(nodeLister)
+	})
 }
 
 // getSafeSysctlAllowlist returns the list of safe sysctls that can be used.
@@ -79,12 +83,16 @@ func SafeSysctlAllowlist() []string {
 //  1. Always return the legacy list (known safe sysctls from previous releases).
 //  2. Conditionally add newer sysctls only if the detected kernel version
 //     is at least as new as required.
+//
+// The kernel version here refers to the minimum kernel version across all the nodes,
+// which ensures that any sysctls allowed are supported on every node in the cluster,
+// irrespective of where a pod is scheduled.
 func getSafeSysctlAllowlist(getVersion func() (*version.Version, error)) []string {
 	safeSysctlAllowlist := slices.Clone(legacySafeSysctls)
 
 	kernelVersion, err := getVersion()
 	if err != nil {
-		klog.Error(err, "failed to get kernel version, falling back to legacy safe sysctl list")
+		klog.Error(err, "failed to determine the minimum kernel version across all the nodes, falling back to legacy safe sysctl list")
 		return safeSysctlAllowlist
 	}
 
@@ -182,4 +190,32 @@ func (s *mustMatchPatterns) Validate(pod *api.Pod) field.ErrorList {
 	}
 
 	return allErrs
+}
+
+// getMinKernelVersionAcrossAllNodes returns the minimum kernel version across all the
+// nodes in the cluster
+func getMinKernelVersionAcrossAllNodes(nodeLister corev1listers.NodeLister) (*version.Version, error) {
+	nodes, err := nodeLister.List(labels.Everything())
+	if err != nil {
+		return nil, fmt.Errorf("failed to list the nodes: %v", err)
+	}
+
+	var minVersion *version.Version
+	for _, node := range nodes {
+		nodeVersion, err := version.ParseGeneric(node.Status.NodeInfo.KernelVersion)
+		if err != nil {
+			klog.Warningf("failed to parse kernel version for node %s: %v", node.Name, err)
+			continue
+		}
+
+		if minVersion == nil || nodeVersion.LessThan(minVersion) {
+			minVersion = nodeVersion
+		}
+	}
+
+	if minVersion == nil {
+		return nil, fmt.Errorf("no worker nodes found")
+	}
+
+	return minVersion, nil
 }
