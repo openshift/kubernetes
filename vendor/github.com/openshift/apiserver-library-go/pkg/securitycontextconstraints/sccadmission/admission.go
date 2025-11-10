@@ -47,6 +47,7 @@ type constraint struct {
 	*admission.Handler
 	sccLister       securityv1listers.SecurityContextConstraintsLister
 	namespaceLister corev1listers.NamespaceLister
+	nodeLister      corev1listers.NodeLister
 	listersSynced   []cache.InformerSynced
 	authorizer      authorizer.Authorizer
 }
@@ -213,7 +214,7 @@ func (c *constraint) computeSecurityContext(
 		return nil, nil, nil, admission.NewForbidden(a, err)
 	}
 
-	providers, errs := sccmatching.CreateProvidersFromConstraints(ctx, a.GetNamespace(), constraints, c.namespaceLister)
+	providers, errs := sccmatching.CreateProvidersFromConstraints(ctx, a.GetNamespace(), constraints, c.namespaceLister, c.nodeLister)
 	logProviders(pod, providers, errs)
 	if len(errs) > 0 {
 		return nil, nil, nil, kutilerrors.NewAggregate(errs)
@@ -509,6 +510,7 @@ func (c *constraint) SetSecurityInformers(informers securityv1informer.SecurityC
 
 func (c *constraint) SetExternalKubeInformerFactory(informers informers.SharedInformerFactory) {
 	c.namespaceLister = informers.Core().V1().Namespaces().Lister()
+	c.nodeLister = informers.Core().V1().Nodes().Lister()
 	c.listersSynced = append(c.listersSynced, informers.Core().V1().Namespaces().Informer().HasSynced)
 }
 
@@ -526,6 +528,9 @@ func (c *constraint) ValidateInitialization() error {
 	}
 	if c.namespaceLister == nil {
 		return fmt.Errorf("%s requires a namespaceLister", PluginName)
+	}
+	if c.nodeLister == nil {
+		return fmt.Errorf("%s requires a nodeLister", PluginName)
 	}
 	if c.authorizer == nil {
 		return fmt.Errorf("%s requires an authorizer", PluginName)
