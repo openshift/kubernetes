@@ -4532,7 +4532,7 @@ func ValidatePodSpec(spec *core.PodSpec, podMeta *metav1.ObjectMeta, fldPath *fi
 	allErrs = append(allErrs, validateRestartPolicy(&spec.RestartPolicy, fldPath.Child("restartPolicy"))...)
 	allErrs = append(allErrs, validateDNSPolicy(&spec.DNSPolicy, fldPath.Child("dnsPolicy"))...)
 	allErrs = append(allErrs, unversionedvalidation.ValidateLabels(spec.NodeSelector, fldPath.Child("nodeSelector"))...)
-	allErrs = append(allErrs, validatePodSpecSecurityContext(spec.SecurityContext, spec, fldPath, fldPath.Child("securityContext"), opts)...)
+	allErrs = append(allErrs, validatePodSpecSecurityContext(spec.SecurityContext, spec, fldPath, fldPath.Child("securityContext"), opts, hostUsers)...)
 	allErrs = append(allErrs, validateImagePullSecrets(spec.ImagePullSecrets, fldPath.Child("imagePullSecrets"))...)
 	allErrs = append(allErrs, validateAffinity(spec.Affinity, opts, fldPath.Child("affinity"))...)
 	allErrs = append(allErrs, validatePodDNSConfig(spec.DNSConfig, &spec.DNSPolicy, fldPath.Child("dnsConfig"), opts)...)
@@ -5402,7 +5402,7 @@ func validateSELinuxChangePolicy(seLinuxChangePolicy *core.PodSELinuxChangePolic
 // validatePodSpecSecurityContext verifies the SecurityContext of a PodSpec,
 // whether that is defined in a Pod or in an embedded PodSpec (e.g. a
 // Deployment's pod template).
-func validatePodSpecSecurityContext(securityContext *core.PodSecurityContext, spec *core.PodSpec, specPath, fldPath *field.Path, opts PodValidationOptions) field.ErrorList {
+func validatePodSpecSecurityContext(securityContext *core.PodSecurityContext, spec *core.PodSpec, specPath, fldPath *field.Path, opts PodValidationOptions, hostUsers bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if securityContext != nil {
@@ -5410,20 +5410,36 @@ func validatePodSpecSecurityContext(securityContext *core.PodSecurityContext, sp
 			for _, msg := range validation.IsValidGroupID(*securityContext.FSGroup) {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("fsGroup"), *(securityContext.FSGroup), msg))
 			}
+			// When user namespaces are enabled (hostUsers=false), GIDs must be in range 0-65535
+			if !hostUsers && *securityContext.FSGroup > 65534 {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("fsGroup"), *securityContext.FSGroup, "must be between 0 and 65535 when user namespaces are enabled (hostUsers=false)"))
+			}
 		}
 		if securityContext.RunAsUser != nil {
 			for _, msg := range validation.IsValidUserID(*securityContext.RunAsUser) {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsUser"), *(securityContext.RunAsUser), msg))
+			}
+			// When user namespaces are enabled (hostUsers=false), UIDs must be in range 0-65535
+			if !hostUsers && *securityContext.RunAsUser > 65534 {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsUser"), *securityContext.RunAsUser, "must be between 0 and 65535 when user namespaces are enabled (hostUsers=false)"))
 			}
 		}
 		if securityContext.RunAsGroup != nil {
 			for _, msg := range validation.IsValidGroupID(*securityContext.RunAsGroup) {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsGroup"), *(securityContext.RunAsGroup), msg))
 			}
+			// When user namespaces are enabled (hostUsers=false), GIDs must be in range 0-65535
+			if !hostUsers && *securityContext.RunAsGroup > 65534 {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsGroup"), *securityContext.RunAsGroup, "must be between 0 and 65535 when user namespaces are enabled (hostUsers=false)"))
+			}
 		}
 		for g, gid := range securityContext.SupplementalGroups {
 			for _, msg := range validation.IsValidGroupID(gid) {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("supplementalGroups").Index(g), gid, msg))
+			}
+			// When user namespaces are enabled (hostUsers=false), GIDs must be in range 0-65535
+			if !hostUsers && gid > 65534 {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("supplementalGroups").Index(g), gid, "must be between 0 and 65535 when user namespaces are enabled (hostUsers=false)"))
 			}
 		}
 		if securityContext.ShareProcessNamespace != nil && securityContext.HostPID && *securityContext.ShareProcessNamespace {
@@ -8072,11 +8088,19 @@ func ValidateSecurityContext(sc *core.SecurityContext, fldPath *field.Path, host
 		for _, msg := range validation.IsValidUserID(*sc.RunAsUser) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsUser"), *sc.RunAsUser, msg))
 		}
+		// When user namespaces are enabled (hostUsers=false), UIDs must be in range 0-65535
+		if !hostUsers && *sc.RunAsUser > 65534 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsUser"), *sc.RunAsUser, "must be between 0 and 65535 when user namespaces are enabled (hostUsers=false)"))
+		}
 	}
 
 	if sc.RunAsGroup != nil {
 		for _, msg := range validation.IsValidGroupID(*sc.RunAsGroup) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsGroup"), *sc.RunAsGroup, msg))
+		}
+		// When user namespaces are enabled (hostUsers=false), GIDs must be in range 0-65535
+		if !hostUsers && *sc.RunAsGroup > 65534 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsGroup"), *sc.RunAsGroup, "must be between 0 and 65535 when user namespaces are enabled (hostUsers=false)"))
 		}
 	}
 
