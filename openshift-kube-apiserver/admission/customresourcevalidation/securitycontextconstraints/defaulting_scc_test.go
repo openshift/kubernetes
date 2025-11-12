@@ -81,6 +81,9 @@ func TestDefaultingHappens(t *testing.T) {
 	"priority": null,
 	"readOnlyRootFilesystem": false,
 	"requiredDropCapabilities": null,
+	"runAsGroup": {
+		"type": "RunAsAny"
+	},
 	"runAsUser": {
 		"type": "RunAsAny"
 	},

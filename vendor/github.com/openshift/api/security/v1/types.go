@@ -125,6 +125,10 @@ type SecurityContextConstraints struct {
 	// runAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
 	// +nullable
 	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" protobuf:"bytes,14,opt,name=runAsUser"`
+	// runAsGroup is the strategy that will dictate what RunAsGroup is used in the SecurityContext.
+	// +nullable
+	// +optional
+	RunAsGroup RunAsGroupStrategyOptions `json:"runAsGroup,omitempty" protobuf:"bytes,27,opt,name=runAsGroup"`
 	// supplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
 	// +nullable
 	SupplementalGroups SupplementalGroupsStrategyOptions `json:"supplementalGroups,omitempty" protobuf:"bytes,15,opt,name=supplementalGroups"`
@@ -268,6 +272,18 @@ type SupplementalGroupsStrategyOptions struct {
 	Ranges []IDRange `json:"ranges,omitempty" protobuf:"bytes,2,rep,name=ranges"`
 }
 
+// RunAsGroupStrategyOptions defines the strategy type and any options used to create the strategy.
+type RunAsGroupStrategyOptions struct {
+	// type is the strategy that will dictate what RunAsGroup is used in the SecurityContext.
+	Type RunAsGroupStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=RunAsGroupStrategyType"`
+	// gid is the group id that containers must run as.  Required for the MustRunAs strategy if not using
+	// namespace/service account allocated gids.
+	GID *int64 `json:"gid,omitempty" protobuf:"varint,2,opt,name=gid"`
+	// ranges are the allowed ranges of gids that may be used.
+	// +listType=atomic
+	Ranges []IDRange `json:"ranges,omitempty" protobuf:"bytes,3,rep,name=ranges"`
+}
+
 // IDRange provides a min/max of an allowed range of IDs.
 // TODO: this could be reused for UIDs.
 type IDRange struct {
@@ -295,6 +311,10 @@ type SupplementalGroupsStrategyType string
 // FSGroupStrategyType denotes strategy types for generating FSGroup values for a
 // SecurityContext
 type FSGroupStrategyType string
+
+// RunAsGroupStrategyType denotes strategy types for generating RunAsGroup values for a
+// SecurityContext
+type RunAsGroupStrategyType string
 
 const (
 	// NamespaceLevelAllowHost allows a pod to set `hostUsers` field to either `true` or `false`
@@ -325,6 +345,11 @@ const (
 	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
 	// container may make requests for any gid.
 	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
+
+	// container must run as a particular gid.
+	RunAsGroupStrategyMustRunAs RunAsGroupStrategyType = "MustRunAs"
+	// container may make requests for any gid.
+	RunAsGroupStrategyRunAsAny RunAsGroupStrategyType = "RunAsAny"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

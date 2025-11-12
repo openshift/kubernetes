@@ -70,6 +70,23 @@ func ValidateSecurityContextConstraints(scc *securityv1.SecurityContextConstrain
 	}
 	allErrs = append(allErrs, validateIDRanges(scc.SupplementalGroups.Ranges, field.NewPath("supplementalGroups"))...)
 
+	// ensure the runAsGroup strategy has a valid type
+	if len(scc.RunAsGroup.Type) > 0 {
+		if scc.RunAsGroup.Type != securityv1.RunAsGroupStrategyMustRunAs &&
+			scc.RunAsGroup.Type != securityv1.RunAsGroupStrategyRunAsAny {
+			allErrs = append(allErrs, field.NotSupported(field.NewPath("runAsGroup", "type"), scc.RunAsGroup.Type,
+				[]string{string(securityv1.RunAsGroupStrategyMustRunAs), string(securityv1.RunAsGroupStrategyRunAsAny)}))
+		}
+		allErrs = append(allErrs, validateIDRanges(scc.RunAsGroup.Ranges, field.NewPath("runAsGroup"))...)
+
+		// if specified, gid cannot be negative
+		if scc.RunAsGroup.GID != nil {
+			if *scc.RunAsGroup.GID < 0 {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("runAsGroup").Child("gid"), *scc.RunAsGroup.GID, "gid cannot be negative"))
+			}
+		}
+	}
+
 	// validate capabilities
 	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.DefaultAddCapabilities, field.NewPath("defaultAddCapabilities"))...)
 	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.AllowedCapabilities, field.NewPath("allowedCapabilities"))...)

@@ -7,7 +7,7 @@ import (
 	sccutil "github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util"
 )
 
-// Default SCCs for new fields.  FSGroup and SupplementalGroups are
+// Default SCCs for new fields.  FSGroup, SupplementalGroups, and RunAsGroup are
 // set to the RunAsAny strategy if they are unset on the scc.
 func SetDefaults_SCC(scc *securityv1.SecurityContextConstraints) {
 	if len(scc.FSGroup.Type) == 0 {
@@ -15,6 +15,9 @@ func SetDefaults_SCC(scc *securityv1.SecurityContextConstraints) {
 	}
 	if len(scc.SupplementalGroups.Type) == 0 {
 		scc.SupplementalGroups.Type = securityv1.SupplementalGroupsStrategyRunAsAny
+	}
+	if len(scc.RunAsGroup.Type) == 0 {
+		scc.RunAsGroup.Type = securityv1.RunAsGroupStrategyRunAsAny
 	}
 
 	if scc.Users == nil {
