@@ -73,9 +73,10 @@ func ValidateSecurityContextConstraints(scc *securityv1.SecurityContextConstrain
 	// ensure the runAsGroup strategy has a valid type
 	if len(scc.RunAsGroup.Type) > 0 {
 		if scc.RunAsGroup.Type != securityv1.RunAsGroupStrategyMustRunAs &&
+			scc.RunAsGroup.Type != securityv1.RunAsGroupStrategyMustRunAsRange &&
 			scc.RunAsGroup.Type != securityv1.RunAsGroupStrategyRunAsAny {
 			allErrs = append(allErrs, field.NotSupported(field.NewPath("runAsGroup", "type"), scc.RunAsGroup.Type,
-				[]string{string(securityv1.RunAsGroupStrategyMustRunAs), string(securityv1.RunAsGroupStrategyRunAsAny)}))
+				[]string{string(securityv1.RunAsGroupStrategyMustRunAs), string(securityv1.RunAsGroupStrategyMustRunAsRange), string(securityv1.RunAsGroupStrategyRunAsAny)}))
 		}
 		allErrs = append(allErrs, validateIDRanges(scc.RunAsGroup.Ranges, field.NewPath("runAsGroup"))...)
 

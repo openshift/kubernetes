@@ -348,6 +348,8 @@ const (
 
 	// container must run as a particular gid.
 	RunAsGroupStrategyMustRunAs RunAsGroupStrategyType = "MustRunAs"
+	// container must run with a gid in a range.
+	RunAsGroupStrategyMustRunAsRange RunAsGroupStrategyType = "MustRunAsRange"
 	// container may make requests for any gid.
 	RunAsGroupStrategyRunAsAny RunAsGroupStrategyType = "RunAsAny"
 )
