@@ -82,7 +82,13 @@ func TestDefaultingHappens(t *testing.T) {
 	"readOnlyRootFilesystem": false,
 	"requiredDropCapabilities": null,
 	"runAsGroup": {
-		"type": "RunAsAny"
+		"ranges": [
+			{
+				"max": 65534,
+				"min": 1000
+			}
+		],
+		"type": "MustRunAs"
 	},
 	"runAsUser": {
 		"type": "RunAsAny"
