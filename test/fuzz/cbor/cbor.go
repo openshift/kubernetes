@@ -29,8 +29,8 @@ import (
 var (
 	scheme      = runtime.NewScheme()
 	serializers = []cbor.Serializer{
-		cbor.NewSerializer(scheme, scheme),
-		cbor.NewSerializer(scheme, scheme, cbor.Strict(true)),
+		cbor.NewSerializer(scheme, scheme, cbor.Transcode(false)),
+		cbor.NewSerializer(scheme, scheme, cbor.Strict(true), cbor.Transcode(false)),
 	}
 )
 
