@@ -124,8 +124,13 @@ require (
 	k8s.io/mount-utils v0.0.0
 	k8s.io/pod-security-admission v0.0.0
 	k8s.io/sample-apiserver v0.0.0
+<<<<<<< HEAD
 	k8s.io/system-validators v1.9.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
+=======
+	k8s.io/system-validators v1.9.2
+	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+>>>>>>> v1.33.6
 	sigs.k8s.io/knftables v0.0.17
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0
