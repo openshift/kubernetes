@@ -501,6 +501,12 @@ func (c *Cacher) Watch(ctx context.Context, key string, opts storage.ListOptions
 		var downtime time.Duration
 		readyGeneration, downtime, err = c.ready.checkAndReadGeneration()
 		if err != nil {
+			audit.AddAuditAnnotation(ctx, "openshift.io/watch-reject-reason", "storage_initializing")
+			msg := err.Error()
+			if len(msg) > 1024 {
+				msg = msg[:1024] + "…"
+			}
+			audit.AddAuditAnnotation(ctx, "openshift.io/watch-reject-message", msg)
 			return nil, errors.NewTooManyRequests(err.Error(), calculateRetryAfterForUnreadyCache(downtime))
 		}
 	} else {

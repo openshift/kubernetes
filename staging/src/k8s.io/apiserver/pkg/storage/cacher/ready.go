@@ -18,12 +18,18 @@ package cacher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"k8s.io/utils/clock"
 )
+
+// ErrStorageInitializing is returned when the cacher is still initializing.
+// This allows callers to detect this specific condition and handle it
+// (e.g., add an audit annotation or return HTTP 429).
+var ErrStorageInitializing = errors.New("storage is (re)initializing")
 
 type status int
 
@@ -122,10 +128,9 @@ func (r *ready) readGenerationLocked() (int, error) {
 	switch r.state {
 	case Pending:
 		if r.lastErr == nil {
-			return 0, fmt.Errorf("storage is (re)initializing")
-		} else {
-			return 0, fmt.Errorf("storage is (re)initializing: %w", r.lastErr)
+			return 0, ErrStorageInitializing
 		}
+		return 0, fmt.Errorf("%w: %v", ErrStorageInitializing, r.lastErr)
 	case Ready:
 		return r.generation, nil
 	case Stopped:
