@@ -23086,17 +23086,35 @@ func TestValidateSecurityContext(t *testing.T) {
 	procMountUnmasked := fullValidSC()
 	procMountUnmasked.ProcMount = &umPmt
 
+	// Test user namespace limits - valid cases
+	validUserNsUser := fullValidSC()
+	validUID := int64(65534) // Max valid UID for user namespaces
+	validUserNsUser.RunAsUser = &validUID
+
+	validUserNsGroup := fullValidSC()
+	validGID := int64(65534) // Max valid GID for user namespaces
+	validUserNsGroup.RunAsGroup = &validGID
+
+	beyondLimitWithHostUsers := fullValidSC()
+	highUID := int64(100000)
+	highGID := int64(100000)
+	beyondLimitWithHostUsers.RunAsUser = &highUID
+	beyondLimitWithHostUsers.RunAsGroup = &highGID
+
 	successCases := map[string]struct {
 		sc        *core.SecurityContext
 		hostUsers bool
 	}{
-		"all settings":        {allSettings, false},
-		"no capabilities":     {noCaps, false},
-		"no selinux":          {noSELinux, false},
-		"no priv request":     {noPrivRequest, false},
-		"no run as user":      {noRunAsUser, false},
-		"proc mount set":      {procMountSet, true},
-		"proc mount unmasked": {procMountUnmasked, false},
+		"all settings":                         {allSettings, false},
+		"no capabilities":                      {noCaps, false},
+		"no selinux":                           {noSELinux, false},
+		"no priv request":                      {noPrivRequest, false},
+		"no run as user":                       {noRunAsUser, false},
+		"proc mount set":                       {procMountSet, true},
+		"proc mount unmasked":                  {procMountUnmasked, false},
+		"valid user namespace uid at boundary": {validUserNsUser, false},
+		"valid user namespace gid at boundary": {validUserNsGroup, false},
+		"high uid/gid with hostUsers true":     {beyondLimitWithHostUsers, true},
 	}
 	for k, v := range successCases {
 		if errs := ValidateSecurityContext(v.sc, field.NewPath("field"), v.hostUsers); len(errs) != 0 {
@@ -23119,37 +23137,84 @@ func TestValidateSecurityContext(t *testing.T) {
 	capSysAdminWithoutEscalation.Capabilities.Add = []core.Capability{"CAP_SYS_ADMIN"}
 	capSysAdminWithoutEscalation.AllowPrivilegeEscalation = ptr.To(false)
 
+	// Test user namespace limits - error cases
+	invalidUserNsUserBoundary := fullValidSC()
+	invalidUID := int64(65535) // One above max valid UID for user namespaces
+	invalidUserNsUserBoundary.RunAsUser = &invalidUID
+
+	invalidUserNsUserHigh := fullValidSC()
+	veryHighUID := int64(100000) // Way above limit
+	invalidUserNsUserHigh.RunAsUser = &veryHighUID
+
+	invalidUserNsGroupBoundary := fullValidSC()
+	invalidGID := int64(65535) // One above max valid GID for user namespaces
+	invalidUserNsGroupBoundary.RunAsGroup = &invalidGID
+
+	invalidUserNsGroupHigh := fullValidSC()
+	veryHighGID := int64(100000) // Way above limit
+	invalidUserNsGroupHigh.RunAsGroup = &veryHighGID
+
 	errorCases := map[string]struct {
 		sc           *core.SecurityContext
 		errorType    field.ErrorType
 		errorDetail  string
 		capAllowPriv bool
+		hostUsers    bool
 	}{
 		"request privileged when capabilities forbids": {
 			sc:          privRequestWithGlobalDeny,
 			errorType:   "FieldValueForbidden",
 			errorDetail: "disallowed by cluster policy",
+			hostUsers:   true,
 		},
 		"negative RunAsUser": {
 			sc:          negativeRunAsUser,
 			errorType:   "FieldValueInvalid",
 			errorDetail: "must be between",
+			hostUsers:   true,
 		},
 		"with CAP_SYS_ADMIN and allowPrivilegeEscalation false": {
 			sc:          capSysAdminWithoutEscalation,
 			errorType:   "FieldValueInvalid",
 			errorDetail: "cannot set `allowPrivilegeEscalation` to false and `capabilities.Add` CAP_SYS_ADMIN",
+			hostUsers:   true,
 		},
 		"with privileged and allowPrivilegeEscalation false": {
 			sc:           privWithoutEscalation,
 			errorType:    "FieldValueInvalid",
 			errorDetail:  "cannot set `allowPrivilegeEscalation` to false and `privileged` to true",
 			capAllowPriv: true,
+			hostUsers:    true,
 		},
 		"with unmasked proc mount type and no user namespace": {
 			sc:          procMountUnmasked,
 			errorType:   "FieldValueInvalid",
 			errorDetail: "`hostUsers` must be false to use `Unmasked`",
+			hostUsers:   true,
+		},
+		"runAsUser exceeds user namespace boundary": {
+			sc:          invalidUserNsUserBoundary,
+			errorType:   "FieldValueInvalid",
+			errorDetail: "must be between 0 and 65535 when user namespaces are enabled",
+			hostUsers:   false,
+		},
+		"runAsUser exceeds user namespace limit": {
+			sc:          invalidUserNsUserHigh,
+			errorType:   "FieldValueInvalid",
+			errorDetail: "must be between 0 and 65535 when user namespaces are enabled",
+			hostUsers:   false,
+		},
+		"runAsGroup exceeds user namespace boundary": {
+			sc:          invalidUserNsGroupBoundary,
+			errorType:   "FieldValueInvalid",
+			errorDetail: "must be between 0 and 65535 when user namespaces are enabled",
+			hostUsers:   false,
+		},
+		"runAsGroup exceeds user namespace limit": {
+			sc:          invalidUserNsGroupHigh,
+			errorType:   "FieldValueInvalid",
+			errorDetail: "must be between 0 and 65535 when user namespaces are enabled",
+			hostUsers:   false,
 		},
 	}
 	for k, v := range errorCases {
@@ -23157,11 +23222,149 @@ func TestValidateSecurityContext(t *testing.T) {
 		capabilities.Initialize(capabilities.Capabilities{
 			AllowPrivileged: v.capAllowPriv,
 		})
-		// note the unconditional `true` here for hostUsers. The failure case to test for ProcMount only includes it being true,
-		// and the field is ignored if ProcMount isn't set. Thus, we can unconditionally set to `true` and simplify the test matrix setup.
-		if errs := ValidateSecurityContext(v.sc, field.NewPath("field"), true); len(errs) == 0 || errs[0].Type != v.errorType || !strings.Contains(errs[0].Detail, v.errorDetail) {
+		if errs := ValidateSecurityContext(v.sc, field.NewPath("field"), v.hostUsers); len(errs) == 0 || errs[0].Type != v.errorType || !strings.Contains(errs[0].Detail, v.errorDetail) {
 			t.Errorf("[%s] Expected error type %q with detail %q, got %v", k, v.errorType, v.errorDetail, errs)
 		}
+	}
+}
+
+func TestValidatePodSecurityContextUserNamespaceLimits(t *testing.T) {
+	validUID := int64(65534)
+	invalidUID := int64(65535)
+	veryHighUID := int64(100000)
+	validGID := int64(65534)
+	invalidGID := int64(65535)
+	veryHighGID := int64(100000)
+
+	successCases := []struct {
+		name      string
+		sc        *core.PodSecurityContext
+		hostUsers bool
+	}{
+		{
+			name: "valid fsGroup at boundary with hostUsers false",
+			sc: &core.PodSecurityContext{
+				FSGroup: &validGID,
+			},
+			hostUsers: false,
+		},
+		{
+			name: "valid runAsUser at boundary with hostUsers false",
+			sc: &core.PodSecurityContext{
+				RunAsUser: &validUID,
+			},
+			hostUsers: false,
+		},
+		{
+			name: "valid runAsGroup at boundary with hostUsers false",
+			sc: &core.PodSecurityContext{
+				RunAsGroup: &validGID,
+			},
+			hostUsers: false,
+		},
+		{
+			name: "valid supplementalGroups at boundary with hostUsers false",
+			sc: &core.PodSecurityContext{
+				SupplementalGroups: []int64{0, 1000, validGID},
+			},
+			hostUsers: false,
+		},
+		{
+			name: "high values allowed with hostUsers true",
+			sc: &core.PodSecurityContext{
+				FSGroup:            &veryHighGID,
+				RunAsUser:          &veryHighUID,
+				RunAsGroup:         &veryHighGID,
+				SupplementalGroups: []int64{veryHighGID},
+			},
+			hostUsers: true,
+		},
+	}
+
+	for _, tc := range successCases {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := &core.PodSpec{
+				SecurityContext: tc.sc,
+				RestartPolicy:   core.RestartPolicyAlways,
+				Containers:      []core.Container{{Name: "test", Image: "test"}},
+			}
+			errs := validatePodSpecSecurityContext(tc.sc, spec, field.NewPath("spec"), field.NewPath("spec", "securityContext"), PodValidationOptions{}, tc.hostUsers)
+			if len(errs) != 0 {
+				t.Errorf("Expected success, got %v", errs)
+			}
+		})
+	}
+
+	errorCases := []struct {
+		name        string
+		sc          *core.PodSecurityContext
+		hostUsers   bool
+		expectedErr string
+	}{
+		{
+			name: "fsGroup exceeds limit with hostUsers false",
+			sc: &core.PodSecurityContext{
+				FSGroup: &invalidGID,
+			},
+			hostUsers:   false,
+			expectedErr: "must be between 0 and 65535 when user namespaces are enabled",
+		},
+		{
+			name: "runAsUser exceeds limit with hostUsers false",
+			sc: &core.PodSecurityContext{
+				RunAsUser: &invalidUID,
+			},
+			hostUsers:   false,
+			expectedErr: "must be between 0 and 65535 when user namespaces are enabled",
+		},
+		{
+			name: "runAsGroup exceeds limit with hostUsers false",
+			sc: &core.PodSecurityContext{
+				RunAsGroup: &invalidGID,
+			},
+			hostUsers:   false,
+			expectedErr: "must be between 0 and 65535 when user namespaces are enabled",
+		},
+		{
+			name: "supplementalGroups exceeds limit with hostUsers false",
+			sc: &core.PodSecurityContext{
+				SupplementalGroups: []int64{1000, invalidGID, 2000},
+			},
+			hostUsers:   false,
+			expectedErr: "must be between 0 and 65535 when user namespaces are enabled",
+		},
+		{
+			name: "very high fsGroup with hostUsers false",
+			sc: &core.PodSecurityContext{
+				FSGroup: &veryHighGID,
+			},
+			hostUsers:   false,
+			expectedErr: "must be between 0 and 65535 when user namespaces are enabled",
+		},
+		{
+			name: "very high runAsUser with hostUsers false",
+			sc: &core.PodSecurityContext{
+				RunAsUser: &veryHighUID,
+			},
+			hostUsers:   false,
+			expectedErr: "must be between 0 and 65535 when user namespaces are enabled",
+		},
+	}
+
+	for _, tc := range errorCases {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := &core.PodSpec{
+				SecurityContext: tc.sc,
+				RestartPolicy:   core.RestartPolicyAlways,
+				Containers:      []core.Container{{Name: "test", Image: "test"}},
+			}
+			errs := validatePodSpecSecurityContext(tc.sc, spec, field.NewPath("spec"), field.NewPath("spec", "securityContext"), PodValidationOptions{}, tc.hostUsers)
+			if len(errs) == 0 {
+				t.Errorf("Expected error, got none")
+			} else if !strings.Contains(errs[0].Error(), tc.expectedErr) {
+				t.Errorf("Expected error containing %q, got %v", tc.expectedErr, errs[0])
+			}
+		})
 	}
 }
 
