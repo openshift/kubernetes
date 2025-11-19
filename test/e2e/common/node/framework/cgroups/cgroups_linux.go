@@ -17,13 +17,42 @@ limitations under the License.
 package cgroups
 
 import (
+<<<<<<< HEAD
 	"strconv"
 
 	libcontainercgroups "github.com/opencontainers/cgroups"
+=======
+	"math"
+	"strconv"
+
+>>>>>>> v1.34.2
 	v1 "k8s.io/api/core/v1"
 	kubecm "k8s.io/kubernetes/pkg/kubelet/cm"
 )
 
+<<<<<<< HEAD
+=======
+// convertCPUSharesToCgroupV2Value is copied from ConvertCPUSharesToCgroupV2Value in opencontainers/cgroups.
+// https://github.com/opencontainers/cgroups/pull/20/files
+func convertCPUSharesToCgroupV2Value(cpuShares uint64) uint64 {
+	// The value of 0 means "unset".
+	if cpuShares == 0 {
+		return 0
+	}
+	if cpuShares <= 2 {
+		return 1
+	}
+	if cpuShares >= 262144 {
+		return 10000
+	}
+	l := math.Log2(float64(cpuShares))
+	// Quadratic function which fits min, max, and default.
+	exponent := (l*l+125*l)/612.0 - 7.0/34.0
+
+	return uint64(math.Ceil(math.Pow(10, exponent)))
+}
+
+>>>>>>> v1.34.2
 func getExpectedCPUShares(rr *v1.ResourceRequirements, podOnCgroupv2 bool) []string {
 	// This function is moved out from cgroups.go because opencontainers/cgroups can only be compiled in linux platforms.
 	cpuRequest := rr.Requests.Cpu()
@@ -42,7 +71,11 @@ func getExpectedCPUShares(rr *v1.ResourceRequirements, podOnCgroupv2 bool) []str
 		// container runtimes, we check if either the old or the new conversion matches the actual value for now.
 		// TODO: Remove the old conversion once container runtimes are updated.
 		oldConverted := 1 + ((shares-2)*9999)/262142
+<<<<<<< HEAD
 		converted := libcontainercgroups.ConvertCPUSharesToCgroupV2Value(uint64(shares))
+=======
+		converted := convertCPUSharesToCgroupV2Value(uint64(shares))
+>>>>>>> v1.34.2
 		return []string{strconv.FormatInt(oldConverted, 10), strconv.FormatInt(int64(converted), 10)}
 	} else {
 		return []string{strconv.FormatInt(shares, 10)}
