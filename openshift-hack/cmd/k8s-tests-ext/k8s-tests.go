@@ -49,6 +49,7 @@ func main() {
 	// Create our registry of openshift-tests extensions
 	extensionRegistry := e.NewRegistry()
 	kubeTestsExtension := e.NewExtension("openshift", "payload", "hyperkube")
+	kubeTestsExtension.Source.SourceURL = "https://github.com/openshift/kubernetes"
 	extensionRegistry.Register(kubeTestsExtension)
 
 	// Carve up the kube tests into our openshift suites...
