@@ -29,7 +29,6 @@ import (
 	"github.com/opencontainers/cgroups/fscommon"
 	libcontainercgroupmanager "github.com/opencontainers/cgroups/manager"
 	cgroupsystemd "github.com/opencontainers/cgroups/systemd"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"k8s.io/klog/v2"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 
@@ -409,7 +408,7 @@ func (m *cgroupCommon) Create(logger klog.Logger, cgroupConfig *CgroupConfig) er
 		if err := os.MkdirAll(path, 0o755); err != nil {
 			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)
 		}
-		if err := cgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
+		if err := libcontainercgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
 			return err
 		}
 	}
