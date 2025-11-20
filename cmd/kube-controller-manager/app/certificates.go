@@ -388,23 +388,24 @@ func getKubeAPIServerCAFileContents(controllerContext ControllerContext) ([]byte
 
 }
 
-func newServiceCACertPublisher() *ControllerDescriptor {
+func newServiceCACertPublisherControllerDescriptor() *ControllerDescriptor {
 	return &ControllerDescriptor{
-		name:     names.ServiceCACertificatePublisherController,
-		aliases:  []string{"service-ca-cert-publisher"},
-		initFunc: startServiceCACertPublisher,
+		name:        names.ServiceCACertificatePublisherController,
+		aliases:     []string{"service-ca-cert-publisher"},
+		constructor: newServiceCACertPublisherController,
 	}
 }
 
-func startServiceCACertPublisher(ctx context.Context, controllerContext ControllerContext, controllerName string) (controller.Interface, bool, error) {
+func newServiceCACertPublisherController(ctx context.Context, controllerContext ControllerContext, controllerName string) (Controller, error) {
 	sac, err := servicecacertpublisher.NewPublisher(
 		controllerContext.InformerFactory.Core().V1().ConfigMaps(),
 		controllerContext.InformerFactory.Core().V1().Namespaces(),
 		controllerContext.ClientBuilder.ClientOrDie("service-ca-cert-publisher"),
 	)
 	if err != nil {
-		return nil, true, fmt.Errorf("error creating service CA certificate publisher: %v", err)
+		return nil, fmt.Errorf("error creating service CA certificate publisher: %w", err)
 	}
-	go sac.Run(1, ctx.Done())
-	return nil, true, nil
+	return newControllerLoop(func(ctx context.Context) {
+		sac.Run(ctx, 1)
+	}, controllerName), nil
 }
