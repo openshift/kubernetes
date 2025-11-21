@@ -160,6 +160,7 @@ func withExcludedTestsFilter(baseExpr string) string {
 		"[Slow]",
 		"[Flaky]",
 		"[Local]",
+		"[Feature:HPA]", // We enable these tests through its own HPA prow job
 	}
 
 	filter := ""

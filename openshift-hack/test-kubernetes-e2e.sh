@@ -32,6 +32,8 @@ TEST_SUITE="${TEST_SUITE:-parallel}"
 COMMON_SKIPS="\[Slow\]|\[Disruptive\]|\[Flaky\]|\[Disabled:.+\]|\[Skipped:${PLATFORM}\]|${NETWORK_SKIPS}"
 # Skip tests for features that require a TechPreview cluster. TODO: Remove when the feature is enabled by default.
 COMMON_SKIPS="\[OCPFeatureGate:VolumeGroupSnapshot\]|\[Feature:OffByDefault\]|\[DRA\]|${COMMON_SKIPS}"
+# Skip HPA tests because they use a heavy resources in parallel and flake. There is a separate HPA prow job that runs these tests.
+COMMON_SKIPS="${COMMON_SKIPS}|\[Feature:HPA\]"
 
 case "${TEST_SUITE}" in
 serial)
