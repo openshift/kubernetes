@@ -124,11 +124,15 @@ func parseGetSubIdsOutput(input string) (uint32, uint32, error) {
 // If subordinate user or group ID ranges are specified for the kubelet user and the getsubids tool
 // is installed, then the single mapping specified both for user and group IDs will be used.
 // If the tool is not installed, or there are no IDs configured, the default mapping is returned.
-// The default mapping includes the entire IDs range except IDs below 65536.
-func (kl *Kubelet) getKubeletMappings() (uint32, uint32, error) {
+// The default mapping includes the entire IDs range except IDs below idsPerPod.
+func (kl *Kubelet) getKubeletMappings(idsPerPod uint32) (uint32, uint32, error) {
 	// default mappings to return if there is no specific configuration
-	const defaultFirstID = 1 << 16
-	const defaultLen = 1<<32 - defaultFirstID
+	defaultFirstID := idsPerPod
+	// We cast defaultFirstID to 64 bits, as otherwise any operation (including subtraction)
+	// fires the overflow detection (go is not smart enough to realize that if we subtract a
+	// non-negative number, it fits in 32 bits).
+	// Then we cast it back to 32 bits, as this what the function returns.
+	defaultLen := uint32((1 << 32) - uint64(defaultFirstID))
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.UserNamespacesSupport) {
 		return defaultFirstID, defaultLen, nil
@@ -565,7 +569,9 @@ func truncatePodHostnameIfNeeded(podName, hostname string) (string, error) {
 
 // GetOrCreateUserNamespaceMappings returns the configuration for the sandbox user namespace
 func (kl *Kubelet) GetOrCreateUserNamespaceMappings(pod *v1.Pod, runtimeHandler string) (*runtimeapi.UserNamespace, error) {
-	return kl.usernsManager.GetOrCreateUserNamespaceMappings(pod, runtimeHandler)
+	// Use context.TODO() because we currently do not have a proper logger to pass in.
+	// This should be replaced with an appropriate context when refactoring this function to accept a context parameter.
+	return kl.usernsManager.GetOrCreateUserNamespaceMappings(context.TODO(), pod, runtimeHandler)
 }
 
 // GeneratePodHostNameAndDomain creates a hostname and domain name for a pod,
@@ -1044,7 +1050,8 @@ func (kl *Kubelet) killPod(ctx context.Context, pod *v1.Pod, p kubecontainer.Pod
 	if err := kl.containerRuntime.KillPod(ctx, pod, p, gracePeriodOverride); err != nil {
 		return err
 	}
-	if err := kl.containerManager.UpdateQOSCgroups(); err != nil {
+	// TODO: Pass logger from context once contextual logging migration is complete
+	if err := kl.containerManager.UpdateQOSCgroups(klog.TODO()); err != nil {
 		klog.V(2).InfoS("Failed to update QoS cgroups while killing pod", "err", err)
 	}
 	return nil
@@ -1283,7 +1290,7 @@ func (kl *Kubelet) HandlePodCleanups(ctx context.Context) error {
 
 	// Remove orphaned pod user namespace allocations (if any).
 	klog.V(3).InfoS("Clean up orphaned pod user namespace allocations")
-	if err = kl.usernsManager.CleanupOrphanedPodUsernsAllocations(allPods, runningRuntimePods); err != nil {
+	if err = kl.usernsManager.CleanupOrphanedPodUsernsAllocations(ctx, allPods, runningRuntimePods); err != nil {
 		klog.ErrorS(err, "Failed cleaning up orphaned pod user namespaces allocations")
 	}
 
@@ -1921,8 +1928,10 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 		}
 	}
 
+	// Use context.TODO() because we currently do not have a proper context to pass in.
+	// Replace this with an appropriate context when refactoring this function to accept a context parameter.
 	// ensure the probe managers have up to date status for containers
-	kl.probeManager.UpdatePodStatus(pod, s)
+	kl.probeManager.UpdatePodStatus(context.TODO(), pod, s)
 
 	// update the allocated resources status
 	if utilfeature.DefaultFeatureGate.Enabled(features.ResourceHealthStatus) {
@@ -2104,6 +2113,9 @@ func (kl *Kubelet) convertStatusToAPIStatus(pod *v1.Pod, podStatus *kubecontaine
 // convertToAPIContainerStatuses converts the given internal container
 // statuses into API container statuses.
 func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecontainer.PodStatus, previousStatus []v1.ContainerStatus, containers []v1.Container, hasInitContainers, isInitContainer bool) []v1.ContainerStatus {
+	// Use klog.TODO() because we currently do not have a proper logger to pass in.
+	// This should be replaced with an appropriate logger when refactoring this function to accept a logger parameter.
+	logger := klog.TODO()
 	convertContainerStatus := func(cs *kubecontainer.Status, oldStatus *v1.ContainerStatus) *v1.ContainerStatus {
 		cid := cs.ID.String()
 		status := &v1.ContainerStatus{
@@ -2222,12 +2234,10 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			} else {
 				preserveOldResourcesValue(v1.ResourceCPU, oldStatus.Resources.Requests, resources.Requests)
 			}
-			// TODO(tallclair,vinaykul,InPlacePodVerticalScaling): Investigate defaulting to actuated resources instead of allocated resources above
-			if _, exists := resources.Requests[v1.ResourceMemory]; exists {
-				// Get memory requests from actuated resources
-				if actuatedResources, found := kl.allocationManager.GetActuatedResources(pod.UID, allocatedContainer.Name); found {
-					resources.Requests[v1.ResourceMemory] = *actuatedResources.Requests.Memory()
-				}
+			if cStatus.Resources != nil && cStatus.Resources.MemoryRequest != nil {
+				resources.Requests[v1.ResourceMemory] = cStatus.Resources.MemoryRequest.DeepCopy()
+			} else {
+				preserveOldResourcesValue(v1.ResourceMemory, oldStatus.Resources.Requests, resources.Requests)
 			}
 		}
 
@@ -2399,6 +2409,14 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			oldStatusPtr = &oldStatus
 		}
 		status := convertContainerStatus(cStatus, oldStatusPtr)
+		if !utilfeature.DefaultFeatureGate.Enabled(features.ChangeContainerStatusOnKubeletRestart) {
+			if cStatus.State == kubecontainer.ContainerStateRunning {
+				if oldStatus, ok := oldStatuses[status.Name]; ok && oldStatus.Started != nil {
+					status.Started = oldStatus.Started
+				}
+			}
+		}
+
 		if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling) {
 			allocatedContainer := kubecontainer.GetContainerSpec(pod, cName)
 			if allocatedContainer != nil {
@@ -2432,7 +2450,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			}
 		}
 		// If a container should be restarted in next syncpod, it is *Waiting*.
-		if !kubecontainer.ShouldContainerBeRestarted(&container, pod, podStatus) {
+		if !kubecontainer.ShouldContainerBeRestarted(logger, &container, pod, podStatus) {
 			continue
 		}
 		status := statuses[container.Name]
@@ -2577,17 +2595,24 @@ func (kl *Kubelet) cleanupOrphanedPodCgroups(pcm cm.PodContainerManager, cgroupP
 		// process in the cgroup to the minimum value while we wait.
 		if podVolumesExist := kl.podVolumesExist(uid); podVolumesExist {
 			klog.V(3).InfoS("Orphaned pod found, but volumes not yet removed.  Reducing cpu to minimum", "podUID", uid)
-			if err := pcm.ReduceCPULimits(val); err != nil {
+			// TODO: Pass logger from context once contextual logging migration is complete
+			if err := pcm.ReduceCPULimits(klog.TODO(), val); err != nil {
 				klog.InfoS("Failed to reduce cpu time for pod pending volume cleanup", "podUID", uid, "err", err)
 			}
 			continue
 		}
 		klog.V(3).InfoS("Orphaned pod found, removing pod cgroups", "podUID", uid)
-		// Destroy all cgroups of pod that should not be running,
-		// by first killing all the attached processes to these cgroups.
-		// We ignore errors thrown by the method, as the housekeeping loop would
-		// again try to delete these unwanted pod cgroups
-		go pcm.Destroy(val)
+		// Destroy all cgroups of pods that should not be running,
+		// by first killing all the attached processes in these cgroups.
+		// The error return value of Destroy is explicitly checked and logged,
+		// but errors are tolerated since the housekeeping loop loop would
+		// again try to delete these unwanted pod cgroups.
+		// TODO: Pass logger from context once contextual logging migration is complete
+		go func() {
+			if err := pcm.Destroy(klog.TODO(), val); err != nil {
+				klog.InfoS("Failed to destroy orphaned pod cgroup", "podUID", uid, "err", err)
+			}
+		}()
 	}
 }
 

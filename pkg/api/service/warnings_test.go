@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/utils/ptr"
 )
 
 func TestGetWarningsForService(t *testing.T) {
@@ -62,6 +63,7 @@ func TestGetWarningsForService(t *testing.T) {
 			s.Spec.Type = api.ServiceTypeClusterIP
 			s.Spec.ClusterIP = api.ClusterIPNone
 			s.Spec.LoadBalancerIP = "1.2.3.4"
+			s.Spec.SessionAffinity = api.ServiceAffinityNone // default value
 		},
 		numWarnings: 1,
 	}, {
@@ -70,16 +72,25 @@ func TestGetWarningsForService(t *testing.T) {
 			s.Spec.Type = api.ServiceTypeClusterIP
 			s.Spec.ClusterIP = api.ClusterIPNone
 			s.Spec.ExternalIPs = []string{"1.2.3.4"}
+			s.Spec.SessionAffinity = api.ServiceAffinityNone // default value
 		},
 		numWarnings: 1,
 	}, {
-		name: "SessionAffinity set when headless service",
+		name: "SessionAffinity Client IP set when headless service",
 		tweakSvc: func(s *api.Service) {
 			s.Spec.Type = api.ServiceTypeClusterIP
 			s.Spec.ClusterIP = api.ClusterIPNone
 			s.Spec.SessionAffinity = api.ServiceAffinityClientIP
 		},
 		numWarnings: 1,
+	}, {
+		name: "SessionAffinity None set when headless service",
+		tweakSvc: func(s *api.Service) {
+			s.Spec.Type = api.ServiceTypeClusterIP
+			s.Spec.ClusterIP = api.ClusterIPNone
+			s.Spec.SessionAffinity = api.ServiceAffinityNone
+		},
+		numWarnings: 0,
 	}, {
 		name: "ExternalIPs, LoadBalancerIP and SessionAffinity set when headless service",
 		tweakSvc: func(s *api.Service) {
@@ -90,6 +101,20 @@ func TestGetWarningsForService(t *testing.T) {
 			s.Spec.SessionAffinity = api.ServiceAffinityClientIP
 		},
 		numWarnings: 3,
+	}, {
+		name: "trafficDistribution: PreferSameZone",
+		tweakSvc: func(s *api.Service) {
+			s.Spec.Type = api.ServiceTypeClusterIP
+			s.Spec.TrafficDistribution = ptr.To(api.ServiceTrafficDistributionPreferSameZone)
+		},
+		numWarnings: 0,
+	}, {
+		name: "trafficDistribution: PreferClose",
+		tweakSvc: func(s *api.Service) {
+			s.Spec.Type = api.ServiceTypeClusterIP
+			s.Spec.TrafficDistribution = ptr.To(api.ServiceTrafficDistributionPreferClose)
+		},
+		numWarnings: 1,
 	}}
 
 	for _, tc := range testCases {

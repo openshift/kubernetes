@@ -18,6 +18,7 @@ package csimock
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -29,12 +30,17 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 
+	jsonpatch "gopkg.in/evanphx/json-patch.v4"
+	storagev1 "k8s.io/api/storage/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
 	"k8s.io/kubernetes/test/e2e/storage/drivers"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
@@ -139,10 +145,9 @@ var _ = utils.SIGDescribe("MutableCSINodeAllocatableCount", framework.WithFeatur
 			}
 
 			opts := drivers.CSIMockDriverOpts{
-				Embedded:                             true,
-				EnableMutableCSINodeAllocatableCount: true,
-				RegisterDriver:                       true,
-				Hooks:                                hook,
+				Embedded:       true,
+				RegisterDriver: true,
+				Hooks:          hook,
 			}
 			driver = drivers.InitMockCSIDriver(opts)
 			cfg = driver.PrepareTest(ctx, f)
@@ -168,13 +173,45 @@ var _ = utils.SIGDescribe("MutableCSINodeAllocatableCount", framework.WithFeatur
 		})
 
 		f.It("should transition pod to failed state when attachment limit exceeded", func(ctx context.Context) {
-			_, _, pod := m.createPod(ctx, pvcReference)
+			_, claim, pod := m.createPod(ctx, pvcReference)
 			if pod == nil {
 				return
 			}
 
+			ginkgo.By("Checking if VolumeAttachment was created for the pod")
+			testConfig := storageframework.ConvertTestConfig(m.config)
+			attachmentName := e2evolume.GetVolumeAttachmentName(ctx, m.cs, testConfig, m.provisioner, claim.Name, claim.Namespace)
+
+			var va *storagev1.VolumeAttachment
+			err := wait.PollUntilContextTimeout(ctx, framework.Poll, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+				var getErr error
+				va, getErr = m.cs.StorageV1().VolumeAttachments().Get(ctx, attachmentName, metav1.GetOptions{})
+				if getErr != nil {
+					if apierrors.IsNotFound(getErr) {
+						return false, nil
+					}
+					return false, getErr
+				}
+				return true, nil
+			})
+			framework.ExpectNoError(err, "VolumeAttachment not created")
+
+			// Patch VolumeAttachment.Status.AttachError.ErrorCode with ResourceExhausted
+			clone := va.DeepCopy()
+			clone.Status.Attached = false
+			errorCode := int32(codes.ResourceExhausted)
+			clone.Status.AttachError = &storagev1.VolumeError{
+				Message:   "ResourceExhausted: attachment limit exceeded",
+				Time:      metav1.Now(),
+				ErrorCode: &errorCode,
+			}
+			patch, err := createMergePatch(va, clone)
+			framework.ExpectNoError(err, "Failed to create merge patch")
+			_, err = m.cs.StorageV1().VolumeAttachments().Patch(ctx, attachmentName, types.MergePatchType, patch, metav1.PatchOptions{}, "status")
+			framework.ExpectNoError(err, "Failed to patch VolumeAttachment status")
+
 			ginkgo.By("Waiting for Pod to fail with VolumeAttachmentLimitExceeded")
-			err := e2epod.WaitForPodFailedReason(ctx, m.cs, pod, "VolumeAttachmentLimitExceeded", 4*time.Minute)
+			err = e2epod.WaitForPodFailedReason(ctx, m.cs, pod, "VolumeAttachmentLimitExceeded", 4*time.Minute)
 			framework.ExpectNoError(err, "Pod did not fail with VolumeAttachmentLimitExceeded")
 		})
 	})
@@ -207,4 +244,20 @@ func readCSINodeLimit(ctx context.Context, cs clientset.Interface, node, drv str
 		}
 	}
 	return 0, fmt.Errorf("driver %q not present on CSINode", drv)
+}
+
+func createMergePatch(original, new interface{}) ([]byte, error) {
+	pvByte, err := json.Marshal(original)
+	if err != nil {
+		return nil, err
+	}
+	cloneByte, err := json.Marshal(new)
+	if err != nil {
+		return nil, err
+	}
+	patch, err := jsonpatch.CreateMergePatch(pvByte, cloneByte)
+	if err != nil {
+		return nil, err
+	}
+	return patch, nil
 }

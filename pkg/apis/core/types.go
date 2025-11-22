@@ -724,9 +724,6 @@ type PersistentVolumeClaimStatus struct {
 	// should ignore the update for the purpose it was designed. For example - a controller that
 	// only is responsible for resizing capacity of the volume, should ignore PVC updates that change other valid
 	// resources associated with PVC.
-	//
-	// This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.
-	// +featureGate=RecoverVolumeExpansionFailure
 	// +optional
 	AllocatedResources ResourceList
 	// AllocatedResourceStatuses stores status of resource being resized for the given PVC.
@@ -762,9 +759,6 @@ type PersistentVolumeClaimStatus struct {
 	// should ignore the update for the purpose it was designed. For example - a controller that
 	// only is responsible for resizing capacity of the volume, should ignore PVC updates that change other valid
 	// resources associated with PVC.
-	//
-	// This is an alpha field and requires enabling RecoverVolumeExpansionFailure feature.
-	// +featureGate=RecoverVolumeExpansionFailure
 	// +mapType=granular
 	// +optional
 	AllocatedResourceStatuses map[ResourceName]ClaimResourceStatus
@@ -1904,6 +1898,21 @@ type PodCertificateProjection struct {
 
 	// Write the certificate chain at this path in the projected volume.
 	CertificateChainPath string
+
+	// userAnnotations allow pod authors to pass additional information to
+	// the signer implementation.  Kubernetes does not restrict or validate this
+	// metadata in any way.
+	//
+	// These values are copied verbatim into the `spec.unverifiedUserAnnotations` field of
+	// the PodCertificateRequest objects that Kubelet creates.
+	//
+	// Entries are subject to the same validation as object metadata annotations,
+	// with the addition that all keys must be domain-prefixed. No restrictions
+	// are placed on values, except an overall size limitation on the entire field.
+	//
+	// Signers should document the keys and values they support. Signers should
+	// deny requests that contain keys they do not recognize.
+	UserAnnotations map[string]string
 }
 
 // ProjectedVolumeSource represents a projected volume source
@@ -2153,8 +2162,6 @@ type VolumeMount struct {
 	// None (or be unspecified, which defaults to None).
 	//
 	// If this field is not specified, it is treated as an equivalent of Disabled.
-	//
-	// +featureGate=RecursiveReadOnlyMounts
 	// +optional
 	RecursiveReadOnly *RecursiveReadOnlyMode
 	// Required. If the path is not an absolute path (e.g. some/path) it
@@ -2647,6 +2654,7 @@ type Container struct {
 	// +optional
 	Resources ResourceRequirements
 	// Resources resize policy for the container.
+	// This field cannot be set on ephemeral containers.
 	// +featureGate=InPlacePodVerticalScaling
 	// +optional
 	ResizePolicy []ContainerResizePolicy
@@ -2670,7 +2678,6 @@ type Container struct {
 	// container. Instead, the next init container starts immediately after this
 	// init container is started, or after any startupProbe has successfully
 	// completed.
-	// +featureGate=SidecarContainers
 	// +optional
 	RestartPolicy *ContainerRestartPolicy
 	// Represents a list of rules to be checked to determine if the
@@ -2758,7 +2765,6 @@ type LifecycleHandler struct {
 	// +optional
 	TCPSocket *TCPSocketAction
 	// Sleep represents the duration that the container should sleep before being terminated.
-	// +featureGate=PodLifecycleSleepAction
 	// +optional
 	Sleep *SleepAction
 }
@@ -3000,7 +3006,6 @@ type ContainerStatus struct {
 	// Status of volume mounts.
 	// +listType=atomic
 	// +optional
-	// +featureGate=RecursiveReadOnlyMounts
 	VolumeMounts []VolumeMountStatus
 	// User represents user identity information initially attached to the first process of the container
 	// +featureGate=SupplementalGroupsPolicy
@@ -3191,7 +3196,6 @@ type VolumeMountStatus struct {
 	// RecursiveReadOnly must be set to Disabled, Enabled, or unspecified (for non-readonly mounts).
 	// An IfPossible value in the original VolumeMount must be translated to Disabled or Enabled,
 	// depending on the mount result.
-	// +featureGate=RecursiveReadOnlyMounts
 	// +optional
 	RecursiveReadOnly *RecursiveReadOnlyMode
 }
@@ -3847,8 +3851,8 @@ type PodSpec struct {
 	// will be made available to those containers which consume them
 	// by name.
 	//
-	// This is an alpha field and requires enabling the
-	// DynamicResourceAllocation feature gate.
+	// This is a stable field but requires that the
+	// DynamicResourceAllocation feature gate is enabled.
 	//
 	// This field is immutable.
 	//
@@ -4372,7 +4376,6 @@ type EphemeralContainerCommon struct {
 	// Restart policy for the container to manage the restart behavior of each
 	// container within a pod. Must be specified if restartPolicyRules are used.
 	// You cannot set this field on ephemeral containers.
-	// +featureGate=SidecarContainers
 	// +optional
 	RestartPolicy *ContainerRestartPolicy
 	// Represents a list of rules to be checked to determine if the
@@ -4461,7 +4464,7 @@ type EphemeralContainer struct {
 // state of a system.
 type PodStatus struct {
 	// If set, this represents the .metadata.generation that the pod status was set based upon.
-	// This is an alpha field. Enable PodObservedGenerationTracking to be able to use this field.
+	// The PodObservedGenerationTracking feature gate must be enabled to use this field.
 	// +featureGate=PodObservedGenerationTracking
 	// +optional
 	ObservedGeneration int64
@@ -4851,27 +4854,25 @@ const (
 
 // These are valid values for the TrafficDistribution field of a Service.
 const (
-	// Indicates a preference for routing traffic to endpoints that are in the same
-	// zone as the client. Users should not set this value unless they have ensured
-	// that clients and endpoints are distributed in such a way that the "same zone"
-	// preference will not result in endpoints getting overloaded.
-	ServiceTrafficDistributionPreferClose = "PreferClose"
-
-	// Indicates a preference for routing traffic to endpoints that are in the same
-	// zone as the client. Users should not set this value unless they have ensured
-	// that clients and endpoints are distributed in such a way that the "same zone"
-	// preference will not result in endpoints getting overloaded.
-	// This is an alias for "PreferClose", but it is an Alpha feature and is only
-	// recognized if the PreferSameTrafficDistribution feature gate is enabled.
+	// ServiceTrafficDistributionPreferSameZone indicates a preference for routing
+	// traffic to endpoints that are in the same zone as the client. Users should only
+	// set this value if they have ensured that clients and endpoints are distributed
+	// in such a way that the "same zone" preference will not result in endpoints
+	// getting overloaded.
 	ServiceTrafficDistributionPreferSameZone = "PreferSameZone"
 
-	// Indicates a preference for routing traffic to endpoints that are on the same
-	// node as the client. Users should not set this value unless they have ensured
-	// that clients and endpoints are distributed in such a way that the "same node"
-	// preference will not result in endpoints getting overloaded.
-	// This is an Alpha feature and is only recognized if the
-	// PreferSameTrafficDistribution feature gate is enabled.
+	// ServiceTrafficDistributionPreferSameNode indicates a preference for routing
+	// traffic to endpoints that are on the same node as the client. Users should only
+	// set this value if they have ensured that clients and endpoints are distributed
+	// in such a way that the "same node" preference will not result in endpoints
+	// getting overloaded.
 	ServiceTrafficDistributionPreferSameNode = "PreferSameNode"
+
+	// ServiceTrafficDistributionPreferClose is the original name of "PreferSameZone".
+	// Despite the generic-sounding name, it has exactly the same meaning as
+	// "PreferSameZone".
+	// Deprecated: use "PreferSameZone" instead.
+	ServiceTrafficDistributionPreferClose = "PreferClose"
 )
 
 // These are the valid conditions of a service.
@@ -5439,7 +5440,6 @@ type NodeDaemonEndpoints struct {
 // NodeRuntimeHandlerFeatures is a set of features implemented by the runtime handler.
 type NodeRuntimeHandlerFeatures struct {
 	// RecursiveReadOnlyMounts is set to true if the runtime handler supports RecursiveReadOnlyMounts.
-	// +featureGate=RecursiveReadOnlyMounts
 	// +optional
 	RecursiveReadOnlyMounts *bool
 	// UserNamespaces is set to true if the runtime handler supports UserNamespaces, including for volumes.
@@ -5588,7 +5588,6 @@ type NodeStatus struct {
 	// +optional
 	Config *NodeConfigStatus
 	// The available runtime handlers.
-	// +featureGate=RecursiveReadOnlyMounts
 	// +featureGate=UserNamespacesSupport
 	// +optional
 	RuntimeHandlers []NodeRuntimeHandler

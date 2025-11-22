@@ -830,8 +830,10 @@ func TestSuccessPolicy(t *testing.T) {
 				// TODO: this will be removed in 1.36
 				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.32"))
 			}
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobSuccessPolicy, tc.enableJobSuccessPolicy)
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobBackoffLimitPerIndex, tc.enableBackoffLimitPerIndex)
+			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.JobSuccessPolicy:        tc.enableJobSuccessPolicy,
+				features.JobBackoffLimitPerIndex: tc.enableBackoffLimitPerIndex,
+			})
 
 			ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
 			t.Cleanup(cancel)
@@ -1591,10 +1593,15 @@ func TestDelayTerminalPhaseCondition(t *testing.T) {
 			} else if !test.enableJobPodReplacementPolicy {
 				// TODO: this will be removed in 1.37.
 				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.33"))
+			} else if !test.enableJobManagedBy {
+				// TODO: this will be removed in 1.38.
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.34"))
 			}
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobPodReplacementPolicy, test.enableJobPodReplacementPolicy)
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, test.enableJobManagedBy)
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobSuccessPolicy, test.enableJobSuccessPolicy)
+			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.JobPodReplacementPolicy: test.enableJobPodReplacementPolicy,
+				features.JobManagedBy:            test.enableJobManagedBy,
+				features.JobSuccessPolicy:        test.enableJobSuccessPolicy,
+			})
 
 			ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
 			t.Cleanup(cancel)
@@ -2146,6 +2153,8 @@ func TestManagedBy(t *testing.T) {
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
 			resetMetrics()
+			// TODO: this will be removed in 1.38.
+			featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.34"))
 			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, test.enableJobManagedBy)
 
 			ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
@@ -2193,6 +2202,8 @@ func TestManagedBy(t *testing.T) {
 // and is disabled again with re-enabling of the feature gate.
 func TestManagedBy_Reenabling(t *testing.T) {
 	customControllerName := "example.com/custom-job-controller"
+	// TODO: this will be removed in 1.38.
+	featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.34"))
 	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
 
 	closeFn, restConfig, clientSet, ns := setup(t, "managed-by-reenabling")
@@ -4088,6 +4099,85 @@ func TestSuspendJob(t *testing.T) {
 			}
 			validate("update", tc.update.wantActive, tc.update.wantStatus, tc.update.wantReason)
 		})
+	}
+}
+
+// TestStartTimeUpdateOnResume verifies that the job controller can update startTime
+// when resuming a suspended job (https://github.com/kubernetes/kubernetes/issues/134521).
+func TestStartTimeUpdateOnResume(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
+
+	closeFn, restConfig, clientSet, ns := setup(t, "suspend-starttime-validation")
+	t.Cleanup(closeFn)
+	ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
+	t.Cleanup(cancel)
+
+	job, err := createJobWithDefaults(ctx, clientSet, ns.Name, &batchv1.Job{
+		Spec: batchv1.JobSpec{
+			Parallelism: ptr.To[int32](1),
+			Completions: ptr.To[int32](2),
+			Suspend:     ptr.To(false),
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create Job: %v", err)
+	}
+
+	validateJobsPodsStatusOnly(ctx, t, clientSet, job, podsByStatus{
+		Active:      1,
+		Ready:       ptr.To[int32](0),
+		Terminating: ptr.To[int32](0),
+	})
+
+	job, err = clientSet.BatchV1().Jobs(ns.Name).Get(ctx, job.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Failed to get Job: %v", err)
+	}
+	if job.Status.StartTime == nil {
+		t.Fatalf("Job startTime was not set")
+	}
+
+	job.Spec.Suspend = ptr.To(true)
+	job, err = clientSet.BatchV1().Jobs(ns.Name).Update(ctx, job, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to suspend Job: %v", err)
+	}
+
+	validateJobsPodsStatusOnly(ctx, t, clientSet, job, podsByStatus{
+		Active:      0,
+		Ready:       ptr.To[int32](0),
+		Terminating: ptr.To[int32](0),
+	})
+
+	job, err = clientSet.BatchV1().Jobs(ns.Name).Get(ctx, job.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Failed to get Job: %v", err)
+	}
+	if getJobConditionStatus(ctx, job, batchv1.JobSuspended) != v1.ConditionTrue {
+		t.Fatalf("JobSuspended condition was not set to True")
+	}
+
+	job.Spec.Suspend = ptr.To(false)
+	job, err = clientSet.BatchV1().Jobs(ns.Name).Update(ctx, job, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to resume Job: %v", err)
+	}
+
+	validateJobsPodsStatusOnly(ctx, t, clientSet, job, podsByStatus{
+		Active:      1,
+		Ready:       ptr.To[int32](0),
+		Terminating: ptr.To[int32](0),
+	})
+
+	job, err = clientSet.BatchV1().Jobs(ns.Name).Get(ctx, job.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("Failed to get Job: %v", err)
+	}
+	if getJobConditionStatus(ctx, job, batchv1.JobSuspended) != v1.ConditionFalse {
+		t.Error("JobSuspended condition was not set to False")
+	}
+	if job.Status.StartTime == nil {
+		t.Error("Job startTime was not set after resume")
 	}
 }
 

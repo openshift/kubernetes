@@ -19,16 +19,19 @@ package structured
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/dynamic-resource-allocation/cel"
 	"k8s.io/dynamic-resource-allocation/structured/internal"
 	"k8s.io/dynamic-resource-allocation/structured/internal/experimental"
 	"k8s.io/dynamic-resource-allocation/structured/internal/incubating"
 	"k8s.io/dynamic-resource-allocation/structured/internal/stable"
+	"k8s.io/dynamic-resource-allocation/structured/schedulerapi"
 )
 
 // To keep the code in different packages simple, type aliases are used everywhere.
@@ -38,30 +41,32 @@ import (
 
 type DeviceClassLister = internal.DeviceClassLister
 type Features = internal.Features
-type DeviceID = internal.DeviceID
+
+// Type aliases to schedulerapi package for types that are part of the
+// scheduler and autoscaler contract. This ensures that changes to these
+// types require autoscaler approval.
+type DeviceID = schedulerapi.DeviceID
+type AllocatedState = schedulerapi.AllocatedState
+type SharedDeviceID = schedulerapi.SharedDeviceID
+type DeviceConsumedCapacity = schedulerapi.DeviceConsumedCapacity
+type ConsumedCapacityCollection = schedulerapi.ConsumedCapacityCollection
+type ConsumedCapacity = schedulerapi.ConsumedCapacity
 
 func MakeDeviceID(driver, pool, device string) DeviceID {
-	return internal.MakeDeviceID(driver, pool, device)
+	return schedulerapi.MakeDeviceID(driver, pool, device)
 }
 
-// types_experimental
-type AllocatedState = internal.AllocatedState
-type SharedDeviceID = internal.SharedDeviceID
-type DeviceConsumedCapacity = internal.DeviceConsumedCapacity
-type ConsumedCapacityCollection = internal.ConsumedCapacityCollection
-type ConsumedCapacity = internal.ConsumedCapacity
-
 func MakeSharedDeviceID(deviceID DeviceID, shareID *types.UID) SharedDeviceID {
-	return internal.MakeSharedDeviceID(deviceID, shareID)
+	return schedulerapi.MakeSharedDeviceID(deviceID, shareID)
 }
 
 func NewConsumedCapacityCollection() ConsumedCapacityCollection {
-	return internal.NewConsumedCapacityCollection()
+	return schedulerapi.NewConsumedCapacityCollection()
 }
 
 func NewDeviceConsumedCapacity(deviceID DeviceID,
 	consumedCapacity map[resourceapi.QualifiedName]resource.Quantity) DeviceConsumedCapacity {
-	return internal.NewDeviceConsumedCapacity(deviceID, consumedCapacity)
+	return schedulerapi.NewDeviceConsumedCapacity(deviceID, consumedCapacity)
 }
 
 // Allocator calculates how to allocate a set of unallocated claims which use
@@ -135,17 +140,40 @@ func NewAllocator(ctx context.Context,
 	// file name!) into "stable", or individual chunks can be copied over.
 	//
 	// Unit tests are shared between all implementations.
+	var enabledAllocators []string
 	for _, allocator := range availableAllocators {
+		// Disabled?
+		if !allocatorEnabled(allocator.name) {
+			continue
+		}
+		enabledAllocators = append(enabledAllocators, allocator.name)
+
 		// All required features supported?
 		if allocator.supportedFeatures.Set().IsSuperset(features.Set()) {
 			// Use it!
 			return allocator.newAllocator(ctx, features, allocatedState, classLister, slices, celCache)
 		}
 	}
-	return nil, fmt.Errorf("internal error: no allocator available for feature set %v", features)
+	return nil, fmt.Errorf("internal error: no allocator available for feature set %+v, enabled allocators: %s", features, strings.Join(enabledAllocators, ", "))
+}
+
+// EnableAllocators, if passed a non-empty list, controls which allocators may get picked by NewAllocator.
+// The entries are the names of the implementing package ("stable", "incubating", "experimental").
+// Not thread-safe, meant for use during testing.
+func EnableAllocators(names ...string) {
+	explicitlyEnabledAllocators = sets.New(names...)
+}
+
+// explicitlyEnabledAllocators stores the result of EnableAllocators.
+// If empty (the default), all available allocators are enabled.
+var explicitlyEnabledAllocators sets.Set[string]
+
+func allocatorEnabled(name string) bool {
+	return len(explicitlyEnabledAllocators) == 0 || explicitlyEnabledAllocators.Has(name)
 }
 
 var availableAllocators = []struct {
+	name              string
 	supportedFeatures Features
 	newAllocator      func(ctx context.Context,
 		features Features,
@@ -157,6 +185,7 @@ var availableAllocators = []struct {
 }{
 	// Most stable first.
 	{
+		name:              "stable",
 		supportedFeatures: stable.SupportedFeatures,
 		newAllocator: func(ctx context.Context,
 			features Features,
@@ -169,6 +198,7 @@ var availableAllocators = []struct {
 		},
 	},
 	{
+		name:              "incubating",
 		supportedFeatures: incubating.SupportedFeatures,
 		newAllocator: func(ctx context.Context,
 			features Features,
@@ -181,6 +211,7 @@ var availableAllocators = []struct {
 		},
 	},
 	{
+		name:              "experimental",
 		supportedFeatures: experimental.SupportedFeatures,
 		newAllocator: func(ctx context.Context,
 			features Features,

@@ -194,6 +194,8 @@ func StartController(ctx context.Context, options Options) (*Controller, error) 
 // Options contains various optional settings for [StartController].
 type Options struct {
 	// DriverName is the required name of the DRA driver.
+	// Must be a DNS subdomain and should end with a DNS domain
+	// owned by the vendor of the driver. It should use only lower case characters.
 	DriverName string
 
 	// KubeClient is used to read Node objects (if necessary) and to access
@@ -450,7 +452,7 @@ func (c *Controller) initInformer(ctx context.Context) error {
 		},
 	}
 	informer := cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListWithContextFunc: func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 				tweakListOptions(&options)
 				slices, err := c.resourceClient.ResourceSlices().List(ctx, options)
@@ -467,7 +469,7 @@ func (c *Controller) initInformer(ctx context.Context) error {
 				logger.V(5).Info("Started watching ResourceSlices", "resourceAPI", c.resourceClient.CurrentAPI(), "err", err)
 				return w, err
 			},
-		},
+		}, c.resourceClient),
 		&resourceapi.ResourceSlice{},
 		// No resync because all it would do is periodically trigger syncing pools
 		// again by reporting all slices as updated with the object as old/new.
@@ -477,7 +479,7 @@ func (c *Controller) initInformer(ctx context.Context) error {
 		indexers,
 	)
 	c.sliceStore = cache.NewIntegerResourceVersionMutationCache(logger, informer.GetStore(), informer.GetIndexer(), c.mutationCacheTTL, true /* includeAdds */)
-	handler, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	handler, err := informer.AddEventHandlerWithOptions(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
 			slice, ok := obj.(*resourceapi.ResourceSlice)
 			if !ok {
@@ -520,7 +522,7 @@ func (c *Controller) initInformer(ctx context.Context) error {
 			c.queue.AddAfter(slice.Spec.Pool.Name, c.syncDelay)
 			logger.V(5).Info("Scheduled sync", "poolName", slice.Spec.Pool.Name, "at", time.Now().Add(c.syncDelay))
 		},
-	})
+	}, cache.HandlerOptions{Logger: &logger})
 	if err != nil {
 		return fmt.Errorf("registering event handler on the ResourceSlice informer: %w", err)
 	}
@@ -531,7 +533,7 @@ func (c *Controller) initInformer(ctx context.Context) error {
 		defer c.wg.Done()
 		defer logger.V(3).Info("ResourceSlice informer has stopped")
 		defer c.queue.ShutDown() // Once we get here, we must have been asked to stop.
-		informer.Run(ctx.Done())
+		informer.RunWithContext(ctx)
 	}()
 	for !handler.HasSynced() {
 		select {

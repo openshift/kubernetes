@@ -417,6 +417,12 @@ func (p *PodWrapper) ZeroTerminationGracePeriod() *PodWrapper {
 	return p
 }
 
+// TerminationGracePeriodSeconds sets the TerminationGracePeriodSeconds of the inner pod.
+func (p *PodWrapper) TerminationGracePeriodSeconds(s int64) *PodWrapper {
+	p.Spec.TerminationGracePeriodSeconds = &s
+	return p
+}
+
 // Node sets `s` as the nodeName of the inner pod.
 func (p *PodWrapper) Node(s string) *PodWrapper {
 	p.Spec.NodeName = s
@@ -559,6 +565,12 @@ func (p *PodWrapper) SchedulingGates(gates []string) *PodWrapper {
 	for _, gate := range gates {
 		p.Spec.SchedulingGates = append(p.Spec.SchedulingGates, v1.PodSchedulingGate{Name: gate})
 	}
+	return p
+}
+
+// ResourceVersion sets the inner pod's ResurceVersion.
+func (p *PodWrapper) ResourceVersion(version string) *PodWrapper {
+	p.ObjectMeta.ResourceVersion = version
 	return p
 }
 
@@ -1167,6 +1179,21 @@ func (wrapper *ResourceClaimWrapper) RequestWithName(name, deviceClassName strin
 				// Cannot rely on defaulting here, this is used in unit tests.
 				AllocationMode:  resourceapi.DeviceAllocationModeExactCount,
 				Count:           1,
+				DeviceClassName: deviceClassName,
+			},
+		})
+	return wrapper
+}
+
+// RequestWithNameCount adds one device request for the given device class with given request name and count.
+func (wrapper *ResourceClaimWrapper) RequestWithNameCount(name, deviceClassName string, count int64) *ResourceClaimWrapper {
+	wrapper.Spec.Devices.Requests = append(wrapper.Spec.Devices.Requests,
+		resourceapi.DeviceRequest{
+			Name: name,
+			Exactly: &resourceapi.ExactDeviceRequest{
+				// Cannot rely on defaulting here, this is used in unit tests.
+				AllocationMode:  resourceapi.DeviceAllocationModeExactCount,
+				Count:           count,
 				DeviceClassName: deviceClassName,
 			},
 		})
