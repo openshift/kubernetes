@@ -45,8 +45,8 @@ const (
 	GoroutineResultError   = "error"
 )
 
-// ExtentionPoints is a list of possible values for the extension_point label.
-var ExtentionPoints = []string{
+// ExtensionPoints is a list of possible values for the extension_point label.
+var ExtensionPoints = []string{
 	PreFilter,
 	Filter,
 	PreFilterExtensionAddPod,
@@ -56,6 +56,7 @@ var ExtentionPoints = []string{
 	Score,
 	ScoreExtensionNormalize,
 	PreBind,
+	PreBindPreFlight,
 	Bind,
 	PostBind,
 	Reserve,
@@ -126,6 +127,9 @@ var (
 	AsyncAPICallDuration *metrics.HistogramVec
 	AsyncAPIPendingCalls *metrics.GaugeVec
 
+	// The below is only available when the DRAExtendedResource feature gate is enabled.
+	ResourceClaimCreatesTotal *metrics.CounterVec
+
 	// metricsList is a list of all metrics that should be registered always, regardless of any feature gate's value.
 	metricsList []metrics.Registerable
 )
@@ -152,6 +156,9 @@ func Register() {
 				AsyncAPICallDuration,
 				AsyncAPIPendingCalls,
 			)
+		}
+		if utilfeature.DefaultFeatureGate.Enabled(features.DRAExtendedResource) {
+			RegisterMetrics(ResourceClaimCreatesTotal)
 		}
 	})
 }
@@ -375,6 +382,15 @@ func InitMetrics() {
 			StabilityLevel: metrics.ALPHA,
 		},
 		[]string{"call_type"})
+
+	ResourceClaimCreatesTotal = metrics.NewCounterVec(
+		&metrics.CounterOpts{
+			Subsystem:      SchedulerSubsystem,
+			Name:           "resourceclaim_creates_total",
+			Help:           "Number of ResourceClaims creation requests within scheduler",
+			StabilityLevel: metrics.ALPHA,
+		},
+		[]string{"status"})
 
 	metricsList = []metrics.Registerable{
 		scheduleAttempts,

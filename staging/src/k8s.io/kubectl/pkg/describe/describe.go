@@ -35,21 +35,21 @@ import (
 	"unicode"
 
 	"github.com/fatih/camelcase"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
-	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-	discoveryv1beta1 "k8s.io/api/discovery/v1beta1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	policyv1 "k8s.io/api/policy/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -194,51 +194,49 @@ func describerMap(clientConfig *rest.Config) (map[schema.GroupKind]ResourceDescr
 	}
 
 	m := map[schema.GroupKind]ResourceDescriber{
-		{Group: corev1.GroupName, Kind: "Pod"}:                                    &PodDescriber{c},
-		{Group: corev1.GroupName, Kind: "ReplicationController"}:                  &ReplicationControllerDescriber{c},
-		{Group: corev1.GroupName, Kind: "Secret"}:                                 &SecretDescriber{c},
-		{Group: corev1.GroupName, Kind: "Service"}:                                &ServiceDescriber{c},
-		{Group: corev1.GroupName, Kind: "ServiceAccount"}:                         &ServiceAccountDescriber{c},
-		{Group: corev1.GroupName, Kind: "Node"}:                                   &NodeDescriber{c},
-		{Group: corev1.GroupName, Kind: "LimitRange"}:                             &LimitRangeDescriber{c},
-		{Group: corev1.GroupName, Kind: "ResourceQuota"}:                          &ResourceQuotaDescriber{c},
-		{Group: corev1.GroupName, Kind: "PersistentVolume"}:                       &PersistentVolumeDescriber{c},
-		{Group: corev1.GroupName, Kind: "PersistentVolumeClaim"}:                  &PersistentVolumeClaimDescriber{c},
-		{Group: corev1.GroupName, Kind: "Namespace"}:                              &NamespaceDescriber{c},
-		{Group: corev1.GroupName, Kind: "Endpoints"}:                              &EndpointsDescriber{c},
-		{Group: corev1.GroupName, Kind: "ConfigMap"}:                              &ConfigMapDescriber{c},
-		{Group: corev1.GroupName, Kind: "PriorityClass"}:                          &PriorityClassDescriber{c},
-		{Group: discoveryv1beta1.GroupName, Kind: "EndpointSlice"}:                &EndpointSliceDescriber{c},
-		{Group: discoveryv1.GroupName, Kind: "EndpointSlice"}:                     &EndpointSliceDescriber{c},
-		{Group: autoscalingv2.GroupName, Kind: "HorizontalPodAutoscaler"}:         &HorizontalPodAutoscalerDescriber{c},
-		{Group: extensionsv1beta1.GroupName, Kind: "Ingress"}:                     &IngressDescriber{c},
-		{Group: networkingv1beta1.GroupName, Kind: "Ingress"}:                     &IngressDescriber{c},
-		{Group: networkingv1beta1.GroupName, Kind: "IngressClass"}:                &IngressClassDescriber{c},
-		{Group: networkingv1.GroupName, Kind: "Ingress"}:                          &IngressDescriber{c},
-		{Group: networkingv1.GroupName, Kind: "IngressClass"}:                     &IngressClassDescriber{c},
-		{Group: networkingv1beta1.GroupName, Kind: "ServiceCIDR"}:                 &ServiceCIDRDescriber{c},
-		{Group: networkingv1beta1.GroupName, Kind: "IPAddress"}:                   &IPAddressDescriber{c},
-		{Group: networkingv1.GroupName, Kind: "ServiceCIDR"}:                      &ServiceCIDRDescriber{c},
-		{Group: networkingv1.GroupName, Kind: "IPAddress"}:                        &IPAddressDescriber{c},
-		{Group: batchv1.GroupName, Kind: "Job"}:                                   &JobDescriber{c},
-		{Group: batchv1.GroupName, Kind: "CronJob"}:                               &CronJobDescriber{c},
-		{Group: batchv1beta1.GroupName, Kind: "CronJob"}:                          &CronJobDescriber{c},
-		{Group: appsv1.GroupName, Kind: "StatefulSet"}:                            &StatefulSetDescriber{c},
-		{Group: appsv1.GroupName, Kind: "Deployment"}:                             &DeploymentDescriber{c},
-		{Group: appsv1.GroupName, Kind: "DaemonSet"}:                              &DaemonSetDescriber{c},
-		{Group: appsv1.GroupName, Kind: "ReplicaSet"}:                             &ReplicaSetDescriber{c},
-		{Group: certificatesv1beta1.GroupName, Kind: "CertificateSigningRequest"}: &CertificateSigningRequestDescriber{c},
-		{Group: storagev1.GroupName, Kind: "StorageClass"}:                        &StorageClassDescriber{c},
-		{Group: storagev1.GroupName, Kind: "CSINode"}:                             &CSINodeDescriber{c},
-		{Group: storagev1.GroupName, Kind: "VolumeAttributesClass"}:               &VolumeAttributesClassDescriber{c},
-		{Group: policyv1beta1.GroupName, Kind: "PodDisruptionBudget"}:             &PodDisruptionBudgetDescriber{c},
-		{Group: policyv1.GroupName, Kind: "PodDisruptionBudget"}:                  &PodDisruptionBudgetDescriber{c},
-		{Group: rbacv1.GroupName, Kind: "Role"}:                                   &RoleDescriber{c},
-		{Group: rbacv1.GroupName, Kind: "ClusterRole"}:                            &ClusterRoleDescriber{c},
-		{Group: rbacv1.GroupName, Kind: "RoleBinding"}:                            &RoleBindingDescriber{c},
-		{Group: rbacv1.GroupName, Kind: "ClusterRoleBinding"}:                     &ClusterRoleBindingDescriber{c},
-		{Group: networkingv1.GroupName, Kind: "NetworkPolicy"}:                    &NetworkPolicyDescriber{c},
-		{Group: schedulingv1.GroupName, Kind: "PriorityClass"}:                    &PriorityClassDescriber{c},
+		{Group: corev1.GroupName, Kind: "Pod"}:                               &PodDescriber{c},
+		{Group: corev1.GroupName, Kind: "ReplicationController"}:             &ReplicationControllerDescriber{c},
+		{Group: corev1.GroupName, Kind: "Secret"}:                            &SecretDescriber{c},
+		{Group: corev1.GroupName, Kind: "Service"}:                           &ServiceDescriber{c},
+		{Group: corev1.GroupName, Kind: "ServiceAccount"}:                    &ServiceAccountDescriber{c},
+		{Group: corev1.GroupName, Kind: "Node"}:                              &NodeDescriber{c},
+		{Group: corev1.GroupName, Kind: "LimitRange"}:                        &LimitRangeDescriber{c},
+		{Group: corev1.GroupName, Kind: "ResourceQuota"}:                     &ResourceQuotaDescriber{c},
+		{Group: corev1.GroupName, Kind: "PersistentVolume"}:                  &PersistentVolumeDescriber{c},
+		{Group: corev1.GroupName, Kind: "PersistentVolumeClaim"}:             &PersistentVolumeClaimDescriber{c},
+		{Group: corev1.GroupName, Kind: "Namespace"}:                         &NamespaceDescriber{c},
+		{Group: corev1.GroupName, Kind: "Endpoints"}:                         &EndpointsDescriber{c},
+		{Group: corev1.GroupName, Kind: "ConfigMap"}:                         &ConfigMapDescriber{c},
+		{Group: corev1.GroupName, Kind: "PriorityClass"}:                     &PriorityClassDescriber{c},
+		{Group: discoveryv1.GroupName, Kind: "EndpointSlice"}:                &EndpointSliceDescriber{c},
+		{Group: autoscalingv2.GroupName, Kind: "HorizontalPodAutoscaler"}:    &HorizontalPodAutoscalerDescriber{c},
+		{Group: extensionsv1beta1.GroupName, Kind: "Ingress"}:                &IngressDescriber{c},
+		{Group: networkingv1beta1.GroupName, Kind: "Ingress"}:                &IngressDescriber{c},
+		{Group: networkingv1beta1.GroupName, Kind: "IngressClass"}:           &IngressClassDescriber{c},
+		{Group: networkingv1.GroupName, Kind: "Ingress"}:                     &IngressDescriber{c},
+		{Group: networkingv1.GroupName, Kind: "IngressClass"}:                &IngressClassDescriber{c},
+		{Group: networkingv1beta1.GroupName, Kind: "ServiceCIDR"}:            &ServiceCIDRDescriber{c},
+		{Group: networkingv1beta1.GroupName, Kind: "IPAddress"}:              &IPAddressDescriber{c},
+		{Group: networkingv1.GroupName, Kind: "ServiceCIDR"}:                 &ServiceCIDRDescriber{c},
+		{Group: networkingv1.GroupName, Kind: "IPAddress"}:                   &IPAddressDescriber{c},
+		{Group: batchv1.GroupName, Kind: "Job"}:                              &JobDescriber{c},
+		{Group: batchv1.GroupName, Kind: "CronJob"}:                          &CronJobDescriber{c},
+		{Group: batchv1beta1.GroupName, Kind: "CronJob"}:                     &CronJobDescriber{c},
+		{Group: appsv1.GroupName, Kind: "StatefulSet"}:                       &StatefulSetDescriber{c},
+		{Group: appsv1.GroupName, Kind: "Deployment"}:                        &DeploymentDescriber{c},
+		{Group: appsv1.GroupName, Kind: "DaemonSet"}:                         &DaemonSetDescriber{c},
+		{Group: appsv1.GroupName, Kind: "ReplicaSet"}:                        &ReplicaSetDescriber{c},
+		{Group: certificatesv1.GroupName, Kind: "CertificateSigningRequest"}: &CertificateSigningRequestDescriber{c},
+		{Group: storagev1.GroupName, Kind: "StorageClass"}:                   &StorageClassDescriber{c},
+		{Group: storagev1.GroupName, Kind: "CSINode"}:                        &CSINodeDescriber{c},
+		{Group: storagev1.GroupName, Kind: "VolumeAttributesClass"}:          &VolumeAttributesClassDescriber{c},
+		{Group: policyv1.GroupName, Kind: "PodDisruptionBudget"}:             &PodDisruptionBudgetDescriber{c},
+		{Group: rbacv1.GroupName, Kind: "Role"}:                              &RoleDescriber{c},
+		{Group: rbacv1.GroupName, Kind: "ClusterRole"}:                       &ClusterRoleDescriber{c},
+		{Group: rbacv1.GroupName, Kind: "RoleBinding"}:                       &RoleBindingDescriber{c},
+		{Group: rbacv1.GroupName, Kind: "ClusterRoleBinding"}:                &ClusterRoleBindingDescriber{c},
+		{Group: networkingv1.GroupName, Kind: "NetworkPolicy"}:               &NetworkPolicyDescriber{c},
+		{Group: schedulingv1.GroupName, Kind: "PriorityClass"}:               &PriorityClassDescriber{c},
 	}
 
 	return m, nil
@@ -371,7 +369,7 @@ func smartLabelFor(field string) string {
 		if slice.Contains[string](commonAcronyms, strings.ToUpper(part), nil) {
 			part = strings.ToUpper(part)
 		} else {
-			part = strings.Title(part)
+			part = cases.Title(language.English).String(part)
 		}
 		result = append(result, part)
 	}
@@ -392,7 +390,6 @@ func init() {
 		describeDeployment,
 		describeEndpoints,
 		describeEndpointSliceV1,
-		describeEndpointSliceV1beta1,
 		describeHorizontalPodAutoscalerV1,
 		describeHorizontalPodAutoscalerV2,
 		describeJob,
@@ -404,7 +401,6 @@ func init() {
 		describePersistentVolumeClaim,
 		describePod,
 		describePodDisruptionBudgetV1,
-		describePodDisruptionBudgetV1beta1,
 		describePriorityClass,
 		describeQuota,
 		describeReplicaSet,
@@ -3256,26 +3252,15 @@ type EndpointSliceDescriber struct {
 
 func (d *EndpointSliceDescriber) Describe(namespace, name string, describerSettings DescriberSettings) (string, error) {
 	var events *corev1.EventList
-	// try endpointslice/v1 first (v1.21) and fallback to v1beta1 if error occurs
 
 	epsV1, err := d.DiscoveryV1().EndpointSlices(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		if describerSettings.ShowEvents {
-			events, _ = searchEvents(d.CoreV1(), epsV1, describerSettings.ChunkSize)
-		}
-		return describeEndpointSliceV1(epsV1, events)
-	}
-
-	epsV1beta1, err := d.DiscoveryV1beta1().EndpointSlices(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-
 	if describerSettings.ShowEvents {
-		events, _ = searchEvents(d.CoreV1(), epsV1beta1, describerSettings.ChunkSize)
+		events, _ = searchEvents(d.CoreV1(), epsV1, describerSettings.ChunkSize)
 	}
-
-	return describeEndpointSliceV1beta1(epsV1beta1, events)
+	return describeEndpointSliceV1(epsV1, events)
 }
 
 func describeEndpointSliceV1(eps *discoveryv1.EndpointSlice, events *corev1.EventList) (string, error) {
@@ -3360,78 +3345,6 @@ func describeEndpointSliceV1(eps *discoveryv1.EndpointSlice, events *corev1.Even
 	})
 }
 
-func describeEndpointSliceV1beta1(eps *discoveryv1beta1.EndpointSlice, events *corev1.EventList) (string, error) {
-	return tabbedString(func(out io.Writer) error {
-		w := NewPrefixWriter(out)
-		w.Write(LEVEL_0, "Name:\t%s\n", eps.Name)
-		w.Write(LEVEL_0, "Namespace:\t%s\n", eps.Namespace)
-		printLabelsMultiline(w, "Labels", eps.Labels)
-		printAnnotationsMultiline(w, "Annotations", eps.Annotations)
-
-		w.Write(LEVEL_0, "AddressType:\t%s\n", string(eps.AddressType))
-
-		if len(eps.Ports) == 0 {
-			w.Write(LEVEL_0, "Ports: <unset>\n")
-		} else {
-			w.Write(LEVEL_0, "Ports:\n")
-			w.Write(LEVEL_1, "Name\tPort\tProtocol\n")
-			w.Write(LEVEL_1, "----\t----\t--------\n")
-			for _, port := range eps.Ports {
-				portName := "<unset>"
-				if port.Name != nil && len(*port.Name) > 0 {
-					portName = *port.Name
-				}
-
-				portNum := "<unset>"
-				if port.Port != nil {
-					portNum = strconv.Itoa(int(*port.Port))
-				}
-
-				w.Write(LEVEL_1, "%s\t%s\t%s\n", portName, portNum, *port.Protocol)
-			}
-		}
-
-		if len(eps.Endpoints) == 0 {
-			w.Write(LEVEL_0, "Endpoints: <none>\n")
-		} else {
-			w.Write(LEVEL_0, "Endpoints:\n")
-			for i := range eps.Endpoints {
-				endpoint := &eps.Endpoints[i]
-
-				addressesString := strings.Join(endpoint.Addresses, ",")
-				if len(addressesString) == 0 {
-					addressesString = "<none>"
-				}
-				w.Write(LEVEL_1, "- Addresses:\t%s\n", addressesString)
-
-				w.Write(LEVEL_2, "Conditions:\n")
-				readyText := "<unset>"
-				if endpoint.Conditions.Ready != nil {
-					readyText = strconv.FormatBool(*endpoint.Conditions.Ready)
-				}
-				w.Write(LEVEL_3, "Ready:\t%s\n", readyText)
-
-				hostnameText := "<unset>"
-				if endpoint.Hostname != nil {
-					hostnameText = *endpoint.Hostname
-				}
-				w.Write(LEVEL_2, "Hostname:\t%s\n", hostnameText)
-
-				if endpoint.TargetRef != nil {
-					w.Write(LEVEL_2, "TargetRef:\t%s/%s\n", endpoint.TargetRef.Kind, endpoint.TargetRef.Name)
-				}
-
-				printLabelsMultilineWithIndent(w, "    ", "Topology", "\t", endpoint.Topology, sets.New[string]())
-			}
-		}
-
-		if events != nil {
-			DescribeEvents(events, w)
-		}
-		return nil
-	})
-}
-
 // ServiceAccountDescriber generates information about a service.
 type ServiceAccountDescriber struct {
 	clientset.Interface
@@ -3445,61 +3358,15 @@ func (d *ServiceAccountDescriber) Describe(namespace, name string, describerSett
 		return "", err
 	}
 
-	tokens := []corev1.Secret{}
-
-	// missingSecrets is the set of all secrets present in the
-	// serviceAccount but not present in the set of existing secrets.
-	missingSecrets := sets.New[string]()
-	secrets := corev1.SecretList{}
-	err = runtimeresource.FollowContinue(&metav1.ListOptions{Limit: describerSettings.ChunkSize},
-		func(options metav1.ListOptions) (runtime.Object, error) {
-			newList, err := d.CoreV1().Secrets(namespace).List(context.TODO(), options)
-			if err != nil {
-				return nil, runtimeresource.EnhanceListError(err, options, corev1.ResourceSecrets.String())
-			}
-			secrets.Items = append(secrets.Items, newList.Items...)
-			return newList, nil
-		})
-
-	// errors are tolerated here in order to describe the serviceAccount with all
-	// of the secrets that it references, even if those secrets cannot be fetched.
-	if err == nil {
-		// existingSecrets is the set of all secrets remaining on a
-		// service account that are not present in the "tokens" slice.
-		existingSecrets := sets.New[string]()
-
-		for _, s := range secrets.Items {
-			if s.Type == corev1.SecretTypeServiceAccountToken {
-				name := s.Annotations[corev1.ServiceAccountNameKey]
-				uid := s.Annotations[corev1.ServiceAccountUIDKey]
-				if name == serviceAccount.Name && uid == string(serviceAccount.UID) {
-					tokens = append(tokens, s)
-				}
-			}
-			existingSecrets.Insert(s.Name)
-		}
-
-		for _, s := range serviceAccount.Secrets {
-			if !existingSecrets.Has(s.Name) {
-				missingSecrets.Insert(s.Name)
-			}
-		}
-		for _, s := range serviceAccount.ImagePullSecrets {
-			if !existingSecrets.Has(s.Name) {
-				missingSecrets.Insert(s.Name)
-			}
-		}
-	}
-
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
 		events, _ = searchEvents(d.CoreV1(), serviceAccount, describerSettings.ChunkSize)
 	}
 
-	return describeServiceAccount(serviceAccount, tokens, missingSecrets, events)
+	return describeServiceAccount(serviceAccount, events)
 }
 
-func describeServiceAccount(serviceAccount *corev1.ServiceAccount, tokens []corev1.Secret, missingSecrets sets.Set[string], events *corev1.EventList) (string, error) {
+func describeServiceAccount(serviceAccount *corev1.ServiceAccount, events *corev1.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		w := NewPrefixWriter(out)
 		w.Write(LEVEL_0, "Name:\t%s\n", serviceAccount.Name)
@@ -3510,28 +3377,16 @@ func describeServiceAccount(serviceAccount *corev1.ServiceAccount, tokens []core
 		var (
 			emptyHeader = "                   "
 			pullHeader  = "Image pull secrets:"
-			mountHeader = "Mountable secrets: "
-			tokenHeader = "Tokens:            "
 
-			pullSecretNames  = []string{}
-			mountSecretNames = []string{}
-			tokenSecretNames = []string{}
+			pullSecretNames = []string{}
 		)
 
 		for _, s := range serviceAccount.ImagePullSecrets {
 			pullSecretNames = append(pullSecretNames, s.Name)
 		}
-		for _, s := range serviceAccount.Secrets {
-			mountSecretNames = append(mountSecretNames, s.Name)
-		}
-		for _, s := range tokens {
-			tokenSecretNames = append(tokenSecretNames, s.Name)
-		}
 
 		types := map[string][]string{
-			pullHeader:  pullSecretNames,
-			mountHeader: mountSecretNames,
-			tokenHeader: tokenSecretNames,
+			pullHeader: pullSecretNames,
 		}
 		for _, header := range sets.List(sets.KeySet(types)) {
 			names := types[header]
@@ -3540,11 +3395,7 @@ func describeServiceAccount(serviceAccount *corev1.ServiceAccount, tokens []core
 			} else {
 				prefix := header
 				for _, name := range names {
-					if missingSecrets.Has(name) {
-						w.Write(LEVEL_0, "%s\t%s (not found)\n", prefix, name)
-					} else {
-						w.Write(LEVEL_0, "%s\t%s\n", prefix, name)
-					}
+					w.Write(LEVEL_0, "%s\t%s\n", prefix, name)
 					prefix = emptyHeader
 				}
 			}
@@ -3971,38 +3822,23 @@ func (p *CertificateSigningRequestDescriber) Describe(namespace, name string, de
 		events            *corev1.EventList
 	)
 
-	if csr, err := p.client.CertificatesV1().CertificateSigningRequests().Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		crBytes = csr.Spec.Request
-		metadata = csr.ObjectMeta
-		conditionTypes := []string{}
-		for _, c := range csr.Status.Conditions {
-			conditionTypes = append(conditionTypes, string(c.Type))
-		}
-		status = extractCSRStatus(conditionTypes, csr.Status.Certificate)
-		signerName = csr.Spec.SignerName
-		expirationSeconds = csr.Spec.ExpirationSeconds
-		username = csr.Spec.Username
-		if describerSettings.ShowEvents {
-			events, _ = searchEvents(p.client.CoreV1(), csr, describerSettings.ChunkSize)
-		}
-	} else if csr, err := p.client.CertificatesV1beta1().CertificateSigningRequests().Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		crBytes = csr.Spec.Request
-		metadata = csr.ObjectMeta
-		conditionTypes := []string{}
-		for _, c := range csr.Status.Conditions {
-			conditionTypes = append(conditionTypes, string(c.Type))
-		}
-		status = extractCSRStatus(conditionTypes, csr.Status.Certificate)
-		if csr.Spec.SignerName != nil {
-			signerName = *csr.Spec.SignerName
-		}
-		expirationSeconds = csr.Spec.ExpirationSeconds
-		username = csr.Spec.Username
-		if describerSettings.ShowEvents {
-			events, _ = searchEvents(p.client.CoreV1(), csr, describerSettings.ChunkSize)
-		}
-	} else {
+	csr, err := p.client.CertificatesV1().CertificateSigningRequests().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
 		return "", err
+	}
+
+	crBytes = csr.Spec.Request
+	metadata = csr.ObjectMeta
+	conditionTypes := []string{}
+	for _, c := range csr.Status.Conditions {
+		conditionTypes = append(conditionTypes, string(c.Type))
+	}
+	status = extractCSRStatus(conditionTypes, csr.Status.Certificate)
+	signerName = csr.Spec.SignerName
+	expirationSeconds = csr.Spec.ExpirationSeconds
+	username = csr.Spec.Username
+	if describerSettings.ShowEvents {
+		events, _ = searchEvents(p.client.CoreV1(), csr, describerSettings.ChunkSize)
 	}
 
 	cr, err := certificate.ParseCSR(crBytes)
@@ -4421,12 +4257,16 @@ func DescribeEvents(el *corev1.EventList, w PrefixWriter) {
 		if source == "" {
 			source = e.ReportingController
 		}
+		message := strings.TrimSpace(e.Message)
+		if len(e.InvolvedObject.FieldPath) > 0 {
+			message = fmt.Sprintf("%s: %s", e.InvolvedObject.FieldPath, message)
+		}
 		w.Write(LEVEL_1, "%v\t%v\t%s\t%v\t%v\n",
 			e.Type,
 			e.Reason,
 			interval,
 			source,
-			strings.TrimSpace(e.Message),
+			message,
 		)
 	}
 }
@@ -4937,66 +4777,23 @@ type PodDisruptionBudgetDescriber struct {
 
 func (p *PodDisruptionBudgetDescriber) Describe(namespace, name string, describerSettings DescriberSettings) (string, error) {
 	var (
-		pdbv1      *policyv1.PodDisruptionBudget
-		pdbv1beta1 *policyv1beta1.PodDisruptionBudget
-		err        error
+		pdbv1 *policyv1.PodDisruptionBudget
+		err   error
 	)
 
 	pdbv1, err = p.PolicyV1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		var events *corev1.EventList
-		if describerSettings.ShowEvents {
-			events, _ = searchEvents(p.CoreV1(), pdbv1, describerSettings.ChunkSize)
-		}
-		return describePodDisruptionBudgetV1(pdbv1, events)
+	if err != nil {
+		return "", err
 	}
 
-	// try falling back to v1beta1 in NotFound error cases
-	if apierrors.IsNotFound(err) {
-		pdbv1beta1, err = p.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	var events *corev1.EventList
+	if describerSettings.ShowEvents {
+		events, _ = searchEvents(p.CoreV1(), pdbv1, describerSettings.ChunkSize)
 	}
-	if err == nil {
-		var events *corev1.EventList
-		if describerSettings.ShowEvents {
-			events, _ = searchEvents(p.CoreV1(), pdbv1beta1, describerSettings.ChunkSize)
-		}
-		return describePodDisruptionBudgetV1beta1(pdbv1beta1, events)
-	}
-
-	return "", err
+	return describePodDisruptionBudgetV1(pdbv1, events)
 }
 
 func describePodDisruptionBudgetV1(pdb *policyv1.PodDisruptionBudget, events *corev1.EventList) (string, error) {
-	return tabbedString(func(out io.Writer) error {
-		w := NewPrefixWriter(out)
-		w.Write(LEVEL_0, "Name:\t%s\n", pdb.Name)
-		w.Write(LEVEL_0, "Namespace:\t%s\n", pdb.Namespace)
-
-		if pdb.Spec.MinAvailable != nil {
-			w.Write(LEVEL_0, "Min available:\t%s\n", pdb.Spec.MinAvailable.String())
-		} else if pdb.Spec.MaxUnavailable != nil {
-			w.Write(LEVEL_0, "Max unavailable:\t%s\n", pdb.Spec.MaxUnavailable.String())
-		}
-
-		if pdb.Spec.Selector != nil {
-			w.Write(LEVEL_0, "Selector:\t%s\n", metav1.FormatLabelSelector(pdb.Spec.Selector))
-		} else {
-			w.Write(LEVEL_0, "Selector:\t<unset>\n")
-		}
-		w.Write(LEVEL_0, "Status:\n")
-		w.Write(LEVEL_2, "Allowed disruptions:\t%d\n", pdb.Status.DisruptionsAllowed)
-		w.Write(LEVEL_2, "Current:\t%d\n", pdb.Status.CurrentHealthy)
-		w.Write(LEVEL_2, "Desired:\t%d\n", pdb.Status.DesiredHealthy)
-		w.Write(LEVEL_2, "Total:\t%d\n", pdb.Status.ExpectedPods)
-		if events != nil {
-			DescribeEvents(events, w)
-		}
-
-		return nil
-	})
-}
-
-func describePodDisruptionBudgetV1beta1(pdb *policyv1beta1.PodDisruptionBudget, events *corev1.EventList) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		w := NewPrefixWriter(out)
 		w.Write(LEVEL_0, "Name:\t%s\n", pdb.Name)
@@ -5597,11 +5394,11 @@ func extractCSRStatus(conditions []string, certificateBytes []byte) string {
 	var approved, denied, failed bool
 	for _, c := range conditions {
 		switch c {
-		case string(certificatesv1beta1.CertificateApproved):
+		case string(certificatesv1.CertificateApproved):
 			approved = true
-		case string(certificatesv1beta1.CertificateDenied):
+		case string(certificatesv1.CertificateDenied):
 			denied = true
-		case string(certificatesv1beta1.CertificateFailed):
+		case string(certificatesv1.CertificateFailed):
 			failed = true
 		}
 	}

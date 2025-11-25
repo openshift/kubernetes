@@ -34,6 +34,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -1081,6 +1082,7 @@ func pvcWithDataSource(dataSource *core.TypedLocalObjectReference) *core.Persist
 		},
 	}
 }
+
 func pvcWithDataSourceRef(ref *core.TypedObjectReference) *core.PersistentVolumeClaim {
 	return &core.PersistentVolumeClaim{
 		Spec: core.PersistentVolumeClaimSpec{
@@ -3104,8 +3106,10 @@ func TestValidatePersistentVolumeClaimUpdate(t *testing.T) {
 
 	for name, scenario := range scenarios {
 		t.Run(name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RecoverVolumeExpansionFailure, scenario.enableRecoverFromExpansion)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.VolumeAttributesClass, scenario.enableVolumeAttributesClass)
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.RecoverVolumeExpansionFailure: scenario.enableRecoverFromExpansion,
+				features.VolumeAttributesClass:         scenario.enableVolumeAttributesClass,
+			})
 
 			scenario.oldClaim.ResourceVersion = "1"
 			scenario.newClaim.ResourceVersion = "1"
@@ -7100,13 +7104,7 @@ func TestValidateEnvVarValueFromFileKeyRef(t *testing.T) {
 			},
 			opts: PodValidationOptions{},
 			expectedErrs: field.ErrorList{
-				{
-					Type:     field.ErrorTypeInvalid,
-					Field:    field.NewPath("valueFrom.fileKeyRef.volumeName").String(),
-					BadValue: "INVALID_NAME!",
-					Detail:   "a lowercase RFC 1123 label must consist of",
-					Origin:   "format=dns-label",
-				},
+				field.Invalid(field.NewPath("valueFrom.fileKeyRef.volumeName"), "INVALID_NAME!", "").WithOrigin("format=k8s-short-name"),
 			},
 		},
 		{
@@ -7158,13 +7156,7 @@ func TestValidateEnvVarValueFromFileKeyRef(t *testing.T) {
 			opts: PodValidationOptions{},
 			expectedErrs: field.ErrorList{
 				field.Invalid(field.NewPath("valueFrom.fileKeyRef.key"), "bad=key", "environment variable"),
-				{
-					Type:     field.ErrorTypeInvalid,
-					Field:    field.NewPath("valueFrom.fileKeyRef.volumeName").String(),
-					BadValue: "!badname",
-					Detail:   "a lowercase RFC 1123 label must consist of",
-					Origin:   "format=dns-label",
-				},
+				field.Invalid(field.NewPath("valueFrom.fileKeyRef.volumeName"), "!badname", "").WithOrigin("format=k8s-short-name"),
 				field.Invalid(field.NewPath("valueFrom.fileKeyRef.path"), "../badpath", "must not contain '..'"),
 			},
 		},
@@ -11203,6 +11195,27 @@ func TestValidatePod(t *testing.T) {
 				},
 			}),
 		),
+		"valid PodCertificate projected volume source, user config is not nil": *podtest.MakePod("valid-podcertificate-5",
+			podtest.SetVolumes(core.Volume{
+				Name: "projected-volume",
+				VolumeSource: core.VolumeSource{
+					Projected: &core.ProjectedVolumeSource{
+						Sources: []core.VolumeProjection{
+							{
+								PodCertificate: &core.PodCertificateProjection{
+									SignerName:           "example.com/foo",
+									KeyType:              "ED25519",
+									MaxExpirationSeconds: ptr.To[int32](3600),
+									KeyPath:              "key.pem",
+									CertificateChainPath: "certificates.pem",
+									UserAnnotations:      map[string]string{"test.domain/attribute": "test-value"},
+								},
+							},
+						},
+					},
+				},
+			}),
+		),
 		"ephemeral volume + PVC, no conflict between them": *podtest.MakePod("valid-extended",
 			podtest.SetVolumes(
 				core.Volume{Name: "pvc", VolumeSource: core.VolumeSource{PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{ClaimName: "my-pvc"}}},
@@ -12843,6 +12856,75 @@ func TestValidatePod(t *testing.T) {
 										SignerName:           "example.com/foo",
 										KeyPath:              "key.pem",
 										CertificateChainPath: "/certificates.pem",
+									},
+								},
+							},
+						},
+					},
+				}),
+			),
+		},
+		"PodCertificate projected volume with bad user annotations, invalid key": {
+			expectedError: "regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]') with an optional DNS subdomain prefix",
+			spec: *podtest.MakePod("pod1",
+				podtest.SetVolumes(core.Volume{
+					Name: "projected-volume",
+					VolumeSource: core.VolumeSource{
+						Projected: &core.ProjectedVolumeSource{
+							Sources: []core.VolumeProjection{
+								{
+									PodCertificate: &core.PodCertificateProjection{
+										SignerName:           "example.com/foo",
+										KeyType:              "ED25519",
+										KeyPath:              "key.pem",
+										CertificateChainPath: "certificates.pem",
+										UserAnnotations:      map[string]string{"only/one/slash": "bar"},
+									},
+								},
+							},
+						},
+					},
+				}),
+			),
+		},
+		"PodCertificate projected volume with bad user annotations, too long key prefix size": {
+			expectedError: "prefix part must be no more than 253 bytes",
+			spec: *podtest.MakePod("pod1",
+				podtest.SetVolumes(core.Volume{
+					Name: "projected-volume",
+					VolumeSource: core.VolumeSource{
+						Projected: &core.ProjectedVolumeSource{
+							Sources: []core.VolumeProjection{
+								{
+									PodCertificate: &core.PodCertificateProjection{
+										SignerName:           "example.com/foo",
+										KeyType:              "ED25519",
+										KeyPath:              "key.pem",
+										CertificateChainPath: "certificates.pem",
+										UserAnnotations:      map[string]string{strings.Repeat("a", 254) + "/foo": "bar"},
+									},
+								},
+							},
+						},
+					},
+				}),
+			),
+		},
+		"PodCertificate projected volume with bad user annotations, too long total key/value size": {
+			expectedError: "may not be more than 262144 bytes",
+			spec: *podtest.MakePod("pod1",
+				podtest.SetVolumes(core.Volume{
+					Name: "projected-volume",
+					VolumeSource: core.VolumeSource{
+						Projected: &core.ProjectedVolumeSource{
+							Sources: []core.VolumeProjection{
+								{
+									PodCertificate: &core.PodCertificateProjection{
+										SignerName:           "example.com/foo",
+										KeyType:              "ED25519",
+										KeyPath:              "key.pem",
+										CertificateChainPath: "certificates.pem",
+										UserAnnotations:      map[string]string{"domain/a": strings.Repeat("d", apimachineryvalidation.TotalAnnotationSizeLimitB)},
 									},
 								},
 							},
@@ -17578,9 +17660,14 @@ func TestValidateServiceCreate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PreferSameTrafficDistribution, tc.newTrafficDist)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RelaxedServiceNameValidation, tc.relaxedServiceNames)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
+			if !tc.newTrafficDist {
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.34"))
+			}
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.PreferSameTrafficDistribution: tc.newTrafficDist,
+				features.RelaxedServiceNameValidation:  tc.relaxedServiceNames,
+				features.StrictIPCIDRValidation:        !tc.legacyIPs,
+			})
 			svc := makeValidService()
 			tc.tweakSvc(&svc)
 			errs := ValidateServiceCreate(&svc)
@@ -17964,7 +18051,7 @@ func TestValidateReplicationControllerUpdate(t *testing.T) {
 				rc.Spec.Selector = invalid
 			}),
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("labelKey"),
+				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid pod": {
@@ -18113,7 +18200,7 @@ func TestValidateReplicationController(t *testing.T) {
 				}
 			}),
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("metadata.labels"), nil, "").WithOrigin("labelKey"),
+				field.Invalid(field.NewPath("metadata.labels"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid label 2": {
@@ -18124,7 +18211,7 @@ func TestValidateReplicationController(t *testing.T) {
 			}),
 			expectedErrs: field.ErrorList{
 				field.Invalid(field.NewPath("spec.template.metadata.labels"), nil, "does not match template"),
-				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("labelKey"),
+				field.Invalid(field.NewPath("spec.template.labels"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid annotation": {
@@ -18134,7 +18221,7 @@ func TestValidateReplicationController(t *testing.T) {
 				}
 			}),
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("metadata.annotations"), nil, "name part must consist of"),
+				field.Invalid(field.NewPath("metadata.annotations"), nil, "").WithOrigin("format=k8s-label-key"),
 			},
 		},
 		"invalid restart policy 1": {
@@ -20302,8 +20389,10 @@ func TestValidateServiceUpdate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RelaxedServiceNameValidation, tc.relaxedServiceNames)
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.StrictIPCIDRValidation:       true,
+				features.RelaxedServiceNameValidation: tc.relaxedServiceNames,
+			})
 
 			oldSvc := makeValidService()
 			newSvc := makeValidService()
@@ -24207,8 +24296,10 @@ func TestCrossNamespaceSource(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.AnyVolumeDataSource, true)
-		featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.CrossNamespaceVolumeDataSource, true)
+		featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+			features.AnyVolumeDataSource:            true,
+			features.CrossNamespaceVolumeDataSource: true,
+		})
 		opts := PersistentVolumeClaimSpecValidationOptions{}
 		if tc.expectedFail {
 			if errs := ValidatePersistentVolumeClaimSpec(tc.claimSpec, field.NewPath("spec"), opts); len(errs) == 0 {
@@ -24469,7 +24560,7 @@ func TestValidateTopologySpreadConstraints(t *testing.T) {
 			MatchLabelKeys:    []string{"/simple"},
 		}},
 		wantFieldErrors: field.ErrorList{
-			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("labelKey"),
+			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("format=k8s-label-key"),
 		},
 		opts: PodValidationOptions{
 			AllowMatchLabelKeysInPodTopologySpread:              true,
@@ -24485,7 +24576,7 @@ func TestValidateTopologySpreadConstraints(t *testing.T) {
 			MatchLabelKeys:    []string{"/simple"},
 		}},
 		wantFieldErrors: field.ErrorList{
-			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("labelKey"),
+			field.Invalid(fieldPathMatchLabelKeys.Index(0), nil, "").WithOrigin("format=k8s-label-key"),
 		},
 		opts: PodValidationOptions{
 			AllowMatchLabelKeysInPodTopologySpread:              true,
@@ -24584,7 +24675,7 @@ func TestValidateTopologySpreadConstraints(t *testing.T) {
 			LabelSelector:     &metav1.LabelSelector{MatchLabels: map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "foo"}},
 		}},
 		wantFieldErrors: field.ErrorList{
-			field.Invalid(labelSelectorField.Child("matchLabels"), nil, "").WithOrigin("labelKey"),
+			field.Invalid(labelSelectorField.Child("matchLabels"), nil, "").WithOrigin("format=k8s-label-key"),
 		},
 		opts: PodValidationOptions{
 			AllowMatchLabelKeysInPodTopologySpread:              true,
@@ -26093,7 +26184,7 @@ func TestValidatePodHostName(t *testing.T) {
 				HostnameOverride: ptr.To(""),
 			},
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.hostnameOverride"), "", "RFC 1123"),
+				field.Invalid(field.NewPath("spec.hostnameOverride"), nil, "").WithOrigin("format=k8s-long-name"),
 			},
 		},
 		{
@@ -26132,7 +26223,7 @@ func TestValidatePodHostName(t *testing.T) {
 				HostnameOverride: ptr.To("Not-RFC1123"),
 			},
 			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.hostnameOverride"), "", "RFC 1123"),
+				field.Invalid(field.NewPath("spec.hostnameOverride"), nil, "").WithOrigin("format=k8s-long-name"),
 			},
 		},
 		{
@@ -26912,17 +27003,14 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		ipModeEnabled    bool
 		legacyIPs        bool
-		nonLBAllowed     bool
 		tweakOldLBStatus func(s *core.LoadBalancerStatus)
 		tweakLBStatus    func(s *core.LoadBalancerStatus)
 		tweakSvcSpec     func(s *core.ServiceSpec)
 		numErrs          int
 	}{
 		{
-			name:         "type is not LB",
-			nonLBAllowed: false,
+			name: "type is not LB",
 			tweakSvcSpec: func(s *core.ServiceSpec) {
 				s.Type = core.ServiceTypeClusterIP
 			},
@@ -26933,20 +27021,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 1,
 		}, {
-			name:         "type is not LB. back-compat",
-			nonLBAllowed: true,
-			tweakSvcSpec: func(s *core.ServiceSpec) {
-				s.Type = core.ServiceTypeClusterIP
-			},
-			tweakLBStatus: func(s *core.LoadBalancerStatus) {
-				s.Ingress = []core.LoadBalancerIngress{{
-					IP: "1.2.3.4",
-				}}
-			},
-			numErrs: 0,
-		}, {
-			name:          "valid vip ipMode",
-			ipModeEnabled: true,
+			name: "valid vip ipMode",
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IP:     "1.2.3.4",
@@ -26955,8 +27030,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 0,
 		}, {
-			name:          "valid proxy ipMode",
-			ipModeEnabled: true,
+			name: "valid proxy ipMode",
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IP:     "1.2.3.4",
@@ -26965,8 +27039,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 0,
 		}, {
-			name:          "invalid ipMode",
-			ipModeEnabled: true,
+			name: "invalid ipMode",
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IP:     "1.2.3.4",
@@ -26975,8 +27048,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 1,
 		}, {
-			name:          "missing ipMode with LoadbalancerIPMode enabled",
-			ipModeEnabled: true,
+			name: "missing ipMode",
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IP: "1.2.3.4",
@@ -26984,17 +27056,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 1,
 		}, {
-			name:          "missing ipMode with LoadbalancerIPMode disabled",
-			ipModeEnabled: false,
-			tweakLBStatus: func(s *core.LoadBalancerStatus) {
-				s.Ingress = []core.LoadBalancerIngress{{
-					IP: "1.2.3.4",
-				}}
-			},
-			numErrs: 0,
-		}, {
-			name:          "missing ip with ipMode present",
-			ipModeEnabled: true,
+			name: "missing ip with ipMode present",
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IPMode: &ipModeProxy,
@@ -27002,9 +27064,8 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 1,
 		}, {
-			name:          "legacy IP with legacy validation",
-			ipModeEnabled: true,
-			legacyIPs:     true,
+			name:      "legacy IP with legacy validation",
+			legacyIPs: true,
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IP:     "001.002.003.004",
@@ -27013,8 +27074,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 			},
 			numErrs: 0,
 		}, {
-			name:          "legacy IP with strict validation",
-			ipModeEnabled: true,
+			name: "legacy IP with strict validation",
 			tweakLBStatus: func(s *core.LoadBalancerStatus) {
 				s.Ingress = []core.LoadBalancerIngress{{
 					IP:     "001.002.003.004",
@@ -27074,15 +27134,7 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if !tc.ipModeEnabled {
-				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.31"))
-			} else {
-				// (This feature gate doesn't exist in 1.31 so we can't set it
-				// when testing !ipModeEnabled.)
-				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
-			}
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.LoadBalancerIPMode, tc.ipModeEnabled)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.AllowServiceLBStatusOnNonLB, tc.nonLBAllowed)
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
 			oldStatus := core.LoadBalancerStatus{}
 			if tc.tweakOldLBStatus != nil {
 				tc.tweakOldLBStatus(&oldStatus)
@@ -28348,6 +28400,21 @@ func TestValidatePodResize(t *testing.T) {
 			old:  mkPodWithInitContainers(getResources("100m", "0", "1Gi", ""), core.ResourceList{}, core.ContainerRestartPolicyAlways, resizePolicy(core.ResourceMemory, core.RestartContainer)),
 			new:  mkPodWithInitContainers(getResources("100m", "0", "2Gi", ""), core.ResourceList{}, core.ContainerRestartPolicyAlways, resizePolicy(core.ResourceMemory, core.NotRequired)),
 			err:  "spec: Forbidden: only cpu and memory resources are mutable",
+		}, {
+			test: "invalid: adding non-resizable resources to a container without resources",
+			old: podtest.MakePod("pod", podtest.SetContainers(
+				podtest.MakeContainer("c1"),
+			)),
+			new: podtest.MakePod("pod", podtest.SetContainers(
+				podtest.MakeContainer("c1",
+					podtest.SetContainerResources(core.ResourceRequirements{
+						Requests: core.ResourceList{
+							core.ResourceEphemeralStorage: resource.MustParse("10Gi"),
+						},
+					}),
+				),
+			)),
+			err: "spec: Forbidden: only cpu and memory resources are mutable",
 		},
 	}
 

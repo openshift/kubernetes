@@ -172,13 +172,13 @@ func NewController(ctx context.Context, options *ControllerOptions) (*Controller
 		// do initial quota monitor setup.  If we have a discovery failure here, it's ok. We'll discover more resources when a later sync happens.
 		resources, err := GetQuotableResources(options.DiscoveryFunc)
 		if discovery.IsGroupDiscoveryFailedError(err) {
-			utilruntime.HandleError(fmt.Errorf("initial discovery check failure, continuing and counting on future sync update: %v", err))
+			utilruntime.HandleErrorWithContext(ctx, err, "Initial discovery check failure, continuing and counting on future sync update")
 		} else if err != nil {
 			return nil, err
 		}
 
 		if err = qm.SyncMonitors(ctx, resources); err != nil {
-			utilruntime.HandleError(fmt.Errorf("initial monitor sync has error: %v", err))
+			utilruntime.HandleErrorWithContext(ctx, err, "Initial monitor sync has error")
 		}
 
 		// only start quota once all informers synced
@@ -196,13 +196,13 @@ func (rq *Controller) enqueueAll(ctx context.Context) {
 	defer logger.V(4).Info("Resource quota controller queued all resource quota for full calculation of usage")
 	rqs, err := rq.rqLister.List(labels.Everything())
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to enqueue all - error listing resource quotas: %v", err))
+		utilruntime.HandleErrorWithContext(ctx, err, "Unable to enqueue all - error listing resource quotas")
 		return
 	}
 	for i := range rqs {
 		key, err := controller.KeyFunc(rqs[i])
 		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", rqs[i], err))
+			utilruntime.HandleErrorWithContext(ctx, err, "Couldn't get key for object", "object", klog.KObj(rqs[i]))
 			continue
 		}
 		rq.queue.Add(key)
@@ -273,7 +273,7 @@ func (rq *Controller) worker(queue workqueue.TypedRateLimitingInterface[string])
 			return false
 		}
 
-		utilruntime.HandleError(err)
+		utilruntime.HandleErrorWithContext(ctx, err, "Error processing resource quota work item")
 		queue.AddRateLimited(key)
 
 		return false
@@ -291,7 +291,7 @@ func (rq *Controller) worker(queue workqueue.TypedRateLimitingInterface[string])
 
 // Run begins quota controller using the specified number of workers
 func (rq *Controller) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
+	defer utilruntime.HandleCrashWithContext(ctx)
 	defer rq.queue.ShutDown()
 	defer rq.missingUsageQueue.ShutDown()
 
@@ -304,7 +304,7 @@ func (rq *Controller) Run(ctx context.Context, workers int) {
 		go rq.quotaMonitor.Run(ctx)
 	}
 
-	if !cache.WaitForNamedCacheSync("resource quota", ctx.Done(), rq.informerSyncedFuncs...) {
+	if !cache.WaitForNamedCacheSyncWithContext(ctx, rq.informerSyncedFuncs...) {
 		return
 	}
 
@@ -411,11 +411,11 @@ func (rq *Controller) replenishQuota(ctx context.Context, groupResource schema.G
 	// check if this namespace even has a quota...
 	resourceQuotas, err := rq.rqLister.ResourceQuotas(namespace).List(labels.Everything())
 	if errors.IsNotFound(err) {
-		utilruntime.HandleError(fmt.Errorf("quota controller could not find ResourceQuota associated with namespace: %s, could take up to %v before a quota replenishes", namespace, rq.resyncPeriod()))
+		utilruntime.HandleErrorWithContext(ctx, nil, "Quota controller could not find ResourceQuota associated with namespace", "namespace", namespace, "resyncPeriod", rq.resyncPeriod())
 		return
 	}
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error checking to see if namespace %s has any ResourceQuota associated with it: %v", namespace, err))
+		utilruntime.HandleErrorWithContext(ctx, err, "Error checking to see if namespace has any ResourceQuota associated with it", "namespace", namespace)
 		return
 	}
 	if len(resourceQuotas) == 0 {
@@ -443,7 +443,7 @@ func (rq *Controller) Sync(ctx context.Context, discoveryFunc NamespacedResource
 		// Get the current resource list from discovery.
 		newResources, err := GetQuotableResources(discoveryFunc)
 		if err != nil {
-			utilruntime.HandleError(err)
+			utilruntime.HandleErrorWithContext(ctx, err, "Error during resource discovery")
 
 			if groupLookupFailures, isLookupFailure := discovery.GroupDiscoveryFailedErrorGroups(err); isLookupFailure && len(newResources) > 0 {
 				// In partial discovery cases, preserve existing informers for resources in the failed groups, so resyncMonitors will only add informers for newly seen resources
@@ -478,7 +478,7 @@ func (rq *Controller) Sync(ctx context.Context, discoveryFunc NamespacedResource
 
 		// Perform the monitor resync and wait for controllers to report cache sync.
 		if err := rq.resyncMonitors(ctx, newResources); err != nil {
-			utilruntime.HandleError(fmt.Errorf("failed to sync resource monitors: %v", err))
+			utilruntime.HandleErrorWithContext(ctx, err, "Failed to sync resource monitors")
 			return
 		}
 
@@ -489,14 +489,17 @@ func (rq *Controller) Sync(ctx context.Context, discoveryFunc NamespacedResource
 		// this protects us from deadlocks where available resources changed and one of our informer caches will never fill.
 		// informers keep attempting to sync in the background, so retrying doesn't interrupt them.
 		// the call to resyncMonitors on the reattempt will no-op for resources that still exist.
-		if rq.quotaMonitor != nil &&
-			!cache.WaitForNamedCacheSync(
-				"resource quota",
-				waitForStopOrTimeout(ctx.Done(), period),
+		if rq.quotaMonitor != nil {
+			syncCtx, cancel := context.WithTimeout(ctx, period)
+			defer cancel()
+
+			if !cache.WaitForNamedCacheSyncWithContext(
+				syncCtx,
 				func() bool { return rq.quotaMonitor.IsSynced(ctx) },
 			) {
-			utilruntime.HandleError(fmt.Errorf("timed out waiting for quota monitor sync"))
-			return
+				utilruntime.HandleErrorWithContext(ctx, nil, "Timed out waiting for quota monitor sync")
+				return
+			}
 		}
 
 		logger.V(2).Info("synced quota controller")
@@ -518,19 +521,6 @@ func printDiff(oldResources, newResources map[schema.GroupVersionResource]struct
 		}
 	}
 	return fmt.Sprintf("added: %v, removed: %v", added.List(), removed.List())
-}
-
-// waitForStopOrTimeout returns a stop channel that closes when the provided stop channel closes or when the specified timeout is reached
-func waitForStopOrTimeout(stopCh <-chan struct{}, timeout time.Duration) <-chan struct{} {
-	stopChWithTimeout := make(chan struct{})
-	go func() {
-		defer close(stopChWithTimeout)
-		select {
-		case <-stopCh:
-		case <-time.After(timeout):
-		}
-	}()
-	return stopChWithTimeout
 }
 
 // resyncMonitors starts or stops quota monitors as needed to ensure that all

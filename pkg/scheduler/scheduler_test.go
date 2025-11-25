@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -53,12 +53,12 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/apis/config/testing/defaults"
-	"k8s.io/kubernetes/pkg/scheduler/backend/api_cache"
-	"k8s.io/kubernetes/pkg/scheduler/backend/api_dispatcher"
+	apicache "k8s.io/kubernetes/pkg/scheduler/backend/api_cache"
+	apidispatcher "k8s.io/kubernetes/pkg/scheduler/backend/api_dispatcher"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/backend/cache"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/backend/queue"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework/api_calls"
+	apicalls "k8s.io/kubernetes/pkg/scheduler/framework/api_calls"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/defaultbinder"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/queuesort"
@@ -242,7 +242,7 @@ func TestSchedulerCreation(t *testing.T) {
 					t.Errorf("unexpected extenders (-want, +got):\n%s", diff)
 				}
 
-				// framework.Handle.Extenders()
+				// fwk.Handle.Extenders()
 				for _, p := range s.Profiles {
 					extenders := make([]string, 0, len(p.Extenders()))
 					for _, e := range p.Extenders() {
@@ -308,7 +308,7 @@ func TestFailureHandler(t *testing.T) {
 				}
 
 				recorder := metrics.NewMetricsAsyncRecorder(3, 20*time.Microsecond, ctx.Done())
-				queue := internalqueue.NewPriorityQueue(nil, informerFactory, internalqueue.WithClock(testingclock.NewFakeClock(time.Now())), internalqueue.WithMetricsRecorder(*recorder), internalqueue.WithAPIDispatcher(apiDispatcher))
+				queue := internalqueue.NewPriorityQueue(nil, informerFactory, internalqueue.WithClock(testingclock.NewFakeClock(time.Now())), internalqueue.WithMetricsRecorder(recorder), internalqueue.WithAPIDispatcher(apiDispatcher))
 				schedulerCache := internalcache.New(ctx, 30*time.Second, apiDispatcher)
 
 				queue.Add(logger, testPod)
@@ -525,7 +525,7 @@ func TestInitPluginsWithIndexers(t *testing.T) {
 		{
 			name: "register indexer, no conflicts",
 			entrypoints: map[string]frameworkruntime.PluginFactory{
-				"AddIndexer": func(ctx context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+				"AddIndexer": func(ctx context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
 					podInformer := handle.SharedInformerFactory().Core().V1().Pods()
 					err := podInformer.Informer().AddIndexers(cache.Indexers{
 						"nodeName": indexByPodSpecNodeName,
@@ -538,14 +538,14 @@ func TestInitPluginsWithIndexers(t *testing.T) {
 			name: "register the same indexer name multiple times, conflict",
 			// order of registration doesn't matter
 			entrypoints: map[string]frameworkruntime.PluginFactory{
-				"AddIndexer1": func(ctx context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+				"AddIndexer1": func(ctx context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
 					podInformer := handle.SharedInformerFactory().Core().V1().Pods()
 					err := podInformer.Informer().AddIndexers(cache.Indexers{
 						"nodeName": indexByPodSpecNodeName,
 					})
 					return &TestPlugin{name: "AddIndexer1"}, err
 				},
-				"AddIndexer2": func(ctx context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+				"AddIndexer2": func(ctx context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
 					podInformer := handle.SharedInformerFactory().Core().V1().Pods()
 					err := podInformer.Informer().AddIndexers(cache.Indexers{
 						"nodeName": indexByPodAnnotationNodeName,
@@ -559,14 +559,14 @@ func TestInitPluginsWithIndexers(t *testing.T) {
 			name: "register the same indexer body with different names, no conflicts",
 			// order of registration doesn't matter
 			entrypoints: map[string]frameworkruntime.PluginFactory{
-				"AddIndexer1": func(ctx context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+				"AddIndexer1": func(ctx context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
 					podInformer := handle.SharedInformerFactory().Core().V1().Pods()
 					err := podInformer.Informer().AddIndexers(cache.Indexers{
 						"nodeName1": indexByPodSpecNodeName,
 					})
 					return &TestPlugin{name: "AddIndexer1"}, err
 				},
-				"AddIndexer2": func(ctx context.Context, obj runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+				"AddIndexer2": func(ctx context.Context, obj runtime.Object, handle fwk.Handle) (fwk.Plugin, error) {
 					podInformer := handle.SharedInformerFactory().Core().V1().Pods()
 					err := podInformer.Informer().AddIndexers(cache.Indexers{
 						"nodeName2": indexByPodAnnotationNodeName,
@@ -652,14 +652,14 @@ const (
 func Test_buildQueueingHintMap(t *testing.T) {
 	tests := []struct {
 		name                string
-		plugins             []framework.Plugin
+		plugins             []fwk.Plugin
 		want                map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction
 		featuregateDisabled bool
 		wantErr             error
 	}{
 		{
 			name:    "filter without EnqueueExtensions plugin",
-			plugins: []framework.Plugin{&filterWithoutEnqueueExtensionsPlugin{}},
+			plugins: []fwk.Plugin{&filterWithoutEnqueueExtensionsPlugin{}},
 			want: map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction{
 				{Resource: fwk.Pod, ActionType: fwk.All}: {
 					{PluginName: filterWithoutEnqueueExtensions, QueueingHintFn: defaultQueueingHintFn},
@@ -695,7 +695,7 @@ func Test_buildQueueingHintMap(t *testing.T) {
 		},
 		{
 			name:    "node and pod plugin",
-			plugins: []framework.Plugin{&fakeNodePlugin{}, &fakePodPlugin{}},
+			plugins: []fwk.Plugin{&fakeNodePlugin{}, &fakePodPlugin{}},
 			want: map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction{
 				{Resource: fwk.Pod, ActionType: fwk.Add}: {
 					{PluginName: fakePod, QueueingHintFn: fakePodPluginQueueingFn},
@@ -710,7 +710,7 @@ func Test_buildQueueingHintMap(t *testing.T) {
 		},
 		{
 			name:                "node and pod plugin (featuregate is disabled)",
-			plugins:             []framework.Plugin{&fakeNodePlugin{}, &fakePodPlugin{}},
+			plugins:             []fwk.Plugin{&fakeNodePlugin{}, &fakePodPlugin{}},
 			featuregateDisabled: true,
 			want: map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction{
 				{Resource: fwk.Pod, ActionType: fwk.Add}: {
@@ -726,12 +726,12 @@ func Test_buildQueueingHintMap(t *testing.T) {
 		},
 		{
 			name:    "register plugin with empty event",
-			plugins: []framework.Plugin{&emptyEventPlugin{}},
+			plugins: []fwk.Plugin{&emptyEventPlugin{}},
 			want:    map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction{},
 		},
 		{
 			name:    "register plugins including emptyEventPlugin",
-			plugins: []framework.Plugin{&emptyEventPlugin{}, &fakeNodePlugin{}},
+			plugins: []fwk.Plugin{&emptyEventPlugin{}, &fakeNodePlugin{}},
 			want: map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction{
 				{Resource: fwk.Pod, ActionType: fwk.Add}: {
 					{PluginName: fakePod, QueueingHintFn: fakePodPluginQueueingFn},
@@ -746,7 +746,7 @@ func Test_buildQueueingHintMap(t *testing.T) {
 		},
 		{
 			name:    "one EventsToRegister returns an error",
-			plugins: []framework.Plugin{&errorEventsToRegisterPlugin{}},
+			plugins: []fwk.Plugin{&errorEventsToRegisterPlugin{}},
 			want:    map[fwk.ClusterEvent][]*internalqueue.QueueingHintFunction{},
 			wantErr: errors.New("mock error"),
 		},
@@ -755,8 +755,8 @@ func Test_buildQueueingHintMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.featuregateDisabled {
-				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.33"))
-				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.SchedulerQueueingHints, false)
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, version.MustParse("1.33"))
+				featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.SchedulerQueueingHints, false)
 			}
 
 			logger, ctx := ktesting.NewTestContext(t)
@@ -767,7 +767,7 @@ func Test_buildQueueingHintMap(t *testing.T) {
 			plugins := append(tt.plugins, &fakebindPlugin{}, &fakeQueueSortPlugin{})
 			for _, pl := range plugins {
 				tmpPl := pl
-				if err := registry.Register(pl.Name(), func(_ context.Context, _ runtime.Object, _ framework.Handle) (framework.Plugin, error) {
+				if err := registry.Register(pl.Name(), func(_ context.Context, _ runtime.Object, _ fwk.Handle) (fwk.Plugin, error) {
 					return tmpPl, nil
 				}); err != nil {
 					t.Fatalf("fail to register filter plugin (%s)", pl.Name())
@@ -827,6 +827,7 @@ func Test_buildQueueingHintMap(t *testing.T) {
 
 // Test_UnionedGVKs tests UnionedGVKs worked with buildQueueingHintMap.
 func Test_UnionedGVKs(t *testing.T) {
+	featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, version.MustParse("1.34"))
 	tests := []struct {
 		name                            string
 		plugins                         schedulerapi.PluginSet
@@ -1006,11 +1007,16 @@ func Test_UnionedGVKs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pluginConfig := defaults.PluginConfigsV1
 
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.InPlacePodVerticalScaling, tt.enableInPlacePodVerticalScaling)
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.DynamicResourceAllocation, tt.enableDynamicResourceAllocation)
+			if !tt.enableSchedulerQueueingHints || !tt.enableDynamicResourceAllocation {
+				// Set emulated version before setting other feature gates, since it can impact feature dependencies.
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, version.MustParse("1.33"))
+			}
+			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.InPlacePodVerticalScaling: tt.enableInPlacePodVerticalScaling,
+				features.DynamicResourceAllocation: tt.enableDynamicResourceAllocation,
+			})
 			if !tt.enableSchedulerQueueingHints {
-				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.33"))
-				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.SchedulerQueueingHints, false)
+				featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.SchedulerQueueingHints, false)
 				// The test uses defaults.PluginConfigsV1, which contains the filter timeout.
 				// With emulation of 1.33, the DRASchedulerFilterTimeout feature gets disabled
 				// and also cannot be enabled ("pre-alpha"), which makes the config invalid.
@@ -1030,10 +1036,10 @@ func Test_UnionedGVKs(t *testing.T) {
 			registry := plugins.NewInTreeRegistry()
 
 			cfgPls := &schedulerapi.Plugins{MultiPoint: tt.plugins}
-			plugins := []framework.Plugin{&fakeNodePlugin{}, &fakePodPlugin{}, &filterWithoutEnqueueExtensionsPlugin{}, &emptyEventsToRegisterPlugin{}, &fakeQueueSortPlugin{}, &fakebindPlugin{}}
+			plugins := []fwk.Plugin{&fakeNodePlugin{}, &fakePodPlugin{}, &filterWithoutEnqueueExtensionsPlugin{}, &emptyEventsToRegisterPlugin{}, &fakeQueueSortPlugin{}, &fakebindPlugin{}}
 			for _, pl := range plugins {
 				tmpPl := pl
-				if err := registry.Register(pl.Name(), func(_ context.Context, _ runtime.Object, _ framework.Handle) (framework.Plugin, error) {
+				if err := registry.Register(pl.Name(), func(_ context.Context, _ runtime.Object, _ fwk.Handle) (fwk.Plugin, error) {
 					return tmpPl, nil
 				}); err != nil {
 					t.Fatalf("fail to register filter plugin (%s)", pl.Name())
@@ -1209,8 +1215,8 @@ func TestFrameworkHandler_IterateOverWaitingPods(t *testing.T) {
 			utiltesting.Eventually(tCtx, func(utiltesting.TContext) sets.Set[string] {
 				// Ensure that all waitingPods in scheduler can be obtained from any profiles.
 				actualPodNamesInWaitingPods := sets.New[string]()
-				for _, fwk := range scheduler.Profiles {
-					fwk.IterateOverWaitingPods(func(pod framework.WaitingPod) {
+				for _, schedFramework := range scheduler.Profiles {
+					schedFramework.IterateOverWaitingPods(func(pod fwk.WaitingPod) {
 						actualPodNamesInWaitingPods.Insert(pod.GetPod().Name)
 					})
 				}
@@ -1220,7 +1226,7 @@ func TestFrameworkHandler_IterateOverWaitingPods(t *testing.T) {
 	}
 }
 
-var _ framework.QueueSortPlugin = &fakeQueueSortPlugin{}
+var _ fwk.QueueSortPlugin = &fakeQueueSortPlugin{}
 
 // fakeQueueSortPlugin is a no-op implementation for QueueSort extension point.
 type fakeQueueSortPlugin struct{}
@@ -1233,7 +1239,7 @@ func (pl *fakeQueueSortPlugin) Less(_, _ fwk.QueuedPodInfo) bool {
 	return false
 }
 
-var _ framework.BindPlugin = &fakebindPlugin{}
+var _ fwk.BindPlugin = &fakebindPlugin{}
 
 // fakebindPlugin is a no-op implementation for Bind extension point.
 type fakebindPlugin struct{}
@@ -1320,7 +1326,7 @@ func (*errorEventsToRegisterPlugin) EventsToRegister(_ context.Context) ([]fwk.C
 	return nil, errors.New("mock error")
 }
 
-// emptyEventsToRegisterPlugin implement interface framework.EnqueueExtensions, but returns nil from EventsToRegister.
+// emptyEventsToRegisterPlugin implement interface fwk.EnqueueExtensions, but returns nil from EventsToRegister.
 // This can simulate a plugin registered at scheduler setup, but does nothing
 // due to some disabled feature gate.
 type emptyEventsToRegisterPlugin struct{}
@@ -1341,7 +1347,7 @@ type fakePermitPlugin struct {
 }
 
 func newFakePermitPlugin(eventRecorder events.EventRecorder) frameworkruntime.PluginFactory {
-	return func(ctx context.Context, configuration runtime.Object, f framework.Handle) (framework.Plugin, error) {
+	return func(ctx context.Context, configuration runtime.Object, f fwk.Handle) (fwk.Plugin, error) {
 		pl := &fakePermitPlugin{
 			eventRecorder: eventRecorder,
 		}
@@ -1367,4 +1373,4 @@ func (f fakePermitPlugin) Permit(ctx context.Context, state fwk.CycleState, p *v
 	return fwk.NewStatus(fwk.Wait), permitTimeout
 }
 
-var _ framework.PermitPlugin = &fakePermitPlugin{}
+var _ fwk.PermitPlugin = &fakePermitPlugin{}
