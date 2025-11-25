@@ -475,7 +475,7 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.32"
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
     version: "1.34"
@@ -515,7 +515,7 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.33"
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
     version: "1.34"
@@ -525,13 +525,13 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.32"
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
     version: "1.33"
 - name: DRASchedulerFilterTimeout
   versionedSpecs:
-  - default: true
+  - default: false
     lockToDefault: false
     preRelease: Beta
     version: "1.34"
@@ -549,10 +549,6 @@
     lockToDefault: false
     preRelease: GA
     version: "1.34"
-  - default: true
-    lockToDefault: true
-    preRelease: GA
-    version: "1.35"
 - name: EnvFiles
   versionedSpecs:
   - default: false
