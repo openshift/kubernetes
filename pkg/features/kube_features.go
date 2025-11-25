@@ -1151,7 +1151,7 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 
 	DRAAdminAccess: {
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Alpha},
-		{Version: version.MustParse("1.34"), Default: true, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.34"), Default: false, PreRelease: featuregate.Beta}, // jasee: temporarily un-defaulting during rebase - must investigate
 	},
 
 	DRAConsumableCapacity: {
@@ -1176,16 +1176,16 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 
 	DRAPrioritizedList: {
 		{Version: version.MustParse("1.33"), Default: false, PreRelease: featuregate.Alpha},
-		{Version: version.MustParse("1.34"), Default: true, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.34"), Default: false, PreRelease: featuregate.Beta}, // jasee: temporarily un-defaulting during rebase - must investigate
 	},
 
 	DRAResourceClaimDeviceStatus: {
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Alpha},
-		{Version: version.MustParse("1.33"), Default: true, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.33"), Default: false, PreRelease: featuregate.Beta}, // jasee: temporarily un-defaulting during rebase - must investigate
 	},
 
 	DRASchedulerFilterTimeout: {
-		{Version: version.MustParse("1.34"), Default: true, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.34"), Default: false, PreRelease: featuregate.Beta}, // jasee: temporarily un-defaulting during rebase - must investigate
 	},
 
 	DeploymentReplicaSetTerminatingReplicas: {
@@ -1214,7 +1214,7 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 		{Version: version.MustParse("1.26"), Default: false, PreRelease: featuregate.Alpha},
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Beta},
 		{Version: version.MustParse("1.34"), Default: true, PreRelease: featuregate.GA},
-		{Version: version.MustParse("1.35"), Default: true, PreRelease: featuregate.GA, LockToDefault: true},
+		// {Version: version.MustParse("1.35"), Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // jasee: temporarily unlocking during rebase - must investigate
 		// TODO (https://github.com/kubernetes/kubernetes/issues/134459): remove completely in 1.38
 	},
 	EnvFiles: {
