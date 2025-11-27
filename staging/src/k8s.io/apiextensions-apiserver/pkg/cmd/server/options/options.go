@@ -136,7 +136,7 @@ func (o CustomResourceDefinitionsServerOptions) Config() (*apiserver.Config, err
 // Avoid messing with anything outside of changes to StorageConfig as that
 // may lead to unexpected behavior when the options are applied.
 func NewCRDRESTOptionsGetter(etcdOptions genericoptions.EtcdOptions, resourceTransformers storagevalue.ResourceTransformers, tracker flowcontrolrequest.StorageObjectCountTracker) genericregistry.RESTOptionsGetter {
-	ucbor := cbor.NewSerializer(unstructuredscheme.NewUnstructuredCreator(), unstructuredscheme.NewUnstructuredObjectTyper())
+	ucbor := cbor.NewSerializer(unstructuredscheme.NewUnstructuredCreator(), unstructuredscheme.NewUnstructuredObjectTyper(), cbor.Transcode(false))
 
 	encoder := unstructured.UnstructuredJSONScheme
 	if utilfeature.DefaultFeatureGate.Enabled(features.CBORServingAndStorage) {
