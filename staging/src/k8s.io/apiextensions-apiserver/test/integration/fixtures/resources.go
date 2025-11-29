@@ -511,13 +511,17 @@ func isWatchCachePrimed(crd *apiextensionsv1.CustomResourceDefinition, dynamicCl
 	return true, nil
 }
 
+const (
+	crdDeletionTimeout = time.Minute
+)
+
 // DeleteV1CustomResourceDefinition deletes a CRD and waits until it disappears from discovery.
 func DeleteV1CustomResourceDefinition(crd *apiextensionsv1.CustomResourceDefinition, apiExtensionsClient clientset.Interface) error {
 	if err := apiExtensionsClient.ApiextensionsV1().CustomResourceDefinitions().Delete(context.TODO(), crd.Name, metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 	for _, version := range servedV1Versions(crd) {
-		err := wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		err := wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, crdDeletionTimeout, true, func(ctx context.Context) (bool, error) {
 			exists, err := existsInDiscoveryV1(crd, apiExtensionsClient, version)
 			return !exists, err
 		})
@@ -539,7 +543,7 @@ func DeleteV1CustomResourceDefinitions(deleteListOpts metav1.ListOptions, apiExt
 	}
 	for _, crd := range list.Items {
 		for _, version := range servedV1Versions(&crd) {
-			err := wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+			err := wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, crdDeletionTimeout, true, func(ctx context.Context) (bool, error) {
 				exists, err := existsInDiscoveryV1(&crd, apiExtensionsClient, version)
 				return !exists, err
 			})
