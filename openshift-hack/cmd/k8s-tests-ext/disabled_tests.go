@@ -210,10 +210,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		"Flaky": {
 			"Job should run a job to completion when tasks sometimes fail and are not locally restarted", // seems flaky, also may require too many resources
 		},
-		// tests that will be configured to run manually through their own dedicated prow jobs
-		"DedicatedJob": {
-			"[Feature:HPA]", // we run these tests directly using test-kubernetes-e2e.sh and ginkgo --focus through a separate prow job per https://issues.redhat.com/browse/OCPBUGS-61376
-		},
 	}
 
 	var disabledSpecs et.ExtensionTestSpecs
