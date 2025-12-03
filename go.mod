@@ -235,7 +235,6 @@ require (
 )
 
 replace (
-
 	github.com/google/cadvisor => github.com/dgrisonnet/cadvisor v0.0.0-20251205100213-203180195dff
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.14
