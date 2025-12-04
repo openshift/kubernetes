@@ -467,15 +467,18 @@ func (s *Server) InstallAuthNotRequiredHandlers() {
 		r.RawMustRegister(metrics.NewPrometheusCollector(prometheusHostAdapter{s.host}, containerPrometheusLabelsFunc(s.host), includedMetrics, clock.RealClock{}, cadvisorOpts))
 	}
 	s.restfulCont.Handle(cadvisorMetricsPath,
-		compbasemetrics.HandlerFor(r, compbasemetrics.HandlerOpts{ErrorHandling: compbasemetrics.ContinueOnError}),
-	)
+		WithHTTPLogging(
+			compbasemetrics.HandlerFor(r, compbasemetrics.HandlerOpts{ErrorHandling: compbasemetrics.ContinueOnError}),
+		))
 
 	s.addMetricsBucketMatcher("metrics/resource")
 	resourceRegistry := compbasemetrics.NewKubeRegistry()
-	resourceRegistry.CustomMustRegister(collectors.NewResourceMetricsCollector(s.resourceAnalyzer))
+	analyzer := &SummaryProviderTracker{ResourceAnalyzer: s.resourceAnalyzer}
+	resourceRegistry.CustomMustRegister(collectors.NewResourceMetricsCollector(analyzer))
 	s.restfulCont.Handle(resourceMetricsPath,
-		compbasemetrics.HandlerFor(resourceRegistry, compbasemetrics.HandlerOpts{ErrorHandling: compbasemetrics.ContinueOnError}),
-	)
+		WithHTTPLogging(
+			compbasemetrics.HandlerFor(resourceRegistry, compbasemetrics.HandlerOpts{ErrorHandling: compbasemetrics.ContinueOnError}),
+		))
 
 	// prober metrics are exposed under a different endpoint
 
