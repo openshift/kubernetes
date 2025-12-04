@@ -59,6 +59,7 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/apiserver/pkg/server/httplog"
 	"k8s.io/apiserver/pkg/server/routes"
+	"k8s.io/apiserver/pkg/server/routine"
 	"k8s.io/apiserver/pkg/util/compatibility"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/util/flushwriter"
@@ -1165,12 +1166,31 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	servermetrics.HTTPRequests.WithLabelValues(method, path, serverType, longRunning).Inc()
 
 	servermetrics.HTTPInflightRequests.WithLabelValues(method, path, serverType, longRunning).Inc()
-	defer servermetrics.HTTPInflightRequests.WithLabelValues(method, path, serverType, longRunning).Dec()
 
 	startTime := time.Now()
-	defer servermetrics.HTTPRequestsDuration.WithLabelValues(method, path, serverType, longRunning).Observe(servermetrics.SinceInSeconds(startTime))
+
+	// Create the metrics function handler deffered metrics update to happen after the request is handled
+	var metricsFunc func()
+	metricsFunc = func() {
+		servermetrics.HTTPInflightRequests.WithLabelValues(method, path, serverType, longRunning).Inc()
+		servermetrics.HTTPRequestsDuration.WithLabelValues(method, path, serverType, longRunning).Observe(servermetrics.SinceInSeconds(startTime))
+	}
+	defer func() {
+		if metricsFunc != nil {
+			metricsFunc()
+		}
+	}()
 
 	handler.ServeHTTP(w, req)
+
+	// If there's a routine task, append the observation to it
+	// so it runs after the actual work completes
+	if routine.AppendTask(req.Context(), &routine.Task{Func: func() {
+		servermetrics.HTTPInflightRequests.WithLabelValues(method, path, serverType, longRunning).Inc()
+		servermetrics.HTTPRequestsDuration.WithLabelValues(method, path, serverType, longRunning).Observe(servermetrics.SinceInSeconds(startTime))
+	}}) {
+		metricsFunc = nil
+	}
 }
 
 // prometheusHostAdapter adapts the HostInterface to the interface expected by the
