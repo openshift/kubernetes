@@ -44,6 +44,10 @@ func addLabelsToSpecs(specs et.ExtensionTestSpecs) {
 			"[Feature:GKELocalSSD]",
 			"[Feature:GKENodePool]",
 		},
+		// tests that will be configured to run manually through their own dedicated prow jobs
+		"[DedicatedJob]": {
+			"[Feature:HPA]",
+		},
 	}
 
 	for label, names := range namesByLabel {
