@@ -19,10 +19,8 @@ package dryrun
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -105,11 +103,7 @@ func (w *Waiter) WaitForPodsWithLabel(kvLabel string) error {
 
 // WaitForKubelet blocks until the kubelet /healthz endpoint returns 'ok'
 func (w *Waiter) WaitForKubelet(healthzAddress string, healthzPort int32) error {
-	var (
-		addrPort        = net.JoinHostPort(healthzAddress, strconv.Itoa(int(healthzPort)))
-		healthzEndpoint = fmt.Sprintf("http://%s/healthz", addrPort)
-	)
-	fmt.Printf("[dryrun] Would make sure the kubelet returns 'ok' at %s\n", healthzEndpoint)
+	fmt.Printf("[dryrun] Would make sure the kubelet returns 'ok' at http://%s:%d/healthz\n", healthzAddress, healthzPort)
 	return nil
 }
 

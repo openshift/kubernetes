@@ -23,7 +23,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -358,8 +357,7 @@ func (w *KubeWaiter) WaitForKubelet(healthzAddress string, healthzPort int32) er
 	var (
 		lastError       error
 		start           = time.Now()
-		addrPort        = net.JoinHostPort(healthzAddress, strconv.Itoa(int(healthzPort)))
-		healthzEndpoint = fmt.Sprintf("http://%s/healthz", addrPort)
+		healthzEndpoint = fmt.Sprintf("http://%s:%d/healthz", healthzAddress, healthzPort)
 	)
 
 	if healthzPort == 0 {

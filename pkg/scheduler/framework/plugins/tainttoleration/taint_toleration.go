@@ -116,8 +116,8 @@ func (pl *TaintToleration) Filter(ctx context.Context, state fwk.CycleState, pod
 		return nil
 	}
 
-	klog.FromContext(ctx).V(4).Info("node had untolerated taints", "node", klog.KObj(node), "pod", klog.KObj(pod), "untoleratedTaint", taint)
-	return fwk.NewStatus(fwk.UnschedulableAndUnresolvable, "node(s) had untolerated taint(s)")
+	errReason := fmt.Sprintf("node(s) had untolerated taint {%s: %s}", taint.Key, taint.Value)
+	return fwk.NewStatus(fwk.UnschedulableAndUnresolvable, errReason)
 }
 
 // preScoreState computed at PreScore and used at Score.
