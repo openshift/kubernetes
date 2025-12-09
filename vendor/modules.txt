@@ -539,7 +539,7 @@ github.com/openshift/api/security
 github.com/openshift/api/security/v1
 github.com/openshift/api/template/v1
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d
+# github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d => github.com/jubittajohn/apiserver-library-go v0.0.0-20251201210649-a39660da613e
 ## explicit; go 1.24.0
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -1584,3 +1584,4 @@ sigs.k8s.io/yaml
 sigs.k8s.io/yaml/kyaml
 # github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.52.1-openshift-4.21-1
 # github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
+# github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20251201210649-a39660da613e
