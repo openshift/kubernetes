@@ -98,6 +98,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dgrisonnet/cadvisor v0.0.0-20251210130846-b8344082c49c h1:RqLntkpe3J1rrjNJrMAgifh3+KBlEetaeUE9Nq7UZUo=
+github.com/dgrisonnet/cadvisor v0.0.0-20251210130846-b8344082c49c/go.mod h1:OAhPcx1nOm5YwMh/JhpUOMKyv1YKLRtS9KgzWPndHmA=
 github.com/distribution/distribution/v3 v3.0.0-20230511163743-f7717b7855ca/go.mod h1:t1IxPNGdTGez+YGKyJyQrtSSqisfMIm1hnFhvMPlxtE=
 github.com/distribution/reference v0.6.0 h1:0IXCQ5g4/QMHHkarYzh5l+u8T3t73zM5QvfrDyIgxBk=
 github.com/distribution/reference v0.6.0/go.mod h1:BbU0aIcezP1/5jX/8MP0YiH4SdvB5Y4f/wlDRiLyi3E=
@@ -313,8 +315,6 @@ github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d/go.
 github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee/go.mod h1:8jcm8UPtg2mCAsxfqKil1xrmRMI3a+XU2TZ9fF8A7TE=
 github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235 h1:9JBeIXmnHlpXTQPi7LPmu1jdxznBhAE7bb1K+3D8gxY=
 github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235/go.mod h1:L49W6pfrZkfOE5iC1PqEkuLkXG4W0BX4w8b+L2Bv7fM=
-github.com/openshift/google-cadvisor v0.52.1-openshift-4.21-1 h1:GNwO7gdyk6kAbFwIRo0T8NOTgxKYA2J6tSAtVMYavY0=
-github.com/openshift/google-cadvisor v0.52.1-openshift-4.21-1/go.mod h1:OAhPcx1nOm5YwMh/JhpUOMKyv1YKLRtS9KgzWPndHmA=
 github.com/openshift/library-go v0.0.0-20251015151611-6fc7a74b67c5 h1:bANtDc8SgetSK4nQehf59x3+H9FqVJCprgjs49/OTg0=
 github.com/openshift/library-go v0.0.0-20251015151611-6fc7a74b67c5/go.mod h1:OlFFws1AO51uzfc48MsStGE4SFMWlMZD0+f5a/zCtKI=
 github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1 h1:PMTgifBcBRLJJiM+LgSzPDTk9/Rx4qS09OUrfpY6GBQ=

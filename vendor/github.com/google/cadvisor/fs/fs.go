@@ -55,6 +55,8 @@ const (
 	statBlockSize uint64 = 512
 	// The maximum number of `disk usage` tasks that can be running at once.
 	maxConcurrentOps = 20
+	// Timeout for GetDirUsage operations.
+	dirUsageTimeout = 2 * time.Minute
 )
 
 // A pool for restricting the number of consecutive `du` and `find` tasks running.
@@ -714,7 +716,27 @@ func GetDirUsage(dir string) (UsageInfo, error) {
 func (i *RealFsInfo) GetDirUsage(dir string) (UsageInfo, error) {
 	claimToken()
 	defer releaseToken()
-	return GetDirUsage(dir)
+
+	type result struct {
+		usage UsageInfo
+		err   error
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), dirUsageTimeout)
+	defer cancel()
+
+	resultChan := make(chan result, 1)
+	go func() {
+		usage, err := GetDirUsage(dir)
+		resultChan <- result{usage, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return UsageInfo{}, fmt.Errorf("timeout after %v getting disk usage for %s", dirUsageTimeout, dir)
+	case r := <-resultChan:
+		return r.usage, r.err
+	}
 }
 
 func getVfsStats(path string) (total uint64, free uint64, avail uint64, inodes uint64, inodesFree uint64, err error) {
