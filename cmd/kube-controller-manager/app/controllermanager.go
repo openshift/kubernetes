@@ -82,7 +82,6 @@ import (
 	kubectrlmgrconfig "k8s.io/kubernetes/pkg/controller/apis/config"
 	garbagecollector "k8s.io/kubernetes/pkg/controller/garbagecollector"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	libgorestclient "github.com/openshift/library-go/pkg/config/client"
 )
@@ -509,111 +508,6 @@ func (c ControllerContext) NewClient(name string) (kubernetes.Interface, error) 
 		return nil, fmt.Errorf("failed to create Kubernetes client for %q: %w", name, err)
 	}
 	return client, nil
-}
-
-// NewControllerDescriptors is a public map of named controller groups (you can start more than one in an init func)
-// paired to their ControllerDescriptor wrapper object that includes InitFunc.
-// This allows for structured downstream composition and subdivision.
-func NewControllerDescriptors() map[string]*ControllerDescriptor {
-	controllers := map[string]*ControllerDescriptor{}
-	aliases := sets.NewString()
-
-	// All the controllers must fulfil common constraints, or else we will explode.
-	register := func(controllerDesc *ControllerDescriptor) {
-		if controllerDesc == nil {
-			panic("received nil controller for a registration")
-		}
-		name := controllerDesc.Name()
-		if len(name) == 0 {
-			panic("received controller without a name for a registration")
-		}
-		if _, found := controllers[name]; found {
-			panic(fmt.Sprintf("controller name %q was registered twice", name))
-		}
-		if controllerDesc.GetInitFunc() == nil {
-			panic(fmt.Sprintf("controller %q does not have an init function", name))
-		}
-
-		for _, alias := range controllerDesc.GetAliases() {
-			if aliases.Has(alias) {
-				panic(fmt.Sprintf("controller %q has a duplicate alias %q", name, alias))
-			}
-			aliases.Insert(alias)
-		}
-
-		controllers[name] = controllerDesc
-	}
-
-	// First add "special" controllers that aren't initialized normally. These controllers cannot be initialized
-	// in the main controller loop initialization, so we add them here only for the metadata and duplication detection.
-	// app.ControllerDescriptor#RequiresSpecialHandling should return true for such controllers
-	// The only known special case is the ServiceAccountTokenController which *must* be started
-	// first to ensure that the SA tokens for future controllers will exist. Think very carefully before adding new
-	// special controllers.
-	register(newServiceAccountTokenControllerDescriptor(nil))
-
-	register(newEndpointsControllerDescriptor())
-	register(newEndpointSliceControllerDescriptor())
-	register(newEndpointSliceMirroringControllerDescriptor())
-	register(newReplicationControllerDescriptor())
-	register(newPodGarbageCollectorControllerDescriptor())
-	register(newResourceQuotaControllerDescriptor())
-	register(newNamespaceControllerDescriptor())
-	register(newServiceAccountControllerDescriptor())
-	register(newGarbageCollectorControllerDescriptor())
-	register(newDaemonSetControllerDescriptor())
-	register(newJobControllerDescriptor())
-	register(newDeploymentControllerDescriptor())
-	register(newReplicaSetControllerDescriptor())
-	register(newHorizontalPodAutoscalerControllerDescriptor())
-	register(newDisruptionControllerDescriptor())
-	register(newStatefulSetControllerDescriptor())
-	register(newCronJobControllerDescriptor())
-	register(newCertificateSigningRequestSigningControllerDescriptor())
-	register(newCertificateSigningRequestApprovingControllerDescriptor())
-	register(newCertificateSigningRequestCleanerControllerDescriptor())
-	register(newPodCertificateRequestCleanerControllerDescriptor())
-	register(newTTLControllerDescriptor())
-	register(newBootstrapSignerControllerDescriptor())
-	register(newTokenCleanerControllerDescriptor())
-	register(newNodeIpamControllerDescriptor())
-	register(newNodeLifecycleControllerDescriptor())
-
-	register(newServiceLBControllerDescriptor())          // cloud provider controller
-	register(newNodeRouteControllerDescriptor())          // cloud provider controller
-	register(newCloudNodeLifecycleControllerDescriptor()) // cloud provider controller
-
-	register(newPersistentVolumeBinderControllerDescriptor())
-	register(newPersistentVolumeAttachDetachControllerDescriptor())
-	register(newPersistentVolumeExpanderControllerDescriptor())
-	register(newClusterRoleAggregrationControllerDescriptor())
-	register(newPersistentVolumeClaimProtectionControllerDescriptor())
-	register(newPersistentVolumeProtectionControllerDescriptor())
-	register(newVolumeAttributesClassProtectionControllerDescriptor())
-	register(newTTLAfterFinishedControllerDescriptor())
-	register(newRootCACertificatePublisherControllerDescriptor())
-	register(newKubeAPIServerSignerClusterTrustBundledPublisherDescriptor())
-	register(newServiceCACertPublisher())
-	register(newEphemeralVolumeControllerDescriptor())
-
-	// feature gated
-	register(newStorageVersionGarbageCollectorControllerDescriptor())
-	register(newResourceClaimControllerDescriptor())
-	register(newDeviceTaintEvictionControllerDescriptor())
-	register(newLegacyServiceAccountTokenCleanerControllerDescriptor())
-	register(newValidatingAdmissionPolicyStatusControllerDescriptor())
-	register(newTaintEvictionControllerDescriptor())
-	register(newServiceCIDRsControllerDescriptor())
-	register(newStorageVersionMigratorControllerDescriptor())
-	register(newSELinuxWarningControllerDescriptor())
-
-	for _, alias := range aliases.UnsortedList() {
-		if _, ok := controllers[alias]; ok {
-			panic(fmt.Sprintf("alias %q conflicts with a controller name", alias))
-		}
-	}
-
-	return controllers
 }
 
 // CreateControllerContext creates a context struct containing references to resources needed by the

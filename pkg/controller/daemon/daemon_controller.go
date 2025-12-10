@@ -134,6 +134,14 @@ type DaemonSetsController struct {
 	nodeUpdateQueue workqueue.TypedRateLimitingInterface[string]
 
 	failedPodsBackoff *flowcontrol.Backoff
+
+	// OpenShift-specific: namespace-based node selector support
+	namespaceLister                    corelisters.NamespaceLister
+	namespaceStoreSynced               cache.InformerSynced
+	openshiftDefaultNodeSelectorString string
+	openshiftDefaultNodeSelector       labels.Selector
+	kubeDefaultNodeSelectorString      string
+	kubeDefaultNodeSelector            labels.Selector
 }
 
 // NewDaemonSetsController creates a new DaemonSetsController

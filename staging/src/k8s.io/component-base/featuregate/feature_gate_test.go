@@ -80,6 +80,7 @@ func TestFeatureGateFlag(t *testing.T) {
 			parseError: "cannot set feature gate TestLockedFalse to true, feature is locked to false",
 		},
 		{
+			// OpenShift carry: unknown feature gates are warned about, not errored
 			arg: "fooBarBaz=true",
 			expect: map[Feature]bool{
 				allAlphaGate:        false,
@@ -88,7 +89,6 @@ func TestFeatureGateFlag(t *testing.T) {
 				testBetaGate:        false,
 				testLockedFalseGate: false,
 			},
-			parseError: "unrecognized feature gate: fooBarBaz",
 		},
 		{
 			arg: "AllAlpha=false",
@@ -409,6 +409,7 @@ func TestFeatureGateSetFromMap(t *testing.T) {
 			},
 		},
 		{
+			// OpenShift carry: unknown feature gates are warned about, not errored
 			name: "set TestInvalid true",
 			setmap: map[string]bool{
 				"TestInvalid": true,
@@ -417,7 +418,6 @@ func TestFeatureGateSetFromMap(t *testing.T) {
 				testAlphaGate: false,
 				testBetaGate:  false,
 			},
-			setmapError: "unrecognized feature gate:",
 		},
 		{
 			name: "set locked gates",
@@ -756,8 +756,8 @@ func TestVersionedFeatureGateFlag(t *testing.T) {
 			},
 		},
 		{
-			arg:        "fooBarBaz=true",
-			parseError: "unrecognized feature gate: fooBarBaz",
+			// OpenShift carry: unknown feature gates are warned about, not errored
+			arg: "fooBarBaz=true",
 		},
 		{
 			arg: "AllAlpha=false",
@@ -1761,9 +1761,9 @@ func TestCopyKnownFeatures(t *testing.T) {
 	require.NoError(t, fcopy.Set("FeatureB=false"))
 	assert.True(t, f.Enabled("FeatureB"))
 	assert.False(t, fcopy.Enabled("FeatureB"))
-	if err := fcopy.Set("FeatureC=true"); err == nil {
-		t.Error("expected FeatureC not registered in the copied feature gate")
-	}
+	// OpenShift carry: unknown feature gates are warned about, not errored
+	// So setting an unknown feature gate like FeatureC just logs a warning
+	_ = fcopy.Set("FeatureC=true") // This will log a warning but not return an error
 }
 
 func TestExplicitlySet(t *testing.T) {

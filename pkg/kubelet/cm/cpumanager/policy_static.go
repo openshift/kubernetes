@@ -270,13 +270,7 @@ func (p *staticPolicy) validateState(logger logr.Logger, s state.State) error {
 		}
 	}
 	totalKnownCPUs = totalKnownCPUs.Union(tmpCPUSets...)
-<<<<<<< HEAD
 	availableCPUs := p.topology.CPUDetails.CPUs()
-=======
-	if !totalKnownCPUs.Equals(allCPUs) {
-		return fmt.Errorf("current set of available CPUs %q doesn't match with CPUs in state %q",
-			allCPUs.String(), totalKnownCPUs.String())
->>>>>>> v1.35.0-rc.1
 
 	// CPU (workload) partitioning removes reserved cpus
 	// from the default mask intentionally

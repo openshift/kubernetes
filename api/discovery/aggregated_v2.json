@@ -705,41 +705,6 @@
                 "update",
                 "watch"
               ]
-            },
-            {
-              "resource": "podcertificaterequests",
-              "responseKind": {
-                "group": "",
-                "kind": "PodCertificateRequest",
-                "version": ""
-              },
-              "scope": "Namespaced",
-              "singularResource": "podcertificaterequest",
-              "subresources": [
-                {
-                  "responseKind": {
-                    "group": "",
-                    "kind": "PodCertificateRequest",
-                    "version": ""
-                  },
-                  "subresource": "status",
-                  "verbs": [
-                    "get",
-                    "patch",
-                    "update"
-                  ]
-                }
-              ],
-              "verbs": [
-                "create",
-                "delete",
-                "deletecollection",
-                "get",
-                "list",
-                "patch",
-                "update",
-                "watch"
-              ]
             }
           ],
           "version": "v1beta1"
@@ -1627,32 +1592,6 @@
             }
           ],
           "version": "v1"
-        },
-        {
-          "freshness": "Current",
-          "resources": [
-            {
-              "resource": "workloads",
-              "responseKind": {
-                "group": "",
-                "kind": "Workload",
-                "version": ""
-              },
-              "scope": "Namespaced",
-              "singularResource": "workload",
-              "verbs": [
-                "create",
-                "delete",
-                "deletecollection",
-                "get",
-                "list",
-                "patch",
-                "update",
-                "watch"
-              ]
-            }
-          ],
-          "version": "v1alpha1"
         }
       ]
     },
@@ -2286,54 +2225,6 @@
             }
           ],
           "version": "v1alpha1"
-        }
-      ]
-    },
-    {
-      "metadata": {
-        "name": "storagemigration.k8s.io"
-      },
-      "versions": [
-        {
-          "freshness": "Current",
-          "resources": [
-            {
-              "resource": "storageversionmigrations",
-              "responseKind": {
-                "group": "",
-                "kind": "StorageVersionMigration",
-                "version": ""
-              },
-              "scope": "Cluster",
-              "singularResource": "storageversionmigration",
-              "subresources": [
-                {
-                  "responseKind": {
-                    "group": "",
-                    "kind": "StorageVersionMigration",
-                    "version": ""
-                  },
-                  "subresource": "status",
-                  "verbs": [
-                    "get",
-                    "patch",
-                    "update"
-                  ]
-                }
-              ],
-              "verbs": [
-                "create",
-                "delete",
-                "deletecollection",
-                "get",
-                "list",
-                "patch",
-                "update",
-                "watch"
-              ]
-            }
-          ],
-          "version": "v1beta1"
         }
       ]
     }
