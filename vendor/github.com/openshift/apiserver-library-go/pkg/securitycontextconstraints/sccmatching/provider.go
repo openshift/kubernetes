@@ -26,6 +26,7 @@ import (
 const (
 	fsGroupField            = "fsGroup"
 	supplementalGroupsField = "supplementalGroups"
+	runAsGroupField         = "runAsGroup"
 )
 
 // simpleProvider is the default implementation of SecurityContextConstraintsProvider
@@ -35,6 +36,7 @@ type simpleProvider struct {
 	seLinuxStrategy           selinux.SELinuxSecurityContextConstraintsStrategy
 	fsGroupStrategy           group.GroupSecurityContextConstraintsStrategy
 	supplementalGroupStrategy group.GroupSecurityContextConstraintsStrategy
+	runAsGroupStrategy        group.GroupSecurityContextConstraintsStrategy
 	capabilitiesStrategy      capabilities.CapabilitiesSecurityContextConstraintsStrategy
 	seccompStrategy           seccomp.SeccompStrategy
 	sysctlsStrategy           sysctl.SysctlsStrategy
@@ -69,6 +71,11 @@ func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityCont
 		return nil, err
 	}
 
+	runAsGroupStrat, err := createRunAsGroupStrategy(&scc.RunAsGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	capStrat, err := createCapabilitiesStrategy(scc.DefaultAddCapabilities, scc.RequiredDropCapabilities, scc.AllowedCapabilities)
 	if err != nil {
 		return nil, err
@@ -90,6 +97,7 @@ func NewSimpleProvider(scc *securityv1.SecurityContextConstraints) (SecurityCont
 		seLinuxStrategy:           seLinuxStrat,
 		fsGroupStrategy:           fsGroupStrat,
 		supplementalGroupStrategy: supGroupStrat,
+		runAsGroupStrategy:        runAsGroupStrat,
 		capabilitiesStrategy:      capStrat,
 		seccompStrategy:           seccompStrat,
 		sysctlsStrategy:           sysctlsStrat,
@@ -118,6 +126,14 @@ func (s *simpleProvider) CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurit
 			return nil, nil, err
 		}
 		sc.SetFSGroup(fsGroup)
+	}
+
+	if sc.RunAsGroup() == nil {
+		runAsGroup, err := s.runAsGroupStrategy.GenerateSingle(pod)
+		if err != nil {
+			return nil, nil, err
+		}
+		sc.SetRunAsGroup(runAsGroup)
 	}
 
 	if sc.SELinuxOptions() == nil {
@@ -159,6 +175,14 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 			return nil, err
 		}
 		sc.SetRunAsUser(uid)
+	}
+
+	if sc.RunAsGroup() == nil {
+		gid, err := s.runAsGroupStrategy.GenerateSingle(pod)
+		if err != nil {
+			return nil, err
+		}
+		sc.SetRunAsGroup(gid)
 	}
 
 	if sc.SELinuxOptions() == nil {
@@ -265,6 +289,13 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 	}
 	allErrs = append(allErrs, s.fsGroupStrategy.Validate(fldPath, pod, fsGroups)...)
 	allErrs = append(allErrs, s.supplementalGroupStrategy.Validate(fldPath, pod, sc.SupplementalGroups())...)
+
+	runAsGroups := []int64{}
+	if runAsGroup := sc.RunAsGroup(); runAsGroup != nil {
+		runAsGroups = append(runAsGroups, *runAsGroup)
+	}
+	allErrs = append(allErrs, s.runAsGroupStrategy.Validate(fldPath, pod, runAsGroups)...)
+
 	allErrs = append(allErrs, s.seccompStrategy.ValidatePod(pod)...)
 
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(fldPath.Child("seLinuxOptions"), pod, nil, sc.SELinuxOptions())...)
@@ -337,6 +368,13 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	sc := securitycontext.NewEffectiveContainerSecurityContextAccessor(podSC, securitycontext.NewContainerSecurityContextMutator(container.SecurityContext))
 
 	allErrs = append(allErrs, s.runAsUserStrategy.Validate(fldPath, pod, container, sc.RunAsNonRoot(), sc.RunAsUser())...)
+
+	runAsGroups := []int64{}
+	if runAsGroup := sc.RunAsGroup(); runAsGroup != nil {
+		runAsGroups = append(runAsGroups, *runAsGroup)
+	}
+	allErrs = append(allErrs, s.runAsGroupStrategy.Validate(fldPath, pod, runAsGroups)...)
+
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(fldPath.Child("seLinuxOptions"), pod, container, sc.SELinuxOptions())...)
 	allErrs = append(allErrs, s.seccompStrategy.ValidateContainer(pod, container)...)
 
@@ -466,6 +504,18 @@ func createSupplementalGroupStrategy(opts *securityv1.SupplementalGroupsStrategy
 		return group.NewMustRunAs(opts.Ranges, supplementalGroupsField)
 	default:
 		return nil, fmt.Errorf("Unrecognized SupplementalGroups strategy type %s", opts.Type)
+	}
+}
+
+// createRunAsGroupStrategy creates a new runAsGroup strategy
+func createRunAsGroupStrategy(opts *securityv1.RunAsGroupStrategyOptions) (group.GroupSecurityContextConstraintsStrategy, error) {
+	switch opts.Type {
+	case securityv1.RunAsGroupStrategyRunAsAny:
+		return group.NewRunAsAny()
+	case securityv1.RunAsGroupStrategyMustRunAs:
+		return group.NewMustRunAs(opts.Ranges, runAsGroupField)
+	default:
+		return nil, fmt.Errorf("Unrecognized RunAsGroup strategy type %s", opts.Type)
 	}
 }
 
