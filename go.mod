@@ -47,10 +47,10 @@ require (
 	github.com/opencontainers/cgroups v0.0.3
 	github.com/opencontainers/selinux v1.13.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20251205182537-ff5553e56f33
-	github.com/openshift/api release-4.22
-	github.com/openshift/apiserver-library-go release-4.22
-	github.com/openshift/client-go release-4.22
-	github.com/openshift/library-go release-4.22
+	github.com/openshift/api v0.0.0-20251204195520-9a02b63bf964
+	github.com/openshift/apiserver-library-go v0.0.0-20251205000526-d55c7a8794c4
+	github.com/openshift/client-go v0.0.0-20251204201653-23a262350d99
+	github.com/openshift/library-go v0.0.0-20251204202217-b5b32f81ffde
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
@@ -266,4 +266,8 @@ replace (
 	k8s.io/sample-apiserver => ./staging/src/k8s.io/sample-apiserver
 	k8s.io/sample-cli-plugin => ./staging/src/k8s.io/sample-cli-plugin
 	k8s.io/sample-controller => ./staging/src/k8s.io/sample-controller
+	github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20251204195520-9a02b63bf964
+	github.com/openshift/apiserver-library-go => github.com/jacobsee/apiserver-library-go v0.0.0-20251205000526-d55c7a8794c4
+	github.com/openshift/client-go => github.com/jacobsee/client-go v0.0.0-20251204201653-23a262350d99
+	github.com/openshift/library-go => github.com/jacobsee/library-go v0.0.0-20251204202217-b5b32f81ffde
 )
