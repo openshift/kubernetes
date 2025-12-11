@@ -47,10 +47,10 @@ require (
 	github.com/opencontainers/cgroups v0.0.3
 	github.com/opencontainers/selinux v1.13.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20251205182537-ff5553e56f33
-	github.com/openshift/api v0.0.0-20251204195520-9a02b63bf964
+	github.com/openshift/api v0.0.0-20251208101024-c2a41ea924bd
 	github.com/openshift/apiserver-library-go v0.0.0-20251205000526-d55c7a8794c4
 	github.com/openshift/client-go v0.0.0-20251204201653-23a262350d99
-	github.com/openshift/library-go v0.0.0-20251204202217-b5b32f81ffde
+	github.com/openshift/library-go v0.0.0-20251205073205-ab8d51820e0b
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
@@ -91,27 +91,27 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.3
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.34.1
-	k8s.io/apiextensions-apiserver v0.34.1
-	k8s.io/apimachinery v0.34.1
-	k8s.io/apiserver v0.34.1
+	k8s.io/api v0.35.0-rc.0
+	k8s.io/apiextensions-apiserver v0.35.0-rc.0
+	k8s.io/apimachinery v0.35.0-rc.0
+	k8s.io/apiserver v0.35.0-rc.0
 	k8s.io/cli-runtime v0.0.0
-	k8s.io/client-go v0.34.1
+	k8s.io/client-go v0.35.0-rc.0
 	k8s.io/cloud-provider v0.0.0
 	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.34.1
-	k8s.io/component-base v0.34.1
-	k8s.io/component-helpers v0.32.1
+	k8s.io/code-generator v0.35.0-rc.0
+	k8s.io/component-base v0.35.0-rc.0
+	k8s.io/component-helpers v0.35.0-rc.0
 	k8s.io/controller-manager v0.32.1
 	k8s.io/cri-api v0.0.0
 	k8s.io/cri-client v0.0.0
 	k8s.io/csi-translation-lib v0.0.0
-	k8s.io/dynamic-resource-allocation v0.0.0
+	k8s.io/dynamic-resource-allocation v0.35.0-rc.0
 	k8s.io/endpointslice v0.0.0
 	k8s.io/externaljwt v0.0.0
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kms v0.34.1
-	k8s.io/kube-aggregator v0.34.1
+	k8s.io/kms v0.35.0-rc.0
+	k8s.io/kube-aggregator v0.35.0-rc.0
 	k8s.io/kube-controller-manager v0.0.0
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	k8s.io/kube-proxy v0.0.0
@@ -235,6 +235,10 @@ require (
 )
 
 replace (
+	github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20251204195520-9a02b63bf964
+	github.com/openshift/apiserver-library-go => github.com/jacobsee/apiserver-library-go v0.0.0-20251205000526-d55c7a8794c4
+	github.com/openshift/client-go => github.com/jacobsee/client-go v0.0.0-20251204201653-23a262350d99
+	github.com/openshift/library-go => github.com/jacobsee/library-go v0.0.0-20251204202217-b5b32f81ffde
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery
@@ -266,8 +270,4 @@ replace (
 	k8s.io/sample-apiserver => ./staging/src/k8s.io/sample-apiserver
 	k8s.io/sample-cli-plugin => ./staging/src/k8s.io/sample-cli-plugin
 	k8s.io/sample-controller => ./staging/src/k8s.io/sample-controller
-	github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20251204195520-9a02b63bf964
-	github.com/openshift/apiserver-library-go => github.com/jacobsee/apiserver-library-go v0.0.0-20251205000526-d55c7a8794c4
-	github.com/openshift/client-go => github.com/jacobsee/client-go v0.0.0-20251204201653-23a262350d99
-	github.com/openshift/library-go => github.com/jacobsee/library-go v0.0.0-20251204202217-b5b32f81ffde
 )
