@@ -195,7 +195,7 @@ func testEtcdStoragePathWithVersion(t *testing.T, v string) {
 
 			}
 			decoder := recognizer.NewDecoder(
-				cbor.NewSerializer(scheme, scheme),
+				cbor.NewSerializer(scheme, scheme, cbor.Transcode(false)),
 				json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme, scheme, json.SerializerOptions{}),
 			)
 
