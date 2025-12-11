@@ -22,3 +22,13 @@ require (
 )
 
 replace k8s.io/kms => ../../../../kms
+
+replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251120221002-696928a6a0d7
+
+replace github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20251211222145-e9808546b1e4
+
+replace github.com/openshift/client-go => github.com/jacobsee/client-go v0.0.0-20251211223129-237ad264f207
+
+replace github.com/openshift/library-go => github.com/jacobsee/library-go v0.0.0-20251211223909-f673cbe72a38
+
+replace github.com/openshift/apiserver-library-go => github.com/jacobsee/apiserver-library-go v0.0.0-20251211224940-0aa6b2caa1fe
