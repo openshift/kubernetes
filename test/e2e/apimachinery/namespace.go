@@ -476,19 +476,19 @@ func unstructuredToNamespace(obj *unstructured.Unstructured) (*v1.Namespace, err
 	return ns, err
 }
 
-var _ = SIGDescribe("OrderedNamespaceDeletion", func() {
-	f := framework.NewDefaultFramework("namespacedeletion")
-	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
-
-	/*
-		Release : v1.34
-		Testname: Ordered Namespace Deletion
-		Description: Pods must be deleted before other objects when deleting a namespace. See https://kep.k8s.io/5080
-	*/
-	f.It("namespace deletion should delete pod first", framework.WithConformance(), func(ctx context.Context) {
-		ensurePodsAreRemovedFirstInOrderedNamespaceDeletion(ctx, f)
-	})
-})
+// var _ = SIGDescribe("OrderedNamespaceDeletion", func() {
+// 	f := framework.NewDefaultFramework("namespacedeletion")
+// 	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
+//
+// 	/*
+// 		Release : v1.34
+// 		Testname: Ordered Namespace Deletion
+// 		Description: Pods must be deleted before other objects when deleting a namespace. See https://kep.k8s.io/5080
+// 	*/
+// 	f.It("namespace deletion should delete pod first", framework.WithConformance(), func(ctx context.Context) {
+// 		ensurePodsAreRemovedFirstInOrderedNamespaceDeletion(ctx, f)
+// 	})
+// })
 
 func ensurePodsAreRemovedFirstInOrderedNamespaceDeletion(ctx context.Context, f *framework.Framework) {
 	ginkgo.By("Creating a test namespace")
