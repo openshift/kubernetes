@@ -24,6 +24,9 @@ __*
 /_output*/
 /_output
 
+# Go build cache
+.cache/
+
 # Emacs save files
 *~
 \#*\#
