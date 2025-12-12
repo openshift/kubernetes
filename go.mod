@@ -235,6 +235,7 @@ require (
 )
 
 replace (
+	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251120221002-696928a6a0d7
 	github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20251204195520-9a02b63bf964
 	github.com/openshift/apiserver-library-go => github.com/jacobsee/apiserver-library-go v0.0.0-20251205000526-d55c7a8794c4
 	github.com/openshift/client-go => github.com/jacobsee/client-go v0.0.0-20251204201653-23a262350d99
