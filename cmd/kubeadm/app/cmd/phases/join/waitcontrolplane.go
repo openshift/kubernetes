@@ -50,7 +50,7 @@ func runWaitControlPlanePhase(c workflow.RunData) error {
 		return nil
 	}
 
-	client, err := data.WaitControlPlaneClient()
+	client, err := data.Client()
 	if err != nil {
 		return err
 	}

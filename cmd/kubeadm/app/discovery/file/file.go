@@ -52,9 +52,9 @@ func ValidateConfigInfo(config *clientcmdapi.Config, discoveryTimeout time.Durat
 	if len(config.Clusters) < 1 {
 		return nil, errors.New("the provided kubeconfig file must have at least one Cluster defined")
 	}
-	currentClusterName, currentCluster, err := kubeconfigutil.GetClusterFromKubeConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "the provided kubeconfig file is malformed")
+	currentClusterName, currentCluster := kubeconfigutil.GetClusterFromKubeConfig(config)
+	if currentCluster == nil {
+		return nil, errors.New("the provided kubeconfig file must have a unnamed Cluster or a CurrentContext that specifies a non-nil Cluster")
 	}
 	if err := clientcmd.Validate(*config); err != nil {
 		return nil, err
@@ -124,10 +124,7 @@ func ValidateConfigInfo(config *clientcmdapi.Config, discoveryTimeout time.Durat
 		return config, nil
 	}
 
-	_, refreshedCluster, err := kubeconfigutil.GetClusterFromKubeConfig(refreshedBaseKubeConfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "malformed kubeconfig in the %s ConfigMap", bootstrapapi.ConfigMapClusterInfo)
-	}
+	_, refreshedCluster := kubeconfigutil.GetClusterFromKubeConfig(refreshedBaseKubeConfig)
 	if currentCluster.Server != refreshedCluster.Server {
 		klog.Warningf("[discovery] the API Server endpoint %q in use is different from the endpoint %q which defined in the %s ConfigMap", currentCluster.Server, refreshedCluster.Server, bootstrapapi.ConfigMapClusterInfo)
 	}

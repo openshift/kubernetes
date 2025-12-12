@@ -19,10 +19,8 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -627,31 +625,6 @@ func (j *joinData) Client() (clientset.Interface, error) {
 	return client, nil
 }
 
-// WaitControlPlaneClient returns a basic client used for the purpose of waiting
-// for control plane components to report 'ok' on their respective health check endpoints.
-// It uses the admin.conf as the base, but modifies it to point at the local API server instead
-// of the control plane endpoint.
-func (j *joinData) WaitControlPlaneClient() (clientset.Interface, error) {
-	pathAdmin := filepath.Join(j.KubeConfigDir(), kubeadmconstants.AdminKubeConfigFileName)
-	config, err := clientcmd.LoadFromFile(pathAdmin)
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range config.Clusters {
-		v.Server = fmt.Sprintf("https://%s",
-			net.JoinHostPort(
-				j.Cfg().ControlPlane.LocalAPIEndpoint.AdvertiseAddress,
-				strconv.Itoa(int(j.Cfg().ControlPlane.LocalAPIEndpoint.BindPort)),
-			),
-		)
-	}
-	client, err := kubeconfigutil.ToClientSet(config)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
 // IgnorePreflightErrors returns the list of preflight errors to ignore.
 func (j *joinData) IgnorePreflightErrors() sets.Set[string] {
 	return j.ignorePreflightErrors
@@ -692,10 +665,7 @@ func fetchInitConfigurationFromJoinConfiguration(cfg *kubeadmapi.JoinConfigurati
 	}
 
 	// Create the final KubeConfig file with the cluster name discovered after fetching the cluster configuration
-	_, clusterinfo, err := kubeconfigutil.GetClusterFromKubeConfig(tlsBootstrapCfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "the TLS bootstrap kubeconfig is malformed")
-	}
+	_, clusterinfo := kubeconfigutil.GetClusterFromKubeConfig(tlsBootstrapCfg)
 	tlsBootstrapCfg.Clusters = map[string]*clientcmdapi.Cluster{
 		initConfiguration.ClusterName: clusterinfo,
 	}
@@ -712,10 +682,7 @@ func fetchInitConfigurationFromJoinConfiguration(cfg *kubeadmapi.JoinConfigurati
 
 // fetchInitConfiguration reads the cluster configuration from the kubeadm-admin configMap
 func fetchInitConfiguration(client clientset.Interface) (*kubeadmapi.InitConfiguration, error) {
-	getNodeRegistration := false
-	getAPIEndpoint := false
-	getComponentConfigs := true
-	initConfiguration, err := configutil.FetchInitConfigurationFromCluster(client, nil, "preflight", getNodeRegistration, getAPIEndpoint, getComponentConfigs)
+	initConfiguration, err := configutil.FetchInitConfigurationFromCluster(client, nil, "preflight", true, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to fetch the kubeadm-config ConfigMap")
 	}
