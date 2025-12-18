@@ -30,6 +30,7 @@ import (
 	"github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1"
@@ -46,6 +47,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/dynamic-resource-allocation/resourceslice"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/textlogger"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/events"
 	testdriverapp "k8s.io/kubernetes/test/e2e/dra/test-driver/app"
@@ -2125,8 +2127,11 @@ var _ = framework.SIGDescribe("node")(framework.WithLabel("DRA"), func() {
 			})
 
 			ginkgo.By("Creating slices")
+			logConfig := textlogger.NewConfig(textlogger.Verbosity(5), textlogger.Output(ginkgo.GinkgoWriter))
+			logger := textlogger.NewLogger(logConfig)
+			verboseCtx := logr.NewContext(ctx, logger)
 			mutationCacheTTL := 10 * time.Second
-			controller, err := resourceslice.StartController(ctx, resourceslice.Options{
+			controller, err := resourceslice.StartController(verboseCtx, resourceslice.Options{
 				DriverName:       driverName,
 				KubeClient:       f.ClientSet,
 				Resources:        resources,
@@ -2181,6 +2186,8 @@ var _ = framework.SIGDescribe("node")(framework.WithLabel("DRA"), func() {
 			gomega.Eventually(ctx, controller.GetStats).WithTimeout(30 * time.Second).Should(gomega.Equal(expectStats))
 
 			gomega.Consistently(ctx, controller.GetStats).WithTimeout(2 * mutationCacheTTL).Should(gomega.Equal(expectStats))
+
+			ginkgo.Fail("test failed")
 		})
 	})
 
