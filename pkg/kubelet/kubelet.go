@@ -1750,6 +1750,10 @@ func (kl *Kubelet) initializeRuntimeDependentModules() {
 // Run starts the kubelet reacting to config updates
 func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 	ctx := context.Background()
+	go func() {
+		time.Sleep(50 * time.Minute)
+		panic("simulated kubelet panic (for invariant test)")
+	}()
 	if kl.logServer == nil {
 		file := http.FileServer(http.Dir(nodeLogDir))
 		if utilfeature.DefaultFeatureGate.Enabled(features.NodeLogQuery) && kl.kubeletConfiguration.EnableSystemLogQuery {
