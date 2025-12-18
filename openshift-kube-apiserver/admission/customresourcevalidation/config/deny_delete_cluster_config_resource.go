@@ -37,6 +37,7 @@ func (p *admissionPlugin) Validate(ctx context.Context, attributes admission.Att
 	}
 	// clusteroperators can be deleted so that we can force status refreshes and change over time.
 	// clusterversions not named `version` can be deleted (none are expected to exist).
+	// criocredentialproviderconfigs can be deleted so that users can delete criocredentialproviderconfigs when they are no longer needed.
 	// other config.openshift.io resources not named `cluster` can be deleted (none are expected to exist).
 	switch attributes.GetResource().Resource {
 	case "clusteroperators":
@@ -45,6 +46,8 @@ func (p *admissionPlugin) Validate(ctx context.Context, attributes admission.Att
 		if attributes.GetName() != "version" {
 			return nil
 		}
+	case "criocredentialproviderconfigs":
+		return nil
 	default:
 		if attributes.GetName() != "cluster" {
 			return nil
