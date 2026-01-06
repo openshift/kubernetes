@@ -269,3 +269,5 @@ replace (
 	k8s.io/sample-cli-plugin => ./staging/src/k8s.io/sample-cli-plugin
 	k8s.io/sample-controller => ./staging/src/k8s.io/sample-controller
 )
+
+replace github.com/openshift/apiserver-library-go => github.com/tchap/apiserver-library-go v0.0.0-20260106123249-96f8ef754730
