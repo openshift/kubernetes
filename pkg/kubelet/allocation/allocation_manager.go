@@ -824,9 +824,12 @@ func (m *manager) getAllocatedPods(activePods []*v1.Pod) []*v1.Pod {
 		return activePods
 	}
 
-	allocatedPods := make([]*v1.Pod, len(activePods))
-	for i, pod := range activePods {
-		allocatedPods[i], _ = m.UpdatePodFromAllocation(pod)
+	allocatedPods := make([]*v1.Pod, 0, len(activePods))
+	for _, pod := range activePods {
+		allocatedPod, allocated := m.UpdatePodFromAllocation(pod)
+		if allocated {
+			allocatedPods = append(allocatedPods, allocatedPod)
+		}
 	}
 	return allocatedPods
 }
