@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd"
 	e "github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	ext "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	v "github.com/openshift-eng/openshift-tests-extension/pkg/version"
 
@@ -102,7 +103,7 @@ func main() {
 	//FIXME(stbenjam): what other suites does k8s-test contribute to?
 
 	// Build our specs from ginkgo
-	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(ext.AllTestsIncludingVendored())
 	if err != nil {
 		panic(err)
 	}
