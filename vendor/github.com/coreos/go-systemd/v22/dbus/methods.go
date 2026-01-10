@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
+	"sync"
 
 	"github.com/godbus/dbus/v5"
 )
@@ -43,15 +44,31 @@ func (c *Conn) jobComplete(signal *dbus.Signal) {
 	var result string
 
 	_ = dbus.Store(signal.Body, &id, &job, &unit, &result)
+
 	c.jobListener.Lock()
-	outs, ok := c.jobListener.jobs[job]
-	if ok {
-		for _, out := range outs {
-			out <- result
-		}
-		delete(c.jobListener.jobs, job)
-	}
+	listeners := c.jobListener.jobs[job]
+	delete(c.jobListener.jobs, job)
 	c.jobListener.Unlock()
+
+	switch len(listeners) {
+	case 0:
+		return
+	case 1:
+		listeners[0] <- result
+		return
+	default:
+		var wg sync.WaitGroup
+		wg.Add(len(listeners))
+
+		for _, ch := range listeners {
+			out := ch
+			go func() {
+				defer wg.Done()
+				out <- result
+			}()
+		}
+		wg.Wait()
+	}
 }
 
 func (c *Conn) startJob(ctx context.Context, ch chan<- string, job string, args ...any) (int, error) {
