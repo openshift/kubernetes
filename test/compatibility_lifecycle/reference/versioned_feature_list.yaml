@@ -1113,8 +1113,8 @@
     lockToDefault: false
     preRelease: Beta
     version: "1.33"
-  - default: true
-    lockToDefault: true
+  - default: false
+    lockToDefault: false
     preRelease: GA
     version: "1.34"
 - name: PodAndContainerStatsFromCRI
