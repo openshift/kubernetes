@@ -169,6 +169,9 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-61378
 			"[sig-network] Conntrack should be able to cleanup conntrack entries when UDP service target port changes for a NodePort service",
+
+			// https://issues.redhat.com/browse/OCPBUGS-73813
+			"[sig-storage] MutableCSINodeAllocatableCount [FeatureGate:MutableCSINodeAllocatableCount] [Beta]",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
