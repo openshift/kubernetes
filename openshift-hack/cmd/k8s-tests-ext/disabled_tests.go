@@ -172,6 +172,12 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-63045
 			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling]",
+
+			// https://issues.redhat.com/browse/OCPBUGS-73661
+			"[sig-autoscaling] [Feature:HPAConfigurableTolerance] [FeatureGate:HPAConfigurableTolerance] [Beta] Horizontal pod autoscaling (configurable tolerance) with small scale-up, large scale-down tolerances should not scale",
+
+			// https://issues.redhat.com/browse/OCPBUGS-73813
+			"[sig-storage] MutableCSINodeAllocatableCount [FeatureGate:MutableCSINodeAllocatableCount] [Beta]",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
