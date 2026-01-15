@@ -20,6 +20,7 @@ import (
 
 	"github.com/openshift/api/security"
 	securityv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/sysctl"
 	sccsort "github.com/openshift/apiserver-library-go/pkg/securitycontextconstraints/util/sort"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	"github.com/openshift/library-go/pkg/security/uid"
@@ -164,7 +165,7 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
-func CreateProvidersFromConstraints(ctx context.Context, namespaceName string, sccs []*securityv1.SecurityContextConstraints, namespaceLister corev1listers.NamespaceLister) ([]SecurityContextConstraintsProvider, []error) {
+func CreateProvidersFromConstraints(ctx context.Context, namespaceName string, sccs []*securityv1.SecurityContextConstraints, namespaceLister corev1listers.NamespaceLister, nodeLister corev1listers.NodeLister) ([]SecurityContextConstraintsProvider, []error) {
 	var (
 		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
 		namespace *corev1.Namespace
@@ -207,7 +208,7 @@ func CreateProvidersFromConstraints(ctx context.Context, namespaceName string, s
 			provider SecurityContextConstraintsProvider
 			err      error
 		)
-		provider, err = CreateProviderFromConstraint(namespace, constraint)
+		provider, err = CreateProviderFromConstraint(namespace, constraint, nodeLister)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -218,7 +219,7 @@ func CreateProvidersFromConstraints(ctx context.Context, namespaceName string, s
 }
 
 // CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
-func CreateProviderFromConstraint(namespace *corev1.Namespace, constraint *securityv1.SecurityContextConstraints) (SecurityContextConstraintsProvider, error) {
+func CreateProviderFromConstraint(namespace *corev1.Namespace, constraint *securityv1.SecurityContextConstraints, nodeLister corev1listers.NodeLister) (SecurityContextConstraintsProvider, error) {
 	var err error
 
 	// Make a copy of the constraint so we don't mutate the store's cache
@@ -258,7 +259,7 @@ func CreateProviderFromConstraint(namespace *corev1.Namespace, constraint *secur
 	}
 
 	// Create the provider
-	provider, err := NewSimpleProvider(constraint)
+	provider, err := NewSimpleProvider(constraint, sysctl.SafeSysctlAllowlist(nodeLister))
 	if err != nil {
 		return nil, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, namespace.GetName(), err)
 	}
