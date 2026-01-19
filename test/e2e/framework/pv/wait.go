@@ -76,15 +76,10 @@ func WaitForPersistentVolumeClaimModificationFailure(ctx context.Context, c clie
 	desiredClass := ptr.Deref(claim.Spec.VolumeAttributesClassName, "")
 
 	var match = func(claim *v1.PersistentVolumeClaim) bool {
-		foundErrorCondition := false
 		for _, condition := range claim.Status.Conditions {
-			if condition.Type == v1.PersistentVolumeClaimVolumeModifyVolumeError {
-				foundErrorCondition = true
+			if condition.Type != v1.PersistentVolumeClaimVolumeModifyVolumeError {
+				return false
 			}
-		}
-		// if no error found it must be an error
-		if !foundErrorCondition {
-			return false
 		}
 
 		// check if claim's current volume attributes class is NOT desired one, and has appropriate ModifyVolumeStatus

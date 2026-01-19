@@ -229,10 +229,7 @@ func newApplyData(cmd *cobra.Command, args []string, applyFlags *applyFlags) (*a
 
 	// Fetches the cluster configuration.
 	klog.V(1).Infoln("[upgrade] retrieving configuration from cluster")
-	getNodeRegistration := true
-	isControlPlaneNode := true
-	getComponentConfigs := true
-	initCfg, err := configutil.FetchInitConfigurationFromCluster(client, nil, "upgrade", getNodeRegistration, isControlPlaneNode, getComponentConfigs)
+	initCfg, err := configutil.FetchInitConfigurationFromCluster(client, nil, "upgrade", false, false)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			_, _ = printer.Printf("[upgrade] In order to upgrade, a ConfigMap called %q in the %q namespace must exist.\n", constants.KubeadmConfigConfigMap, metav1.NamespaceSystem)
