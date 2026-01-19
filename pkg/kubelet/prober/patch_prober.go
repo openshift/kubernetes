@@ -1,6 +1,7 @@
 package prober
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -11,7 +12,7 @@ import (
 	httpprobe "k8s.io/kubernetes/pkg/probe/http"
 )
 
-func (pb *prober) maybeProbeForBody(prober httpprobe.Prober, req *http.Request, timeout time.Duration, pod *v1.Pod, container v1.Container, probeType probeType) (probe.Result, string, error) {
+func (pb *prober) maybeProbeForBody(ctx context.Context, prober httpprobe.Prober, req *http.Request, timeout time.Duration, pod *v1.Pod, container v1.Container, probeType probeType) (probe.Result, string, error) {
 	if !isInterestingPod(pod) {
 		return prober.Probe(req, timeout)
 	}
@@ -37,7 +38,7 @@ func (pb *prober) maybeProbeForBody(prober httpprobe.Prober, req *http.Request, 
 		}
 
 		// in fact, they are so interesting we'll try to send events for them
-		pb.recordContainerEvent(pod, &container, v1.EventTypeWarning, reason, "%s probe error: %s\nbody: %s\n", probeType, output, body)
+		pb.recordContainerEvent(ctx, pod, &container, v1.EventTypeWarning, reason, "%s probe error: %s\nbody: %s\n", probeType, output, body)
 		return result, output, probeError
 	default:
 		return result, output, probeError
