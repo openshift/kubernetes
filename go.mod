@@ -50,7 +50,7 @@ require (
 	github.com/opencontainers/runc v1.2.5
 	github.com/opencontainers/selinux v1.11.1
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835
-	github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7
+	github.com/openshift/api v0.0.0-20251204164930-cd2e40c5883a
 	github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d
 	github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
 	github.com/openshift/library-go v0.0.0-20251015151611-6fc7a74b67c5
@@ -237,6 +237,8 @@ require (
 replace (
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.52.1-openshift-4.21-1
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
+	github.com/openshift/api => github.com/QiWang19/api v0.0.0-20251204232509-5086a5249b02
+	github.com/openshift/client-go => github.com/QiWang19/client-go v0.0.0-20251206041215-b807c9cdcceb
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery
@@ -269,3 +271,7 @@ replace (
 	k8s.io/sample-cli-plugin => ./staging/src/k8s.io/sample-cli-plugin
 	k8s.io/sample-controller => ./staging/src/k8s.io/sample-controller
 )
+
+replace github.com/openshift/api => github.com/QiWang19/api v0.0.0-20251204232509-5086a5249b02
+
+replace github.com/openshift/client-go => github.com/QiWang19/client-go v0.0.0-20251206041215-b807c9cdcceb
