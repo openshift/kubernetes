@@ -9,12 +9,22 @@ import (
 
 // Default SCCs for new fields.  FSGroup and SupplementalGroups are
 // set to the RunAsAny strategy if they are unset on the scc.
+// RunAsGroup is set to the MustRunAs strategy with ranges [1000, 65534] if unset.
 func SetDefaults_SCC(scc *securityv1.SecurityContextConstraints) {
 	if len(scc.FSGroup.Type) == 0 {
 		scc.FSGroup.Type = securityv1.FSGroupStrategyRunAsAny
 	}
 	if len(scc.SupplementalGroups.Type) == 0 {
 		scc.SupplementalGroups.Type = securityv1.SupplementalGroupsStrategyRunAsAny
+	}
+	if len(scc.RunAsGroup.Type) == 0 {
+		scc.RunAsGroup.Type = securityv1.RunAsGroupStrategyMustRunAs
+		scc.RunAsGroup.Ranges = []securityv1.IDRange{
+			{
+				Min: 1000,
+				Max: 65534,
+			},
+		}
 	}
 
 	if scc.Users == nil {
