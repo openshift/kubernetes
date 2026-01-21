@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
@@ -87,6 +88,12 @@ func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Confi
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
+	if err := userInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+	}); err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
 	q.groupCache = usercache.NewGroupCache(userInformers.User().V1().Groups())
 }
 
