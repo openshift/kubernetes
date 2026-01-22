@@ -88,8 +88,8 @@ func main() {
 	hpaTestTimeout := time.Minute * 30
 	kubeTestsExtension.AddSuite(e.Suite{
 		Name:        "kubernetes/autoscaling/hpa",
-		Qualifiers:  []string{"name.contains('[Feature:HPA]')"}, // Note that this does not use withExcludedTestsFilter to be able to run DedicatedJob labelled tests.
-		Parallelism: 3,                                          // HPA tests have high CPU + memory usage, so we cannot have a high level of parallelism here.
+		Qualifiers:  []string{"name.contains('Feature:HPA')"}, // Note that this does not use withExcludedTestsFilter to be able to run DedicatedJob labelled tests.
+		Parallelism: 3,                                        // HPA tests have high CPU + memory usage, so we cannot have a high level of parallelism here.
 		TestTimeout: &hpaTestTimeout,
 	})
 
