@@ -156,6 +156,9 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-34594
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-72531
+			`\[sig-storage\] Pod Disks \[Feature:StorageProvider\] \[Serial\] attach on previously attached volumes should work`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {

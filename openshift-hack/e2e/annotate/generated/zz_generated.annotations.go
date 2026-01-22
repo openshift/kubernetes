@@ -14141,7 +14141,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] PersistentVolumes-local [Volume type: tmpfs] Two pods mounting a local volume one after the other should be able to write from pod1 and read from pod2": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] Pod Disks [Feature:StorageProvider] [Serial] attach on previously attached volumes should work": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] Pod Disks [Feature:StorageProvider] detach in a disrupted environment [Slow] [Disruptive] when node's API object is deleted": " [Serial] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
