@@ -119,7 +119,7 @@ func WarningMessage(obj runtime.Object) string {
 	if removed, hasRemovalInfo := obj.(apiLifecycleRemoved); hasRemovalInfo {
 		removedMajor, removedMinor := removed.APILifecycleRemoved()
 		if removedMajor != 0 || removedMinor != 0 {
-			deprecationWarning = deprecationWarning + fmt.Sprintf(", unavailable in v%d.%d+", removedMajor, removedMinor)
+			deprecationWarning = deprecationWarning + fmt.Sprintf(", unavailable no sooner than v%d.%d+", removedMajor, removedMinor)
 		}
 	}
 

@@ -258,19 +258,19 @@ func TestWarningMessage(t *testing.T) {
 			name: "removed interface, non-zero-value removal version",
 			obj:  &fakeRemovedObject{major: 1, minor: 2, removedMajor: 3, removedMinor: 4},
 			gvk:  schema.GroupVersionKind{Group: "mygroup", Version: "v1", Kind: "MyKind"},
-			want: "mygroup/v1 MyKind is deprecated in v1.2+, unavailable in v3.4+",
+			want: "mygroup/v1 MyKind is deprecated in v1.2+, unavailable no sooner than v3.4+",
 		},
 		{
 			name: "replaced interface, zero-value replacement",
 			obj:  &fakeReplacedObject{major: 1, minor: 2, removedMajor: 3, removedMinor: 4},
 			gvk:  schema.GroupVersionKind{Group: "mygroup", Version: "v1", Kind: "MyKind"},
-			want: "mygroup/v1 MyKind is deprecated in v1.2+, unavailable in v3.4+",
+			want: "mygroup/v1 MyKind is deprecated in v1.2+, unavailable no sooner than v3.4+",
 		},
 		{
 			name: "replaced interface, non-zero-value replacement",
 			obj:  &fakeReplacedObject{major: 1, minor: 2, removedMajor: 3, removedMinor: 4, replacement: schema.GroupVersionKind{Group: "anothergroup", Version: "v2", Kind: "AnotherKind"}},
 			gvk:  schema.GroupVersionKind{Group: "mygroup", Version: "v1", Kind: "MyKind"},
-			want: "mygroup/v1 MyKind is deprecated in v1.2+, unavailable in v3.4+; use anothergroup/v2 AnotherKind",
+			want: "mygroup/v1 MyKind is deprecated in v1.2+, unavailable no sooner than v3.4+; use anothergroup/v2 AnotherKind",
 		},
 	}
 	for _, tt := range tests {
