@@ -1134,8 +1134,11 @@ func (kl *Kubelet) filterOutInactivePods(pods []*v1.Pod) []*v1.Pod {
 			continue
 		}
 
-		// terminal pods are considered inactive UNLESS they are actively terminating
-		if kl.isAdmittedPodTerminal(p) && !kl.podWorkers.IsPodTerminationRequested(p.UID) {
+		// terminal pods are considered inactive - this covers both pods that
+		// completed naturally and pods rejected at admission. The statusManager
+		// reflects the actual container state: running pods show Running phase
+		// until all containers stop, rejected pods show Failed immediately.
+		if kl.isAdmittedPodTerminal(p) {
 			continue
 		}
 
