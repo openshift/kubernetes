@@ -48,7 +48,7 @@ func addLabelsToSpecs(specs et.ExtensionTestSpecs) {
 		},
 		// tests that will be configured to run manually through their own dedicated prow jobs
 		"[DedicatedJob]": {
-			"[Feature:HPA]",
+			"Feature:HPA",
 		},
 	}
 
