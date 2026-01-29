@@ -411,6 +411,9 @@ func createProbeCommand(namesToResolve []string, hostEntries []string, ptrLookup
 	fileNames := make([]string, 0, len(namesToResolve)*2)
 	probeCmd := "for i in `seq 1 600`; do "
 	dnsRecord := "A"
+
+	framework.Logf("DEBUG-DNS: Creating probe for IPv6=%v, names=%v, hostEntries=%v, ptrLookupIP=%s",
+		isIPv6, namesToResolve, hostEntries, ptrLookupIP)
 	if isIPv6 {
 		dnsRecord = "AAAA"
 	}
@@ -473,11 +476,21 @@ func assertFilesExist(ctx context.Context, fileNames []string, fileDir string, p
 func assertFilesContain(ctx context.Context, fileNames []string, fileDir string, pod *v1.Pod, client clientset.Interface, check bool, expected string) {
 	var failed []string
 
+	framework.Logf("DEBUG-DNS: Starting to check for %d result files from pod %s/%s", len(fileNames), pod.Namespace, pod.Name)
+	framework.Logf("DEBUG-DNS: Files to check: %v", fileNames)
+	framework.Logf("DEBUG-DNS: Pod IP=%s, Host IP=%s, Node=%s", pod.Status.PodIP, pod.Status.HostIP, pod.Spec.NodeName)
+
+	pollStartTime := time.Now()
 	framework.ExpectNoError(wait.PollUntilContextTimeout(ctx, time.Second*5, time.Second*600, true, func(ctx context.Context) (bool, error) {
 		failed = []string{}
+		succeeded := []string{}
+		elapsed := time.Since(pollStartTime).Round(time.Second)
 
 		ctx, cancel := context.WithTimeout(ctx, framework.SingleCallTimeout)
 		defer cancel()
+
+		framework.Logf("DEBUG-DNS: Poll attempt at T+%v: checking %d files from pod %s/%s",
+			elapsed, len(fileNames), pod.Namespace, pod.Name)
 
 		for _, fileName := range fileNames {
 			contents, err := client.CoreV1().RESTClient().Get().
@@ -489,6 +502,8 @@ func assertFilesContain(ctx context.Context, fileNames []string, fileDir string,
 				Do(ctx).Raw()
 
 			if err != nil {
+				framework.Logf("DEBUG-DNS: [T+%v] FAILED to read %s from pod %s/%s: %v (timeout=%v)",
+					elapsed, fileName, pod.Namespace, pod.Name, err, ctx.Err() != nil)
 				if ctx.Err() != nil {
 					return false, fmt.Errorf("Unable to read %s from pod %s/%s: %v", fileName, pod.Namespace, pod.Name, err)
 				} else {
@@ -496,26 +511,42 @@ func assertFilesContain(ctx context.Context, fileNames []string, fileDir string,
 				}
 				failed = append(failed, fileName)
 			} else if check && strings.TrimSpace(string(contents)) != expected {
-				framework.Logf("File %s from pod  %s/%s contains '%s' instead of '%s'", fileName, pod.Namespace, pod.Name, string(contents), expected)
+				framework.Logf("DEBUG-DNS: [T+%v] MISMATCH in %s from pod %s/%s: got '%s', expected '%s'",
+					elapsed, fileName, pod.Namespace, pod.Name, string(contents), expected)
 				failed = append(failed, fileName)
+			} else {
+				framework.Logf("DEBUG-DNS: [T+%v] SUCCESS reading %s from pod %s/%s (content: %q)",
+					elapsed, fileName, pod.Namespace, pod.Name, string(contents))
+				succeeded = append(succeeded, fileName)
 			}
 		}
+
 		if len(failed) == 0 {
+			framework.Logf("DEBUG-DNS: [T+%v] All %d files successfully read! Test complete.", elapsed, len(fileNames))
 			return true, nil
 		}
-		framework.Logf("Lookups using %s/%s failed for: %v\n", pod.Namespace, pod.Name, failed)
+		framework.Logf("DEBUG-DNS: [T+%v] Poll result: %d succeeded %v, %d still pending %v",
+			elapsed, len(succeeded), succeeded, len(failed), failed)
 
 		// grab logs from all the containers
+		framework.Logf("DEBUG-DNS: [T+%v] Fetching container logs to diagnose failures", elapsed)
 		for _, container := range pod.Spec.Containers {
 			logs, err := e2epod.GetPodLogs(ctx, client, pod.Namespace, pod.Name, container.Name)
 			if err != nil {
 				return false, fmt.Errorf("unexpected error getting pod client logs for %s: %v", container.Name, err)
 			}
-			framework.Logf("Pod client logs for %s: %s", container.Name, logs)
+			framework.Logf("DEBUG-DNS: [T+%v] Container %s logs:\n%s", elapsed, container.Name, logs)
 		}
 
 		return false, nil
 	}))
+
+	totalElapsed := time.Since(pollStartTime).Round(time.Second)
+	if len(failed) > 0 {
+		framework.Logf("DEBUG-DNS: TIMEOUT after %v - %d files never appeared: %v", totalElapsed, len(failed), failed)
+	} else {
+		framework.Logf("DEBUG-DNS: All files found after %v", totalElapsed)
+	}
 	gomega.Expect(failed).To(gomega.BeEmpty())
 }
 
@@ -537,6 +568,12 @@ func validateDNSResults(ctx context.Context, f *framework.Framework, pod *v1.Pod
 	if err != nil {
 		framework.Failf("ginkgo.Failed to get pod %s/%s: %v", pod.Namespace, pod.Name, err)
 	}
+
+	framework.Logf("DEBUG-DNS: Starting DNS validation for pod %s/%s", pod.Namespace, pod.Name)
+	framework.Logf("DEBUG-DNS: Pod details - IP: %s, HostIP: %s, Node: %s, Phase: %s",
+		pod.Status.PodIP, pod.Status.HostIP, pod.Spec.NodeName, pod.Status.Phase)
+	framework.Logf("DEBUG-DNS: Expecting %d result files: %v", len(fileNames), fileNames)
+
 	// Try to find results for each expected name.
 	ginkgo.By("looking for the results for each expected name from probers")
 	assertFilesExist(ctx, fileNames, "results", pod, f.ClientSet)
