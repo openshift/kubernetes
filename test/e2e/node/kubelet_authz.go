@@ -33,6 +33,7 @@ import (
 	e2eauth "k8s.io/kubernetes/test/e2e/framework/auth"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	utilnet "k8s.io/utils/net"
 	admissionapi "k8s.io/pod-security-admission/api"
 )
 
@@ -134,26 +135,40 @@ func runKubeletAuthzTest(ctx context.Context, f *framework.Framework, endpoint, 
 
 	ginkgo.By(fmt.Sprintf("Creating Pod %s in namespace %s with serviceaccount %s", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName))
 
-	_ = e2epod.NewPodClient(f).CreateSync(ctx, pod)
+	createdPod := e2epod.NewPodClient(f).CreateSync(ctx, pod)
 
 	ginkgo.By("Running command in Pod")
 
 	var hostWarpStart, hostWarpEnd string
-	// IPv6 host must be wrapped within [] if you specify a port.
-	if framework.TestContext.ClusterIsIPv6() {
+	// IPv6 addresses must be wrapped in brackets when specifying a port in URLs (RFC 3986).
+	// Check the actual node IP rather than using ClusterIsIPv6(), which returns false for dualstack.
+	isIPv6 := utilnet.IsIPv6String(createdPod.Status.HostIP)
+	if isIPv6 {
 		hostWarpStart = "["
 		hostWarpEnd = "]"
 	}
 
-	result := e2eoutput.RunHostCmdOrDie(ns,
-		pod.Name,
-		fmt.Sprintf("curl -XGET -sIk -o /dev/null -w '%s' --header \"Authorization: Bearer `%s`\" https://%s$NODE_IP%s:%d/%s",
-			"%{http_code}",
-			"cat /var/run/secrets/kubernetes.io/serviceaccount/token",
-			hostWarpStart,
-			hostWarpEnd,
-			ports.KubeletPort,
-			endpoint))
+	// Debug logging for v6 environments
+	framework.Logf("DEBUG-KUBELET: Pod %s/%s testing endpoint: %s", ns, pod.Name, endpoint)
+	framework.Logf("DEBUG-KUBELET: createdPod.Status.HostIP = %q", createdPod.Status.HostIP)
+	framework.Logf("DEBUG-KUBELET: utilnet.IsIPv6String returned %v", isIPv6)
+	framework.Logf("DEBUG-KUBELET: Using brackets: start=%q end=%q", hostWarpStart, hostWarpEnd)
+
+	// Check what $NODE_IP actually is inside the pod
+	nodeIPValue := e2eoutput.RunHostCmdOrDie(ns, pod.Name, "echo $NODE_IP")
+	framework.Logf("DEBUG-KUBELET: $NODE_IP inside pod = %q", nodeIPValue)
+
+	curlCmd := fmt.Sprintf("curl -XGET -sIk -o /dev/null -w '%s' --header \"Authorization: Bearer `%s`\" https://%s$NODE_IP%s:%d/%s",
+		"%{http_code}",
+		"cat /var/run/secrets/kubernetes.io/serviceaccount/token",
+		hostWarpStart,
+		hostWarpEnd,
+		ports.KubeletPort,
+		endpoint)
+	framework.Logf("DEBUG-KUBELET: Executing curl command: %s", curlCmd)
+
+	result := e2eoutput.RunHostCmdOrDie(ns, pod.Name, curlCmd)
+	framework.Logf("DEBUG-KUBELET: curl result (HTTP status code): %s", result)
 
 	return result
 }
