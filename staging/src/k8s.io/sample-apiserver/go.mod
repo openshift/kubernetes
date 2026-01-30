@@ -12,7 +12,7 @@ require (
 	k8s.io/apimachinery v0.35.0
 	k8s.io/apiserver v0.35.0
 	k8s.io/client-go v0.35.0
-	k8s.io/code-generator v0.35.0
+	k8s.io/code-generator v0.0.0
 	k8s.io/component-base v0.35.0
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
