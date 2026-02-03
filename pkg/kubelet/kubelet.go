@@ -2415,7 +2415,7 @@ func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 // and updates the pod to the failed phase in the status manager.
 func (kl *Kubelet) rejectPod(pod *v1.Pod, reason, message string) {
 	kl.recorder.Eventf(pod, v1.EventTypeWarning, reason, message)
-	kl.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
+	kl.statusManager.SetPodRejected(klog.TODO(), pod, v1.PodStatus{
 		QOSClass: v1qos.GetPodQOS(pod), // keep it as is
 		Phase:    v1.PodFailed,
 		Reason:   reason,
@@ -2783,7 +2783,7 @@ func (kl *Kubelet) HandlePodUpdates(pods []*v1.Pod) {
 		// 1. No containers exist - nothing to sync or clean up
 		// 2. The pod is already in terminal Failed state
 		// 3. REMOVE operation will eventually clean up podManager
-		if kl.isLocallyRejected(pod) {
+		if kl.statusManager.IsPodRejected(pod.UID) {
 			continue
 		}
 

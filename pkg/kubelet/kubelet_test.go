@@ -4605,7 +4605,17 @@ func TestIsLocallyRejected(t *testing.T) {
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
-	pod := newTestPods(1)[0]
+
+	// Helper to create a unique pod for each test case. Each of the TCs needs a
+	// different pod UID.
+	podCounter := 0
+	newUniquePod := func() *v1.Pod {
+		podCounter++
+		pod := newTestPods(1)[0]
+		pod.UID = types.UID(fmt.Sprintf("test-pod-uid-%d", podCounter))
+		pod.Name = fmt.Sprintf("test-pod-%d", podCounter)
+		return pod
+	}
 
 	testCases := []struct {
 		name             string
@@ -4617,7 +4627,7 @@ func TestIsLocallyRejected(t *testing.T) {
 		{
 			name: "no local status",
 			setupPod: func() *v1.Pod {
-				return pod
+				return newUniquePod()
 			},
 			setupLocalStatus: func(pod *v1.Pod) {},
 			expectedRejected: false,
@@ -4626,7 +4636,7 @@ func TestIsLocallyRejected(t *testing.T) {
 		{
 			name: "local status without rejection message",
 			setupPod: func() *v1.Pod {
-				return pod
+				return newUniquePod()
 			},
 			setupLocalStatus: func(pod *v1.Pod) {
 				kubelet.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
@@ -4641,10 +4651,10 @@ func TestIsLocallyRejected(t *testing.T) {
 		{
 			name: "rejected pod without deletion timestamp",
 			setupPod: func() *v1.Pod {
-				return pod
+				return newUniquePod()
 			},
 			setupLocalStatus: func(pod *v1.Pod) {
-				kubelet.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
+				kubelet.statusManager.SetPodRejected(klog.TODO(), pod, v1.PodStatus{
 					Phase:   v1.PodFailed,
 					Reason:  "OutOfcpu",
 					Message: PodRejectionMessagePrefix + "insufficient CPU",
@@ -4656,13 +4666,13 @@ func TestIsLocallyRejected(t *testing.T) {
 		{
 			name: "pod with deletion timestamp and rejection message",
 			setupPod: func() *v1.Pod {
-				podCopy := pod
+				pod := newUniquePod()
 				now := metav1.NewTime(time.Now())
-				podCopy.DeletionTimestamp = &now
-				return podCopy
+				pod.DeletionTimestamp = &now
+				return pod
 			},
 			setupLocalStatus: func(pod *v1.Pod) {
-				kubelet.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
+				kubelet.statusManager.SetPodRejected(klog.TODO(), pod, v1.PodStatus{
 					Phase:   v1.PodFailed,
 					Reason:  "OutOfcpu",
 					Message: PodRejectionMessagePrefix + "insufficient CPU",
@@ -4674,7 +4684,7 @@ func TestIsLocallyRejected(t *testing.T) {
 		{
 			name: "pod with partial rejection message prefix",
 			setupPod: func() *v1.Pod {
-				return pod
+				return newUniquePod()
 			},
 			setupLocalStatus: func(pod *v1.Pod) {
 				kubelet.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
@@ -4689,7 +4699,7 @@ func TestIsLocallyRejected(t *testing.T) {
 		{
 			name: "pod with rejection message in the middle",
 			setupPod: func() *v1.Pod {
-				return pod
+				return newUniquePod()
 			},
 			setupLocalStatus: func(pod *v1.Pod) {
 				kubelet.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
@@ -4716,6 +4726,7 @@ func TestIsLocallyRejected(t *testing.T) {
 
 func TestRejectPodUsesConstant(t *testing.T) {
 	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
 
@@ -4753,14 +4764,14 @@ func TestHandlePodUpdatesSkipsRejectedPods(t *testing.T) {
 	normalPod.Name = "normal-pod"
 
 	// Setup rejected pod status
-	kubelet.statusManager.SetPodStatus(klog.TODO(), rejectedPod, v1.PodStatus{
+	kubelet.statusManager.SetPodRejected(klog.TODO(), rejectedPod, v1.PodStatus{
 		Phase:   v1.PodFailed,
 		Reason:  "OutOfcpu",
 		Message: PodRejectionMessagePrefix + "insufficient CPU",
 	})
 
 	// Setup evicted pod status (has rejection message but also deletion timestamp)
-	kubelet.statusManager.SetPodStatus(klog.TODO(), evictedPod, v1.PodStatus{
+	kubelet.statusManager.SetPodRejected(klog.TODO(), evictedPod, v1.PodStatus{
 		Phase:   v1.PodFailed,
 		Reason:  "Evicted",
 		Message: PodRejectionMessagePrefix + "evicted for testing",
