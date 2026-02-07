@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/browsersafe"
+	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/minimumkubeletversion"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	authzconfig "k8s.io/apiserver/pkg/apis/apiserver"
@@ -44,6 +45,7 @@ import (
 	webhookmetrics "k8s.io/apiserver/plugin/pkg/authorizer/webhook/metrics"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
+	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -222,6 +224,18 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			authorizers = append(authorizers, union.NamedAuthorizer{
 				AuthorizerName: configuredAuthorizer.Name,
 				Authorizer:     authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
+			})
+		case authzconfig.AuthorizerType(modes.ModeMinimumKubeletVersion):
+			// Add MinimumKubeletVerison authorizer, to block a node from being able to access most resources if it's not new enough.
+			// We must do so here instead of in pkg/apiserver because it relies on a node informer, which is not present in generic control planes.
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer: minimumkubeletversion.NewMinimumKubeletVersion(
+					GetMinimumKubeletVersion(),
+					nodeidentifier.NewDefaultNodeIdentifier(),
+					r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Informer(),
+					r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Lister(),
+				),
 			})
 		default:
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
