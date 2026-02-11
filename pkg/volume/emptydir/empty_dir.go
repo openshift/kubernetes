@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/moby/sys/mountinfo"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/util/swap"
 
@@ -452,18 +453,24 @@ func getPageSizeMountOption(medium v1.StorageMedium, pod *v1.Pod) (string, error
 
 // setupDir creates the directory with the default permissions specified by the perm constant.
 func (ed *emptyDir) setupDir(dir string) error {
+	klog.V(1).Infof("setupDir: starting setup for directory %s", dir)
+
 	// Create the directory if it doesn't already exist.
 	if err := os.MkdirAll(dir, perm); err != nil {
+		klog.V(1).Infof("setupDir: failed to create directory %s: %v", dir, err)
 		return err
 	}
+	klog.V(1).Infof("setupDir: directory %s created/exists", dir)
 
 	// stat the directory to read permission bits
 	fileinfo, err := os.Lstat(dir)
 	if err != nil {
+		klog.V(1).Infof("setupDir: failed to stat directory %s: %v", dir, err)
 		return err
 	}
 
 	if fileinfo.Mode().Perm() != perm.Perm() {
+		klog.V(1).Infof("setupDir: fixing permissions on %s from %s to %s", dir, fileinfo.Mode().Perm(), perm.Perm())
 		// If the permissions on the created directory are wrong, the
 		// kubelet is probably running with a umask set.  In order to
 		// avoid clearing the umask for the entire process or locking
@@ -472,11 +479,13 @@ func (ed *emptyDir) setupDir(dir string) error {
 		// the specific bits we need.
 		err := os.Chmod(dir, perm)
 		if err != nil {
+			klog.V(1).Infof("setupDir: failed to chmod directory %s: %v", dir, err)
 			return err
 		}
 
 		fileinfo, err = os.Lstat(dir)
 		if err != nil {
+			klog.V(1).Infof("setupDir: failed to stat directory after chmod %s: %v", dir, err)
 			return err
 		}
 
@@ -485,6 +494,26 @@ func (ed *emptyDir) setupDir(dir string) error {
 		}
 	}
 
+	klog.V(1).Infof("setupDir: checking if %s is already mounted", dir)
+	isMounted, err := mountinfo.Mounted(dir)
+	if err != nil {
+		klog.V(1).Infof("setupDir: failed to check mount status for %s: %v", dir, err)
+		return fmt.Errorf("failed to check if %s is mounted: %w", dir, err)
+	}
+	klog.V(1).Infof("setupDir: mount check result for %s: isMounted=%v", dir, isMounted)
+
+	if !isMounted {
+		klog.V(1).Infof("setupDir: mounting %s with bind,noexec", dir)
+		if err := ed.mounter.Mount(dir, dir, "", []string{"bind", "noexec"}); err != nil {
+			klog.V(1).Infof("setupDir: failed to mount %s with noexec: %v", dir, err)
+			return fmt.Errorf("failed to mount %s with noexec: %w", dir, err)
+		}
+		klog.V(1).Infof("setupDir: successfully mounted %s with bind,noexec", dir)
+	} else {
+		klog.V(1).Infof("setupDir: %s is already mounted, skipping mount", dir)
+	}
+
+	klog.V(1).Infof("setupDir: completed setup for directory %s", dir)
 	return nil
 }
 
