@@ -4,28 +4,23 @@ import (
 	"context"
 	"testing"
 
-	openshiftfeatures "github.com/openshift/api/features"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/component-base/featuregate"
-	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	_ "k8s.io/kubernetes/pkg/features"
 )
 
 func TestAdmit(t *testing.T) {
 	type testCase struct {
-		name               string
-		pod                *kapi.Pod
-		ns                 *corev1.Namespace
-		expectedPod        *kapi.Pod
-		expectError        bool
-		featureGateEnabled bool
+		name        string
+		pod         *kapi.Pod
+		ns          *corev1.Namespace
+		expectedPod *kapi.Pod
+		expectError bool
 	}
 
 	onRootMismatchPolicy := kapi.FSGroupChangeOnRootMismatch
@@ -35,103 +30,84 @@ func TestAdmit(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:               "when feature gate is disabled, no changes are made",
-			featureGateEnabled: false,
-			pod:                getPod(nil, nil),
-			expectedPod:        getPod(nil, nil),
-
+			name:        "when feature gate is enabled, FSGroupChangePolicy is set to OnRootMismatch",
+			pod:         getPod(nil, nil),
+			expectedPod: getPod(&onRootMismatchPolicy, nil),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				fsGroupChangePolicyLabel: "OnRootMismatch",
 			}),
 		},
 		{
-			name:               "when feature gate is enabled, FSGroupChangePolicy is set to OnRootMismatch",
-			featureGateEnabled: true,
-			pod:                getPod(nil, nil),
-			expectedPod:        getPod(&onRootMismatchPolicy, nil),
-			expectError:        false,
-			ns: getNamespace(map[string]string{
-				fsGroupChangePolicyLabel: "OnRootMismatch",
-			}),
-		},
-		{
-			name:               "when feature is enabled, but namespace label for fsgroupchangepolicy has invalid value, no changes are made",
-			pod:                getPod(nil, nil),
-			featureGateEnabled: true,
-			expectedPod:        getPod(nil, nil),
-			expectError:        false,
+			name:        "when feature is enabled, but namespace label for fsgroupchangepolicy has invalid value, no changes are made",
+			pod:         getPod(nil, nil),
+			expectedPod: getPod(nil, nil),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				fsGroupChangePolicyLabel: "InvalidValue",
 			}),
 		},
 		{
-			name:               "when feature is enabled, but pod already specifies different fsgroupchangepolicy",
-			pod:                getPod(&alwaysFSGroupChangePolicy, nil),
-			featureGateEnabled: true,
-			expectedPod:        getPod(&alwaysFSGroupChangePolicy, nil),
-			expectError:        false,
+			name:        "when feature is enabled, but pod already specifies different fsgroupchangepolicy",
+			pod:         getPod(&alwaysFSGroupChangePolicy, nil),
+			expectedPod: getPod(&alwaysFSGroupChangePolicy, nil),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				fsGroupChangePolicyLabel: "OnRootMismatch",
 			}),
 		},
 		{
-			name:               "when feature is enabled and selinuxchangepolicy is set to Recursive",
-			featureGateEnabled: true,
-			pod:                getPod(nil, nil),
-			expectedPod:        getPod(nil, &selinuxRecursive),
-			expectError:        false,
+			name:        "when feature is enabled and selinuxchangepolicy is set to Recursive",
+			pod:         getPod(nil, nil),
+			expectedPod: getPod(nil, &selinuxRecursive),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				selinuxChangePolicyLabel: "Recursive",
 			}),
 		},
 		{
-			name:               "when feature is enabled and selinuxchangepolicy is set to MountOption",
-			featureGateEnabled: true,
-			pod:                getPod(nil, nil),
-			expectedPod:        getPod(nil, &selinuxMountOption),
-			expectError:        false,
+			name:        "when feature is enabled and selinuxchangepolicy is set to MountOption",
+			pod:         getPod(nil, nil),
+			expectedPod: getPod(nil, &selinuxMountOption),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				selinuxChangePolicyLabel: "MountOption",
 			}),
 		},
 		{
-			name:               "when feature is enabled, but pod already specifies different selinuxchangepolicy",
-			pod:                getPod(nil, &selinuxRecursive),
-			featureGateEnabled: true,
-			expectedPod:        getPod(nil, &selinuxRecursive),
-			expectError:        false,
+			name:        "when feature is enabled, but pod already specifies different selinuxchangepolicy",
+			pod:         getPod(nil, &selinuxRecursive),
+			expectedPod: getPod(nil, &selinuxRecursive),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				selinuxChangePolicyLabel: "MountOption",
 			}),
 		},
 		{
-			name:               "when feature is enabled and both fsgroupchangepolicy and selinuxchangepolicy are set",
-			featureGateEnabled: true,
-			pod:                getPod(nil, nil),
-			expectedPod:        getPod(&onRootMismatchPolicy, &selinuxMountOption),
-			expectError:        false,
+			name:        "when feature is enabled and both fsgroupchangepolicy and selinuxchangepolicy are set",
+			pod:         getPod(nil, nil),
+			expectedPod: getPod(&onRootMismatchPolicy, &selinuxMountOption),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				fsGroupChangePolicyLabel: "OnRootMismatch",
 				selinuxChangePolicyLabel: "MountOption",
 			}),
 		},
 		{
-			name:               "when feature is enabled and both fsgroupchangepolicy and selinuxchangepolicy are set, but pod already specifies different policies",
-			pod:                getPod(&alwaysFSGroupChangePolicy, &selinuxRecursive),
-			featureGateEnabled: true,
-			expectedPod:        getPod(&alwaysFSGroupChangePolicy, &selinuxRecursive),
-			expectError:        false,
+			name:        "when feature is enabled and both fsgroupchangepolicy and selinuxchangepolicy are set, but pod already specifies different policies",
+			pod:         getPod(&alwaysFSGroupChangePolicy, &selinuxRecursive),
+			expectedPod: getPod(&alwaysFSGroupChangePolicy, &selinuxRecursive),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				fsGroupChangePolicyLabel: "OnRootMismatch",
 				selinuxChangePolicyLabel: "MountOption",
 			}),
 		},
 		{
-			name:               "when feature is enabled and both fsgroupchangepolicy and selinuxchangepolicy are set, but selinux lable has invalid value",
-			pod:                getPod(nil, nil),
-			featureGateEnabled: true,
-			expectedPod:        getPod(&onRootMismatchPolicy, nil),
-			expectError:        false,
+			name:        "when feature is enabled and both fsgroupchangepolicy and selinuxchangepolicy are set, but selinux lable has invalid value",
+			pod:         getPod(nil, nil),
+			expectedPod: getPod(&onRootMismatchPolicy, nil),
+			expectError: false,
 			ns: getNamespace(map[string]string{
 				fsGroupChangePolicyLabel: "OnRootMismatch",
 				selinuxChangePolicyLabel: "InvalidValue",
@@ -141,13 +117,9 @@ func TestAdmit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, featuregate.Feature(openshiftfeatures.FeatureGateStoragePerformantSecurityPolicy), tc.featureGateEnabled)
-
 			psp := &performantSecurityPolicy{}
 			psp.nsLister = fakeNamespaceLister(tc.ns)
 			psp.Handler = admission.NewHandler(admission.Create)
-
-			psp.InspectFeatureGates(utilfeature.DefaultFeatureGate)
 
 			if err := psp.ValidateInitialization(); err != nil {
 				t.Fatalf("failed to validate initialization: %v", err)

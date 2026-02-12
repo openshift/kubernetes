@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	openshiftfeatures "github.com/openshift/api/features"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -13,7 +12,6 @@ import (
 	"k8s.io/apiserver/pkg/warning"
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
-	"k8s.io/component-base/featuregate"
 	"k8s.io/klog/v2"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -29,7 +27,6 @@ const (
 var (
 	_ = initializer.WantsExternalKubeInformerFactory(&performantSecurityPolicy{})
 	_ = admission.MutationInterface(&performantSecurityPolicy{})
-	_ = initializer.WantsFeatures(&performantSecurityPolicy{})
 
 	fsGroupPolicyPodAuditLabel = fmt.Sprintf("%s-pod", fsGroupChangePolicyLabel)
 	selinuxPolicyPodAuditLabel = fmt.Sprintf("%s-pod", selinuxChangePolicyLabel)
@@ -48,8 +45,7 @@ func Register(plugins *admission.Plugins) {
 // should be applied to the pod.
 type performantSecurityPolicy struct {
 	*admission.Handler
-	storagePerformantSecurityPolicyFeatureEnabled bool
-	nsLister                                      corev1listers.NamespaceLister
+	nsLister corev1listers.NamespaceLister
 }
 
 // SetExternalKubeInformerFactory registers an informer
@@ -60,10 +56,6 @@ func (c *performantSecurityPolicy) SetExternalKubeInformerFactory(kubeInformers 
 	})
 }
 
-func (c *performantSecurityPolicy) InspectFeatureGates(featureGates featuregate.FeatureGate) {
-	c.storagePerformantSecurityPolicyFeatureEnabled = featureGates.Enabled(featuregate.Feature(openshiftfeatures.FeatureGateStoragePerformantSecurityPolicy))
-}
-
 func (c *performantSecurityPolicy) ValidateInitialization() error {
 	if c.nsLister == nil {
 		return fmt.Errorf("%s plugin needs a namespace lister", PluginName)
@@ -72,10 +64,6 @@ func (c *performantSecurityPolicy) ValidateInitialization() error {
 }
 
 func (c *performantSecurityPolicy) Admit(ctx context.Context, attributes admission.Attributes, _ admission.ObjectInterfaces) error {
-	if !c.storagePerformantSecurityPolicyFeatureEnabled {
-		return nil
-	}
-
 	if !c.WaitForReady() {
 		return admission.NewForbidden(attributes, fmt.Errorf("not yet ready to handle request"))
 	}
