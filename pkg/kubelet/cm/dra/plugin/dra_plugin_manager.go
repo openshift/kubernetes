@@ -62,9 +62,6 @@ type DRAPluginManager struct {
 	wipingDelay   time.Duration
 	streamHandler StreamHandler
 
-	// withIdleTimeout is only for unit testing, ignore if <= 0.
-	withIdleTimeout time.Duration
-
 	wg    sync.WaitGroup
 	mutex sync.RWMutex
 
@@ -118,13 +115,7 @@ func (m *monitoredPlugin) HandleConn(_ context.Context, stats grpcstats.ConnStat
 	case *grpcstats.ConnEnd:
 		// We have to ask for a reconnect, otherwise gRPC wouldn't try and
 		// thus we wouldn't be notified about a restart of the plugin.
-		//
-		// This must be done in a goroutine because gRPC deadlocks
-		// when called directly from inside HandleConn when a connection
-		// goes idle (and only then). It looks like cc.idlenessMgr.ExitIdleMode
-		// in Connect tries to lock a mutex that is already locked by
-		// the caller of HandleConn.
-		go m.conn.Connect()
+		m.conn.Connect()
 	default:
 		return
 	}
@@ -370,15 +361,12 @@ func (pm *DRAPluginManager) add(driverName string, endpoint string, chosenServic
 	// The gRPC connection gets created once. gRPC then connects to the gRPC server on demand.
 	target := "unix:" + endpoint
 	logger.V(4).Info("Creating new gRPC connection", "target", target)
-	options := []grpc.DialOption{
+	conn, err := grpc.NewClient(
+		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(newMetricsInterceptor(driverName)),
 		grpc.WithStatsHandler(mp),
-	}
-	if pm.withIdleTimeout > 0 {
-		options = append(options, grpc.WithIdleTimeout(pm.withIdleTimeout))
-	}
-	conn, err := grpc.NewClient(target, options...)
+	)
 	if err != nil {
 		return fmt.Errorf("create gRPC connection to DRA driver %s plugin at endpoint %s: %w", driverName, endpoint, err)
 	}

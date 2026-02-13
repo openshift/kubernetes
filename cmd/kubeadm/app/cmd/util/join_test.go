@@ -133,7 +133,7 @@ func TestGetJoinCommand(t *testing.T) {
 			kubeConfig:   &clientcmdapi.Config{},
 			token:        "test-token",
 			expectError:  true,
-			errorMessage: "the current context is invalid",
+			errorMessage: "failed to get default cluster config",
 		},
 		{
 			name:         "Error when CA certificate is invalid",

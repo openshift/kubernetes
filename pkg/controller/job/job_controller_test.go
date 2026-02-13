@@ -28,7 +28,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-
 	batch "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -2950,7 +2949,6 @@ func TestSyncJobWhenManagedBy(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{Kind: "Job"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foobar",
-			UID:       "foobaruid",
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: batch.JobSpec{
