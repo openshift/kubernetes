@@ -84,19 +84,19 @@ var _ storageframework.SnapshottableTestDriver = &groupSnapshotHostpathCSIDriver
 var _ storageframework.EphemeralTestDriver = &groupSnapshotHostpathCSIDriver{}
 
 // InitgroupSnapshotHostpathCSIDriver returns groupSnapshotHostpathCSIDriver that implements TestDriver interface
-func InitGroupSnapshotHostpathCSIDriver() storageframework.TestDriver {
+func InitGroupSnapshotHostpathCSIDriver(name string) storageframework.TestDriver {
 	capabilities := map[storageframework.Capability]bool{
 		storageframework.CapPersistence:                    true,
 		storageframework.CapSnapshotDataSource:             true,
-		storageframework.CapMultiPODs:                      true,
-		storageframework.CapBlock:                          true,
-		storageframework.CapPVCDataSource:                  true,
-		storageframework.CapControllerExpansion:            true,
-		storageframework.CapOfflineExpansion:               true,
-		storageframework.CapOnlineExpansion:                true,
-		storageframework.CapSingleNodeVolume:               true,
+		storageframework.CapMultiPODs:                      false,
+		storageframework.CapBlock:                          false,
+		storageframework.CapPVCDataSource:                  false,
+		storageframework.CapControllerExpansion:            false,
+		storageframework.CapOfflineExpansion:               false,
+		storageframework.CapOnlineExpansion:                false,
+		storageframework.CapSingleNodeVolume:               false,
 		storageframework.CapReadWriteOncePod:               true,
-		storageframework.CapMultiplePVsSameID:              true,
+		storageframework.CapMultiplePVsSameID:              false,
 		storageframework.CapFSResizeFromSourceNotSupported: true,
 		storageframework.CapVolumeGroupSnapshot:            true,
 
@@ -104,10 +104,10 @@ func InitGroupSnapshotHostpathCSIDriver() storageframework.TestDriver {
 		// testsuites/volumelimits.go `should support volume limits`
 		// test. --maxvolumespernode=10 gets
 		// added when patching the deployment.
-		storageframework.CapVolumeLimits: true,
+		storageframework.CapVolumeLimits: false,
 	}
 	// OCP specific code: a different driver name (csi-hostpath-groupsnapshot)
-	return initGroupSnapshotHostpathCSIDriver("csi-hostpath-groupsnapshot",
+	return initGroupSnapshotHostpathCSIDriver(name,
 		capabilities,
 		// Volume attributes don't matter, but we have to provide at least one map.
 		[]map[string]string{

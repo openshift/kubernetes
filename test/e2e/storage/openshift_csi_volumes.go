@@ -19,6 +19,8 @@ limitations under the License.
 package storage
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/storage/drivers"
 	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
@@ -27,19 +29,22 @@ import (
 )
 
 // List of testDrivers to be executed in below loop
-var ocpCSITestDrivers = []func() storageframework.TestDriver{
+var ocpCSITestDrivers = []func(string) storageframework.TestDriver{
 	drivers.InitGroupSnapshotHostpathCSIDriver,
 }
 
 // This executes testSuites for csi volumes.
 var _ = utils.SIGDescribe("OCP CSI Volumes", func() {
 	for _, initDriver := range ocpCSITestDrivers {
-		curDriver := initDriver()
+		for i := range 30 {
+			name := fmt.Sprintf("csi-hostpath-groupsnapshot-%d", i)
+			curDriver := initDriver(name)
+			args := storageframework.GetDriverNameWithFeatureTags(curDriver)
+			args = append(args, func() {
+				storageframework.DefineTestSuites(curDriver, testsuites.CSISuites)
+			})
+			framework.Context(args...)
+		}
 
-		args := storageframework.GetDriverNameWithFeatureTags(curDriver)
-		args = append(args, func() {
-			storageframework.DefineTestSuites(curDriver, testsuites.CSISuites)
-		})
-		framework.Context(args...)
 	}
 })
