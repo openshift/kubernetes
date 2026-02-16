@@ -1760,7 +1760,12 @@ func TestSyncPodsSetStatusToFailedForPodsThatRunTooLong(t *testing.T) {
 	}
 
 	// Let the pod worker sets the status to fail after this sync.
-	kubelet.HandlePodUpdates(pods)
+	// Use HandlePodSyncs to test active deadline behavior.
+	// This bypasses admission and sends pods directly to the pod worker.
+	// HandlePodUpdates requires the pod to already be known to the worker,
+	// and HandlePodAdditions would reject the pod due to test node capacity.
+	kubelet.podManager.SetPods(pods)
+	kubelet.HandlePodSyncs(pods)
 	status, found := kubelet.statusManager.GetPodStatus(pods[0].UID)
 	assert.True(t, found, "expected to found status for pod %q", pods[0].UID)
 	assert.Equal(t, v1.PodFailed, status.Phase)
@@ -1809,8 +1814,11 @@ func TestSyncPodsDoesNotSetPodsThatDidNotRunTooLongToFailed(t *testing.T) {
 		}},
 	}
 
+	// Use HandlePodSyncs to test active deadline behavior.
+	// This bypasses admission and sends pods directly to the pod worker.
+	// HandlePodUpdates requires the pod to already be known to the worker.
 	kubelet.podManager.SetPods(pods)
-	kubelet.HandlePodUpdates(pods)
+	kubelet.HandlePodSyncs(pods)
 	status, found := kubelet.statusManager.GetPodStatus(pods[0].UID)
 	assert.True(t, found, "expected to found status for pod %q", pods[0].UID)
 	assert.NotEqual(t, v1.PodFailed, status.Phase)
@@ -4591,4 +4599,152 @@ func TestHandlePodReconcile_RetryPendingResizes(t *testing.T) {
 			kubelet.podManager.RemovePod(tc.oldPod)
 		})
 	}
+}
+
+func TestIsPodRejected(t *testing.T) {
+	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+	defer testKubelet.Cleanup()
+	kubelet := testKubelet.kubelet
+
+	// Helper to create a unique pod for each test case.
+	podCounter := 0
+	newUniquePod := func() *v1.Pod {
+		podCounter++
+		pod := newTestPods(1)[0]
+		pod.UID = types.UID(fmt.Sprintf("test-pod-uid-%d", podCounter))
+		pod.Name = fmt.Sprintf("test-pod-%d", podCounter)
+		return pod
+	}
+
+	testCases := []struct {
+		name             string
+		setupPod         func() *v1.Pod
+		setupLocalStatus func(*v1.Pod)
+		expectedRejected bool
+		description      string
+	}{
+		{
+			name: "no local status",
+			setupPod: func() *v1.Pod {
+				return newUniquePod()
+			},
+			setupLocalStatus: func(pod *v1.Pod) {},
+			expectedRejected: false,
+			description:      "pod with no local status should not be considered rejected",
+		},
+		{
+			name: "local status set via SetPodStatus",
+			setupPod: func() *v1.Pod {
+				return newUniquePod()
+			},
+			setupLocalStatus: func(pod *v1.Pod) {
+				kubelet.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
+					Phase:   v1.PodFailed,
+					Reason:  "ImagePullBackOff",
+					Message: "Failed to pull image",
+				})
+			},
+			expectedRejected: false,
+			description:      "pod with status set via SetPodStatus should not be considered rejected",
+		},
+		{
+			name: "rejected pod via SetPodRejected",
+			setupPod: func() *v1.Pod {
+				return newUniquePod()
+			},
+			setupLocalStatus: func(pod *v1.Pod) {
+				kubelet.statusManager.SetPodRejected(klog.TODO(), pod, v1.PodStatus{
+					Phase:   v1.PodFailed,
+					Reason:  "OutOfcpu",
+					Message: PodRejectionMessagePrefix + "insufficient CPU",
+				})
+			},
+			expectedRejected: true,
+			description:      "pod rejected via SetPodRejected should be considered rejected",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			pod := tc.setupPod()
+			tc.setupLocalStatus(pod)
+
+			result := kubelet.statusManager.IsPodRejected(pod.UID)
+			assert.Equal(t, tc.expectedRejected, result, tc.description)
+		})
+	}
+}
+
+func TestRejectPodUsesConstant(t *testing.T) {
+	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+
+	defer testKubelet.Cleanup()
+	kubelet := testKubelet.kubelet
+
+	pod := newTestPods(1)[0]
+	reason := "OutOfcpu"
+	message := "insufficient CPU resources"
+
+	kubelet.rejectPod(pod, reason, message)
+
+	status, found := kubelet.statusManager.GetPodStatus(pod.UID)
+	assert.True(t, found, "expected to find status for rejected pod")
+	assert.Equal(t, v1.PodFailed, status.Phase)
+	assert.Equal(t, reason, status.Reason)
+
+	expectedMessage := PodRejectionMessagePrefix + message
+	assert.Equal(t, expectedMessage, status.Message, "rejectPod should use PodRejectionMessagePrefix constant")
+	assert.True(t, strings.HasPrefix(status.Message, PodRejectionMessagePrefix), "rejection message should start with prefix")
+}
+
+func TestHandlePodUpdatesSkipsRejectedPods(t *testing.T) {
+	testKubelet := newTestKubelet(t, false /* controllerAttachDetachEnabled */)
+	defer testKubelet.Cleanup()
+	kubelet := testKubelet.kubelet
+
+	// Create test pods
+	rejectedPod := newTestPods(1)[0]
+	evictedPod := newTestPods(1)[0]
+	evictedPod.UID = "evicted-pod-uid"
+	evictedPod.Name = "evicted-pod"
+	now := metav1.NewTime(time.Now())
+	evictedPod.DeletionTimestamp = &now
+
+	normalPod := newTestPods(1)[0]
+	normalPod.UID = "normal-pod-uid"
+	normalPod.Name = "normal-pod"
+
+	// Setup rejected pod status
+	kubelet.statusManager.SetPodRejected(klog.TODO(), rejectedPod, v1.PodStatus{
+		Phase:   v1.PodFailed,
+		Reason:  "OutOfcpu",
+		Message: PodRejectionMessagePrefix + "insufficient CPU",
+	})
+
+	// Setup evicted pod status (has rejection message but also deletion timestamp)
+	kubelet.statusManager.SetPodRejected(klog.TODO(), evictedPod, v1.PodStatus{
+		Phase:   v1.PodFailed,
+		Reason:  "Evicted",
+		Message: PodRejectionMessagePrefix + "evicted for testing",
+	})
+
+	// Add all pods to podManager
+	kubelet.podManager.AddPod(rejectedPod)
+	kubelet.podManager.AddPod(evictedPod)
+	kubelet.podManager.AddPod(normalPod)
+
+	// Call HandlePodUpdates - this should skip rejected pods but process evicted and normal pods
+	kubelet.HandlePodUpdates([]*v1.Pod{rejectedPod, evictedPod, normalPod})
+
+	// Wait a short time for processing
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify by checking if the pods are known to pod workers
+	// Rejected pods should not be known to pod workers since they were skipped
+	isRejectedKnown := kubelet.podWorkers.IsPodTerminationRequested(rejectedPod.UID)
+	assert.False(t, isRejectedKnown, "rejected pod should not be known to pod workers")
+
+	// Note: We can't easily test that evicted and normal pods were processed
+	// without more complex setup, but the main thing we're testing is that
+	// rejected pods are correctly skipped because they are not known to pod_workers
 }

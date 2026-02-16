@@ -229,6 +229,10 @@ const (
 
 	// instrumentationScope is the name of OpenTelemetry instrumentation scope
 	instrumentationScope = "k8s.io/kubernetes/pkg/kubelet"
+
+	// PodRejectionMessagePrefix is the prefix used in status messages to identify a
+	// pod that was rejected by the kubelet and should never enter the pod worker pipeline.
+	PodRejectionMessagePrefix = "Pod was rejected: "
 )
 
 var (
@@ -2411,11 +2415,11 @@ func (kl *Kubelet) deletePod(pod *v1.Pod) error {
 // and updates the pod to the failed phase in the status manager.
 func (kl *Kubelet) rejectPod(pod *v1.Pod, reason, message string) {
 	kl.recorder.Eventf(pod, v1.EventTypeWarning, reason, message)
-	kl.statusManager.SetPodStatus(klog.TODO(), pod, v1.PodStatus{
+	kl.statusManager.SetPodRejected(klog.TODO(), pod, v1.PodStatus{
 		QOSClass: v1qos.GetPodQOS(pod), // keep it as is
 		Phase:    v1.PodFailed,
 		Reason:   reason,
-		Message:  "Pod was rejected: " + message})
+		Message:  PodRejectionMessagePrefix + message})
 }
 
 func recordAdmissionRejection(reason string) {
@@ -2711,6 +2715,15 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 				}
 			}
 		}
+
+		// Skip pods rejected during this kubelet session.
+		// After restart, previously rejected pods may enter pod_workers, but they
+		// will be immediately marked as terminated because their pod cache is empty
+		// (no containers were ever created), so they won't affect resource accounting.
+		if kl.statusManager.IsPodRejected(pod.UID) {
+			continue
+		}
+
 		kl.podWorkers.UpdatePod(UpdatePodOptions{
 			Pod:        pod,
 			MirrorPod:  mirrorPod,
@@ -2759,6 +2772,18 @@ func (kl *Kubelet) HandlePodUpdates(pods []*v1.Pod) {
 					kl.statusManager.ClearPodResizePendingCondition(pod.UID)
 				}
 			}
+		}
+
+		// Skip rejected pods during UPDATE operations.
+		// Pods always arrive as ADD before UPDATE (enforced by the config layer).
+		// If a pod failed admission in HandlePodAdditions, it was rejected and
+		// never sent to pod_workers. UPDATE operations for such pods should be
+		// ignored because:
+		// 1. No containers exist - nothing to sync or clean up
+		// 2. The pod is already in terminal Failed state
+		// 3. REMOVE operation will eventually clean up podManager
+		if kl.statusManager.IsPodRejected(pod.UID) {
+			continue
 		}
 
 		kl.podWorkers.UpdatePod(UpdatePodOptions{
