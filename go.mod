@@ -47,7 +47,6 @@ require (
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/opencontainers/cgroups v0.0.3
-	github.com/opencontainers/runc v1.2.5
 	github.com/opencontainers/selinux v1.11.1
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835
 	github.com/openshift/api v0.0.0-20251214014457-bfa868a22401
