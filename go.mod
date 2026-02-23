@@ -49,7 +49,7 @@ require (
 	github.com/opencontainers/cgroups v0.0.3
 	github.com/opencontainers/runc v1.2.5
 	github.com/opencontainers/selinux v1.11.1
-	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835
+	github.com/openshift-eng/openshift-tests-extension v0.0.0-20260127124016-0fed2b824818
 	github.com/openshift/api v0.0.0-20251214014457-bfa868a22401
 	github.com/openshift/apiserver-library-go v0.0.0-20251015164739-79d04067059d
 	github.com/openshift/client-go v0.0.0-20251205093018-96a6cbc1420c
