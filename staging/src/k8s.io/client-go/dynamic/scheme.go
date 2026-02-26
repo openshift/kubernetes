@@ -58,7 +58,7 @@ func newBasicNegotiatedSerializer() basicNegotiatedSerializer {
 			MediaType:        "application/cbor",
 			MediaTypeType:    "application",
 			MediaTypeSubType: "cbor",
-			Serializer:       cbor.NewSerializer(unstructuredCreater{basicScheme}, unstructuredTyper{basicScheme}),
+			Serializer:       cbor.NewSerializer(unstructuredCreater{basicScheme}, unstructuredTyper{basicScheme}, cbor.Transcode(false)),
 			StreamSerializer: &runtime.StreamSerializerInfo{
 				Serializer: cbor.NewSerializer(basicScheme, basicScheme, cbor.Transcode(false)),
 				Framer:     cbor.NewFramer(),
