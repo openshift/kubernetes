@@ -1022,6 +1022,18 @@ func TestStaticPolicyStartWithResvList(t *testing.T) {
 			expCSet:          cpuset.New(2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
 		},
 		{
+			// context issue: https://issues.redhat.com/browse/OCPBUGS-77659
+			// start, record state before run any pods, restart empty
+			description:      "empty cpuset with StrictCPUReservationOption enabled, simulate restart from empty",
+			topo:             topoDualSocketHT,
+			numReservedCPUs:  2,
+			reserved:         cpuset.New(0, 1),
+			cpuPolicyOptions: map[string]string{StrictCPUReservationOption: "true"},
+			stAssignments:    state.ContainerCPUAssignments{},
+			stDefaultCPUSet:  cpuset.New(2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+			expCSet:          cpuset.New(2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+		},
+		{
 			description:     "reserved cores 0 & 1 are not present in available cpuset",
 			topo:            topoDualSocketHT,
 			numReservedCPUs: 2,
