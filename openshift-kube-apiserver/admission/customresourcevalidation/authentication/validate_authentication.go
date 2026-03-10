@@ -241,7 +241,8 @@ func validateOIDCProvider(ctx context.Context, path *field.Path, cel *celStore, 
 	costRecorder := &costRecorder{}
 
 	errs := validateClaimMappings(ctx, path, cel, costRecorder, provider.ClaimMappings)
-
+	errs = append(errs, validateClaimValidationRules(ctx, path, cel, costRecorder, provider.ClaimValidationRules...)...)
+	errs = append(errs, validateUserValidationRules(ctx, path, cel, costRecorder, provider.UserValidationRules...)...)
 	var totalCELExpressionCost uint64 = 0
 
 	for _, recording := range costRecorder.Recordings {
@@ -289,7 +290,8 @@ func validateClaimMappings(ctx context.Context, path *field.Path, cel *celStore,
 	path = path.Child("claimMappings")
 
 	out := field.ErrorList{}
-
+	out = append(out, validateUsernameClaimMapping(ctx, path, cel, costRecorder, claimMappings.Username)...)
+	out = append(out, validateGroupsClaimMapping(ctx, path, cel, costRecorder, claimMappings.Groups)...)
 	out = append(out, validateUIDClaimMapping(ctx, path, cel, costRecorder, claimMappings.UID)...)
 	out = append(out, validateExtraClaimMapping(ctx, path, cel, costRecorder, claimMappings.Extra...)...)
 
@@ -309,6 +311,75 @@ func validateUIDClaimMapping(ctx context.Context, path *field.Path, cel *celStor
 		out = append(out, validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
 			Expression: uid.Expression,
 		})...)
+	}
+
+	return out
+}
+
+// validateUsernameClaimMapping validates the CEL expression in the username claim mapping,
+// if one is specified. The username mapping determines the username of the authenticated user
+// and may be specified as either a raw claim name or a CEL expression.
+func validateUsernameClaimMapping(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, username configv1.UsernameClaimMapping) field.ErrorList {
+	if username.Expression == "" {
+		return nil
+	}
+
+	childPath := path.Child("username", "expression")
+
+	return validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
+		Expression: username.Expression,
+	})
+}
+
+// validateGroupsClaimMapping validates the CEL expression in the groups claim mapping,
+// if one is specified. The groups mapping determines the groups of the authenticated user
+// and may be specified as either a raw claim name or a CEL expression.
+func validateGroupsClaimMapping(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, groups configv1.PrefixedClaimMapping) field.ErrorList {
+	if groups.Expression == "" {
+		return nil
+	}
+
+	childPath := path.Child("groups", "expression")
+
+	return validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
+		Expression: groups.Expression,
+	})
+}
+
+// validateClaimValidationRules validates the CEL expressions in each claim validation rule.
+// Claim validation rules are evaluated against the raw JWT claims and must return a boolean.
+// Each rule may also specify a messageExpression that is evaluated to produce a human-readable
+// error message when the validation rule returns false.
+func validateClaimValidationRules(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, rules ...configv1.TokenClaimValidationRule) field.ErrorList {
+	out := field.ErrorList{}
+	for i, rule := range rules {
+		rulePath := path.Child("claimValidationRules").Index(i)
+
+		if rule.Type == configv1.TokenValidationRuleTypeCEL && rule.CEL.Expression != "" {
+			out = append(out, validateCELExpression(ctx, cel, costRecorder, rulePath.Child("cel", "expression"), &authenticationcel.ClaimValidationCondition{
+				Expression: rule.CEL.Expression,
+			})...)
+		}
+	}
+
+	return out
+}
+
+// validateUserValidationRules validates the CEL expressions in each user validation rule.
+// User validation rules are evaluated against the mapped UserInfo object after all claim
+// mappings have been applied, and must return a boolean. Each rule may also specify a
+// messageExpression that is evaluated to produce a human-readable error message when
+// the validation rule returns false.
+func validateUserValidationRules(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, rules ...configv1.TokenUserValidationRule) field.ErrorList {
+	out := field.ErrorList{}
+	for i, rule := range rules {
+		rulePath := path.Child("userValidationRules").Index(i)
+
+		if rule.Expression != "" {
+			out = append(out, validateCELExpression(ctx, cel, costRecorder, rulePath.Child("expression"), &authenticationcel.UserValidationCondition{
+				Expression: rule.Expression,
+			})...)
+		}
 	}
 
 	return out
