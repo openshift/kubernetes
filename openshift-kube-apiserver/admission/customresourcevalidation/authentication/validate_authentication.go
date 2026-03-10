@@ -180,9 +180,14 @@ func validateAuthenticationSpec(ctx context.Context, spec configv1.Authenticatio
 	errs := field.ErrorList{}
 	specField := field.NewPath("spec")
 
+	// TODO: is there a reasonable way to feature gate this?
+	// For now, just force what should be gated.
 	if spec.WebhookTokenAuthenticator != nil {
 		switch spec.Type {
-		case configv1.AuthenticationTypeNone, configv1.AuthenticationTypeIntegratedOAuth, "":
+		// External Claims: Allow setting webhook token authenticator when type is OIDC. This is
+		// necessary because the cluster-authentication-operator will configure the webhook token authenticator
+		// to point to the oauth-apiserver that now handles the external OIDC behavior.
+		case configv1.AuthenticationTypeNone, configv1.AuthenticationTypeIntegratedOAuth, "", configv1.AuthenticationTypeOIDC:
 			// validate the secret name in WebhookTokenAuthenticator
 			errs = append(
 				errs,
