@@ -1,10 +1,6 @@
 package route
 
 import (
-	"k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/component-base/featuregate"
-
-	openshiftfeatures "github.com/openshift/api/features"
 	routecommon "github.com/openshift/library-go/pkg/route"
 )
 
@@ -21,7 +17,7 @@ var _ RouteValidationOptionGetter = &RouteValidationOpts{}
 func NewRouteValidationOpts() *RouteValidationOpts {
 	return &RouteValidationOpts{
 		opts: routecommon.RouteValidationOptions{
-			AllowExternalCertificates: feature.DefaultMutableFeatureGate.Enabled(featuregate.Feature(openshiftfeatures.FeatureGateRouteExternalCertificate)),
+			AllowExternalCertificates: true,
 		},
 	}
 }
