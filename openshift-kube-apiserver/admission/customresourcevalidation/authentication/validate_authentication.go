@@ -344,7 +344,7 @@ func validateUsernameClaimMapping(ctx context.Context, path *field.Path, cel *ce
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return &result, nil
+	return result, nil
 }
 
 // validateGroupsClaimMapping validates the CEL expression in the groups claim mapping,
@@ -378,8 +378,8 @@ func validateClaimValidationRules(ctx context.Context, path *field.Path, cel *ce
 				Expression: rule.CEL.Expression,
 			})
 			out = append(out, errs...)
-			if len(errs) == 0 {
-				results = append(results, result)
+			if len(errs) == 0 && result != nil {
+				results = append(results, *result)
 			}
 		}
 	}
@@ -398,7 +398,7 @@ func validateUserValidationRules(ctx context.Context, path *field.Path, cel *cel
 		rulePath := path.Child("userValidationRules").Index(i)
 
 		if rule.Expression != "" {
-			_, errs := validateCELExpression(ctx, cel, costRecorder, rulePath.Child("expression"), &authenticationcel.UserValidationCondition{
+			_, errs := validateUserCELExpression(ctx, cel, costRecorder, rulePath.Child("expression"), &authenticationcel.UserValidationCondition{
 				Expression: rule.Expression,
 			})
 			out = append(out, errs...)
@@ -432,18 +432,18 @@ func validateExtra(ctx context.Context, path *field.Path, cel *celStore, costRec
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return &result, nil
+	return result, nil
 }
 
 type celCompileResult struct {
 	err               error
 	cost              uint64
-	compilationResult authenticationcel.CompilationResult
+	compilationResult *authenticationcel.CompilationResult
 }
 
-func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *costRecorder, path *field.Path, accessor authenticationcel.ExpressionAccessor) (authenticationcel.CompilationResult, field.ErrorList) { // if context has been canceled, don't try to compile any expressions
+func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *costRecorder, path *field.Path, accessor authenticationcel.ExpressionAccessor) (*authenticationcel.CompilationResult, field.ErrorList) {
 	if err := ctx.Err(); err != nil {
-		return authenticationcel.CompilationResult{}, field.ErrorList{field.InternalError(path, err)}
+		return nil, field.ErrorList{field.InternalError(path, err)}
 	}
 
 	result, err, _ := cel.compilingGroup.Do(accessor.GetExpression(), func() (interface{}, error) {
@@ -477,7 +477,7 @@ func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *cos
 
 		res := celCompileResult{
 			err:               compErr,
-			compilationResult: compRes,
+			compilationResult: &compRes,
 		}
 
 		if compRes.AST != nil && compErr == nil {
@@ -508,20 +508,90 @@ func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *cos
 		return res, nil
 	})
 	if err != nil {
-		return authenticationcel.CompilationResult{}, field.ErrorList{field.InternalError(path, fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err))}
+		return nil, field.ErrorList{field.InternalError(path, fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err))}
 	}
 
 	compileRes, ok := result.(celCompileResult)
 	if !ok {
-		return authenticationcel.CompilationResult{}, field.ErrorList{field.InternalError(path, fmt.Errorf("expected result to be of type celCompileResult, but got %T", result))}
+		return nil, field.ErrorList{field.InternalError(path, fmt.Errorf("expected result to be of type celCompileResult, but got %T", result))}
 	}
 
 	if compileRes.err != nil {
-		return authenticationcel.CompilationResult{}, field.ErrorList{field.Invalid(path, accessor.GetExpression(), compileRes.err.Error())}
+		return nil, field.ErrorList{field.Invalid(path, accessor.GetExpression(), compileRes.err.Error())}
 	}
 
 	costRecorder.AddRecording(path, compileRes.cost)
 
+	return compileRes.compilationResult, nil
+}
+
+// validateUserCELExpression is like validateCELExpression but uses CompileUserExpression
+// instead of CompileClaimsExpression, making user.* variables available to the expression.
+func validateUserCELExpression(ctx context.Context, cel *celStore, costRecorder *costRecorder, path *field.Path, accessor authenticationcel.ExpressionAccessor) (*authenticationcel.CompilationResult, field.ErrorList) {
+	if err := ctx.Err(); err != nil {
+		return nil, field.ErrorList{field.InternalError(path, err)}
+	}
+
+	result, err, _ := cel.compilingGroup.Do(accessor.GetExpression(), func() (interface{}, error) {
+		if val, ok := cel.compiledStore.Get(accessor.GetExpression()); ok {
+			res, ok := val.(celCompileResult)
+			if !ok {
+				return nil, fmt.Errorf("expected return value from cache of compiled expressions to be of type celCompileResult but was %T", val)
+			}
+			return res, nil
+		}
+
+		warningChan := make(chan string, 1)
+		timer := cel.timerFactory.Timer(excessiveCompileDuration, func() {
+			defer close(warningChan)
+			warn := fmt.Sprintf("cel expression %q took excessively long to compile (%s)", accessor.GetExpression(), excessiveCompileDuration)
+			klog.Warning(warn)
+			warningChan <- warn
+		})
+
+		compRes, compErr := cel.compiler.CompileUserExpression(accessor)
+
+		timer.Stop()
+
+		res := celCompileResult{
+			err:               compErr,
+			compilationResult: &compRes,
+		}
+
+		if compRes.AST != nil && compErr == nil {
+			cost, err := checker.Cost(compRes.AST.NativeRep(), &library.CostEstimator{
+				SizeEstimator: cel.sizeEstimator,
+			})
+			if err != nil {
+				klog.Errorf("unable to estimate cost for expression %q: %v. Defaulting cost to %d", accessor.GetExpression(), err, fixedSize)
+				cost = checker.CostEstimate{Max: fixedSize}
+			}
+			res.cost = cost.Max
+		}
+
+		select {
+		case warn := <-warningChan:
+			warning.AddWarning(ctx, "", warn)
+		default:
+		}
+
+		cel.compiledStore.Add(accessor.GetExpression(), res)
+		return res, nil
+	})
+	if err != nil {
+		return nil, field.ErrorList{field.InternalError(path, fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err))}
+	}
+
+	compileRes, ok := result.(celCompileResult)
+	if !ok {
+		return nil, field.ErrorList{field.InternalError(path, fmt.Errorf("expected result to be of type celCompileResult, but got %T", result))}
+	}
+
+	if compileRes.err != nil {
+		return nil, field.ErrorList{field.Invalid(path, accessor.GetExpression(), compileRes.err.Error())}
+	}
+
+	costRecorder.AddRecording(path, compileRes.cost)
 	return compileRes.compilationResult, nil
 }
 
