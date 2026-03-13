@@ -21,6 +21,9 @@ import (
 	"k8s.io/utils/lru"
 
 	"github.com/google/cel-go/checker"
+	celgo "github.com/google/cel-go/cel"
+	"github.com/google/cel-go/common/operators"
+	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	configv1 "github.com/openshift/api/config/v1"
 	authenticationcel "k8s.io/apiserver/pkg/authentication/cel"
@@ -241,7 +244,9 @@ func validateOIDCProvider(ctx context.Context, path *field.Path, cel *celStore, 
 	costRecorder := &costRecorder{}
 
 	errs := validateClaimMappings(ctx, path, cel, costRecorder, provider.ClaimMappings)
-
+	errs = append(errs, validateClaimValidationRules(ctx, path, cel, costRecorder, provider.ClaimValidationRules...)...)
+	errs = append(errs, validateUserValidationRules(ctx, path, cel, costRecorder, provider.UserValidationRules...)...)
+	errs = append(errs, validateEmailVerifiedUsage(ctx, path, cel, costRecorder, provider.ClaimMappings, provider.ClaimValidationRules)...)
 	var totalCELExpressionCost uint64 = 0
 
 	for _, recording := range costRecorder.Recordings {
@@ -289,7 +294,8 @@ func validateClaimMappings(ctx context.Context, path *field.Path, cel *celStore,
 	path = path.Child("claimMappings")
 
 	out := field.ErrorList{}
-
+	out = append(out, validateUsernameClaimMapping(ctx, path, cel, costRecorder, claimMappings.Username)...)
+	out = append(out, validateGroupsClaimMapping(ctx, path, cel, costRecorder, claimMappings.Groups)...)
 	out = append(out, validateUIDClaimMapping(ctx, path, cel, costRecorder, claimMappings.UID)...)
 	out = append(out, validateExtraClaimMapping(ctx, path, cel, costRecorder, claimMappings.Extra...)...)
 
@@ -306,9 +312,83 @@ func validateUIDClaimMapping(ctx context.Context, path *field.Path, cel *celStor
 	if uid.Expression != "" {
 		childPath := path.Child("uid", "expression")
 
-		out = append(out, validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
+		_, errs := validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
 			Expression: uid.Expression,
-		})...)
+		})
+		out = append(out, errs...)
+	}
+
+	return out
+}
+
+// validateUsernameClaimMapping validates the CEL expression in the username claim mapping,
+// if one is specified. The username mapping determines the username of the authenticated user
+// and may be specified as either a raw claim name or a CEL expression.
+func validateUsernameClaimMapping(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, username configv1.UsernameClaimMapping) field.ErrorList {
+	if username.Expression == "" {
+		return nil
+	}
+
+	childPath := path.Child("username", "expression")
+
+	_, errs := validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
+		Expression: username.Expression,
+	})
+	return errs
+}
+
+// validateGroupsClaimMapping validates the CEL expression in the groups claim mapping,
+// if one is specified. The groups mapping determines the groups of the authenticated user
+// and may be specified as either a raw claim name or a CEL expression.
+func validateGroupsClaimMapping(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, groups configv1.PrefixedClaimMapping) field.ErrorList {
+	if groups.Expression == "" {
+		return nil
+	}
+
+	childPath := path.Child("groups", "expression")
+
+	_, errs := validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ClaimMappingExpression{
+		Expression: groups.Expression,
+	})
+	return errs
+}
+
+// validateClaimValidationRules validates the CEL expressions in each claim validation rule.
+// Claim validation rules are evaluated against the raw JWT claims and must return a boolean.
+// Each rule may also specify a messageExpression that is evaluated to produce a human-readable
+// error message when the validation rule returns false.
+func validateClaimValidationRules(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, rules ...configv1.TokenClaimValidationRule) field.ErrorList {
+	out := field.ErrorList{}
+	for i, rule := range rules {
+		rulePath := path.Child("claimValidationRules").Index(i)
+
+		if rule.Type == configv1.TokenValidationRuleTypeCEL && rule.CEL.Expression != "" {
+			_, errs := validateCELExpression(ctx, cel, costRecorder, rulePath.Child("cel", "expression"), &authenticationcel.ClaimValidationCondition{
+				Expression: rule.CEL.Expression,
+			})
+			out = append(out, errs...)
+		}
+	}
+
+	return out
+}
+
+// validateUserValidationRules validates the CEL expressions in each user validation rule.
+// User validation rules are evaluated against the mapped UserInfo object after all claim
+// mappings have been applied, and must return a boolean. Each rule may also specify a
+// messageExpression that is evaluated to produce a human-readable error message when
+// the validation rule returns false.
+func validateUserValidationRules(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, rules ...configv1.TokenUserValidationRule) field.ErrorList {
+	out := field.ErrorList{}
+	for i, rule := range rules {
+		rulePath := path.Child("userValidationRules").Index(i)
+
+		if rule.Expression != "" {
+			_, errs := validateCELExpression(ctx, cel, costRecorder, rulePath.Child("expression"), &authenticationcel.UserValidationCondition{
+				Expression: rule.Expression,
+			})
+			out = append(out, errs...)
+		}
 	}
 
 	return out
@@ -326,21 +406,22 @@ func validateExtraClaimMapping(ctx context.Context, path *field.Path, cel *celSt
 func validateExtra(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, extra configv1.ExtraMapping) field.ErrorList {
 	childPath := path.Child("valueExpression")
 
-	return validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ExtraMappingExpression{
+	_, errs := validateCELExpression(ctx, cel, costRecorder, childPath, &authenticationcel.ExtraMappingExpression{
 		Key:        extra.Key,
 		Expression: extra.ValueExpression,
 	})
+	return errs
 }
 
 type celCompileResult struct {
-	err  error
-	cost uint64
+	err               error
+	cost              uint64
+	compilationResult authenticationcel.CompilationResult
 }
 
-func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *costRecorder, path *field.Path, accessor authenticationcel.ExpressionAccessor) field.ErrorList {
-	// if context has been canceled, don't try to compile any expressions
+func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *costRecorder, path *field.Path, accessor authenticationcel.ExpressionAccessor) (authenticationcel.CompilationResult, field.ErrorList) {	// if context has been canceled, don't try to compile any expressions
 	if err := ctx.Err(); err != nil {
-		return field.ErrorList{field.InternalError(path, err)}
+		return authenticationcel.CompilationResult{}, field.ErrorList{field.InternalError(path, err)}
 	}
 
 	result, err, _ := cel.compilingGroup.Do(accessor.GetExpression(), func() (interface{}, error) {
@@ -373,7 +454,8 @@ func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *cos
 		timer.Stop()
 
 		res := celCompileResult{
-			err: compErr,
+			err:               compErr,
+			compilationResult: compRes,
 		}
 
 		if compRes.AST != nil && compErr == nil {
@@ -404,21 +486,21 @@ func validateCELExpression(ctx context.Context, cel *celStore, costRecorder *cos
 		return res, nil
 	})
 	if err != nil {
-		return field.ErrorList{field.InternalError(path, fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err))}
+		return authenticationcel.CompilationResult{}, field.ErrorList{field.InternalError(path, fmt.Errorf("running compilation of expression %q: %v", accessor.GetExpression(), err))}
 	}
 
 	compileRes, ok := result.(celCompileResult)
 	if !ok {
-		return field.ErrorList{field.InternalError(path, fmt.Errorf("expected result to be of type celCompileResult, but got %T", result))}
+		return authenticationcel.CompilationResult{}, field.ErrorList{field.InternalError(path, fmt.Errorf("expected result to be of type celCompileResult, but got %T", result))}
 	}
 
 	if compileRes.err != nil {
-		return field.ErrorList{field.Invalid(path, accessor.GetExpression(), compileRes.err.Error())}
+		return authenticationcel.CompilationResult{}, field.ErrorList{field.Invalid(path, accessor.GetExpression(), compileRes.err.Error())}
 	}
 
 	costRecorder.AddRecording(path, compileRes.cost)
 
-	return nil
+	return compileRes.compilationResult, nil
 }
 
 type fixedSizeEstimator struct {
@@ -431,4 +513,164 @@ func (fcse *fixedSizeEstimator) EstimateSize(element checker.AstNode) *checker.S
 
 func (fcse *fixedSizeEstimator) EstimateCallCost(function, overloadID string, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
 	return nil
+}
+
+// validateEmailVerifiedUsage enforces that when claims.email is used in the
+// username expression, claims.email_verified must be referenced in at least
+// one of: username.expression, extra[*].valueExpression, or
+// claimValidationRules[*].expression.
+func validateEmailVerifiedUsage(ctx context.Context, path *field.Path, cel *celStore, costRecorder *costRecorder, claimMappings configv1.TokenClaimMappings, claimValidationRules []configv1.TokenClaimValidationRule) field.ErrorList {
+	if claimMappings.Username.Expression == "" {
+		return nil
+	}
+
+	var emailClaim bool
+	var emailVerifiedClaim bool
+
+	// check username expression
+	if result, errs := validateCELExpression(ctx, cel, costRecorder, path.Child("claimMappings", "username", "expression"), &authenticationcel.ClaimMappingExpression{
+		Expression: claimMappings.Username.Expression,
+	}); len(errs) == 0 {
+		emailClaim = emailClaim || usesEmailClaim(result.AST)
+		emailVerifiedClaim = emailVerifiedClaim || usesEmailVerifiedClaim(result.AST)
+	}
+
+	// check extra[*].valueExpression
+	for _, extra := range claimMappings.Extra {
+		if extra.ValueExpression == "" {
+			continue
+		}
+		if result, errs := validateCELExpression(ctx, cel, costRecorder, path.Child("claimMappings", "extra", "valueExpression"), &authenticationcel.ExtraMappingExpression{
+			Key:        extra.Key,
+			Expression: extra.ValueExpression,
+		}); len(errs) == 0 {
+			if usesEmailVerifiedClaim(result.AST) {
+				emailVerifiedClaim = true
+			}
+		}
+	}
+
+	// check claimValidationRules[*].cel.expression
+	for _, rule := range claimValidationRules {
+		if rule.Type != configv1.TokenValidationRuleTypeCEL || rule.CEL.Expression == "" {
+			continue
+		}
+		if result, errs := validateCELExpression(ctx, cel, costRecorder, path.Child("claimValidationRules", "cel", "expression"), &authenticationcel.ClaimValidationCondition{
+			Expression: rule.CEL.Expression,
+		}); len(errs) == 0 {
+			if usesEmailVerifiedClaim(result.AST) {
+				emailVerifiedClaim = true
+			}
+		}
+	}
+
+	if emailClaim && !emailVerifiedClaim {
+		return field.ErrorList{field.Invalid(
+			path.Child("claimMappings", "username", "expression"),
+			claimMappings.Username.Expression,
+			"claims.email_verified must be used in claimMappings.username.expression or claimMappings.extra[*].valueExpression or claimValidationRules[*].expression when claims.email is used in claimMappings.username.expression",
+		)}
+	}
+
+	return nil
+}
+
+// usesEmailClaim, usesEmailVerifiedClaim, hasSelectExp,
+// isIdentOperand, and isConstField are copied from the upstream Kubernetes apiserver
+// CEL validation logic introduced in https://github.com/kubernetes/kubernetes/pull/123737 (commit 121607e):
+// https://github.com/kubernetes/kubernetes/blob/bfb362c57578518bed8e08a56a7318bab9b57429/staging/src/k8s.io/apiserver/pkg/apis/apiserver/validation/validation.go#L443
+func usesEmailClaim(ast *celgo.Ast) bool {
+	return hasSelectExp(ast.Expr(), "claims", "email")
+}
+
+func usesEmailVerifiedClaim(ast *celgo.Ast) bool {
+	return hasSelectExp(ast.Expr(), "claims", "email_verified")
+}
+
+func hasSelectExp(exp *exprpb.Expr, operand, field string) bool {
+	if exp == nil {
+		return false
+	}
+	switch e := exp.ExprKind.(type) {
+	case *exprpb.Expr_ConstExpr,
+		*exprpb.Expr_IdentExpr:
+		return false
+	case *exprpb.Expr_SelectExpr:
+		s := e.SelectExpr
+		if s == nil {
+			return false
+		}
+		if isIdentOperand(s.Operand, operand) && s.Field == field {
+			return true
+		}
+		return hasSelectExp(s.Operand, operand, field)
+	case *exprpb.Expr_CallExpr:
+		c := e.CallExpr
+		if c == nil {
+			return false
+		}
+		if c.Target == nil && c.Function == operators.OptSelect && len(c.Args) == 2 &&
+			isIdentOperand(c.Args[0], operand) && isConstField(c.Args[1], field) {
+			return true
+		}
+		for _, arg := range c.Args {
+			if hasSelectExp(arg, operand, field) {
+				return true
+			}
+		}
+		return hasSelectExp(c.Target, operand, field)
+	case *exprpb.Expr_ListExpr:
+		l := e.ListExpr
+		if l == nil {
+			return false
+		}
+		for _, element := range l.Elements {
+			if hasSelectExp(element, operand, field) {
+				return true
+			}
+		}
+		return false
+	case *exprpb.Expr_StructExpr:
+		s := e.StructExpr
+		if s == nil {
+			return false
+		}
+		for _, entry := range s.Entries {
+			if hasSelectExp(entry.GetMapKey(), operand, field) {
+				return true
+			}
+			if hasSelectExp(entry.Value, operand, field) {
+				return true
+			}
+		}
+		return false
+	case *exprpb.Expr_ComprehensionExpr:
+		c := e.ComprehensionExpr
+		if c == nil {
+			return false
+		}
+		return hasSelectExp(c.IterRange, operand, field) ||
+			hasSelectExp(c.AccuInit, operand, field) ||
+			hasSelectExp(c.LoopCondition, operand, field) ||
+			hasSelectExp(c.LoopStep, operand, field) ||
+			hasSelectExp(c.Result, operand, field)
+	default:
+		return false
+	}
+}
+
+func isIdentOperand(exp *exprpb.Expr, operand string) bool {
+	if len(operand) == 0 {
+		return false
+	}
+	id := exp.GetIdentExpr()
+	return id != nil && id.Name == operand
+}
+
+func isConstField(exp *exprpb.Expr, field string) bool {
+	if len(field) == 0 {
+		return false
+	}
+	c := exp.GetConstExpr()
+	return c != nil && c.GetStringValue() == field
 }
