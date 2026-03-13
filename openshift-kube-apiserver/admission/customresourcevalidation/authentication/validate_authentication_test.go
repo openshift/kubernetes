@@ -698,7 +698,8 @@ func TestValidateCELExpressionDeduplicatesWork(t *testing.T) {
 	duplicates := 2
 	for range duplicates {
 		go func() {
-			results <- validateCELExpression(context.TODO(), cel, &costRecorder{}, fieldPath, expression)
+			_, errs := validateCELExpression(context.TODO(), cel, &costRecorder{}, fieldPath, expression)
+			results <- errs
 		}()
 	}
 
