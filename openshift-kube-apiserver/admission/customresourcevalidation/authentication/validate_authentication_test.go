@@ -92,6 +92,93 @@ func TestFailValidateAuthenticationSpec(t *testing.T) {
 			errorType:  field.ErrorTypeInvalid,
 			errorField: "spec.oidcProviders[0].claimMappings.extra[0].valueExpression",
 		},
+		"invalid username CEL expression": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						ClaimMappings: configv1.TokenClaimMappings{
+							Username: configv1.UsernameClaimMapping{
+								Expression: "!@^#",
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].claimMappings.username.expression",
+		},
+		"invalid groups CEL expression": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						ClaimMappings: configv1.TokenClaimMappings{
+							Groups: configv1.PrefixedClaimMapping{
+								TokenClaimMapping: configv1.TokenClaimMapping{
+									Expression: "!@^#",
+								},
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].claimMappings.groups.expression",
+		},
+		"invalid claimValidationRule CEL expression": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						ClaimValidationRules: []configv1.TokenClaimValidationRule{
+							{
+								Type: configv1.TokenValidationRuleTypeCEL,
+								CEL: configv1.TokenClaimValidationCELRule{
+									Expression: "!@^#",
+									Message:    "invalid",
+								},
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].claimValidationRules[0].cel.expression",
+		},
+		"invalid userValidationRule CEL expression": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						UserValidationRules: []configv1.TokenUserValidationRule{
+							{
+								Expression: "!@^#",
+								Message:    "invalid",
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].userValidationRules[0].expression",
+		},
+		"username expression uses claims.email without claims.email_verified": {
+			spec: configv1.AuthenticationSpec{
+				Type: "OIDC",
+				OIDCProviders: []configv1.OIDCProvider{
+					{
+						ClaimMappings: configv1.TokenClaimMappings{
+							Username: configv1.UsernameClaimMapping{
+								Expression: "claims.email",
+							},
+						},
+					},
+				},
+			},
+			errorType:  field.ErrorTypeInvalid,
+			errorField: "spec.oidcProviders[0].claimMappings.username.expression",
+		},
 	}
 
 	for tcName, tc := range errorCases {
@@ -178,6 +265,86 @@ func TestSucceedValidateAuthenticationSpec(t *testing.T) {
 							{
 								Key:             "foo/bar",
 								ValueExpression: "claims.roles",
+							},
+						},
+					},
+				},
+			},
+		},
+		"valid username CEL expression": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					ClaimMappings: configv1.TokenClaimMappings{
+						Username: configv1.UsernameClaimMapping{
+							Expression: "claims.email",
+						},
+					},
+					ClaimValidationRules: []configv1.TokenClaimValidationRule{
+						{
+							Type: configv1.TokenValidationRuleTypeCEL,
+							CEL: configv1.TokenClaimValidationCELRule{
+								Expression: "claims.email_verified == true",
+								Message:    "email must be verified",
+							},
+						},
+					},
+				},
+			},
+		},
+		"valid groups CEL expression": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					ClaimMappings: configv1.TokenClaimMappings{
+						Groups: configv1.PrefixedClaimMapping{
+							TokenClaimMapping: configv1.TokenClaimMapping{
+								Expression: "claims.groups",
+							},
+						},
+					},
+				},
+			},
+		},
+		"valid claimValidationRule CEL expression": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					ClaimValidationRules: []configv1.TokenClaimValidationRule{
+						{
+							Type: configv1.TokenValidationRuleTypeCEL,
+							CEL: configv1.TokenClaimValidationCELRule{
+								Expression: "claims.iss == 'https://example.com'",
+								Message:    "issuer must be https://example.com",
+							},
+						},
+					},
+				},
+			},
+		},
+		"valid userValidationRule CEL expression": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					UserValidationRules: []configv1.TokenUserValidationRule{
+						{
+							Expression: "user.username != ''",
+							Message:    "username must not be empty",
+						},
+					},
+				},
+			},
+		},
+		"RequiredClaim type skips CEL validation": {
+			Type: "OIDC",
+			OIDCProviders: []configv1.OIDCProvider{
+				{
+					ClaimValidationRules: []configv1.TokenClaimValidationRule{
+						{
+							Type: configv1.TokenValidationRuleTypeRequiredClaim,
+							RequiredClaim: &configv1.TokenRequiredClaim{
+								Claim:         "email_verified",
+								RequiredValue: "true",
 							},
 						},
 					},
@@ -371,8 +538,8 @@ func TestValidateCELExpression(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			warningRecorder := &mockWarningRecorder{}
 			ctx := warning.WithWarningRecorder(tc.ctx(), warningRecorder)
-			err := validateCELExpression(ctx, tc.cel(), &costRecorder{}, field.NewPath("^"), expression)
-			if tc.shouldErr != (err != nil) {
+			_, err := validateCELExpression(ctx, tc.cel(), &costRecorder{}, field.NewPath("^"), expression)
+			if tc.shouldErr != (len(err) > 0) {
 				t.Fatalf("error expectation does not match actual. expected? %v . received: %v", tc.shouldErr, err)
 			}
 
@@ -531,7 +698,8 @@ func TestValidateCELExpressionDeduplicatesWork(t *testing.T) {
 	duplicates := 2
 	for range duplicates {
 		go func() {
-			results <- validateCELExpression(context.TODO(), cel, &costRecorder{}, fieldPath, expression)
+			_, errs := validateCELExpression(context.TODO(), cel, &costRecorder{}, fieldPath, expression)
+			results <- errs
 		}()
 	}
 
