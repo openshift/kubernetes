@@ -373,8 +373,8 @@ func NewSerializerInfo(creater runtime.ObjectCreater, typer runtime.ObjectTyper)
 		MediaType:        "application/cbor",
 		MediaTypeType:    "application",
 		MediaTypeSubType: "cbor",
-		Serializer:       NewSerializer(creater, typer),
-		StrictSerializer: NewSerializer(creater, typer, Strict(true)),
+		Serializer:       NewSerializer(creater, typer, Transcode(false)),
+		StrictSerializer: NewSerializer(creater, typer, Strict(true), Transcode(false)),
 		StreamSerializer: &runtime.StreamSerializerInfo{
 			Framer:     NewFramer(),
 			Serializer: NewSerializer(creater, typer, Transcode(false)),
