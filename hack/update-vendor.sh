@@ -388,11 +388,33 @@ hack/update-internal-modules.sh
 kube::log::status "vendor: running 'go mod vendor'" >&11
 go mod vendor
 
-# create a symlink in vendor directory pointing to the staging components.
-# This lets other packages and tools use the local staging components as if they were vendored.
+# Copy staging components into the vendor directory instead of symlinking.
+# Hermetic builds require the vendor directory to be self-contained without symlinks.
 for repo in $(kube::util::list_staging_repos); do
   rm -fr "${KUBE_ROOT}/vendor/k8s.io/${repo}"
-  ln -s "../../staging/src/k8s.io/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
+  cp -r "${KUBE_ROOT}/staging/src/k8s.io/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
+done
+# go mod vendor does not include test files. cp -r above copies everything from
+# staging, including _test.go files. Remove them to match go mod vendor behavior
+# and avoid test failures caused by relative paths that don't resolve correctly
+# from the vendor directory. Also remove directories that contained only test
+# files (e.g. recognizer/testing/) so the test runner does not try to discover
+# packages in paths that no longer exist.
+for repo in $(kube::util::list_staging_repos); do
+  find "${KUBE_ROOT}/vendor/k8s.io/${repo}" -name "*_test.go" -delete
+  find "${KUBE_ROOT}/vendor/k8s.io/${repo}" -type d -empty -delete
+done
+# go mod vendor produces all files as 0644 (no execute bit), but cp -r above
+# preserves the original permissions from staging (which may include 0755 on
+# shell scripts). Strip execute bits from non-Go files in directories that
+# contain .go files (i.e. directories that go mod vendor would populate),
+# excluding testdata/ which go mod vendor skips and .sh files which are needed
+# by verify-codegen. This prevents Hermeto's strict vendor consistency check
+# from detecting permission-only changes.
+for repo in $(kube::util::list_staging_repos); do
+  while IFS= read -r dir; do
+    find "${dir}" -maxdepth 1 -type f -executable ! -name "*.go" ! -name "*.sh" -exec chmod -x {} +
+  done < <(find "${KUBE_ROOT}/vendor/k8s.io/${repo}" -name "*.go" ! -path "*/testdata/*" -printf '%h\n' | sort -u)
 done
 
 kube::log::status "vendor: updating vendor/LICENSES" >&11
