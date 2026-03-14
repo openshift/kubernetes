@@ -212,6 +212,10 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		// tests that are known flaky
 		"Flaky": {
 			"Job should run a job to completion when tasks sometimes fail and are not locally restarted", // seems flaky, also may require too many resources
+
+			// https://issues.redhat.com/browse/OCPBUGS-78504
+			// flaky due to sensitive 2% tolerance margins
+			"[sig-autoscaling] [Feature:HPAConfigurableTolerance] [FeatureGate:HPAConfigurableTolerance]",
 		},
 	}
 
