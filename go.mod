@@ -225,7 +225,7 @@ require (
 	github.com/rubiojr/go-vhd v0.0.0-20200706105327-02e210299021 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/seccomp/libseccomp-golang v0.9.2-0.20220502022130-f33da4d89646 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
@@ -266,6 +266,13 @@ replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.4.1-0.20221214150008-e73634cb3870
 	golang.org/x/crypto => golang.org/x/crypto v0.24.0
 	golang.org/x/mod => golang.org/x/mod v0.20.0
+	golang.org/x/net => golang.org/x/net v0.30.0
+	golang.org/x/oauth2 => golang.org/x/oauth2 v0.7.0
+	golang.org/x/sync => golang.org/x/sync v0.8.0
+	golang.org/x/sys => golang.org/x/sys v0.26.0
+	golang.org/x/term => golang.org/x/term v0.25.0
+	golang.org/x/text => golang.org/x/text v0.19.0
+	golang.org/x/time => golang.org/x/time v0.3.0
 	golang.org/x/tools => golang.org/x/tools v0.24.1
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
