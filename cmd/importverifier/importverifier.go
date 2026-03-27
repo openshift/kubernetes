@@ -228,26 +228,71 @@ func loadImportRestrictions(configFile string) ([]ImportRestriction, error) {
 	return importRestrictions, nil
 }
 
+// envForGoList returns the process environment for `go list`, with GOFLAGS adjusted so
+// -mod=vendor does not hide replace-target staging trees, and optionally with GOPATH
+// removed so nested staging modules are not mis-resolved via kube's synthetic GOPATH.
+func envForGoList(stripGOPATH bool, extraEnv []string) []string {
+	var out []string
+	for _, kv := range os.Environ() {
+		if stripGOPATH && strings.HasPrefix(kv, "GOPATH=") {
+			continue
+		}
+		if strings.HasPrefix(kv, "GOFLAGS=") {
+			continue
+		}
+		out = append(out, kv)
+	}
+	goflags := os.Getenv("GOFLAGS")
+	// Only override vendor mode when listing a nested staging module from its own root
+	// (stripGOPATH). For ./vendor/... and other trees, preserving CI's -mod=vendor keeps
+	// `go list` working under kube's synthetic GOPATH layout.
+	if stripGOPATH {
+		goflags = strings.ReplaceAll(goflags, "-mod=vendor", "-mod=mod")
+		if !strings.Contains(goflags, "-mod=") {
+			if goflags != "" {
+				goflags += " "
+			}
+			goflags += "-mod=mod"
+		}
+	}
+	out = append(out, "GOFLAGS="+goflags, "GO111MODULE=on")
+	out = append(out, extraEnv...)
+	return out
+}
+
 func resolvePackageTree(treeBase string) ([]Package, error) {
-	// try resolving with $cwd
-	packages, err := resolvePackageTreeInDir("", treeBase)
+	// Nested staging modules are separate go.mod roots. Listing ./staging/... from the repo
+	// root fails ("expects import ...") when kube's synthetic GOPATH shadows the tree; run
+	// `go list ./...` from the module directory first, without GOPATH.
+	if strings.HasPrefix(treeBase, "./staging/src/k8s.io/") {
+		modDir := strings.TrimSuffix(treeBase, "/")
+		modPackages, modErr := resolvePackageTreeInDirWithEnv(modDir, "./", []string{
+			"GOPROXY=https://proxy.golang.org,direct",
+		}, true)
+		if modErr == nil && len(modPackages) > 0 {
+			return modPackages, nil
+		}
+	}
+	packages, err := resolvePackageTreeInDirWithEnv("", treeBase, nil, false)
 	if err != nil || len(packages) == 0 {
-		// if that fails or finds no packages, resolve under ./vendor/$treeBase
-		stagingPackages, stagingErr := resolvePackageTreeInDir(filepath.Join("./vendor", treeBase), treeBase)
+		stagingPackages, stagingErr := resolvePackageTreeInDirWithEnv(filepath.Join("./vendor", treeBase), treeBase, nil, false)
 		if stagingErr == nil && len(stagingPackages) > 0 {
-			// if that succeeds, return
 			return stagingPackages, stagingErr
 		}
 	}
-	// otherwise, return original packages and error
 	return packages, err
 }
 
 func resolvePackageTreeInDir(dir string, treeBase string) ([]Package, error) {
+	return resolvePackageTreeInDirWithEnv(dir, treeBase, nil, false)
+}
+
+func resolvePackageTreeInDirWithEnv(dir string, treeBase string, extraEnv []string, stripGOPATH bool) ([]Package, error) {
 	cmd := "go"
 	args := []string{"list", "-json", fmt.Sprintf("%s...", treeBase)}
 	c := exec.Command(cmd, args...)
 	c.Dir = dir
+	c.Env = envForGoList(stripGOPATH, extraEnv)
 	stdout, err := c.Output()
 	if err != nil {
 		var message string

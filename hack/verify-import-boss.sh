@@ -28,7 +28,10 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
 
-GO111MODULE=on GOPROXY=off go install k8s.io/code-generator/cmd/import-boss
+# -mod=mod: cmd/import-boss is not listed in vendor/modules.txt (only a subset of
+# code-generator is vendored); resolve via replace to staging/src.
+# Do not set GOPROXY=off: import-boss pulls deps (e.g. k8s.io/gengo) not present in cache offline.
+GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/import-boss
 
 packages=(
   "k8s.io/kubernetes/pkg/..."
@@ -39,7 +42,12 @@ packages=(
 )
 for d in staging/src/k8s.io/*/; do
   if [ -d "$d" ]; then
-    packages+=("./vendor/${d#"staging/src/"}...")
+    repo="${d#"staging/src/k8s.io/"}"
+    repo="${repo%/}"
+    # Always use staging for published repos: hermetic go mod vendor can omit files at the
+    # module root (e.g. doc.go), so ./vendor/k8s.io/<repo>/... has no loadable root package
+    # for gengo's AddDirRecursive; staging is the full module tree.
+    packages+=("./staging/src/k8s.io/${repo}/...")
   fi
 done
 

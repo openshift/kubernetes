@@ -180,7 +180,7 @@
   - k8s.io/klog
   - k8s.io/utils
 
-- baseImportPath: "./vendor/k8s.io/sample-cli-plugin/"
+- baseImportPath: "./staging/src/k8s.io/sample-cli-plugin/"
   allowedImports:
   - k8s.io/api
   - k8s.io/cli-runtime
