@@ -21,6 +21,11 @@ set -o pipefail
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/../..
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
+# hack/lib/init.sh sets GO111MODULE=off for legacy GOPATH tooling; unit tests must
+# run in module mode so staging module paths (k8s.io/apimachinery/...) resolve via
+# go.mod replace and -mod=mod (packages not fully listed in vendor/modules.txt).
+export GO111MODULE=on
+
 kube::golang::setup_env
 kube::golang::setup_gomaxprocs
 
@@ -56,7 +61,11 @@ kube::test::find_dirs() {
         \) -prune \
       \) -name '*_test.go' -print0 | xargs -0n1 dirname | sed "s|^\./|${KUBE_GO_PACKAGE}/|" | LC_ALL=C sort -u
 
-    find ./staging -name '*_test.go' -not -path '*/test/integration/*' -prune -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/|./vendor/|' | LC_ALL=C sort -u
+    # Staging module tests: emit import paths (k8s.io/...), not ./vendor/... .
+    # Rewriting to ./vendor/ only worked when vendor/k8s.io/* symlinked to staging.
+    # go mod vendor omits many staging-only packages (e.g. testapigroup); those
+    # are still tested via replace in go.mod when using -mod=mod (see goflags).
+    find ./staging -name '*_test.go' -not -path '*/test/integration/*' -prune -print0 | xargs -0n1 dirname | sed 's|^\./staging/src/||' | LC_ALL=C sort -u
   )
 }
 
@@ -152,6 +161,10 @@ if [[ -n "${KUBE_JUNIT_REPORT_DIR}" ]] ; then
   go_test_grep_pattern="^[^[:space:]]\+[[:space:]]\+[^[:space:]]\+/[^[[:space:]]\+"
 fi
 
+# Staging tests use import paths (k8s.io/apimachinery/...) that are not always
+# listed in vendor/modules.txt; module mode applies replace directives to staging/src.
+goflags+=(-mod=mod)
+
 if [[ -n "${FULL_LOG:-}" ]] ; then
   go_test_grep_pattern=".*"
 fi
@@ -218,6 +231,10 @@ verifyPathsToPackagesUnderTest() {
     if [[ "${package_path:0:2}" == "./" ]] ; then
       verifyAndSuggestPackagePath "${local_package_path}" "${go_package_path}" "${package_path}" "${package_path:2}"
     else
+      # k8s.io/* staging modules (not k8s.io/kubernetes/...) live under staging/src
+      if [[ "${package_path}" == k8s.io/* ]] && [[ "${package_path}" != k8s.io/kubernetes/* ]] && [[ -d "${KUBE_ROOT}/staging/src/${package_path}" ]]; then
+        go_package_path="${KUBE_ROOT}/staging/src/${package_path}"
+      fi
       verifyAndSuggestPackagePath "${go_package_path}" "${local_package_path}" "${package_path}" "./${package_path}"
     fi
   done
