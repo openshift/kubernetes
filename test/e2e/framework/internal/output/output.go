@@ -143,7 +143,7 @@ var klogPrefix = regexp.MustCompile(`(?m)^[IEF][[:digit:]]{4} [[:digit:]]{2}:[[:
 
 // ginkgoInternalStack matches ginkgo-internal goroutine frames that may or may
 // not appear depending on the exact ginkgo version vendored.
-var ginkgoInternalStack = regexp.MustCompile(`(?m)^[[:space:]]*(created by )?github\.com/onsi/ginkgo/.+\n[[:space:]]+.+\n`)
+var ginkgoInternalStack = regexp.MustCompile(`(?:^|\n)[[:space:]]*(created by )?github\.com/onsi/ginkgo/.+\n[[:space:]]+.+`)
 
 // normalizeLocation removes path prefix and function parameters and certain stack entries
 // that we don't care about.
