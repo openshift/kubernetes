@@ -80,6 +80,31 @@ var (
 	}
 )
 
+// envForGoPackages returns os.Environ() with GOFLAGS adjusted so invocations of
+// `go list` (via golang.org/x/tools/go/packages) do not use -mod=vendor when CI
+// sets that. Hermetic vendor + staging replace directives can produce
+// inconsistent go.mod vs vendor/modules.txt for unused staging modules; module
+// mode applies replace and matches hack/update-vendor.sh / hack/make-rules/test.sh.
+func envForGoPackages() []string {
+	// Drop GOFLAGS so we can set a single canonical value.
+	out := make([]string, 0, len(os.Environ()))
+	for _, kv := range os.Environ() {
+		if strings.HasPrefix(kv, "GOFLAGS=") {
+			continue
+		}
+		out = append(out, kv)
+	}
+	goflags := os.Getenv("GOFLAGS")
+	goflags = strings.ReplaceAll(goflags, "-mod=vendor", "-mod=mod")
+	if !strings.Contains(goflags, "-mod=") {
+		if goflags != "" {
+			goflags += " "
+		}
+		goflags += "-mod=mod"
+	}
+	return append(out, "GOFLAGS="+goflags)
+}
+
 func newConfig(platform string) *packages.Config {
 	platSplit := strings.Split(platform, "/")
 	goos, goarch := platSplit[0], platSplit[1]
@@ -87,7 +112,7 @@ func newConfig(platform string) *packages.Config {
 	if *defuses {
 		mode = mode | packages.NeedTypesInfo
 	}
-	env := append(os.Environ(),
+	env := append(envForGoPackages(),
 		"CGO_ENABLED=1",
 		fmt.Sprintf("GOOS=%s", goos),
 		fmt.Sprintf("GOARCH=%s", goarch))
