@@ -169,6 +169,10 @@ var klogPrefix = regexp.MustCompile(`(?m)^[IEF][[:digit:]]{4} [[:digit:]]{2}:[[:
 //	/nvme/gopath/go/src/testing/testing.go:916 +0x35a
 var testFailureOutput = regexp.MustCompile(`(?m)^k8s.io/kubernetes/test/e2e/framework/internal/output\.TestGinkgoOutput\(.*\n\t.*(\n.*\n\t.*)*`)
 
+// ginkgoInternalStack matches ginkgo-internal goroutine frames that may or may
+// not appear depending on the exact ginkgo version vendored.
+var ginkgoInternalStack = regexp.MustCompile(`(?m)^[[:space:]]*(created by )?github\.com/onsi/ginkgo/.+\n[[:space:]]+.+\n`)
+
 // normalizeLocation removes path prefix and function parameters and certain stack entries
 // that we don't care about.
 func normalizeLocation(in string) string {
@@ -176,6 +180,7 @@ func normalizeLocation(in string) string {
 	out = stackLocation.ReplaceAllString(out, "$1")
 	out = functionArgs.ReplaceAllString(out, "$1()")
 	out = testFailureOutput.ReplaceAllString(out, "")
+	out = ginkgoInternalStack.ReplaceAllString(out, "")
 	out = klogPrefix.ReplaceAllString(out, "<klog> ")
 	return out
 }
