@@ -82,36 +82,29 @@ function ensure_require_replace_directives_for_all_dependencies() {
       | jq -r ".Replace // [] | sort | .[] | select(${replace_filter})" \
       > "${replace_json}"
 
-  # 1a. Ensure replace directives have an explicit require directive
-  jq -r '"-require \(.Old.Path)@\(.New.Version)"' < "${replace_json}" \
-      | xargs -L 100 go mod edit -fmt
-  # 1b. Ensure require directives have a corresponding replace directive pinning a version
-  jq -r '"-replace \(.Path)=\(.Path)@\(.Version)"' < "${require_json}" \
-      | xargs -L 100 go mod edit -fmt
-  jq -r '"-replace \(.Old.Path)=\(.New.Path)@\(.New.Version)"' < "${replace_json}" \
-      | xargs -L 100 go mod edit -fmt
-
-  # 2. Propagate root replace/require directives into staging modules, in case we are downgrading, so they don't bump the root required version back up
+  # Propagate root replace/require directives into staging modules, in case we are downgrading, so they don't bump the root required version back up
   for repo in $(kube::util::list_staging_repos); do
     pushd "staging/src/k8s.io/${repo}" >/dev/null 2>&1
       jq -r '"-require \(.Path)@\(.Version)"' < "${require_json}" \
-          | xargs -L 100 go mod edit -fmt
-      jq -r '"-replace \(.Path)=\(.Path)@\(.Version)"' < "${require_json}" \
           | xargs -L 100 go mod edit -fmt
       jq -r '"-replace \(.Old.Path)=\(.New.Path)@\(.New.Version)"' < "${replace_json}" \
           | xargs -L 100 go mod edit -fmt
     popd >/dev/null 2>&1
   done
 
-  # 3. Add explicit require directives for indirect dependencies
-  go list -m -json all \
-      | jq -r 'select(.Main != true) | select(.Indirect == true) | "-require \(.Path)@\(.Version)"' \
-      | xargs -L 100 go mod edit -fmt
+  # tidy to ensure require directives are added for indirect dependencies
+  go mod tidy
+}
 
-  # 4. Add explicit replace directives pinning dependencies that aren't pinned yet
-  go list -m -json all \
-      | jq -r 'select(.Main != true) | select(.Replace == null)  | "-replace \(.Path)=\(.Path)@\(.Version)"' \
-      | xargs -L 100 go mod edit -fmt
+function print_go_mod_section() {
+  local directive="$1"
+  local file="$2"
+
+  if [ -s "${file}" ]; then
+      echo "${directive} ("
+      cat "$file"
+      echo ")"
+  fi
 }
 
 function group_directives() {
@@ -146,15 +139,9 @@ function group_directives() {
   " < go.mod
   {
     cat "${go_mod_other}";
-    echo "require (";
-    cat "${go_mod_require_direct}";
-    echo ")";
-    echo "require (";
-    cat "${go_mod_require_indirect}";
-    echo ")";
-    echo "replace (";
-    cat "${go_mod_replace}";
-    echo ")";
+    print_go_mod_section "require" "${go_mod_require_direct}"
+    print_go_mod_section "require" "${go_mod_require_indirect}"
+    print_go_mod_section "replace" "${go_mod_replace}"
   } > go.mod
 
   go mod edit -fmt
@@ -358,6 +345,13 @@ done
 echo "=== tidying root" >> "${LOG_FILE}"
 go mod tidy >>"${LOG_FILE}" 2>&1
 
+# prune unused pinned non-local replace directives
+comm -23 \
+  <(go mod edit -json | jq -r '.Replace[] | select(.New.Path | startswith("./") | not) | .Old.Path' | sort) \
+  <(go list -m -json all | jq -r .Path | sort) |
+while read -r X; do echo "-dropreplace=${X}"; done |
+xargs -L 100 go mod edit -fmt
+
 # disallow transitive dependencies on k8s.io/kubernetes
 loopback_deps=()
 kube::util::read-array loopback_deps < <(go mod graph | grep ' k8s.io/kubernetes' || true)
@@ -393,12 +387,11 @@ hack/update-internal-modules.sh >>"${LOG_FILE}" 2>&1
 kube::log::status "vendor: running 'go mod vendor'"
 go mod vendor >>"${LOG_FILE}" 2>&1
 
-# create a symlink in vendor directory pointing to the staging components.
-# This lets other packages and tools use the local staging components as if they were vendored.
-for repo in $(kube::util::list_staging_repos); do
-  rm -fr "${KUBE_ROOT}/vendor/k8s.io/${repo}"
-  ln -s "../../staging/src/k8s.io/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
-done
+# NOTE: Previously this script created symlinks from vendor/k8s.io/<repo> to
+# staging/src/k8s.io/<repo>. For hermetic builds the vendor directory must be
+# exactly what `go mod vendor` produces (no symlinks, no extra files, and
+# modules.txt must not be modified). The go mod vendor command already handles
+# the staging replace directives in go.mod and vendors the imported packages.
 
 ## License files are not currently maintained downstream
 #kube::log::status "vendor: updating vendor/LICENSES"
@@ -415,4 +408,4 @@ reviewers:
 - dep-reviewers
 __EOF__
 
-kube::log::status "NOTE: don't forget to handle vendor/* files that were added or removed"
+kube::log::status "NOTE: don't forget to handle vendor/* and LICENSE/* files that were added or removed"
