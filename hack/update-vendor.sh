@@ -387,12 +387,11 @@ hack/update-internal-modules.sh >>"${LOG_FILE}" 2>&1
 kube::log::status "vendor: running 'go mod vendor'"
 go mod vendor >>"${LOG_FILE}" 2>&1
 
-# create a symlink in vendor directory pointing to the staging components.
-# This lets other packages and tools use the local staging components as if they were vendored.
-for repo in $(kube::util::list_staging_repos); do
-  rm -fr "${KUBE_ROOT}/vendor/k8s.io/${repo}"
-  ln -s "../../staging/src/k8s.io/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
-done
+# NOTE: Previously this script created symlinks from vendor/k8s.io/<repo> to
+# staging/src/k8s.io/<repo>. For hermetic builds the vendor directory must be
+# exactly what `go mod vendor` produces (no symlinks, no extra files, and
+# modules.txt must not be modified). The go mod vendor command already handles
+# the staging replace directives in go.mod and vendors the imported packages.
 
 ## License files are not currently maintained downstream
 #kube::log::status "vendor: updating vendor/LICENSES"
