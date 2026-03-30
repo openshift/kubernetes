@@ -525,7 +525,7 @@ generated_files:
 	echo "$$GENERATED_FILES_HELP_INFO"
 else
 generated_files gen_openapi:
-	$(MAKE) -f Makefile.generated_files $@ CALLED_FROM_MAIN_MAKEFILE=1 SHELL="$(SHELL)"
+	@echo "NOTE: generated_files is a no-op for hermetic builds. Use hack/update-codegen.sh instead."
 endif
 
 define HELP_INFO

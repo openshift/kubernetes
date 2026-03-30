@@ -28,8 +28,10 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
 
-GO111MODULE=on GOPROXY=off go install k8s.io/code-generator/cmd/go-to-protobuf
-GO111MODULE=on GOPROXY=off go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
+# -mod=mod: only part of code-generator is vendored; full tools come from staging via replace.
+# Do not set GOPROXY=off: CI often has an empty module cache; deps must resolve from proxy.
+GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/go-to-protobuf
+GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
 if [[ -z "$(which protoc)" || "$(protoc --version)" != "libprotoc 23.4"* ]]; then
     echo "Generating protobuf requires protoc 23.4 or newer. Please download and"
@@ -42,6 +44,11 @@ if [[ -z "$(which protoc)" || "$(protoc --version)" != "libprotoc 23.4"* ]]; the
 fi
 
 gotoprotobuf=$(kube::util::find-binary "go-to-protobuf")
+
+# go-to-protobuf uses gengo which relies on go/build in GOPATH mode.
+# The caller (update-codegen.sh) creates temporary vendor→staging symlinks so
+# that all staging packages (including test-only ones like testapigroup) are
+# visible through vendor/.  Keep GO111MODULE=off (set by hack/lib/init.sh).
 
 while IFS=$'\n' read -r line; do
   APIROOTS+=( "$line" );

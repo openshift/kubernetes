@@ -29,7 +29,7 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 kube::util::ensure_clean_working_dir
 
 _tmpdir="$(kube::realpath "$(mktemp -d -t verify-generated-files.XXXXXX)")"
-kube::util::trap_add "rm -rf ${_tmpdir}" EXIT
+kube::util::trap_add "chmod -R u+w ${_tmpdir} 2>/dev/null; rm -rf ${_tmpdir}" EXIT
 
 _tmp_gopath="${_tmpdir}/go"
 _tmp_kuberoot="${_tmp_gopath}/src/k8s.io/kubernetes"
@@ -37,6 +37,10 @@ mkdir -p "${_tmp_kuberoot}/.."
 cp -a "${KUBE_ROOT}" "${_tmp_kuberoot}/.."
 
 cd "${_tmp_kuberoot}"
+
+# Go module cache files are read-only; make them writable so git clean can
+# remove them, otherwise git clean fails and errexit kills the script.
+chmod -R u+w "${_tmp_kuberoot}/_output" 2>/dev/null || true
 
 # clean out anything from the temp dir that's not checked in
 git clean -ffxd
