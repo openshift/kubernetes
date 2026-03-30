@@ -28,6 +28,34 @@ cd "${KUBE_ROOT}"
 
 kube::golang::setup_env
 
+# Hermetic vendoring (go mod vendor) only copies imported packages into vendor/,
+# but the gengo-based codegen tools (deepcopy-gen, defaulter-gen, etc.) run in
+# GOPATH mode and expect vendor/k8s.io/<staging-repo> to contain the FULL source
+# tree (including test/example packages). The original repo used symlinks from
+# vendor/ → staging/src/ for this; recreate them temporarily for codegen.
+_codegen_vendor_backup="$(mktemp -d -t codegen-vendor-backup.XXXXXX)"
+_codegen_created_symlinks=()
+for repo in $(kube::util::list_staging_repos); do
+  if [[ -d "${KUBE_ROOT}/vendor/k8s.io/${repo}" && ! -L "${KUBE_ROOT}/vendor/k8s.io/${repo}" ]]; then
+    mv "${KUBE_ROOT}/vendor/k8s.io/${repo}" "${_codegen_vendor_backup}/${repo}"
+    ln -s "../../staging/src/k8s.io/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
+    _codegen_created_symlinks+=("${repo}")
+  elif [[ ! -e "${KUBE_ROOT}/vendor/k8s.io/${repo}" ]]; then
+    ln -s "../../staging/src/k8s.io/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
+    _codegen_created_symlinks+=("${repo}")
+  fi
+done
+function _codegen_restore_vendor() {
+  for repo in "${_codegen_created_symlinks[@]:+"${_codegen_created_symlinks[@]}"}"; do
+    rm -f "${KUBE_ROOT}/vendor/k8s.io/${repo}"
+    if [[ -d "${_codegen_vendor_backup}/${repo}" ]]; then
+      mv "${_codegen_vendor_backup}/${repo}" "${KUBE_ROOT}/vendor/k8s.io/${repo}"
+    fi
+  done
+  rm -rf "${_codegen_vendor_backup}"
+}
+trap _codegen_restore_vendor EXIT
+
 DBG_CODEGEN="${DBG_CODEGEN:-0}"
 GENERATED_FILE_PREFIX="${GENERATED_FILE_PREFIX:-zz_generated.}"
 UPDATE_API_KNOWN_VIOLATIONS="${UPDATE_API_KNOWN_VIOLATIONS:-}"
@@ -585,7 +613,7 @@ function codegen::openapi() {
 }
 
 function codegen::applyconfigs() {
-    GO111MODULE=on GOPROXY=off go install \
+    GO111MODULE=on GOFLAGS=-mod=mod go install \
         k8s.io/kubernetes/pkg/generated/openapi/cmd/models-schema \
         k8s.io/code-generator/cmd/applyconfiguration-gen
 
@@ -624,7 +652,7 @@ function codegen::applyconfigs() {
 }
 
 function codegen::clients() {
-    GO111MODULE=on GOPROXY=off go install \
+    GO111MODULE=on GOFLAGS=-mod=mod go install \
         k8s.io/code-generator/cmd/client-gen
 
     local clientgen
@@ -672,7 +700,7 @@ function codegen::clients() {
 }
 
 function codegen::listers() {
-    GO111MODULE=on GOPROXY=off go install k8s.io/code-generator/cmd/lister-gen
+    GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/lister-gen
 
     local listergen
     listergen=$(kube::util::find-binary "lister-gen")
@@ -704,7 +732,7 @@ function codegen::listers() {
 }
 
 function codegen::informers() {
-    GO111MODULE=on GOPROXY=off go install \
+    GO111MODULE=on GOFLAGS=-mod=mod go install \
         k8s.io/code-generator/cmd/informer-gen
 
     local informergen
