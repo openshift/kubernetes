@@ -230,7 +230,7 @@ require (
 	github.com/russross/blackfriday v1.5.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/seccomp/libseccomp-golang v0.9.2-0.20220502022130-f33da4d89646 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/stretchr/objx v0.4.0 // indirect
@@ -524,7 +524,7 @@ replace (
 	github.com/seccomp/libseccomp-golang => github.com/seccomp/libseccomp-golang v0.9.2-0.20220502022130-f33da4d89646
 	github.com/sergi/go-diff => github.com/sergi/go-diff v1.1.0
 	github.com/shurcooL/sanitized_anchor_name => github.com/shurcooL/sanitized_anchor_name v1.0.0
-	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.9.3
 	github.com/smartystreets/assertions => github.com/smartystreets/assertions v1.1.0
 	github.com/smartystreets/goconvey => github.com/smartystreets/goconvey v1.6.4
 	github.com/soheilhy/cmux => github.com/soheilhy/cmux v0.1.5
