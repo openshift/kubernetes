@@ -247,12 +247,12 @@ func envForGoList(stripGOPATH bool, extraEnv []string) []string {
 	// (stripGOPATH). For ./vendor/... and other trees, preserving CI's -mod=vendor keeps
 	// `go list` working under kube's synthetic GOPATH layout.
 	if stripGOPATH {
-		goflags = strings.ReplaceAll(goflags, "-mod=vendor", "-mod=mod")
+		goflags = strings.ReplaceAll(goflags, "-mod=vendor", "-mod=readonly")
 		if !strings.Contains(goflags, "-mod=") {
 			if goflags != "" {
 				goflags += " "
 			}
-			goflags += "-mod=mod"
+			goflags += "-mod=readonly"
 		}
 	}
 	out = append(out, "GOFLAGS="+goflags, "GO111MODULE=on")

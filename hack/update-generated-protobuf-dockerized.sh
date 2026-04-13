@@ -30,10 +30,10 @@ source "${KUBE_ROOT}/hack/lib/protoc.sh"
 kube::protoc::check_protoc
 kube::golang::setup_env
 
-# -mod=mod: only part of code-generator is vendored; full tools come from staging via replace.
+# -mod=readonly: only part of code-generator is vendored; full tools come from staging via replace.
 # Do not set GOPROXY=off: CI often has an empty module cache; deps must resolve from proxy.
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/go-to-protobuf
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/go-to-protobuf
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
 gotoprotobuf=$(kube::util::find-binary "go-to-protobuf")
 
