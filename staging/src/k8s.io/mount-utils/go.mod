@@ -23,6 +23,7 @@ require (
 )
 
 replace (
+	github.com/spf13/afero => github.com/spf13/afero v1.6.0
 	golang.org/x/crypto => golang.org/x/crypto v0.14.0
 	golang.org/x/sys => golang.org/x/sys v0.13.0
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.70.1

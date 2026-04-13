@@ -62,8 +62,9 @@ replace (
 	github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.6
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221005160638-5fa9cd70cd8c
+	github.com/spf13/afero => github.com/spf13/afero v1.6.0
 	golang.org/x/crypto => golang.org/x/crypto v0.14.0
-	golang.org/x/lint => golang.org/x/lint v0.0.0-20190930215403-16217165b5de
+	golang.org/x/exp => golang.org/x/exp v0.0.0-20210220032938-85be41e4509f
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sys => golang.org/x/sys v0.13.0
 	golang.org/x/term => golang.org/x/term v0.13.0

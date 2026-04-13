@@ -63,7 +63,6 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.20.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.7.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/goleak v1.2.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
@@ -85,20 +84,28 @@ require (
 )
 
 replace (
+	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.45.0-openshift-4.12
 	github.com/google/gofuzz => github.com/google/gofuzz v1.1.0
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.6
 	github.com/matttproud/golang_protobuf_extensions => github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.0.0-20221005160638-5fa9cd70cd8c
+	github.com/spf13/afero => github.com/spf13/afero v1.6.0
+	go.uber.org/goleak => go.uber.org/goleak v1.2.0
 	golang.org/x/crypto => golang.org/x/crypto v0.14.0
-	golang.org/x/lint => golang.org/x/lint v0.0.0-20190930215403-16217165b5de
+	golang.org/x/exp => golang.org/x/exp v0.0.0-20210220032938-85be41e4509f
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	golang.org/x/sys => golang.org/x/sys v0.13.0
 	golang.org/x/term => golang.org/x/term v0.13.0
 	golang.org/x/text => golang.org/x/text v0.13.0
 	k8s.io/api => ../api
+	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
+	k8s.io/apiserver => ../apiserver
 	k8s.io/client-go => ../client-go
+	k8s.io/code-generator => ../code-generator
 	k8s.io/component-base => ../component-base
+	k8s.io/component-helpers => ../component-helpers
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.70.1
+	k8s.io/kube-aggregator => ../kube-aggregator
 	k8s.io/utils => k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
 )
