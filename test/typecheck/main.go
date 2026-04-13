@@ -95,12 +95,12 @@ func envForGoPackages() []string {
 		out = append(out, kv)
 	}
 	goflags := os.Getenv("GOFLAGS")
-	goflags = strings.ReplaceAll(goflags, "-mod=vendor", "-mod=mod")
+	goflags = strings.ReplaceAll(goflags, "-mod=vendor", "-mod=readonly")
 	if !strings.Contains(goflags, "-mod=") {
 		if goflags != "" {
 			goflags += " "
 		}
-		goflags += "-mod=mod"
+		goflags += "-mod=readonly"
 	}
 	return append(out, "GOFLAGS="+goflags)
 }

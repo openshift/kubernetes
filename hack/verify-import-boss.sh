@@ -28,10 +28,10 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
 
-# -mod=mod: cmd/import-boss is not listed in vendor/modules.txt (only a subset of
+# -mod=readonly: cmd/import-boss is not listed in vendor/modules.txt (only a subset of
 # code-generator is vendored); resolve via replace to staging/src.
 # Do not set GOPROXY=off: import-boss pulls deps (e.g. k8s.io/gengo) not present in cache offline.
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/import-boss
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/import-boss
 
 packages=(
   "k8s.io/kubernetes/pkg/..."
