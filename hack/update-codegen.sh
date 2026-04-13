@@ -54,11 +54,11 @@ function _codegen_restore_vendor() {
 }
 trap _codegen_restore_vendor EXIT
 
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/kubernetes/pkg/generated/openapi/cmd/models-schema
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/client-gen
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/lister-gen
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/informer-gen
-GO111MODULE=on GOFLAGS=-mod=mod go install k8s.io/code-generator/cmd/applyconfiguration-gen
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/kubernetes/pkg/generated/openapi/cmd/models-schema
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/client-gen
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/lister-gen
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/informer-gen
+GO111MODULE=on GOFLAGS=-mod=readonly go install k8s.io/code-generator/cmd/applyconfiguration-gen
 
 modelsschema=$(kube::util::find-binary "models-schema")
 clientgen=$(kube::util::find-binary "client-gen")
