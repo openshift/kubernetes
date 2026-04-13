@@ -217,7 +217,7 @@ EOF
 # first in the case of regenerating everything.
 function codegen::swagger() {
     # Build the tool
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         ./cmd/genswaggertypedocs
 
     local group_versions=()
@@ -240,7 +240,7 @@ function codegen::swagger() {
 #     // +k8s:prerelease-lifecycle-gen=true
 function codegen::prerelease() {
     # Build the tool.
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/prerelease-lifecycle-gen
 
     # The result file, in each pkg, of prerelease-lifecycle generation.
@@ -303,7 +303,7 @@ function codegen::prerelease() {
 #               scheme
 function codegen::deepcopy() {
     # Build the tool.
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/deepcopy-gen
 
     # The result file, in each pkg, of deep-copy generation.
@@ -373,7 +373,7 @@ function codegen::deepcopy() {
 #                  for having a defaulter generated
 function codegen::defaults() {
     # Build the tool.
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/defaulter-gen
 
     # The result file, in each pkg, of defaulter generation.
@@ -448,7 +448,7 @@ function codegen::defaults() {
 # IDL.
 function codegen::conversions() {
     # Build the tool.
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/conversion-gen
 
     # The result file, in each pkg, of conversion generation.
@@ -573,7 +573,7 @@ function indirect_array() {
 #     // +k8s:openapi-gen=true
 function codegen::openapi() {
     # Build the tool.
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/kube-openapi/cmd/openapi-gen
 
     # The result file, in each pkg, of open-api generation.
@@ -728,7 +728,7 @@ function codegen::openapi() {
 }
 
 function codegen::applyconfigs() {
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/kubernetes/pkg/generated/openapi/cmd/models-schema \
         k8s.io/code-generator/cmd/applyconfiguration-gen
 
@@ -773,7 +773,7 @@ function codegen::applyconfigs() {
 }
 
 function codegen::clients() {
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/client-gen
 
     local clientgen
@@ -827,7 +827,7 @@ function codegen::clients() {
 }
 
 function codegen::listers() {
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/lister-gen
 
     local listergen
@@ -867,7 +867,7 @@ function codegen::listers() {
 }
 
 function codegen::informers() {
-    GO111MODULE=on GOFLAGS=-mod=mod go install \
+    GO111MODULE=on GOFLAGS=-mod=readonly go install \
         k8s.io/code-generator/cmd/informer-gen
 
     local informergen
