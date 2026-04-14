@@ -81,6 +81,8 @@ type GetOptions struct {
 	NoHeaders      bool
 	IgnoreNotFound bool
 
+	SumResources bool
+
 	genericiooptions.IOStreams
 }
 
@@ -190,6 +192,7 @@ func NewCmdGet(parent string, f cmdutil.Factory, streams genericiooptions.IOStre
 	cmdutil.AddChunkSizeFlag(cmd, &o.ChunkSize)
 	cmdutil.AddLabelSelectorFlagVar(cmd, &o.LabelSelector)
 	cmdutil.AddSubresourceFlags(cmd, &o.Subresource, "If specified, gets the subresource of the requested object.")
+	cmd.Flags().BoolVar(&o.SumResources, "sum-resources", o.SumResources, "If true, print a summary of total CPU and memory resource requests across all listed pods.")
 	return cmd
 }
 
@@ -563,6 +566,16 @@ func (o *GetOptions) Run(f cmdutil.Factory, args []string) error {
 		printer.PrintObj(info.Object, w)
 	}
 	w.Flush()
+
+	if o.SumResources {
+		summary, err := calculateResourceSummary(f, o.Namespace, o.LabelSelector)
+		if err != nil {
+			allErrs = append(allErrs, err)
+		} else {
+			printResourceSummary(o.Out, summary)
+		}
+	}
+
 	if trackingWriter.Written == 0 && !o.IgnoreNotFound && len(allErrs) == 0 {
 		// if we wrote no output, and had no errors, and are not ignoring NotFound, be sure we output something
 		if allResourcesNamespaced {
