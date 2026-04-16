@@ -36,12 +36,8 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.33.0
 	go.opentelemetry.io/otel/metric v1.41.0
 	go.opentelemetry.io/otel/sdk v1.33.0
-<<<<<<< HEAD
-	go.opentelemetry.io/otel/trace v1.33.0
-	go.uber.org/atomic v1.7.0
-=======
 	go.opentelemetry.io/otel/trace v1.41.0
->>>>>>> v1.33.11
+	go.uber.org/atomic v1.7.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/net v0.38.0

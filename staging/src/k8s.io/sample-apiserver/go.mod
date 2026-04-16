@@ -8,17 +8,10 @@ godebug default=go1.24
 
 require (
 	github.com/spf13/cobra v1.8.1
-<<<<<<< HEAD
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	k8s.io/apimachinery v0.33.2
 	k8s.io/apiserver v0.33.2
 	k8s.io/client-go v0.33.2
-=======
-	github.com/stretchr/testify v1.11.1
-	k8s.io/apimachinery v0.0.0
-	k8s.io/apiserver v0.0.0
-	k8s.io/client-go v0.0.0
->>>>>>> v1.33.11
 	k8s.io/code-generator v0.0.0
 	k8s.io/component-base v0.33.2
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff

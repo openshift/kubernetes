@@ -27,11 +27,7 @@ kube::util::ensure_clean_working_dir
 # This sets up the environment, like GOCACHE, which keeps the worktree cleaner.
 kube::golang::setup_env
 
-<<<<<<< HEAD
-go install -mod=readonly golang.org/x/vuln/cmd/govulncheck@v1.1.2
-=======
-go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
->>>>>>> v1.33.11
+go install -mod=readonly golang.org/x/vuln/cmd/govulncheck@v1.1.4
 
 # KUBE_VERIFY_GIT_BRANCH is populated in verify CI jobs
 BRANCH="${KUBE_VERIFY_GIT_BRANCH:-master}"

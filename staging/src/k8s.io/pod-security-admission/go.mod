@@ -11,21 +11,12 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-<<<<<<< HEAD
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.33.2
 	k8s.io/apimachinery v0.33.2
 	k8s.io/apiserver v0.33.2
 	k8s.io/client-go v0.33.2
 	k8s.io/component-base v0.33.2
-=======
-	github.com/stretchr/testify v1.11.1
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/apiserver v0.0.0
-	k8s.io/client-go v0.0.0
-	k8s.io/component-base v0.0.0
->>>>>>> v1.33.11
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/yaml v1.4.0
