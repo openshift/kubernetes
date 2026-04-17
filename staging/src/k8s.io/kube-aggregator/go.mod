@@ -16,21 +16,12 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.41.0
 	go.opentelemetry.io/otel/sdk v1.34.0
-<<<<<<< HEAD
-	go.opentelemetry.io/otel/trace v1.35.0
 	golang.org/x/net v0.43.0
-	k8s.io/api v0.34.1
-	k8s.io/apimachinery v0.34.1
-	k8s.io/apiserver v0.34.1
-	k8s.io/client-go v0.34.1
-=======
 	go.opentelemetry.io/otel/trace v1.41.0
-	golang.org/x/net v0.38.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v0.0.0
->>>>>>> v1.34.7
 	k8s.io/code-generator v0.0.0
 	k8s.io/component-base v0.34.1
 	k8s.io/klog/v2 v2.130.1
