@@ -158,14 +158,10 @@ github.com/go-asn1-ber/asn1-ber
 # github.com/go-errors/errors v1.4.2
 ## explicit; go 1.14
 github.com/go-errors/errors
-<<<<<<< HEAD
 # github.com/go-ldap/ldap/v3 v3.4.11
 ## explicit; go 1.23.0
 github.com/go-ldap/ldap/v3
-# github.com/go-logr/logr v1.4.2
-=======
 # github.com/go-logr/logr v1.4.3
->>>>>>> v1.34.7
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
