@@ -163,6 +163,8 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod",
 
 			// https://issues.redhat.com/browse/OCPBUGS-63132
+			// https://issues.redhat.com/browse/OCPBUGS-77990
+			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-2",
 			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-3",
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
