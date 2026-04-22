@@ -49,9 +49,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			"Firewall rule should have correct firewall rules for e2e cluster", // Upstream-install specific
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2079958
-			"[sig-network] [Feature:Topology Hints] should distribute endpoints evenly",
-
 			// Tests require SSH configuration and is part of the parallel suite, which does not create the bastion
 			// host. Enabling the test would result in the  bastion being created for every parallel test execution.
 			// Given that we have existing oc and WMCO tests that cover this functionality, we can safely disable it.
@@ -65,21 +62,20 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"Broken": {
-			"mount an API token into pods",                              // We add 6 secrets, not 1
-			"ServiceAccounts should ensure a single API token exists",   // We create lots of secrets
-			"unchanging, static URL paths for kubernetes api services",  // the test needs to exclude URLs that are not part of conformance (/logs)
-			"Services should be able to up and down services",           // we don't have wget installed on nodes
-			"KubeProxy should set TCP CLOSE_WAIT timeout",               // the test require communication to port 11302 in the cluster nodes
-			"should check kube-proxy urls",                              // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
-			"SSH",                                                       // TRIAGE
-			"should implement service.kubernetes.io/service-proxy-name", // this is an optional test that requires SSH. sig-network
-			"recreate nodes and ensure they function upon restart",      // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
-			"[Driver: iscsi]",                                           // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
+			"mount an API token into pods",                             // We add 6 secrets, not 1
+			"ServiceAccounts should ensure a single API token exists",  // We create lots of secrets
+			"unchanging, static URL paths for kubernetes api services", // the test needs to exclude URLs that are not part of conformance (/logs)
+			"Services should be able to up and down services",          // we don't have wget installed on nodes
+			"KubeProxy should set TCP CLOSE_WAIT timeout",              // the test require communication to port 11302 in the cluster nodes
+			"should check kube-proxy urls",                             // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
+			"SSH",                                                      // TRIAGE
+			"recreate nodes and ensure they function upon restart",     // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
+			"[Driver: iscsi]",                                          // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 
 			"RuntimeClass should reject",
 
-			"Services should implement service.kubernetes.io/headless",                    // requires SSH access to function, needs to be refactored
-			"ClusterDns [Feature:Example] should create pod that uses dns",                // doesn't use bindata, not part of kube test binary
+			"Services should implement service.kubernetes.io/headless", // test is broken, fixed in 1.36 by https://pr.k8s.io/134623
+
 			"Simple pod should return command exit codes should handle in-cluster config", // kubectl cp doesn't work or is not preserving executable bit, we have this test already
 
 			// TODO(node): configure the cri handler for the runtime class to make this work
@@ -127,9 +123,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			"[sig-network] Networking Granular Checks: Services should function for service endpoints using hostNetwork",
 			"[sig-network] Networking Granular Checks: Services should function for pod-Service(hostNetwork)",
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1952460
-			"[sig-network] Firewall rule control plane should not expose well-known ports",
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1988272
 			"[sig-network] Networking should provide Internet connection for containers [Feature:Networking-IPv6]",
