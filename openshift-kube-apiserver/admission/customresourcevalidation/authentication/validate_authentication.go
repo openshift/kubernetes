@@ -20,12 +20,10 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/lru"
 
-	celgo "github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker"
-	"github.com/google/cel-go/common/operators"
-	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 
 	configv1 "github.com/openshift/api/config/v1"
+	apiservervalidation "k8s.io/apiserver/pkg/apis/apiserver/validation"
 	authenticationcel "k8s.io/apiserver/pkg/authentication/cel"
 	crvalidation "k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation"
 )
@@ -553,11 +551,11 @@ func validateEmailVerifiedUsage(path *field.Path, usernameExpression string, use
 		return nil
 	}
 
-	if !usesEmailClaim(usernameResult.AST) {
+	if !apiservervalidation.UsesEmailClaim(usernameResult.AST) {
 		return nil
 	}
 
-	if usesEmailVerifiedClaim(usernameResult.AST) || anyUsesEmailVerifiedClaim(extraResults) || anyUsesEmailVerifiedClaim(claimValidationResults) {
+	if apiservervalidation.UsesEmailVerifiedClaim(usernameResult.AST) || apiservervalidation.AnyUsesEmailVerifiedClaim(extraResults) || apiservervalidation.AnyUsesEmailVerifiedClaim(claimValidationResults) {
 		return nil
 	}
 
@@ -566,119 +564,4 @@ func validateEmailVerifiedUsage(path *field.Path, usernameExpression string, use
 		usernameExpression,
 		"claims.email_verified must be used in claimMappings.username.expression or claimMappings.extra[*].valueExpression or claimValidationRules[*].expression when claims.email is used in claimMappings.username.expression",
 	)}
-}
-
-func anyUsesEmailVerifiedClaim(results []authenticationcel.CompilationResult) bool {
-	for _, result := range results {
-		if usesEmailVerifiedClaim(result.AST) {
-			return true
-		}
-	}
-	return false
-}
-
-// usesEmailClaim, usesEmailVerifiedClaim, hasSelectExp,
-// isIdentOperand, and isConstField are copied from the upstream Kubernetes apiserver
-// CEL validation logic introduced in https://github.com/kubernetes/kubernetes/pull/123737 (commit 121607e):
-// https://github.com/kubernetes/kubernetes/blob/bfb362c57578518bed8e08a56a7318bab9b57429/staging/src/k8s.io/apiserver/pkg/apis/apiserver/validation/validation.go#L443
-func usesEmailClaim(ast *celgo.Ast) bool {
-	if ast == nil {
-		return false
-	}
-	return hasSelectExp(ast.Expr(), "claims", "email")
-}
-
-func usesEmailVerifiedClaim(ast *celgo.Ast) bool {
-	if ast == nil {
-		return false
-	}
-	return hasSelectExp(ast.Expr(), "claims", "email_verified")
-}
-
-func hasSelectExp(exp *exprpb.Expr, operand, field string) bool {
-	if exp == nil {
-		return false
-	}
-	switch e := exp.ExprKind.(type) {
-	case *exprpb.Expr_ConstExpr,
-		*exprpb.Expr_IdentExpr:
-		return false
-	case *exprpb.Expr_SelectExpr:
-		s := e.SelectExpr
-		if s == nil {
-			return false
-		}
-		if isIdentOperand(s.Operand, operand) && s.Field == field {
-			return true
-		}
-		return hasSelectExp(s.Operand, operand, field)
-	case *exprpb.Expr_CallExpr:
-		c := e.CallExpr
-		if c == nil {
-			return false
-		}
-		if c.Target == nil && c.Function == operators.OptSelect && len(c.Args) == 2 &&
-			isIdentOperand(c.Args[0], operand) && isConstField(c.Args[1], field) {
-			return true
-		}
-		for _, arg := range c.Args {
-			if hasSelectExp(arg, operand, field) {
-				return true
-			}
-		}
-		return hasSelectExp(c.Target, operand, field)
-	case *exprpb.Expr_ListExpr:
-		l := e.ListExpr
-		if l == nil {
-			return false
-		}
-		for _, element := range l.Elements {
-			if hasSelectExp(element, operand, field) {
-				return true
-			}
-		}
-		return false
-	case *exprpb.Expr_StructExpr:
-		s := e.StructExpr
-		if s == nil {
-			return false
-		}
-		for _, entry := range s.Entries {
-			if hasSelectExp(entry.GetMapKey(), operand, field) {
-				return true
-			}
-			if hasSelectExp(entry.Value, operand, field) {
-				return true
-			}
-		}
-		return false
-	case *exprpb.Expr_ComprehensionExpr:
-		c := e.ComprehensionExpr
-		if c == nil {
-			return false
-		}
-		return hasSelectExp(c.IterRange, operand, field) ||
-			hasSelectExp(c.AccuInit, operand, field) ||
-			hasSelectExp(c.LoopCondition, operand, field) ||
-			hasSelectExp(c.LoopStep, operand, field) ||
-			hasSelectExp(c.Result, operand, field)
-	default:
-		return false
-	}
-}
-
-func isIdentOperand(exp *exprpb.Expr, operand string) bool {
-	if exp == nil || len(operand) == 0 {
-		return false
-	}
-	id := exp.GetIdentExpr()
-	return id != nil && id.Name == operand
-}
-
-func isConstField(exp *exprpb.Expr, field string) bool {
-	if exp == nil || len(field) == 0 {
-		return false
-	}
-	c := exp.GetConstExpr()
-	return c != nil && c.GetStringValue() == field
 }
