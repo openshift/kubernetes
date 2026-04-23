@@ -7,8 +7,8 @@ go 1.26.0
 godebug default=go1.26
 
 require (
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.36.0-rc.1
+	k8s.io/apimachinery v0.36.0-rc.1
 	k8s.io/client-go v0.0.0
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2
@@ -56,3 +56,11 @@ replace (
 	k8s.io/apimachinery => ../../apimachinery
 	k8s.io/client-go => ../../client-go
 )
+
+replace github.com/openshift/api => github.com/jubittajohn/api v0.0.0-20260420180837-5e43903e1ea6
+
+replace github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.0-20260420191538-713b208761a8
+
+replace github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260421171937-ae79a5397876
+
+replace github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20260421193111-691abe80a8d3

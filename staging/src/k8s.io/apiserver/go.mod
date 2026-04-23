@@ -22,6 +22,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+	github.com/openshift/library-go v0.0.0-20260421171937-ae79a5397876
 	github.com/spf13/pflag v1.0.9
 	github.com/stretchr/testify v1.11.1
 	go.etcd.io/etcd/api/v3 v3.6.8
@@ -35,6 +36,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.41.0
 	go.opentelemetry.io/otel/sdk v1.40.0
 	go.opentelemetry.io/otel/trace v1.41.0
+	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.47.0
 	golang.org/x/net v0.49.0
@@ -48,14 +50,14 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0
 	gopkg.in/go-jose/go-jose.v2 v2.6.3
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
-	k8s.io/component-base v0.0.0
+	k8s.io/api v0.36.0-rc.1
+	k8s.io/apimachinery v0.36.0-rc.1
+	k8s.io/client-go v0.36.0-rc.1
+	k8s.io/component-base v0.36.0-rc.1
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/kms v0.0.0
+	k8s.io/kms v0.36.0-rc.1
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a
-	k8s.io/streaming v0.0.0
+	k8s.io/streaming v0.36.0-rc.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
@@ -125,10 +127,15 @@ require (
 )
 
 replace (
+	github.com/openshift/api => github.com/jubittajohn/api v0.0.0-20260420180837-5e43903e1ea6
+	github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.0-20260420191538-713b208761a8
+	github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260421171937-ae79a5397876
 	k8s.io/api => ../api
+	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go
 	k8s.io/component-base => ../component-base
 	k8s.io/kms => ../kms
+	k8s.io/kube-aggregator => ../kube-aggregator
 	k8s.io/streaming => ../streaming
 )

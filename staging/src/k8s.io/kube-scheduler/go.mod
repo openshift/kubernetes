@@ -8,10 +8,10 @@ godebug default=go1.26
 
 require (
 	github.com/google/go-cmp v0.7.0
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
-	k8s.io/component-base v0.0.0
+	k8s.io/api v0.36.0-rc.1
+	k8s.io/apimachinery v0.36.0-rc.1
+	k8s.io/client-go v0.36.0-rc.1
+	k8s.io/component-base v0.36.0-rc.1
 	k8s.io/component-helpers v0.0.0
 	k8s.io/dynamic-resource-allocation v0.0.0
 	k8s.io/klog/v2 v2.140.0
@@ -77,6 +77,7 @@ require (
 )
 
 replace (
+	github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260421171937-ae79a5397876
 	k8s.io/api => ../api
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/apiserver => ../apiserver
