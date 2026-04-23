@@ -1270,8 +1270,6 @@ go.starlark.net/syntax
 # go.uber.org/atomic v1.7.0 => go.uber.org/atomic v1.7.0
 ## explicit; go 1.13
 go.uber.org/atomic
-# go.uber.org/goleak v1.2.0 => go.uber.org/goleak v1.2.0
-## explicit; go 1.18
 # go.uber.org/multierr v1.6.0 => go.uber.org/multierr v1.6.0
 ## explicit; go 1.12
 go.uber.org/multierr
@@ -1602,7 +1600,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1 => gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.25.0 => k8s.io/api v0.25.0
+# k8s.io/api v0.25.0 => ./staging/src/k8s.io/api
 ## explicit; go 1.19
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1653,7 +1651,7 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.25.0 => k8s.io/apiextensions-apiserver v0.25.0
+# k8s.io/apiextensions-apiserver v0.25.0 => ./staging/src/k8s.io/apiextensions-apiserver
 ## explicit; go 1.19
 k8s.io/apiextensions-apiserver/pkg/apihelpers
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
@@ -1702,7 +1700,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
 k8s.io/apiextensions-apiserver/third_party/forked/celopenapi/model
-# k8s.io/apimachinery v0.25.0 => k8s.io/apimachinery v0.25.0
+# k8s.io/apimachinery v0.25.0 => ./staging/src/k8s.io/apimachinery
 ## explicit; go 1.19
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/apitesting/fuzzer
@@ -1773,7 +1771,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.25.0 => k8s.io/apiserver v0.25.0
+# k8s.io/apiserver v0.25.0 => ./staging/src/k8s.io/apiserver
 ## explicit; go 1.19
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/configuration
@@ -1935,7 +1933,7 @@ k8s.io/apiserver/plugin/pkg/authorizer/webhook
 k8s.io/cli-runtime/pkg/genericclioptions
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.25.0 => k8s.io/client-go v0.25.0
+# k8s.io/client-go v0.25.0 => ./staging/src/k8s.io/client-go
 ## explicit; go 1.19
 k8s.io/client-go/applyconfigurations
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
@@ -2285,14 +2283,14 @@ k8s.io/cluster-bootstrap/token/jws
 k8s.io/cluster-bootstrap/token/util
 k8s.io/cluster-bootstrap/util/secrets
 k8s.io/cluster-bootstrap/util/tokens
-# k8s.io/code-generator v0.25.0 => k8s.io/code-generator v0.25.0
+# k8s.io/code-generator v0.25.0 => ./staging/src/k8s.io/code-generator
 ## explicit; go 1.19
 k8s.io/code-generator/cmd/go-to-protobuf
 k8s.io/code-generator/cmd/go-to-protobuf/protobuf
 k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 k8s.io/code-generator/pkg/util
 k8s.io/code-generator/third_party/forked/golang/reflect
-# k8s.io/component-base v0.25.0 => k8s.io/component-base v0.25.0
+# k8s.io/component-base v0.25.0 => ./staging/src/k8s.io/component-base
 ## explicit; go 1.19
 k8s.io/component-base/cli
 k8s.io/component-base/cli/flag
@@ -2328,7 +2326,7 @@ k8s.io/component-base/tracing
 k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
 k8s.io/component-base/version/verflag
-# k8s.io/component-helpers v0.25.0 => k8s.io/component-helpers v0.25.0
+# k8s.io/component-helpers v0.25.0 => ./staging/src/k8s.io/component-helpers
 ## explicit; go 1.19
 k8s.io/component-helpers/apimachinery/lease
 k8s.io/component-helpers/apps/poddisruptionbudget
@@ -2394,7 +2392,7 @@ k8s.io/klog/v2/internal/verbosity
 k8s.io/klog/v2/ktesting
 k8s.io/klog/v2/ktesting/init
 k8s.io/klog/v2/test
-# k8s.io/kube-aggregator v0.25.0 => k8s.io/kube-aggregator v0.25.0
+# k8s.io/kube-aggregator v0.25.0 => ./staging/src/k8s.io/kube-aggregator
 ## explicit; go 1.19
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/install
@@ -3148,24 +3146,24 @@ sigs.k8s.io/yaml
 # gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 # gotest.tools/v3 => gotest.tools/v3 v3.0.3
 # honnef.co/go/tools => honnef.co/go/tools v0.0.1-2020.1.4
-# k8s.io/api => k8s.io/api v0.25.0
-# k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.0
-# k8s.io/apimachinery => k8s.io/apimachinery v0.25.0
-# k8s.io/apiserver => k8s.io/apiserver v0.25.0
+# k8s.io/api => ./staging/src/k8s.io/api
+# k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
+# k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery
+# k8s.io/apiserver => ./staging/src/k8s.io/apiserver
 # k8s.io/cli-runtime => ./staging/src/k8s.io/cli-runtime
-# k8s.io/client-go => k8s.io/client-go v0.25.0
+# k8s.io/client-go => ./staging/src/k8s.io/client-go
 # k8s.io/cloud-provider => ./staging/src/k8s.io/cloud-provider
 # k8s.io/cluster-bootstrap => ./staging/src/k8s.io/cluster-bootstrap
-# k8s.io/code-generator => k8s.io/code-generator v0.25.0
-# k8s.io/component-base => k8s.io/component-base v0.25.0
-# k8s.io/component-helpers => k8s.io/component-helpers v0.25.0
+# k8s.io/code-generator => ./staging/src/k8s.io/code-generator
+# k8s.io/component-base => ./staging/src/k8s.io/component-base
+# k8s.io/component-helpers => ./staging/src/k8s.io/component-helpers
 # k8s.io/controller-manager => ./staging/src/k8s.io/controller-manager
 # k8s.io/cri-api => ./staging/src/k8s.io/cri-api
 # k8s.io/csi-translation-lib => ./staging/src/k8s.io/csi-translation-lib
 # k8s.io/gengo => k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
 # k8s.io/klog => k8s.io/klog v1.0.0
 # k8s.io/klog/v2 => k8s.io/klog/v2 v2.70.1
-# k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.25.0
+# k8s.io/kube-aggregator => ./staging/src/k8s.io/kube-aggregator
 # k8s.io/kube-controller-manager => ./staging/src/k8s.io/kube-controller-manager
 # k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1
 # k8s.io/kube-proxy => ./staging/src/k8s.io/kube-proxy
