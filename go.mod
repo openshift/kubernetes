@@ -40,7 +40,7 @@ require (
 	github.com/moby/ipvs v1.1.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
-	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/ginkgo/v2 v2.28.0
 	github.com/onsi/gomega v1.39.1
 	github.com/opencontainers/cgroups v0.0.6
 	github.com/opencontainers/selinux v1.13.1
@@ -229,6 +229,7 @@ require (
 )
 
 replace (
+	github.com/onsi/ginkgo/v2 => github.com/jubittajohn/onsi-ginkgo/v2 v2.6.1-0.20260424191255-73ef08c78ea8
 	github.com/openshift/api => github.com/jubittajohn/api v0.0.0-20260420180837-5e43903e1ea6
 	github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20260421193111-691abe80a8d3
 	github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.0-20260420191538-713b208761a8

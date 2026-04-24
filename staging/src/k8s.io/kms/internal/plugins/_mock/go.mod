@@ -30,3 +30,5 @@ replace github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.
 replace github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260421171937-ae79a5397876
 
 replace github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20260421193111-691abe80a8d3
+
+replace github.com/onsi/ginkgo/v2 => github.com/jubittajohn/onsi-ginkgo/v2 v2.6.1-0.20260424191255-73ef08c78ea8
