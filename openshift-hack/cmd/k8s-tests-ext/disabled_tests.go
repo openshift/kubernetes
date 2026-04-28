@@ -162,8 +162,21 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// https://issues.redhat.com/browse/OCPBUGS-45275
 			"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod",
 
-			// https://issues.redhat.com/browse/OCPBUGS-63132
+			// https://redhat.atlassian.net/browse/OCPBUGS-63132
 			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-3",
+			"[sig-node] [Serial] Pod InPlace Resize Container (scheduler-focused) [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-scheduler-tests",
+
+			// https://redhat.atlassian.net/browse/OCPBUGS-77990
+			// https://redhat.atlassian.net/browse/OCPBUGS-76998
+			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-2",
+
+			// https://redhat.atlassian.net/browse/OCPBUGS-64847
+			"[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling] [Beta] Burstable QoS pod, one container with cpu & memory requests + limits - decrease memory requests and increase memory limits",
+
+			// https://redhat.atlassian.net/browse/OCPBUGS-82071
+			"[sig-node] Pod InPlace Resize Container burstable pods - 1 container with all requests & limits set and resize policy mem restart resizing cpu requests",
+			"[sig-node] PodRejectionStatus Kubelet should reject pod when the node didn't have enough resource",
+
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"RebaseInProgress": {
