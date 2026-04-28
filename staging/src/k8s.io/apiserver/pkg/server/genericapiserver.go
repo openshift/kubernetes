@@ -604,7 +604,7 @@ func (s preparedGenericAPIServer) RunWithContext(ctx context.Context) error {
 		Listener:   s.SecureServingInfo.Listener,
 		lateStopCh: lateStopCh,
 	}
-	unexpectedRequestsEventf.Store(s.Eventf)
+	unexpectedRequestsEventf.Store(eventfFunc(s.Eventf))
 
 	// close socket after delayed stopCh
 	shutdownTimeout := s.ShutdownTimeout
@@ -773,6 +773,11 @@ func (s preparedGenericAPIServer) RunWithContext(ctx context.Context) error {
 
 	klog.V(1).Info("[graceful-termination] apiserver is exiting")
 	s.Eventf(corev1.EventTypeNormal, "TerminationGracefulTerminationFinished", "All pending requests processed")
+
+	// Release the global reference to s.Eventf so the server object graph can
+	// be garbage collected. The TLS transport cache relies on GC to cancel cert
+	// rotation goroutines via runtime.AddCleanup (ClientsAllowTLSCacheGC).
+	unexpectedRequestsEventf.Store(eventfFunc(nil))
 
 	return nil
 }
