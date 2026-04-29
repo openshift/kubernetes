@@ -36,6 +36,7 @@ import (
 	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	utilpeerproxy "k8s.io/apiserver/pkg/util/peerproxy"
 	clientgoinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/component-helpers/apimachinery/lease"
@@ -139,6 +140,9 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 	}
 
 	kubernetesservice.KubeAPIServerEmitEventFn = s.GenericAPIServer.Eventf
+	s.GenericAPIServer.RegisterDestroyFunc(func() {
+		kubernetesservice.KubeAPIServerEmitEventFn = func(string, string, string, ...interface{}) {}
+	})
 
 	client, err := kubernetes.NewForConfig(s.GenericAPIServer.LoopbackClientConfig)
 	if err != nil {
@@ -222,7 +226,15 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 
 			// Run peer-discovery workers
 			s.GenericAPIServer.AddPostStartHookOrDie("peer-discovery-workers", func(context genericapiserver.PostStartHookContext) error {
-				go c.Extra.PeerProxy.RunPeerDiscoveryCacheSync(context, 1)
+				go func() {
+					c.Extra.PeerProxy.RunPeerDiscoveryCacheSync(context, 1)
+					// Release the proxy transport reference after shutdown so
+					// the GC can collect the trackedTransport and cancel cert
+					// rotation goroutines via runtime.AddCleanup.
+					if closer, ok := c.Extra.PeerProxy.(utilpeerproxy.TransportCloser); ok {
+						closer.CloseTransport()
+					}
+				}()
 				go c.Extra.PeerProxy.RunPeerDiscoveryActiveGVTracker(context)
 				go c.Extra.PeerProxy.RunPeerDiscoveryRefilter(context)
 				return nil
