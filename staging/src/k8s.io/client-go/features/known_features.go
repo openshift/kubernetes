@@ -119,7 +119,7 @@ var defaultVersionedKubernetesFeatureGates = map[Feature]VersionedSpecs{
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: Alpha},
 	},
 	ClientsAllowTLSCacheGC: {
-		{Version: version.MustParse("1.36"), Default: true, PreRelease: Beta},
+		{Version: version.MustParse("1.36"), Default: false, PreRelease: Beta},
 	},
 	ClientsPreferCBOR: {
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: Alpha},
