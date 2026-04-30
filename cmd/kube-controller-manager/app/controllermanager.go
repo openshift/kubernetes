@@ -438,7 +438,9 @@ func Run(ctx context.Context, c *config.CompletedConfig, stopCh2 <-chan struct{}
 					case <-stopCh:
 						// We were asked to terminate. Exit 0.
 						klog.Info("Requested to terminate. Exiting.")
-						os.Exit(0)
+						if !utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
+							os.Exit(0)
+						}
 					default:
 						// We lost the lock.
 						logger.Error(nil, "leaderelection lost/stopped")
@@ -477,7 +479,9 @@ func Run(ctx context.Context, c *config.CompletedConfig, stopCh2 <-chan struct{}
 							case <-stopCh:
 								// We were asked to terminate. Exit 0.
 								klog.Info("Requested to terminate. Exiting.")
-								os.Exit(0)
+								if !utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
+									os.Exit(0)
+								}
 							default:
 								// We lost the lock.
 								logger.Error(nil, "migration leaderelection lost/stopped")
