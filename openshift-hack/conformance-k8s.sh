@@ -80,11 +80,17 @@ ginkgo \
 
 rename -v junit_ junit_serial_ "${test_report_dir}"/junit*.xml
 
+# Skip Serial (those were run above) and MutatingAdmissionPolicy tests.
+# MutatingAdmissionPolicy is GA upstream in 1.36 but only enabled in
+# TechPreviewNoUpgrade on OpenShift, not in the Default feature set.
+# The mutation tests use unbounded poll loops that hang for the full
+# ginkgo timeout when the controller is not running.
+
 # shellcheck disable=SC2086
 ginkgo \
   --timeout="24h" \
   --output-interceptor-mode=none \
-  -nodes 4 -no-color '-skip=\[Serial\]' '-focus=\[Conformance\]' \
+  -nodes 4 -no-color '-skip=(\[Serial\]|MutatingAdmissionPolicy)' '-focus=\[Conformance\]' \
   ${e2e_test} -- \
   -report-dir "${test_report_dir}" \
   -allowed-not-ready-nodes ${unschedulable} \
