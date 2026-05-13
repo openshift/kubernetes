@@ -491,6 +491,12 @@ func (m *manager) SetAllocatedResources(pod *v1.Pod) error {
 	return m.allocated.SetPodResourceInfo(logger, pod.UID, allocationFromPod(pod))
 }
 
+// hasPodAllocatedResources returns whether a pod has been allocated.
+func (m *manager) hasPodAllocatedResources(pod *v1.Pod) bool {
+	_, allocated := m.allocated.GetPodResourceInfo(pod.UID)
+	return allocated
+}
+
 func allocationFromPod(pod *v1.Pod) state.PodResourceInfo {
 	var podAlloc state.PodResourceInfo
 	if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) && pod.Spec.Resources != nil {
@@ -629,9 +635,15 @@ func (m *manager) getAllocatedPods(activePods []*v1.Pod) []*v1.Pod {
 		return activePods
 	}
 
-	allocatedPods := make([]*v1.Pod, len(activePods))
-	for i, pod := range activePods {
-		allocatedPods[i], _ = m.UpdatePodFromAllocation(pod)
+	allocatedPods := make([]*v1.Pod, 0, len(activePods))
+	for _, pod := range activePods {
+		// Include pods that either have allocations or are actually running.
+		// This excludes pods that failed admission or are still pending admission,
+		// while including legacy pods that are running but don't have allocations.
+		if m.hasPodAllocatedResources(pod) || pod.Status.Phase == v1.PodRunning {
+			allocatedPod, _ := m.UpdatePodFromAllocation(pod)
+			allocatedPods = append(allocatedPods, allocatedPod)
+		}
 	}
 	return allocatedPods
 }
