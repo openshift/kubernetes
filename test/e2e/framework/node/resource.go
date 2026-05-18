@@ -20,10 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/klog/v2"
 	"net"
 	"strings"
 	"time"
+
+	"k8s.io/klog/v2"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -506,13 +507,17 @@ func GetNodeAllocatableAndAvailableQuantities(ctx context.Context, c clientset.I
 		return resource.Quantity{}, resource.Quantity{}, fmt.Errorf("error getting list of pods: %w, while attempting to get node's allocatable %s", err, resourceName.String())
 	}
 
+	podListString := ""
 	for _, pod := range podList.Items {
 		podRequest := resourceapi.GetResourceRequestQuantity(&pod, resourceName)
 		podAllocated.Add(podRequest)
+		podListString += pod.Name + " " + podRequest.String() + " "
 	}
 	nodeAvailable = nodeAllocatable.DeepCopy()
 	nodeAvailable.Sub(podAllocated)
 	if nodeAvailable.Sign() < 0 {
+		logger := klog.FromContext(ctx)
+		logger.Error(nil, "pods", podListString)
 		return resource.Quantity{}, resource.Quantity{}, fmt.Errorf("unexpected negative value of nodeAvailable %s, while attempting to get node's allocatable and available %s", nodeAvailable.String(), resourceName.String())
 	}
 
