@@ -2072,6 +2072,12 @@ func (kl *Kubelet) SyncPod(ctx context.Context, updateType kubetypes.SyncPodType
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling) {
+		// Replace pod with allocated pod to ensure we use allocated resources
+		// throughout SyncPod, especially when passing to containerRuntime.SyncPod
+		allocatedPod, wasAllocated := kl.allocationManager.UpdatePodFromAllocation(pod)
+		if wasAllocated {
+			pod = allocatedPod
+		}
 		// Check whether a resize is in progress so we can set the PodResizeInProgressCondition accordingly.
 		if kl.containerRuntime.IsPodResizeInProgress(pod, podStatus) {
 			kl.statusManager.SetPodResizeInProgressCondition(pod.UID, "", "", pod.Generation)
