@@ -139,6 +139,9 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 	}
 
 	kubernetesservice.KubeAPIServerEmitEventFn = s.GenericAPIServer.Eventf
+	s.GenericAPIServer.RegisterDestroyFunc(func() {
+		kubernetesservice.KubeAPIServerEmitEventFn = nil
+	})
 
 	client, err := kubernetes.NewForConfig(s.GenericAPIServer.LoopbackClientConfig)
 	if err != nil {
