@@ -63,7 +63,8 @@ import (
 type ControllerParameters struct {
 	KubeClient                clientset.Interface
 	SyncPeriod                time.Duration
-	VolumePlugins             []vol.VolumePlugin
+	VolumePlugins             []vol.VolumePlugin // subset: provisionable/deletable/recyclable only
+	MetricsVolumePlugins      []vol.VolumePlugin // full set: all PV plugins, used for plugin_name metric label
 	VolumeInformer            coreinformers.PersistentVolumeInformer
 	ClaimInformer             coreinformers.PersistentVolumeClaimInformer
 	ClassInformer             storageinformers.StorageClassInformer
@@ -104,7 +105,12 @@ func NewController(ctx context.Context, p ControllerParameters) (*PersistentVolu
 		return nil, fmt.Errorf("could not initialize volume plugins for PersistentVolume Controller: %w", err)
 	}
 
-	p.VolumeInformer.Informer().AddEventHandler(
+	if err := controller.metricsPluginMgr.InitPlugins(p.MetricsVolumePlugins, nil /* prober */, controller); err != nil {
+		return nil, fmt.Errorf("could not initialize metrics volume plugins for PersistentVolume Controller: %w", err)
+	}
+
+	logger := klog.FromContext(ctx)
+	_, err := p.VolumeInformer.Informer().AddEventHandlerWithOptions(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    func(obj interface{}) { controller.enqueueWork(ctx, controller.volumeQueue, obj) },
 			UpdateFunc: func(oldObj, newObj interface{}) { controller.enqueueWork(ctx, controller.volumeQueue, newObj) },
@@ -331,6 +337,7 @@ func (ctrl *PersistentVolumeController) Run(ctx context.Context) {
 
 	ctrl.initializeCaches(logger, ctrl.volumeLister, ctrl.claimLister)
 	metrics.Register(ctrl.volumes.store, ctrl.claims, &ctrl.volumePluginMgr)
+	volumeutil.RegisterMetrics()
 
 	wg.Go(func() {
 		wait.Until(func() { ctrl.resync(ctx) }, ctrl.resyncPeriod, ctx.Done())
@@ -345,7 +352,8 @@ func (ctrl *PersistentVolumeController) Run(ctx context.Context) {
 }
 
 func (ctrl *PersistentVolumeController) updateClaimMigrationAnnotations(ctx context.Context,
-	claim *v1.PersistentVolumeClaim) (*v1.PersistentVolumeClaim, error) {
+	claim *v1.PersistentVolumeClaim,
+) (*v1.PersistentVolumeClaim, error) {
 	// TODO: update[Claim|Volume]MigrationAnnotations can be optimized to not
 	// copy the claim/volume if no modifications are required. Though this
 	// requires some refactoring as well as an interesting change in the
@@ -370,7 +378,8 @@ func (ctrl *PersistentVolumeController) updateClaimMigrationAnnotations(ctx cont
 }
 
 func (ctrl *PersistentVolumeController) updateVolumeMigrationAnnotationsAndFinalizers(ctx context.Context,
-	volume *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+	volume *v1.PersistentVolume,
+) (*v1.PersistentVolume, error) {
 	volumeClone := volume.DeepCopy()
 	logger := klog.FromContext(ctx)
 	annModified := updateMigrationAnnotations(logger, ctrl.csiMigratedPluginManager, ctrl.translator, volumeClone.Annotations, false)
