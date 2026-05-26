@@ -329,10 +329,17 @@ func newPersistentVolumeBinderController(ctx context.Context, controllerContext 
 		return nil, err
 	}
 
+	// Probe all volume plugins for metrics collection, including CSI
+	metricsPlugins, err := ProbePersistentVolumePlugins(logger, controllerContext.ComponentConfig.PersistentVolumeBinderController.VolumeConfiguration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to probe metrics volume plugins when starting persistentvolume controller: %w", err)
+	}
+
 	params := persistentvolumecontroller.ControllerParameters{
 		KubeClient:                client,
 		SyncPeriod:                controllerContext.ComponentConfig.PersistentVolumeBinderController.PVClaimBinderSyncPeriod.Duration,
 		VolumePlugins:             plugins,
+		MetricsVolumePlugins:      metricsPlugins,
 		VolumeInformer:            controllerContext.InformerFactory.Core().V1().PersistentVolumes(),
 		ClaimInformer:             controllerContext.InformerFactory.Core().V1().PersistentVolumeClaims(),
 		ClassInformer:             controllerContext.InformerFactory.Storage().V1().StorageClasses(),
