@@ -168,11 +168,8 @@ controller, and serviceaccounts controller.`,
 			// add component version metrics
 			s.ComponentGlobalsRegistry.AddMetrics()
 
-			if utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
-				ctx = server.SetupSignalContext()
-			}
-			stopCh := server.SetupSignalHandler()
-			return Run(ctx, c.Complete(), stopCh)
+			ctx = server.SetupSignalContext()
+			return Run(ctx, c.Complete())
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
 			for _, arg := range args {
@@ -209,9 +206,9 @@ func ResyncPeriod(c *config.CompletedConfig) func() time.Duration {
 }
 
 // Run runs the KubeControllerManagerOptions.
-func Run(ctx context.Context, c *config.CompletedConfig, stopCh2 <-chan struct{}) error {
+func Run(ctx context.Context, c *config.CompletedConfig) error {
 	logger := klog.FromContext(ctx)
-	stopCh := mergeCh(ctx.Done(), stopCh2)
+	stopCh := ctx.Done()
 
 	// To help debugging, immediately log version
 	logger.Info("Starting", "version", utilversion.Get())
@@ -436,18 +433,18 @@ func Run(ctx context.Context, c *config.CompletedConfig, stopCh2 <-chan struct{}
 				OnStoppedLeading: func() {
 					select {
 					case <-stopCh:
-						// We were asked to terminate. Exit 0.
 						klog.Info("Requested to terminate. Exiting.")
-						os.Exit(0)
+						if !utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
+							os.Exit(0)
+						}
 					default:
-						// We lost the lock.
 						logger.Error(nil, "leaderelection lost/stopped")
 						if !utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
 							klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 						}
 					}
 				},
-			}, stopCh)
+			})
 	})
 
 	// If Leader Migration is enabled, proceed to attempt the migration lock.
@@ -475,18 +472,18 @@ func Run(ctx context.Context, c *config.CompletedConfig, stopCh2 <-chan struct{}
 						OnStoppedLeading: func() {
 							select {
 							case <-stopCh:
-								// We were asked to terminate. Exit 0.
 								klog.Info("Requested to terminate. Exiting.")
-								os.Exit(0)
+								if !utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
+									os.Exit(0)
+								}
 							default:
-								// We lost the lock.
 								logger.Error(nil, "migration leaderelection lost/stopped")
 								if !utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
 									klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 								}
 							}
 						},
-					}, stopCh)
+					})
 			})
 
 		case <-ctx.Done():
@@ -885,7 +882,7 @@ func createClientBuilders(c *config.CompletedConfig) (clientBuilder clientbuilde
 
 // leaderElectAndRun runs the leader election, and runs the callbacks once the leader lease is acquired.
 // TODO: extract this function into staging/controller-manager
-func leaderElectAndRun(ctx context.Context, c *config.CompletedConfig, lockIdentity string, electionChecker *leaderelection.HealthzAdaptor, resourceLock string, leaseName string, callbacks leaderelection.LeaderCallbacks, stopCh <-chan struct{}) {
+func leaderElectAndRun(ctx context.Context, c *config.CompletedConfig, lockIdentity string, electionChecker *leaderelection.HealthzAdaptor, resourceLock string, leaseName string, callbacks leaderelection.LeaderCallbacks) {
 	logger := klog.FromContext(ctx)
 	rl, err := resourcelock.NewFromKubeconfig(resourceLock,
 		c.ComponentConfig.Generic.LeaderElection.ResourceNamespace,
@@ -901,13 +898,7 @@ func leaderElectAndRun(ctx context.Context, c *config.CompletedConfig, lockIdent
 		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}
 
-	leCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		<-stopCh
-		cancel()
-	}()
-	leaderelection.RunOrDie(leCtx, leaderelection.LeaderElectionConfig{
+	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
 		Lock:            rl,
 		LeaseDuration:   c.ComponentConfig.Generic.LeaderElection.LeaseDuration.Duration,
 		RenewDeadline:   c.ComponentConfig.Generic.LeaderElection.RenewDeadline.Duration,

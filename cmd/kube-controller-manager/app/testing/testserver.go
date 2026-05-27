@@ -151,8 +151,7 @@ func StartTestServer(t *testing.T, ctx context.Context, customFlags []string) (r
 	go func(ctx context.Context) {
 		defer close(errCh)
 
-		stopCh := make(chan struct{})
-		if err := app.Run(ctx, config.Complete(), stopCh); err != nil {
+		if err := app.Run(ctx, config.Complete()); err != nil {
 			errCh <- err
 		}
 	}(ctx)
