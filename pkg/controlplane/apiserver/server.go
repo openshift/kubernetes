@@ -34,12 +34,11 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/dynamiccertificates"
-	"k8s.io/apiserver/pkg/server/flagz"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	utilpeerproxy "k8s.io/apiserver/pkg/util/peerproxy"
 	clientgoinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	zpagesfeatures "k8s.io/component-base/zpages/features"
 	"k8s.io/component-helpers/apimachinery/lease"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/clock"
@@ -141,6 +140,9 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 	}
 
 	kubernetesservice.KubeAPIServerEmitEventFn = s.GenericAPIServer.Eventf
+	s.GenericAPIServer.RegisterDestroyFunc(func() {
+		kubernetesservice.KubeAPIServerEmitEventFn = func(string, string, string, ...interface{}) {}
+	})
 
 	client, err := kubernetes.NewForConfig(s.GenericAPIServer.LoopbackClientConfig)
 	if err != nil {
@@ -156,12 +158,6 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 	_, publicServicePort, err := c.Generic.SecureServing.HostPort()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get listener address: %w", err)
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(zpagesfeatures.ComponentFlagz) {
-		if c.Generic.Flagz != nil {
-			flagz.Install(s.GenericAPIServer.Handler.NonGoRestfulMux, name, c.Generic.Flagz)
-		}
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(apiserverfeatures.CoordinatedLeaderElection) {
@@ -228,23 +224,19 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 				return err
 			})
 
-			// Run peer-discovery sync loop
-			s.GenericAPIServer.AddPostStartHookOrDie("peer-discovery-cache-sync", func(context genericapiserver.PostStartHookContext) error {
-				go c.Extra.PeerProxy.RunPeerDiscoveryCacheSync(context, 1)
-				return nil
-			})
-
-			// RunGVDeletionWorkers processes GVs from deleted CRDs/APIServices. If a GV is no longer in use,
-			// it is marked for removal from peer-discovery (with a deletion timestamp), triggering a grace period before cleanup.
-			s.GenericAPIServer.AddPostStartHookOrDie("gv-deletion-workers", func(context genericapiserver.PostStartHookContext) error {
-				go c.Extra.PeerProxy.RunGVDeletionWorkers(context, 1)
-				return nil
-			})
-
-			// RunExcludedGVsReaper removes GVs from the peer-discovery exclusion list after their grace period expires.
-			// This ensures we don't include stale CRDs/aggregated APIs from peer discovery in the aggregated discovery.
-			s.GenericAPIServer.AddPostStartHookOrDie("excluded-groups-reaper", func(context genericapiserver.PostStartHookContext) error {
-				go c.Extra.PeerProxy.RunExcludedGVsReaper(context.Done())
+			// Run peer-discovery workers
+			s.GenericAPIServer.AddPostStartHookOrDie("peer-discovery-workers", func(context genericapiserver.PostStartHookContext) error {
+				go func() {
+					c.Extra.PeerProxy.RunPeerDiscoveryCacheSync(context, 1)
+					// Release the proxy transport reference after shutdown so
+					// the GC can collect the trackedTransport and cancel cert
+					// rotation goroutines via runtime.AddCleanup.
+					if closer, ok := c.Extra.PeerProxy.(utilpeerproxy.TransportCloser); ok {
+						closer.CloseTransport()
+					}
+				}()
+				go c.Extra.PeerProxy.RunPeerDiscoveryActiveGVTracker(context)
+				go c.Extra.PeerProxy.RunPeerDiscoveryRefilter(context)
 				return nil
 			})
 		}

@@ -25,7 +25,7 @@ func SpawnProcessToRunTest(ctx context.Context, testName string, timeout time.Du
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 
-	command := exec.CommandContext(longerCtx, os.Args[0], "run-test", "--output=json", testName)
+	command := exec.CommandContext(longerCtx, os.Args[0], "run-test", "--output=json", fmt.Sprintf("--timeout=%s", timeout), testName)
 	command.Stdout = stdout
 	command.Stderr = stderr
 

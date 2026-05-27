@@ -613,6 +613,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: kms
       type:
         namedType: com.github.openshift.api.config.v1.KMSPluginConfig
+      default: {}
     - name: type
       type:
         scalar: string
@@ -5343,6 +5344,10 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorProcessesConfig
       default: {}
+    - name: softirqs
+      type:
+        namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSoftirqsConfig
+      default: {}
     - name: systemd
       type:
         namedType: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSystemdConfig
@@ -5403,6 +5408,12 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
 - name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorProcessesConfig
+  map:
+    fields:
+    - name: collectionPolicy
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha1.NodeExporterCollectorSoftirqsConfig
   map:
     fields:
     - name: collectionPolicy

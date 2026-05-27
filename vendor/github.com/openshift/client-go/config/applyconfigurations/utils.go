@@ -290,6 +290,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.NetworkDiagnosticsTargetPlacementApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("NetworkMigration"):
 		return &configv1.NetworkMigrationApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("NetworkObservabilitySpec"):
+		return &configv1.NetworkObservabilitySpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("NetworkSpec"):
 		return &configv1.NetworkSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("NetworkStatus"):
