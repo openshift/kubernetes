@@ -409,6 +409,7 @@ func makeMounts(pod *v1.Pod, podDir string, container *v1.Container, hostName, h
 			RecursiveReadOnly: rro,
 			SELinuxRelabel:    relabelVolume,
 			Propagation:       propagation,
+			MountOptions:      mount.MountOptions,
 		})
 	}
 	if mountEtcHostsFile {

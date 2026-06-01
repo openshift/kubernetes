@@ -8912,6 +8912,12 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: io.k8s.api.core.v1.VolumeMount
   map:
     fields:
+    - name: mountOptions
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
     - name: mountPath
       type:
         scalar: string

@@ -1081,6 +1081,13 @@ const (
 	// co-ordinate better with cluster-autoscaler for storage limits.
 	VolumeLimitScaling featuregate.Feature = "VolumeLimitScaling"
 
+	// owner: @nispriha
+	// kep: https://kep.k8s.io/5855
+	//
+	// Enables mount options (noexec, nodev, nosuid) on volumeMounts, passed
+	// through CRI to the container runtime.
+	VolumeMountOptions featuregate.Feature = "VolumeMountOptions"
+
 	// owner: @ksubrmnn
 	//
 	// Allows kube-proxy to create DSR loadbalancers for Windows
@@ -1907,6 +1914,10 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 		{Version: version.MustParse("1.35"), Default: false, PreRelease: featuregate.Alpha},
 	},
 
+	VolumeMountOptions: {
+		{Version: version.MustParse("1.37"), Default: false, PreRelease: featuregate.Alpha},
+	},
+
 	WinDSR: {
 		{Version: version.MustParse("1.14"), Default: false, PreRelease: featuregate.Alpha},
 		{Version: version.MustParse("1.33"), Default: true, PreRelease: featuregate.Beta},
@@ -2479,6 +2490,8 @@ var defaultKubernetesFeatureGateDependencies = map[featuregate.Feature][]feature
 	VolumeAttributesClass: {},
 
 	VolumeLimitScaling: {},
+
+	VolumeMountOptions: {},
 
 	WinDSR: {},
 

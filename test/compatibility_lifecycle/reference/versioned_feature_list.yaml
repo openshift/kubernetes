@@ -1997,6 +1997,12 @@
     lockToDefault: false
     preRelease: Alpha
     version: "1.35"
+- name: VolumeMountOptions
+  versionedSpecs:
+  - default: false
+    lockToDefault: false
+    preRelease: Alpha
+    version: "1.37"
 - name: WatchCacheInitializationPostStartHook
   versionedSpecs:
   - default: false
