@@ -1129,6 +1129,9 @@ type Mount struct {
 	// return an error.
 	// Introduced in the Image Volume Source KEP beta graduation: https://kep.k8s.io/4639
 	ImageSubPath  string `protobuf:"bytes,10,opt,name=image_sub_path,json=imageSubPath,proto3" json:"image_sub_path,omitempty"`
+	// MountOptions specifies additional mount options (e.g., noexec, nodev,
+	// nosuid) for bind mounts.
+	MountOptions  []string `protobuf:"bytes,11,rep,name=mount_options,json=mountOptions,proto3" json:"mount_options,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1231,6 +1234,13 @@ func (x *Mount) GetImageSubPath() string {
 		return x.ImageSubPath
 	}
 	return ""
+}
+
+func (x *Mount) GetMountOptions() []string {
+	if x != nil {
+		return x.MountOptions
+	}
+	return nil
 }
 
 // IDMapping describes host to container ID mappings for a pod sandbox.
