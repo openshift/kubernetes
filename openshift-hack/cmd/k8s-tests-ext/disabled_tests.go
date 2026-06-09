@@ -162,9 +162,6 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-45275
 			"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod",
-
-			// https://issues.redhat.com/browse/OCPBUGS-63132
-			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-3",
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"RebaseInProgress": {
@@ -177,8 +174,8 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// https://redhat.atlassian.net/browse/OCPBUGS-85262
 			"[sig-cli] kubectl kuberc commands",
 
-			// https://redhat.atlassian.net/browse/OCPBUGS-64847
-			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-2",
+			// https://redhat.atlassian.net/browse/OCPBUGS-86789
+			"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
