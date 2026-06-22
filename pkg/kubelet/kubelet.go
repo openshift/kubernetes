@@ -2072,6 +2072,16 @@ func (kl *Kubelet) SyncPod(ctx context.Context, updateType kubetypes.SyncPodType
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling) {
+		// Update the pod with allocated resources from the allocation manager.
+		// The pod passed to SyncPod comes from HandlePodSyncs, which gets it from the pod manager.
+		// The pod manager has the desired resources (from the API spec), not the allocated resources.
+		// Even though the pod worker calls UpdatePodFromAllocation when queueing the update,
+		// we need to call it again here because:
+		// 1. There may be a race where the allocation changed between queueing and processing
+		// 2. HandlePodSyncs calls GetPodAndMirrorPod which returns a fresh pod from pod manager
+		// 3. We need the allocated resources for IsPodResizeInProgress and generateAPIPodStatus
+		pod, _ = kl.allocationManager.UpdatePodFromAllocation(pod)
+
 		// Check whether a resize is in progress so we can set the PodResizeInProgressCondition accordingly.
 		if kl.containerRuntime.IsPodResizeInProgress(pod, podStatus) {
 			kl.statusManager.SetPodResizeInProgressCondition(pod.UID, "", "", pod.Generation)
