@@ -192,9 +192,11 @@ func (a *managementCPUsOverride) Admit(ctx context.Context, attr admission.Attri
 		return admission.NewForbidden(attr, err) // can happen due to informer latency
 	}
 
-	// we still need to have nodes under the cluster to decide if the management resource enabled or not
+	// if the cluster has no nodes yet (e.g. during bootstrap), we cannot determine whether
+	// CPU partitioning is enabled — allow the pod without mutation rather than blocking it,
+	// which would prevent the machine-approver from starting and create a deadlock.
 	if len(nodes) == 0 {
-		return admission.NewForbidden(attr, fmt.Errorf("%s the cluster does not have any nodes", PluginName))
+		return nil
 	}
 
 	clusterInfra, err := a.infraConfigLister.Get(infraClusterName)

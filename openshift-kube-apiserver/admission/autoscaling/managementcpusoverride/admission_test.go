@@ -268,13 +268,12 @@ func TestAdmit(t *testing.T) {
 			infra:              testClusterInfraWithoutWorkloadPartitioning(),
 		},
 		{
-			name:               "should return admission error when the cluster does not have any nodes",
+			name:               "should allow pod without mutation when the cluster does not have any nodes",
 			pod:                testManagedPod("500m", "250m", "500Mi", "250Mi"),
 			expectedCpuRequest: resource.MustParse("250m"),
 			namespace:          testManagedNamespace(),
 			nodes:              []*corev1.Node{},
 			infra:              testClusterSNOInfra(),
-			expectedError:      fmt.Errorf("the cluster does not have any nodes"),
 		},
 	}
 
