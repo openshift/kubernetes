@@ -204,7 +204,8 @@ func IsNativeResource(name core.ResourceName) bool {
 // namespace and is not hugepages.
 func IsOvercommitAllowed(name core.ResourceName) bool {
 	return IsNativeResource(name) &&
-		!IsHugePageResourceName(name)
+		!IsHugePageResourceName(name) &&
+		name != core.ResourcePID
 }
 
 var standardLimitRangeTypes = sets.New(
@@ -250,6 +251,7 @@ var standardResources = sets.New(
 	core.ResourceCPU,
 	core.ResourceMemory,
 	core.ResourceEphemeralStorage,
+	core.ResourcePID,
 	core.ResourceRequestsCPU,
 	core.ResourceRequestsMemory,
 	core.ResourceRequestsEphemeralStorage,
@@ -284,6 +286,7 @@ var integerResources = sets.New(
 	core.ResourcePersistentVolumeClaims,
 	core.ResourceServicesNodePorts,
 	core.ResourceServicesLoadBalancers,
+	core.ResourcePID,
 )
 
 // IsIntegerResourceName returns true if the resource is measured in integer values

@@ -1239,6 +1239,12 @@
     lockToDefault: true
     preRelease: GA
     version: "1.34"
+- name: PerPodPIDLimit
+  versionedSpecs:
+  - default: false
+    lockToDefault: false
+    preRelease: Alpha
+    version: "1.37"
 - name: PodAndContainerStatsFromCRI
   versionedSpecs:
   - default: false

@@ -410,6 +410,7 @@ func (cm *containerManagerImpl) NewPodContainerManager() PodContainerManager {
 			// Convert (cm.CPUCFSQuotaPeriod) [nanoseconds] / time.Microsecond (1000) to get cpuCFSQuotaPeriod in microseconds.
 			cpuCFSQuotaPeriod:   uint64(cm.CPUCFSQuotaPeriod / time.Microsecond),
 			podContainerManager: cm,
+			recorder:            cm.recorder,
 		}
 	}
 	return &podContainerManagerNoop{
