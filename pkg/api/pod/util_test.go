@@ -6734,3 +6734,854 @@ func TestDropDisabledPodStatusFields_InPlacePodLevelResourcesVerticalScaling(t *
 		})
 	}
 }
+
+func TestResourceHealthStatusInUse(t *testing.T) {
+	testCases := []struct {
+		name      string
+		podStatus *api.PodStatus
+		expected  bool
+	}{
+		{
+			name:      "nil pod status",
+			podStatus: nil,
+			expected:  false,
+		},
+		{
+			name: "empty pod status",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{},
+			},
+			expected: false,
+		},
+		{
+			name: "pod status with AllocatedResourcesStatus in container",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "test-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "pod status with AllocatedResourcesStatus in init container",
+			podStatus: &api.PodStatus{
+				InitContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "init-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "pod status with AllocatedResourcesStatus in ephemeral container",
+			podStatus: &api.PodStatus{
+				EphemeralContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "ephemeral-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "pod status without AllocatedResourcesStatus",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "test-container",
+					},
+				},
+				InitContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "init-container",
+					},
+				},
+				EphemeralContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "ephemeral-container",
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "pod status with empty AllocatedResourcesStatus array",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{
+					{
+						Name:                     "test-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{},
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := resourceHealthStatusInUse(tc.podStatus)
+			if result != tc.expected {
+				t.Errorf("resourceHealthStatusInUse() = %v, want %v", result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestDropDisabledPodStatusFields_ResourceHealthStatus(t *testing.T) {
+	podStatusWithResourceHealth := func() *api.PodStatus {
+		return &api.PodStatus{
+			ContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "container1",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/device",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "device-1",
+									Health:     api.ResourceHealthStatusHealthy,
+								},
+							},
+						},
+					},
+				},
+			},
+			InitContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "init-container",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/gpu",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "gpu-1",
+									Health:     api.ResourceHealthStatusUnhealthy,
+								},
+							},
+						},
+					},
+				},
+			},
+			EphemeralContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "ephemeral-container",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/nic",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "nic-1",
+									Health:     api.ResourceHealthStatusHealthy,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	podStatusWithoutResourceHealth := func() *api.PodStatus {
+		return &api.PodStatus{
+			ContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "container1",
+				},
+			},
+			InitContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "init-container",
+				},
+			},
+			EphemeralContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "ephemeral-container",
+				},
+			},
+		}
+	}
+
+	podStatusNilResourceHealth := func() *api.PodStatus {
+		return &api.PodStatus{
+			ContainerStatuses: []api.ContainerStatus{
+				{
+					Name:                     "container1",
+					AllocatedResourcesStatus: nil,
+				},
+			},
+			InitContainerStatuses: []api.ContainerStatus{
+				{
+					Name:                     "init-container",
+					AllocatedResourcesStatus: nil,
+				},
+			},
+			EphemeralContainerStatuses: []api.ContainerStatus{
+				{
+					Name:                     "ephemeral-container",
+					AllocatedResourcesStatus: nil,
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name          string
+		enabled       bool
+		podStatus     *api.PodStatus
+		oldPodStatus  *api.PodStatus
+		wantPodStatus *api.PodStatus
+	}{
+		{
+			name:          "feature enabled, old=without, new=without",
+			enabled:       true,
+			oldPodStatus:  podStatusWithoutResourceHealth(),
+			podStatus:     podStatusWithoutResourceHealth(),
+			wantPodStatus: podStatusWithoutResourceHealth(),
+		},
+		{
+			name:          "feature enabled, old=with, new=with",
+			enabled:       true,
+			oldPodStatus:  podStatusWithResourceHealth(),
+			podStatus:     podStatusWithResourceHealth(),
+			wantPodStatus: podStatusWithResourceHealth(),
+		},
+		{
+			name:          "feature enabled, old=without, new=with",
+			enabled:       true,
+			oldPodStatus:  podStatusWithoutResourceHealth(),
+			podStatus:     podStatusWithResourceHealth(),
+			wantPodStatus: podStatusWithResourceHealth(),
+		},
+		{
+			name:          "feature disabled, old=without, new=without",
+			enabled:       false,
+			oldPodStatus:  podStatusWithoutResourceHealth(),
+			podStatus:     podStatusWithoutResourceHealth(),
+			wantPodStatus: podStatusNilResourceHealth(),
+		},
+		{
+			name:          "feature disabled, old=without, new=with (should drop)",
+			enabled:       false,
+			oldPodStatus:  podStatusWithoutResourceHealth(),
+			podStatus:     podStatusWithResourceHealth(),
+			wantPodStatus: podStatusNilResourceHealth(),
+		},
+		{
+			name:          "feature disabled, old=with, new=with (should preserve - bug fix)",
+			enabled:       false,
+			oldPodStatus:  podStatusWithResourceHealth(),
+			podStatus:     podStatusWithResourceHealth(),
+			wantPodStatus: podStatusWithResourceHealth(),
+		},
+		{
+			name:          "feature disabled, old=with, new=without (should preserve nil)",
+			enabled:       false,
+			oldPodStatus:  podStatusWithResourceHealth(),
+			podStatus:     podStatusWithoutResourceHealth(),
+			wantPodStatus: podStatusWithoutResourceHealth(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ResourceHealthStatus, tt.enabled)
+			dropDisabledPodStatusFields(tt.podStatus, tt.oldPodStatus, &api.PodSpec{}, &api.PodSpec{})
+			if !reflect.DeepEqual(tt.podStatus, tt.wantPodStatus) {
+				t.Errorf("dropDisabledPodStatusFields() = %v, want %v\ndiff: %v",
+					tt.podStatus, tt.wantPodStatus, cmp.Diff(tt.wantPodStatus, tt.podStatus))
+			}
+		})
+	}
+}
+
+func TestResourceHealthStatusMessageInUse(t *testing.T) {
+	message := "test message"
+	testCases := []struct {
+		name      string
+		podStatus *api.PodStatus
+		expected  bool
+	}{
+		{
+			name:      "nil pod status",
+			podStatus: nil,
+			expected:  false,
+		},
+		{
+			name: "empty pod status",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{},
+			},
+			expected: false,
+		},
+		{
+			name: "pod status with message in container",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "test-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+										Message:    &message,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "pod status with message in init container",
+			podStatus: &api.PodStatus{
+				InitContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "init-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+										Message:    &message,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "pod status with message in ephemeral container",
+			podStatus: &api.PodStatus{
+				EphemeralContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "ephemeral-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+										Message:    &message,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "pod status without message (nil pointer)",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "test-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+										Message:    nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "pod status with AllocatedResourcesStatus but no message",
+			podStatus: &api.PodStatus{
+				ContainerStatuses: []api.ContainerStatus{
+					{
+						Name: "test-container",
+						AllocatedResourcesStatus: []api.ResourceStatus{
+							{
+								Name: "example.com/device",
+								Resources: []api.ResourceHealth{
+									{
+										ResourceID: "device-1",
+										Health:     api.ResourceHealthStatusHealthy,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := resourceHealthStatusMessageInUse(tc.podStatus)
+			if result != tc.expected {
+				t.Errorf("resourceHealthStatusMessageInUse() = %v, want %v", result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestDropDisabledPodStatusFields_ResourceHealthStatusMessage(t *testing.T) {
+	message1 := "ECC error detected"
+	message2 := "GPU temperature high"
+	message3 := "NIC link down"
+
+	podStatusWithMessage := func() *api.PodStatus {
+		return &api.PodStatus{
+			ContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "container1",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/device",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "device-1",
+									Health:     api.ResourceHealthStatusHealthy,
+									Message:    &message1,
+								},
+							},
+						},
+					},
+				},
+			},
+			InitContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "init-container",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/gpu",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "gpu-1",
+									Health:     api.ResourceHealthStatusUnhealthy,
+									Message:    &message2,
+								},
+							},
+						},
+					},
+				},
+			},
+			EphemeralContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "ephemeral-container",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/nic",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "nic-1",
+									Health:     api.ResourceHealthStatusHealthy,
+									Message:    &message3,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	podStatusWithoutMessage := func() *api.PodStatus {
+		return &api.PodStatus{
+			ContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "container1",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/device",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "device-1",
+									Health:     api.ResourceHealthStatusHealthy,
+									Message:    nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			InitContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "init-container",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/gpu",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "gpu-1",
+									Health:     api.ResourceHealthStatusUnhealthy,
+									Message:    nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			EphemeralContainerStatuses: []api.ContainerStatus{
+				{
+					Name: "ephemeral-container",
+					AllocatedResourcesStatus: []api.ResourceStatus{
+						{
+							Name: "example.com/nic",
+							Resources: []api.ResourceHealth{
+								{
+									ResourceID: "nic-1",
+									Health:     api.ResourceHealthStatusHealthy,
+									Message:    nil,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name          string
+		enabled       bool
+		podStatus     *api.PodStatus
+		oldPodStatus  *api.PodStatus
+		wantPodStatus *api.PodStatus
+	}{
+		{
+			name:          "feature enabled, old=without, new=without",
+			enabled:       true,
+			oldPodStatus:  podStatusWithoutMessage(),
+			podStatus:     podStatusWithoutMessage(),
+			wantPodStatus: podStatusWithoutMessage(),
+		},
+		{
+			name:          "feature enabled, old=with, new=with",
+			enabled:       true,
+			oldPodStatus:  podStatusWithMessage(),
+			podStatus:     podStatusWithMessage(),
+			wantPodStatus: podStatusWithMessage(),
+		},
+		{
+			name:          "feature enabled, old=without, new=with",
+			enabled:       true,
+			oldPodStatus:  podStatusWithoutMessage(),
+			podStatus:     podStatusWithMessage(),
+			wantPodStatus: podStatusWithMessage(),
+		},
+		{
+			name:          "feature disabled, old=without, new=without",
+			enabled:       false,
+			oldPodStatus:  podStatusWithoutMessage(),
+			podStatus:     podStatusWithoutMessage(),
+			wantPodStatus: podStatusWithoutMessage(),
+		},
+		{
+			name:          "feature disabled, old=without, new=with (should drop)",
+			enabled:       false,
+			oldPodStatus:  podStatusWithoutMessage(),
+			podStatus:     podStatusWithMessage(),
+			wantPodStatus: podStatusWithoutMessage(),
+		},
+		{
+			name:          "feature disabled, old=with, new=with (should preserve - bug fix)",
+			enabled:       false,
+			oldPodStatus:  podStatusWithMessage(),
+			podStatus:     podStatusWithMessage(),
+			wantPodStatus: podStatusWithMessage(),
+		},
+		{
+			name:          "feature disabled, old=with, new=without (should preserve nil)",
+			enabled:       false,
+			oldPodStatus:  podStatusWithMessage(),
+			podStatus:     podStatusWithoutMessage(),
+			wantPodStatus: podStatusWithoutMessage(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Enable ResourceHealthStatus as well since ResourceHealthStatusMessage depends on it
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ResourceHealthStatus, true)
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ResourceHealthStatusMessage, tt.enabled)
+			dropDisabledPodStatusFields(tt.podStatus, tt.oldPodStatus, &api.PodSpec{}, &api.PodSpec{})
+			if !reflect.DeepEqual(tt.podStatus, tt.wantPodStatus) {
+				t.Errorf("dropDisabledPodStatusFields() = %v, want %v\ndiff: %v",
+					tt.podStatus, tt.wantPodStatus, cmp.Diff(tt.wantPodStatus, tt.podStatus))
+			}
+		})
+	}
+}
+
+func TestHasRestartContainerForNonSidecarInitContainer(t *testing.T) {
+	tests := []struct {
+		name     string
+		podSpec  *api.PodSpec
+		expected bool
+	}{
+		{
+			name:     "nil pod spec",
+			podSpec:  nil,
+			expected: false,
+		},
+		{
+			name:     "no init containers",
+			podSpec:  &api.PodSpec{InitContainers: []api.Container{}},
+			expected: false,
+		},
+		{
+			name: "regular init container without resize policy",
+			podSpec: &api.PodSpec{
+				InitContainers: []api.Container{
+					{Name: "init-1"},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "sidecar (restartable) init container with RestartContainer policy",
+			podSpec: &api.PodSpec{
+				InitContainers: []api.Container{
+					{
+						Name:          "sidecar",
+						RestartPolicy: ptr.To(api.ContainerRestartPolicyAlways),
+						ResizePolicy: []api.ContainerResizePolicy{
+							{ResourceName: api.ResourceCPU, RestartPolicy: api.RestartContainer},
+						},
+					},
+				},
+			},
+			expected: false, // Should be false because it's a sidecar
+		},
+		{
+			name: "non-sidecar init container with NotRequired policy",
+			podSpec: &api.PodSpec{
+				InitContainers: []api.Container{
+					{
+						Name: "init-1",
+						ResizePolicy: []api.ContainerResizePolicy{
+							{ResourceName: api.ResourceCPU, RestartPolicy: api.NotRequired},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "non-sidecar init container with RestartContainer policy",
+			podSpec: &api.PodSpec{
+				InitContainers: []api.Container{
+					{
+						Name: "init-1",
+						ResizePolicy: []api.ContainerResizePolicy{
+							{ResourceName: api.ResourceMemory, RestartPolicy: api.RestartContainer},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "mix of sidecar and non-sidecar with RestartContainer policy",
+			podSpec: &api.PodSpec{
+				InitContainers: []api.Container{
+					{
+						Name:          "sidecar",
+						RestartPolicy: ptr.To(api.ContainerRestartPolicyAlways),
+						ResizePolicy: []api.ContainerResizePolicy{
+							{ResourceName: api.ResourceCPU, RestartPolicy: api.RestartContainer},
+						},
+					},
+					{
+						Name: "init-2",
+						ResizePolicy: []api.ContainerResizePolicy{
+							{ResourceName: api.ResourceCPU, RestartPolicy: api.RestartContainer},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := hasRestartContainerForNonSidecarInitContainer(tt.podSpec)
+			if result != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestDropDisabledPodPIDLimitFields(t *testing.T) {
+	pidLimit := resource.MustParse("2048")
+
+	podWithPIDLimits := func() *api.PodSpec {
+		return &api.PodSpec{
+			Resources: &api.ResourceRequirements{
+				Limits: api.ResourceList{api.ResourcePID: pidLimit},
+			},
+			Containers: []api.Container{
+				{Name: "c1", Image: "img"},
+			},
+		}
+	}
+
+	podWithPIDLimitsAndRequests := func() *api.PodSpec {
+		return &api.PodSpec{
+			Resources: &api.ResourceRequirements{
+				Limits:   api.ResourceList{api.ResourcePID: pidLimit},
+				Requests: api.ResourceList{api.ResourcePID: pidLimit},
+			},
+			Containers: []api.Container{
+				{Name: "c1", Image: "img"},
+			},
+		}
+	}
+
+	podWithoutPID := func() *api.PodSpec {
+		return &api.PodSpec{
+			Resources: &api.ResourceRequirements{
+				Limits:   api.ResourceList{api.ResourceCPU: resource.MustParse("1")},
+				Requests: api.ResourceList{api.ResourceCPU: resource.MustParse("1")},
+			},
+			Containers: []api.Container{
+				{Name: "c1", Image: "img"},
+			},
+		}
+	}
+
+	tests := []struct {
+		name             string
+		gateOn           bool
+		podSpec          func() *api.PodSpec
+		oldPodSpec       func() *api.PodSpec
+		expectPIDLimit   bool
+		expectPIDRequest bool
+	}{
+		{
+			name:             "gate on: pid limit preserved",
+			gateOn:           true,
+			podSpec:          podWithPIDLimits,
+			oldPodSpec:       func() *api.PodSpec { return nil },
+			expectPIDLimit:   true,
+			expectPIDRequest: false,
+		},
+		{
+			name:             "gate on: requests.pid always stripped even when gate is on",
+			gateOn:           true,
+			podSpec:          podWithPIDLimitsAndRequests,
+			oldPodSpec:       func() *api.PodSpec { return nil },
+			expectPIDLimit:   true,
+			expectPIDRequest: false,
+		},
+		{
+			name:             "gate off, no old pod: pid limit stripped",
+			gateOn:           false,
+			podSpec:          podWithPIDLimits,
+			oldPodSpec:       func() *api.PodSpec { return nil },
+			expectPIDLimit:   false,
+			expectPIDRequest: false,
+		},
+		{
+			name:             "gate off, old pod has pid limit: pid limit preserved",
+			gateOn:           false,
+			podSpec:          podWithPIDLimits,
+			oldPodSpec:       podWithPIDLimits,
+			expectPIDLimit:   true,
+			expectPIDRequest: false,
+		},
+		{
+			name:             "gate off, no pid in spec: unrelated fields untouched",
+			gateOn:           false,
+			podSpec:          podWithoutPID,
+			oldPodSpec:       func() *api.PodSpec { return nil },
+			expectPIDLimit:   false,
+			expectPIDRequest: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PerPodPIDLimit, tt.gateOn)
+
+			newSpec := tt.podSpec()
+			oldSpec := tt.oldPodSpec()
+			dropDisabledPodPIDLimitFields(newSpec, oldSpec)
+
+			_, hasPIDLimit := newSpec.Resources.Limits[api.ResourcePID]
+			if hasPIDLimit != tt.expectPIDLimit {
+				t.Errorf("expected pid in limits=%v, got %v", tt.expectPIDLimit, hasPIDLimit)
+			}
+			_, hasPIDRequest := newSpec.Resources.Requests[api.ResourcePID]
+			if hasPIDRequest != tt.expectPIDRequest {
+				t.Errorf("expected pid in requests=%v, got %v", tt.expectPIDRequest, hasPIDRequest)
+			}
+		})
+	}
+
+	t.Run("gate off, nil pod resources: no panic", func(t *testing.T) {
+		featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PerPodPIDLimit, false)
+		spec := &api.PodSpec{
+			Resources:  nil,
+			Containers: []api.Container{{Name: "c1", Image: "img"}},
+		}
+		dropDisabledPodPIDLimitFields(spec, nil)
+		if spec.Resources != nil {
+			t.Errorf("expected Resources to remain nil")
+		}
+	})
+}

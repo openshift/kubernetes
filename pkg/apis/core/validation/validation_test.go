@@ -20933,6 +20933,140 @@ func TestValidateResourceNames(t *testing.T) {
 	}
 }
 
+func TestValidateContainerResourceName_PID(t *testing.T) {
+	tests := []struct {
+		name      string
+		gateOn    bool
+		resource  core.ResourceName
+		expectErr bool
+	}{
+		{
+			name:      "pid rejected at container level even when gate is on",
+			gateOn:    true,
+			resource:  core.ResourcePID,
+			expectErr: true,
+		},
+		{
+			name:      "pid rejected at container level when gate is off",
+			gateOn:    false,
+			resource:  core.ResourcePID,
+			expectErr: true,
+		},
+		{
+			name:      "cpu still works with gate on",
+			gateOn:    true,
+			resource:  core.ResourceCPU,
+			expectErr: false,
+		},
+		{
+			name:      "cpu still works with gate off",
+			gateOn:    false,
+			resource:  core.ResourceCPU,
+			expectErr: false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PerPodPIDLimit, tc.gateOn)
+			errs := validateContainerResourceName(tc.resource, field.NewPath("resources"))
+			if tc.expectErr && len(errs) == 0 {
+				t.Errorf("expected error for resource %q with gate=%v, got none", tc.resource, tc.gateOn)
+			}
+			if !tc.expectErr && len(errs) != 0 {
+				t.Errorf("expected no error for resource %q with gate=%v, got: %v", tc.resource, tc.gateOn, errs)
+			}
+		})
+	}
+}
+
+func TestValidatePodResourceRequirements_PID(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PerPodPIDLimit, true)
+	path := field.NewPath("spec", "resources")
+
+	tests := []struct {
+		name         string
+		requirements core.ResourceRequirements
+		expectErr    bool
+	}{
+		{
+			name: "valid pid limit only",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("2048")},
+			},
+			expectErr: false,
+		},
+		{
+			name: "requests.pid is forbidden even when equal to limits",
+			requirements: core.ResourceRequirements{
+				Limits:   core.ResourceList{core.ResourcePID: resource.MustParse("2048")},
+				Requests: core.ResourceList{core.ResourcePID: resource.MustParse("2048")},
+			},
+			expectErr: true,
+		},
+		{
+			name: "requests.pid alone is forbidden",
+			requirements: core.ResourceRequirements{
+				Requests: core.ResourceList{core.ResourcePID: resource.MustParse("2048")},
+			},
+			expectErr: true,
+		},
+		{
+			name: "pid below minimum (1024) rejected",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("512")},
+			},
+			expectErr: true,
+		},
+		{
+			name: "pid above maximum (16384) rejected",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("32768")},
+			},
+			expectErr: true,
+		},
+		{
+			name: "pid at minimum boundary (1024) valid",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("1024")},
+			},
+			expectErr: false,
+		},
+		{
+			name: "pid at maximum boundary (16384) valid",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("16384")},
+			},
+			expectErr: false,
+		},
+		{
+			name: "zero pid value rejected",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("0")},
+			},
+			expectErr: true,
+		},
+		{
+			name: "negative pid value rejected",
+			requirements: core.ResourceRequirements{
+				Limits: core.ResourceList{core.ResourcePID: resource.MustParse("-1")},
+			},
+			expectErr: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			reqs := tc.requirements
+			errs := validatePodResourceRequirements(&reqs, nil, path, PodValidationOptions{})
+			if tc.expectErr && len(errs) == 0 {
+				t.Errorf("expected error, got none")
+			}
+			if !tc.expectErr && len(errs) != 0 {
+				t.Errorf("expected no error, got: %v", errs)
+			}
+		})
+	}
+}
+
 func TestValidateLimitRangeForLocalStorage(t *testing.T) {
 	testCases := []struct {
 		name string
@@ -30344,5 +30478,217 @@ func TestValidateWorkloadReference(t *testing.T) {
 		if len(errs) == 0 {
 			t.Errorf("Expected failure for %q", name)
 		}
+	}
+}
+
+func TestValidatePodBinding(t *testing.T) {
+	testCases := []struct {
+		name        string
+		binding     core.Binding
+		expectError bool
+		errContains string
+	}{
+		{
+			name: "valid binding with lowercase node name",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Kind: "Node",
+					Name: "valid-node-name",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid binding with empty kind (defaults to Node)",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Name: "valid-node-name",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid binding with uppercase node name",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Kind: "Node",
+					Name: "INVALID-NODE-NAME",
+				},
+			},
+			expectError: true,
+			errContains: "a lowercase RFC 1123 subdomain",
+		},
+		{
+			name: "invalid binding with empty node name",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Kind: "Node",
+					Name: "",
+				},
+			},
+			expectError: true,
+			errContains: "Required value",
+		},
+		{
+			name: "invalid binding with node name containing invalid characters",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Kind: "Node",
+					Name: "node_with_underscore",
+				},
+			},
+			expectError: true,
+			errContains: "a lowercase RFC 1123 subdomain",
+		},
+		{
+			name: "invalid binding with unsupported target kind",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Kind: "Pod",
+					Name: "some-pod",
+				},
+			},
+			expectError: true,
+			errContains: "Unsupported value",
+		},
+		{
+			name: "valid binding with node name containing dots",
+			binding: core.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod",
+					Namespace: "default",
+				},
+				Target: core.ObjectReference{
+					Kind: "Node",
+					Name: "node.example.com",
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			errs := ValidatePodBinding(&tc.binding)
+			if tc.expectError {
+				if len(errs) == 0 {
+					t.Errorf("Expected error but got none")
+				} else if tc.errContains != "" {
+					found := false
+					for _, err := range errs {
+						if strings.Contains(err.Error(), tc.errContains) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("Expected error containing %q but got %v", tc.errContains, errs)
+					}
+				}
+			} else {
+				if len(errs) != 0 {
+					t.Errorf("Expected no error but got %v", errs)
+				}
+			}
+		})
+	}
+}
+
+func TestValidatePIDResource(t *testing.T) {
+	fldPath := field.NewPath("spec", "resources", "limits").Key("pid")
+
+	tests := []struct {
+		name      string
+		gateOn    bool
+		pidValue  string
+		expectErr bool
+	}{
+		{
+			name:      "pid allowed when gate is on, valid value",
+			gateOn:    true,
+			pidValue:  "2048",
+			expectErr: false,
+		},
+		{
+			name:      "pid rejected when gate is off",
+			gateOn:    false,
+			pidValue:  "2048",
+			expectErr: true,
+		},
+		{
+			name:      "pid at minimum boundary (1024)",
+			gateOn:    true,
+			pidValue:  "1024",
+			expectErr: false,
+		},
+		{
+			name:      "pid at maximum boundary (16384)",
+			gateOn:    true,
+			pidValue:  "16384",
+			expectErr: false,
+		},
+		{
+			name:      "pid below minimum rejected",
+			gateOn:    true,
+			pidValue:  "512",
+			expectErr: true,
+		},
+		{
+			name:      "pid above maximum rejected",
+			gateOn:    true,
+			pidValue:  "32768",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.PerPodPIDLimit, tt.gateOn)
+
+			q := resource.MustParse(tt.pidValue)
+
+			errs := validatePodResourceName(core.ResourcePID, fldPath)
+			if !tt.gateOn {
+				if len(errs) == 0 {
+					t.Errorf("expected pid to be rejected when gate is off")
+				}
+				return
+			}
+			if len(errs) != 0 {
+				t.Errorf("expected no resource name errors with gate on, got: %v", errs)
+				return
+			}
+			rangeErrs := validatePIDResourceValue(core.ResourcePID, q, fldPath)
+			if tt.expectErr && len(rangeErrs) == 0 {
+				t.Errorf("expected range validation error for %v", q.String())
+			}
+			if !tt.expectErr && len(rangeErrs) != 0 {
+				t.Errorf("unexpected range validation error: %v", rangeErrs)
+			}
+		})
 	}
 }
