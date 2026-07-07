@@ -1244,7 +1244,7 @@
   - default: false
     lockToDefault: false
     preRelease: Alpha
-    version: "1.37"
+    version: "1.35"
 - name: PodAndContainerStatsFromCRI
   versionedSpecs:
   - default: false

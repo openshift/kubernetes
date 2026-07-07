@@ -971,10 +971,18 @@ var (
 				mustRegister()
 
 	FeatureGateConfidentialCluster = newFeatureGate("ConfidentialCluster").
-					reportProblemsToJiraComponent("ConfidentialClusters").
-					contactPerson("fjin").
-					productScope(ocpSpecific).
-					enhancementPR("https://github.com/openshift/enhancements/pull/1962").
-					enable(inDevPreviewNoUpgrade()).
-					mustRegister()
+				reportProblemsToJiraComponent("ConfidentialClusters").
+				contactPerson("fjin").
+				productScope(ocpSpecific).
+				enhancementPR("https://github.com/openshift/enhancements/pull/1962").
+				enable(inDevPreviewNoUpgrade()).
+				mustRegister()
+
+	FeatureGatePerPodPIDLimit = newFeatureGate("PerPodPIDLimit").
+				reportProblemsToJiraComponent("node").
+				contactPerson("bgudi").
+				productScope(kubernetes).
+				enhancementPR("https://github.com/kubernetes/enhancements/issues/6063").
+				enable(inTechPreviewNoUpgrade(), inDevPreviewNoUpgrade()).
+				mustRegister()
 )
