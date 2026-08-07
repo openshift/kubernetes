@@ -186,7 +186,10 @@ func (s *DelegatingAuthorizationOptions) toAuthorizer(client kubernetes.Interfac
 	}
 
 	// add an authorizer to always approver the openshift metrics scraper.
-	authorizers = append(authorizers, hardcodedauthorizer.NewHardCodedMetricsAuthorizer())
+	authorizers = append(authorizers, union.NamedAuthorizer{
+		AuthorizerName: "openshift.io/hardcoded-metrics",
+		Authorizer:     hardcodedauthorizer.NewHardCodedMetricsAuthorizer(),
+	})
 
 	if len(s.AlwaysAllowPaths) > 0 {
 		a, err := path.NewAuthorizer(s.AlwaysAllowPaths)
