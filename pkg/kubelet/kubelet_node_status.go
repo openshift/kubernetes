@@ -135,7 +135,7 @@ func (kl *Kubelet) tryRegisterWithAPIServer(ctx context.Context, node *v1.Node) 
 	requiresUpdate = kl.reconcileExtendedResource(logger, node, existingNode) || requiresUpdate
 	requiresUpdate = kl.reconcileHugePageResource(logger, node, existingNode) || requiresUpdate
 	if managed.IsEnabled() {
-		requiresUpdate = kl.addManagementNodeCapacity(node, existingNode) || requiresUpdate
+		requiresUpdate = kl.addManagementNodeCapacity(logger, node, existingNode) || requiresUpdate
 	}
 	requiresUpdate = kl.reconcileSharedCPUsNodeCapacity(node, existingNode) || requiresUpdate
 	if requiresUpdate {
@@ -149,9 +149,9 @@ func (kl *Kubelet) tryRegisterWithAPIServer(ctx context.Context, node *v1.Node) 
 }
 
 // addManagementNodeCapacity adds the managednode capacity to the node
-func (kl *Kubelet) addManagementNodeCapacity(initialNode, existingNode *v1.Node) bool {
+func (kl *Kubelet) addManagementNodeCapacity(logger klog.Logger, initialNode, existingNode *v1.Node) bool {
 	updateDefaultResources(initialNode, existingNode)
-	machineInfo, err := kl.cadvisor.MachineInfo()
+	machineInfo, err := kl.cadvisor.MachineInfo(logger)
 	if err != nil {
 		klog.Errorf("Unable to calculate managed node capacity for %q: %v", kl.nodeName, err)
 		return false
@@ -407,7 +407,7 @@ func (kl *Kubelet) initialNode(ctx context.Context) (*v1.Node, error) {
 	}
 
 	if managed.IsEnabled() {
-		kl.addManagementNodeCapacity(node, node)
+		kl.addManagementNodeCapacity(logger, node, node)
 	}
 	kl.reconcileSharedCPUsNodeCapacity(node, node)
 
