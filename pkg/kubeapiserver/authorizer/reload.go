@@ -215,19 +215,28 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			ruleResolvers = append(ruleResolvers, r.rbacAuthorizer)
 		case authzconfig.AuthorizerType(modes.ModeScope):
 			// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-			authorizers = append(authorizers, browsersafe.NewBrowserSafeAuthorizer(r.scopeLimitedAuthorizer, user.AllAuthenticated))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     browsersafe.NewBrowserSafeAuthorizer(r.scopeLimitedAuthorizer, user.AllAuthenticated),
+			})
 		case authzconfig.AuthorizerType(modes.ModeSystemMasters):
 			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
-			authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer:     authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
+			})
 		case authzconfig.AuthorizerType(modes.ModeMinimumKubeletVersion):
 			// Add MinimumKubeletVerison authorizer, to block a node from being able to access most resources if it's not new enough.
 			// We must do so here instead of in pkg/apiserver because it relies on a node informer, which is not present in generic control planes.
-			authorizers = append(authorizers, minimumkubeletversion.NewMinimumKubeletVersion(
-				GetMinimumKubeletVersion(),
-				nodeidentifier.NewDefaultNodeIdentifier(),
-				r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Informer(),
-				r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Lister(),
-			))
+			authorizers = append(authorizers, union.NamedAuthorizer{
+				AuthorizerName: configuredAuthorizer.Name,
+				Authorizer: minimumkubeletversion.NewMinimumKubeletVersion(
+					GetMinimumKubeletVersion(),
+					nodeidentifier.NewDefaultNodeIdentifier(),
+					r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Informer(),
+					r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Lister(),
+				),
+			})
 		default:
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
 		}
