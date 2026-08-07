@@ -23,13 +23,10 @@ import (
 	"net/http"
 	"time"
 
-	noopoteltrace "go.opentelemetry.io/otel/trace/noop"
-
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/enablement"
 	"k8s.io/kubernetes/openshift-kube-apiserver/openshiftkubeapiserver"
 	eventstorage "k8s.io/kubernetes/pkg/registry/core/event/storage"
-
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
