@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -117,7 +118,7 @@ func TestCreate(t *testing.T) {
 
 	for k, tc := range testcases {
 		auth := &fakeAuthorizer{}
-		storage := NewREST(auth)
+		storage := NewREST(auth, runtime.NewScheme())
 		spec := authorizationapi.SelfSubjectAccessReviewSpec{
 			NonResourceAttributes: &authorizationapi.NonResourceAttributes{Verb: "get", Path: "/mypath"},
 		}
