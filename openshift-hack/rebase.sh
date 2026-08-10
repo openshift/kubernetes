@@ -133,7 +133,7 @@ tag="rhel-8-release-golang-${go_mod_go_ver}-openshift-${openshift_release#releas
 sed -i -E "/=>/! s/(\tgithub.com\/openshift\/[a-z|-]+) (.*)$/\1 $openshift_release/" go.mod
 
 echo "> go mod tidy && hack/update-vendor.sh"
-podman run -it --rm -v "$(pwd):/go/k8s.io/kubernetes:Z" \
+podman run --rm -v "$(pwd):/go/k8s.io/kubernetes:Z" \
   --workdir=/go/k8s.io/kubernetes \
   "registry.ci.openshift.org/openshift/release:$tag" \
   go mod tidy && hack/update-vendor.sh
@@ -144,7 +144,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-podman run -it --rm -v "$(pwd):/go/k8s.io/kubernetes:Z" \
+podman run --rm -v "$(pwd):/go/k8s.io/kubernetes:Z" \
   --workdir=/go/k8s.io/kubernetes \
   "registry.ci.openshift.org/openshift/release:$tag" \
   make update OS_RUN_WITHOUT_DOCKER=yes
