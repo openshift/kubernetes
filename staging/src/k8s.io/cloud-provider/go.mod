@@ -6,6 +6,8 @@ go 1.24.0
 
 godebug default=go1.24
 
+
+
 require (
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.9.1
@@ -21,7 +23,6 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 )
-
 require (
 	cel.dev/expr v0.24.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
@@ -61,7 +62,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openshift/library-go v0.0.0-20251015151611-6fc7a74b67c5 // indirect
+	github.com/openshift/library-go v0.0.0-20260518122146-385e91fd29b1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
@@ -113,7 +114,6 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
 	k8s.io/api => ../api
