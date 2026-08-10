@@ -12,15 +12,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
 	google.golang.org/grpc v1.72.1
-<<<<<<< HEAD
-	google.golang.org/protobuf v1.36.5
-	k8s.io/api v0.34.1
-	k8s.io/apimachinery v0.34.1
-=======
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
->>>>>>> v1.34.10
 	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v0.34.1
 	k8s.io/component-base v0.34.1
