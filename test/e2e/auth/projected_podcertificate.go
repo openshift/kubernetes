@@ -80,7 +80,7 @@ var _ = SIGDescribe("Projected PodCertificate",
 			A pod configured with a projected podCertificate volume and an associated ClusterTrustBundle MUST project a valid leaf certificate chain and key.
 			Two pods configured with such certificates and keys under the same CA MUST be able to establish a mutually authenticated TLS (mTLS) connection.
 		*/
-		framework.ConformanceIt("should allow server and client pods to establish an mTLS connection [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
+		ginkgo.It("should allow server and client pods to establish an mTLS connection [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
 			namespace := f.Namespace.Name
 			ginkgo.By("Using namespace: " + namespace)
 
@@ -126,7 +126,7 @@ var _ = SIGDescribe("Projected PodCertificate",
 			The podCertificate volume projection MUST support passing unverified user annotations from the pod spec to the signer.
 			The signer MUST be able to receive and process these annotations (e.g. to override the SPIFFE URI path in the generated certificate SANs).
 		*/
-		framework.ConformanceIt("should honor UserAnnotations for SPIFFE URI path [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
+		ginkgo.It("should honor UserAnnotations for SPIFFE URI path [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
 			namespace := f.Namespace.Name
 			ginkgo.By("Using namespace: " + namespace)
 
@@ -181,7 +181,7 @@ var _ = SIGDescribe("Projected PodCertificate",
 				Description:
 				If MaxExpirationSeconds is omitted from the projected volume spec, the issued certificate MUST have a default lifetime of 24 hours.
 			*/
-			framework.ConformanceIt("should issue certificate with default life time (24h) when MaxExpirationSeconds is not set [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
+			ginkgo.It("should issue certificate with default life time (24h) when MaxExpirationSeconds is not set [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
 				namespace := f.Namespace.Name
 				ginkgo.By("Using namespace: " + namespace)
 
@@ -222,7 +222,7 @@ var _ = SIGDescribe("Projected PodCertificate",
 				Description:
 				If MaxExpirationSeconds is specified in the projected volume spec (e.g. 1 hour), the issued certificate MUST have a lifetime matching that duration.
 			*/
-			framework.ConformanceIt("should issue certificate with specified duration (1h) when MaxExpirationSeconds is set [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
+			ginkgo.It("should issue certificate with specified duration (1h) when MaxExpirationSeconds is set [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
 				namespace := f.Namespace.Name
 				ginkgo.By("Using namespace: " + namespace)
 
@@ -264,7 +264,7 @@ var _ = SIGDescribe("Projected PodCertificate",
 				Description:
 				Creating a pod with a projected podCertificate volume requesting a MaxExpirationSeconds exceeding the maximum of 91 days MUST be rejected by the API server during admission.
 			*/
-			framework.ConformanceIt("should reject pod creation when MaxExpirationSeconds exceeds maximum (91d) [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
+			ginkgo.It("should reject pod creation when MaxExpirationSeconds exceeds maximum (91d) [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
 				namespace := f.Namespace.Name
 				ginkgo.By("Using namespace: " + namespace)
 
@@ -287,7 +287,7 @@ var _ = SIGDescribe("Projected PodCertificate",
 				Description:
 				Creating a pod with a projected podCertificate volume requesting a MaxExpirationSeconds less than the minimum of 1 hour MUST be rejected by the API server during admission.
 			*/
-			framework.ConformanceIt("should reject pod creation when MaxExpirationSeconds is less than minimum (1h) [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
+			ginkgo.It("should reject pod creation when MaxExpirationSeconds is less than minimum (1h) [MinimumKubeletVersion:1.37]", func(ctx context.Context) {
 				namespace := f.Namespace.Name
 				ginkgo.By("Using namespace: " + namespace)
 
