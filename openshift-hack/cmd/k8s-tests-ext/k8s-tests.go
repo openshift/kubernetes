@@ -50,6 +50,14 @@ func main() {
 	extensionRegistry.Register(kubeTestsExtension)
 
 	// Carve up the kube tests into our openshift suites...
+	// kubernetes/conformance is used by OPCT to run the minimal true upstream
+	// Kubernetes conformance tests, not the broader view OCP takes of what
+	// "conformance" means.
+	kubeTestsExtension.AddSuite(e.Suite{
+		Name:       "kubernetes/conformance",
+		Qualifiers: []string{`labels.exists(l, l == "Conformance")`},
+	})
+
 	kubeTestsExtension.AddSuite(e.Suite{
 		Name: "kubernetes/conformance/parallel",
 		Parents: []string{
