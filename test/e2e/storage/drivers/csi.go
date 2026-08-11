@@ -174,6 +174,11 @@ func InitHostPathCSIDriver() storageframework.TestDriver {
 		// added when patching the deployment.
 		storageframework.CapVolumeLimits: true,
 	}
+	// DO NOT MERGE: pre-merge testing functionality when this env var is true in openshift/release
+	err := os.Setenv("CSI_PROW_ENABLE_SNAPSHOT_METADATA", "true")
+	if err != nil {
+		framework.Failf("failed to set CSI_PROW_ENABLE_SNAPSHOT_METADATA: %v", err)
+	}
 	// TODO: It can be removed after the VolumeGroupSnapshot feature is default enabled
 	if os.Getenv("CSI_PROW_ENABLE_GROUP_SNAPSHOT") == "true" {
 		capabilities[storageframework.CapVolumeGroupSnapshot] = true
