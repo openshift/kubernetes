@@ -17,7 +17,6 @@ limitations under the License.
 package features
 
 import (
-	"k8s.io/component-helpers/nodedeclaredfeatures/features/dranodeallocatableresources"
 	"k8s.io/component-helpers/nodedeclaredfeatures/features/extendwebsocketstokubelet"
 	"k8s.io/component-helpers/nodedeclaredfeatures/features/inplacepodresize"
 	"k8s.io/component-helpers/nodedeclaredfeatures/features/restartallcontainers"
@@ -34,8 +33,6 @@ var AllFeatures = []types.Feature{
 	inplacepodresize.PodLevelResourcesResizeFeature,
 	extendwebsocketstokubelet.Feature,
 	inplacepodresize.NonSidecarInitContainerResizeFeature,
-	inplacepodresize.MemoryBackedVolumesResizeFeature,
 	usernamespaceshostnetwork.Feature,
-	dranodeallocatableresources.Feature,
 	volumebindmountoptions.Feature,
 }

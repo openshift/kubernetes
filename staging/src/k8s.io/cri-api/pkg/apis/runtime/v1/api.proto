@@ -358,7 +358,7 @@ message Mount {
     string image_sub_path = 10;
     // mount_options specifies additional bind mount options (e.g., noexec,
     // nodev, nosuid) that the runtime must apply when mounting this volume
-    // into the container. These are passed as OCI mount options.
+    // into the container.
     repeated string mount_options = 11;
 }
 
