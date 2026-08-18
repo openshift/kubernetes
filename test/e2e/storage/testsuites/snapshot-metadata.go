@@ -163,7 +163,7 @@ const (
 	sourceDevicePvcName            = "source-device"
 	targetDevicePvcName            = "target-device"
 	installToolContainerName       = "install-tool"
-	installToolImage               = "golang:1.25.7"
+	installToolImage               = "golang:1.26.1"
 	installToolCommand             = "/bin/sh -c 'go install github.com/kubernetes-csi/external-snapshot-metadata/tools/snapshot-metadata-verifier@main && cp $(go env GOPATH)/bin/snapshot-metadata-verifier /output'"
 	sharedVolumeName               = "shared-volume"
 	sharedVolumeMountPath          = "/tools"
@@ -307,11 +307,6 @@ func (s *snapshotMetadataTestSuite) DefineTests(driver storageframework.TestDriv
 
 		config = smDriver.PrepareTest(ctx, f)
 
-		// Create snapshot metadata resources (CRD is already created by test runner script)
-		ginkgo.By("Creating snapshot metadata resources")
-		err = storageutils.CreateSnapshotMetadataResources(ctx, f, config.Driver.GetDriverInfo().Name, config.DriverNamespace.Name)
-		framework.ExpectNoError(err, "Failed to create snapshot metadata resources")
-
 		pattern.VolMode = v1.PersistentVolumeBlock
 		volume = storageframework.CreateVolumeResource(ctx, smDriver, config, pattern, s.GetTestSuiteInfo().SupportedSizeRange)
 		testPVC = volume.Pvc
@@ -359,14 +354,6 @@ func (s *snapshotMetadataTestSuite) DefineTests(driver storageframework.TestDriv
 			backupClientPod = nil
 		}
 
-		// Cleanup snapshot metadata resources
-		if config != nil {
-			ginkgo.By("Cleaning up snapshot metadata resources")
-			err := storageutils.CleanupSnapshotMetadataResources(ctx, f, config.Driver.GetDriverInfo().Name, config.DriverNamespace.Name)
-			if err != nil {
-				framework.Logf("Warning: failed to cleanup snapshot metadata resources: %v", err)
-			}
-		}
 	})
 
 	ginkgo.It("should verify GetMetadataDelta", func(ctx context.Context) {
