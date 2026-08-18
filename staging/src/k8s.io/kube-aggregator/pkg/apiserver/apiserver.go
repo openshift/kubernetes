@@ -372,6 +372,15 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 			go remote.Run(5, context.Done())
 			return nil
 		})
+
+		// expose the per-instance aggregated API reachability signal computed by the
+		// remote availability controller in readyz, so that external load balancers can
+		// avoid routing traffic to an instance that cannot reach its aggregated backends
+		// (probeable individually via /readyz/aggregated-apiservice-reachable and
+		// excludable via /readyz?exclude=aggregated-apiservice-reachable).
+		if err := s.GenericAPIServer.AddReadyzChecks(NewAggregatedAPIServiceReachableCheck(metrics)); err != nil {
+			return nil, err
+		}
 	}
 
 	s.GenericAPIServer.AddPostStartHookOrDie("apiservice-registration-controller", func(context genericapiserver.PostStartHookContext) error {
