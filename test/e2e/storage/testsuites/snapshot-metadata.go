@@ -163,7 +163,7 @@ const (
 	sourceDevicePvcName            = "source-device"
 	targetDevicePvcName            = "target-device"
 	installToolContainerName       = "install-tool"
-	installToolImage               = "golang:1.25.7"
+	installToolImage               = "golang:1.26.1"
 	installToolCommand             = "/bin/sh -c 'go install github.com/kubernetes-csi/external-snapshot-metadata/tools/snapshot-metadata-verifier@main && cp $(go env GOPATH)/bin/snapshot-metadata-verifier /output'"
 	sharedVolumeName               = "shared-volume"
 	sharedVolumeMountPath          = "/tools"
