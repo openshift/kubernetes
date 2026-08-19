@@ -593,7 +593,7 @@ func (s preparedGenericAPIServer) RunWithContext(ctx context.Context) error {
 		Listener:   s.SecureServingInfo.Listener,
 		lateStopCh: lateStopCh,
 	}
-	unexpectedRequestsEventf.Store(s.Eventf)
+	unexpectedRequestsEventf.Store(eventfFunc(s.Eventf))
 
 	// close socket after delayed stopCh
 	shutdownTimeout := s.ShutdownTimeout
