@@ -207,7 +207,7 @@ func CreateAggregatorServer(aggregatorConfig aggregatorapiserver.CompletedConfig
 	// the kube-apiserver's mux, which is shadowed by the aggregator's /readyz handler.
 	aggregatorServer.GenericAPIServer.AddPostStartHookOrDie("prove-pre-ready-window", func(hookContext genericapiserver.PostStartHookContext) error {
 		select {
-		case <-time.After(60 * time.Second):
+		case <-time.After(10 * time.Second):
 		case <-hookContext.Done():
 		}
 		return nil
