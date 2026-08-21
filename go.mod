@@ -73,7 +73,7 @@ require (
 	go.uber.org/zap v1.27.1
 	go.yaml.in/yaml/v2 v2.4.3
 	golang.org/x/crypto v0.53.0
-	golang.org/x/net v0.55.1-0.20260602153038-42abb857022c
+	golang.org/x/net v0.56.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
