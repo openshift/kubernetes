@@ -958,6 +958,27 @@ func TestTerminatePod_DefaultUnknownStatus(t *testing.T) {
 			},
 		},
 		{
+			name: "admission-rejected pod without init containers keeps Failed reason and does not become StatusUnknown",
+			pod: newPod(0, 1, func(pod *v1.Pod) {
+				pod.Spec.RestartPolicy = v1.RestartPolicyNever
+				pod.Status.Phase = v1.PodFailed
+				pod.Status.Reason = "SMTAlignmentError"
+				pod.Status.Message = "Pod was rejected: SMT Alignment Error: requested 5 cpus not multiple cpus per core = 2"
+				pod.Status.ContainerStatuses = []v1.ContainerStatus{
+					{Name: "0", State: v1.ContainerState{Waiting: &v1.ContainerStateWaiting{}}},
+				}
+			}),
+			expectFn: func(t *testing.T, status v1.PodStatus) {
+				if status.Phase != v1.PodFailed {
+					t.Fatalf("expected Failed phase, got %s", status.Phase)
+				}
+				if status.Reason != "SMTAlignmentError" {
+					t.Fatalf("expected SMTAlignmentError to be preserved, got %q", status.Reason)
+				}
+				expectWaiting(t, status.ContainerStatuses[0].State)
+			},
+		},
+		{
 			name: "uninitialized pod defaults the first init container",
 			pod: newPod(1, 1, func(pod *v1.Pod) {
 				pod.Spec.RestartPolicy = v1.RestartPolicyNever
