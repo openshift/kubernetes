@@ -11,7 +11,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		"Alpha": { // alpha features that are not gated
 			"[Feature:StorageVersionAPI]",
 			"[Feature:ClusterTrustBundle]",
-			"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
+			"[sig-cli] kubectl apply Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
 			// 4.19
 			"[Feature:PodLogsQuerySplitStreams]",
 		},
