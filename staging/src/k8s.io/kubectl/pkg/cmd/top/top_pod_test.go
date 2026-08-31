@@ -89,6 +89,14 @@ func TestTopPod(t *testing.T) {
 		namespaces         []string
 		containers         bool
 		listsNamespaces    bool
+		// extraPaths overrides the response of the pod list endpoint, e.g. to
+		// simulate server-side filtering by the core API.
+		extraPaths func(req *http.Request) (*http.Response, error)
+		// expectedInOutput/nonExpectedInOutput override the pod names derived
+		// from namespaces, for cases where the printed pods differ from what
+		// the metrics API returned (e.g. client-side field selector filtering).
+		expectedInOutput    []string
+		nonExpectedInOutput []string
 	}{
 		{
 			name:            "all namespaces",
@@ -116,6 +124,16 @@ func TestTopPod(t *testing.T) {
 			options:       &TopPodOptions{FieldSelector: "key=value"},
 			expectedQuery: "fieldSelector=" + url.QueryEscape("key=value"),
 			namespaces:    []string{testNS, testNS},
+		},
+		{
+			// The metrics API returns all three pods, while the pod list
+			// endpoint only returns pod1, so the client must drop pod2 and pod3.
+			name:                "pod with field selector filtering metrics",
+			options:             &TopPodOptions{FieldSelector: "spec.nodeName=node-a"},
+			namespaces:          []string{testNS, testNS, testNS},
+			extraPaths:          onlyPod1ListResponse,
+			expectedInOutput:    []string{"pod1"},
+			nonExpectedInOutput: []string{"pod2", "pod3"},
 		},
 		{
 			name:    "pod with container metrics",
@@ -215,6 +233,7 @@ func TestTopPod(t *testing.T) {
 			defer tf.Cleanup()
 
 			ns := scheme.Codecs.WithoutConversion()
+			codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 			tf.Client = &fake.RESTClient{
 				NegotiatedSerializer: ns,
@@ -224,6 +243,11 @@ func TestTopPod(t *testing.T) {
 						return &http.Response{StatusCode: http.StatusOK, Header: cmdtesting.DefaultHeader(), Body: io.NopCloser(bytes.NewReader([]byte(apibody)))}, nil
 					case p == "/apis":
 						return &http.Response{StatusCode: http.StatusOK, Header: cmdtesting.DefaultHeader(), Body: io.NopCloser(bytes.NewReader([]byte(apisbodyWithMetrics)))}, nil
+					case p == "/api/v1/namespaces/"+testNS+"/pods", p == "/api/v1/pods":
+						if testCase.extraPaths != nil {
+							return testCase.extraPaths(req)
+						}
+						return &http.Response{StatusCode: http.StatusOK, Header: cmdtesting.DefaultHeader(), Body: cmdtesting.ObjBody(codec, defaultTopPodList(testNS))}, nil
 					default:
 						t.Fatalf("%s: unexpected request: %#v\nGot URL: %#v",
 							testCase.name, req, req.URL)
@@ -258,24 +282,37 @@ func TestTopPod(t *testing.T) {
 
 			// Check the presence of pod names&namespaces/container names in the output.
 			result := buf.String()
-			if testCase.containers {
-				for _, containerName := range expectedContainerNames {
-					if !strings.Contains(result, containerName) {
-						t.Errorf("missing metrics for container %s: \n%s", containerName, result)
+			if testCase.expectedInOutput != nil || testCase.nonExpectedInOutput != nil {
+				for _, name := range testCase.expectedInOutput {
+					if !strings.Contains(result, name) {
+						t.Errorf("missing metrics for %s: \n%s", name, result)
 					}
 				}
-			}
-			for _, m := range expectedMetrics {
-				if !strings.Contains(result, m.Name) {
-					t.Errorf("missing metrics for %s: \n%s", m.Name, result)
+				for _, name := range testCase.nonExpectedInOutput {
+					if strings.Contains(result, name) {
+						t.Errorf("unexpected metrics for %s: \n%s", name, result)
+					}
 				}
-				if testCase.listsNamespaces && !strings.Contains(result, m.Namespace) {
-					t.Errorf("missing metrics for %s/%s: \n%s", m.Namespace, m.Name, result)
+			} else {
+				if testCase.containers {
+					for _, containerName := range expectedContainerNames {
+						if !strings.Contains(result, containerName) {
+							t.Errorf("missing metrics for container %s: \n%s", containerName, result)
+						}
+					}
 				}
-			}
-			for _, name := range nonExpectedMetricsNames {
-				if strings.Contains(result, name) {
-					t.Errorf("unexpected metrics for %s: \n%s", name, result)
+				for _, m := range expectedMetrics {
+					if !strings.Contains(result, m.Name) {
+						t.Errorf("missing metrics for %s: \n%s", m.Name, result)
+					}
+					if testCase.listsNamespaces && !strings.Contains(result, m.Namespace) {
+						t.Errorf("missing metrics for %s/%s: \n%s", m.Namespace, m.Name, result)
+					}
+				}
+				for _, name := range nonExpectedMetricsNames {
+					if strings.Contains(result, name) {
+						t.Errorf("unexpected metrics for %s: \n%s", name, result)
+					}
 				}
 			}
 			if testCase.expectedPods != nil {
@@ -568,4 +605,42 @@ func testV1beta1PodMetricsData() []metricsv1beta1api.PodMetrics {
 			},
 		},
 	}
+}
+
+func defaultTopPodList(namespace string) *v1.PodList {
+	return &v1.PodList{
+		Items: []v1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: namespace},
+				Spec:       v1.PodSpec{NodeName: "node-a"},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod2", Namespace: namespace},
+				Spec:       v1.PodSpec{NodeName: "node-b"},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod3", Namespace: namespace},
+				Spec:       v1.PodSpec{NodeName: "node-c"},
+			},
+		},
+	}
+}
+
+// onlyPod1ListResponse serves a pod list containing only pod1, simulating the
+// core API filtering pods by a field selector.
+func onlyPod1ListResponse(req *http.Request) (*http.Response, error) {
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     cmdtesting.DefaultHeader(),
+		Body: cmdtesting.ObjBody(codec, &v1.PodList{
+			ListMeta: metav1.ListMeta{ResourceVersion: "2"},
+			Items: []v1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "testns"},
+					Spec:       v1.PodSpec{NodeName: "node-a"},
+				},
+			},
+		}),
+	}, nil
 }
