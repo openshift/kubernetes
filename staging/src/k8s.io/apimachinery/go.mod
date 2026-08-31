@@ -21,8 +21,8 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad
-	k8s.io/streaming v0.0.0
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd
+	k8s.io/streaming v0.37.0
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2

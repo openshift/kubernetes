@@ -40,10 +40,15 @@ require (
 	github.com/moby/ipvs v1.1.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
-	github.com/onsi/ginkgo/v2 v2.32.0
+	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.40.0
 	github.com/opencontainers/cgroups v0.0.7
 	github.com/opencontainers/selinux v1.15.1
+	github.com/openshift-eng/openshift-tests-extension v0.0.0-20260812190735-a8b44e9f9fed
+	github.com/openshift/api v0.0.0-20260827225716-dab350d1248e
+	github.com/openshift/apiserver-library-go v0.0.0-20260831175037-bda04071ad93
+	github.com/openshift/client-go v0.0.0-20260831171153-83323da514ff
+	github.com/openshift/library-go v0.0.0-20260831174104-32808279eeeb
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.70.0
@@ -82,28 +87,30 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0
 	gopkg.in/go-jose/go-jose.v2 v2.6.3
 	gopkg.in/inf.v0 v0.9.1
-	k8s.io/api v0.0.0
-	k8s.io/apiextensions-apiserver v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/apiserver v0.0.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/api v0.37.0
+	k8s.io/apiextensions-apiserver v0.37.0
+	k8s.io/apimachinery v0.37.0
+	k8s.io/apiserver v0.37.0
 	k8s.io/cli-runtime v0.0.0
-	k8s.io/client-go v0.0.0
+	k8s.io/client-go v0.37.0
 	k8s.io/cloud-provider v0.0.0
 	k8s.io/cluster-bootstrap v0.0.0
-	k8s.io/code-generator v0.0.0
-	k8s.io/component-base v0.0.0
-	k8s.io/component-helpers v0.0.0
-	k8s.io/controller-manager v0.0.0
+	k8s.io/code-generator v0.37.0
+	k8s.io/component-base v0.37.0
+	k8s.io/component-helpers v0.37.0
+	k8s.io/controller-manager v0.32.1
 	k8s.io/cri-api v0.0.0
 	k8s.io/cri-client v0.0.0
 	k8s.io/cri-streaming v0.0.0
 	k8s.io/csi-translation-lib v0.0.0
-	k8s.io/dynamic-resource-allocation v0.0.0
+	k8s.io/dynamic-resource-allocation v0.37.0
 	k8s.io/endpointslice v0.0.0
 	k8s.io/externaljwt v0.0.0
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/kms v0.0.0
-	k8s.io/kube-aggregator v0.0.0
+	k8s.io/kms v0.37.0
+	k8s.io/kube-aggregator v0.37.0
 	k8s.io/kube-controller-manager v0.0.0
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad
 	k8s.io/kube-proxy v0.0.0
@@ -114,9 +121,9 @@ require (
 	k8s.io/mount-utils v0.0.0
 	k8s.io/pod-security-admission v0.0.0
 	k8s.io/sample-apiserver v0.0.0
-	k8s.io/streaming v0.0.0
+	k8s.io/streaming v0.37.0
 	k8s.io/system-validators v1.12.1
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
 	sigs.k8s.io/knftables v0.0.22
 	sigs.k8s.io/randfill v1.0.0
@@ -129,6 +136,7 @@ require (
 	cel.dev/expr v0.25.1 // indirect
 	cyphar.com/go-pathrs v0.2.5 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
+	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
@@ -148,7 +156,9 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
+	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
+	github.com/go-ldap/ldap/v3 v3.4.11 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -211,12 +221,12 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/gengo/v2 v2.0.0-20260408192533-25e2208e0dc3 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.36.0 // indirect
@@ -226,6 +236,11 @@ require (
 )
 
 replace (
+	github.com/onsi/ginkgo/v2 => github.com/jacobsee/onsi-ginkgo/v2 v2.0.0-20260807173042-3ac00363bb14
+	github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20260827225716-dab350d1248e
+	github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20260831175037-bda04071ad93
+	github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.0-20260831171153-83323da514ff
+	github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260831174104-32808279eeeb
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery

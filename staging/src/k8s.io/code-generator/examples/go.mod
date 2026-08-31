@@ -7,8 +7,8 @@ go 1.26.0
 godebug default=go1.26
 
 require (
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.37.0
+	k8s.io/apimachinery v0.37.0
 	k8s.io/client-go v0.0.0
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2
@@ -53,7 +53,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
@@ -66,3 +66,13 @@ replace (
 )
 
 replace github.com/container-storage-interface/spec => github.com/gnufied/spec v1.7.1-0.20260718120346-8e06851c4133
+
+replace github.com/onsi/ginkgo/v2 => github.com/jacobsee/onsi-ginkgo/v2 v2.0.0-20260807173042-3ac00363bb14
+
+replace github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20260827225716-dab350d1248e
+
+replace github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.0-20260831171153-83323da514ff
+
+replace github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20260831175037-bda04071ad93
+
+replace github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260831174104-32808279eeeb
