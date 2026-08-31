@@ -3055,6 +3055,15 @@
   componentEndpoints:
   - component: kube-apiserver
     endpoint: /metrics
+- name: etcd_request_retry_total
+  help: Etcd request retry total
+  type: Counter
+  stabilityLevel: ALPHA
+  labels:
+  - error
+  componentEndpoints:
+  - component: kube-apiserver
+    endpoint: /metrics
 - name: etcd_requests_total
   help: Etcd request counts for each operation and object type.
   type: Counter
@@ -5720,6 +5729,7 @@
   labels:
   - decision
   - mode
+  - ocp_namespace
   - policy_level
   - policy_version
   - request_operation
@@ -7009,6 +7019,36 @@
   componentEndpoints:
   - component: kube-controller-manager
     endpoint: /metrics
+- name: sync_duration_seconds
+  subsystem: service_ca_cert_publisher
+  help: Number of namespace syncs happened in service ca cert publisher.
+  type: Histogram
+  stabilityLevel: ALPHA
+  labels:
+  - code
+  buckets:
+  - 0.001
+  - 0.002
+  - 0.004
+  - 0.008
+  - 0.016
+  - 0.032
+  - 0.064
+  - 0.128
+  - 0.256
+  - 0.512
+  - 1.024
+  - 2.048
+  - 4.096
+  - 8.192
+  - 16.384
+- name: sync_total
+  subsystem: service_ca_cert_publisher
+  help: Number of namespace syncs happened in service ca cert publisher.
+  type: Counter
+  stabilityLevel: ALPHA
+  labels:
+  - code
 - name: loadbalancer_sync_total
   subsystem: service_controller
   help: A metric counting the amount of times any load balancer has been configured,
@@ -8604,6 +8644,7 @@
   - resource
   - scope
   - subresource
+  - system_client
   - verb
   - version
   componentEndpoints:
