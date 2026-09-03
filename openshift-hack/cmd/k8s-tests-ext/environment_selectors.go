@@ -69,7 +69,7 @@ func filterByPlatform(specs et.ExtensionTestSpecs) {
 			"[sig-storage] Multi-AZ Cluster Volumes should only be allowed to provision PDs in zones where nodes exist",
 			// The following tests try to ssh directly to a node. None of our nodes have external IPs
 			"[k8s.io] [sig-node] crictl should be able to run crictl on the node",
-			"[sig-storage] Flexvolumes should be mountable",
+			"[sig-storage] Flexvolumes [Provider:gce,local] should be mountable",
 			"[sig-storage] Detaching volumes should not work when mount is in progress",
 			// We are using ovn-kubernetes to conceal metadata
 			"[sig-auth] Metadata Concealment should run a check-metadata-concealment job to completion",
