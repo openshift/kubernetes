@@ -174,6 +174,11 @@ func InitHostPathCSIDriver() storageframework.TestDriver {
 		// added when patching the deployment.
 		storageframework.CapVolumeLimits: true,
 	}
+	// DO NOT MERGE: pre-merge testing functionality when this env var is true in openshift/release
+	err := os.Setenv("CSI_PROW_ENABLE_SNAPSHOT_METADATA", "true")
+	if err != nil {
+		framework.Failf("failed to set CSI_PROW_ENABLE_SNAPSHOT_METADATA: %v", err)
+	}
 	// TODO: It can be removed after the VolumeGroupSnapshot feature is default enabled
 	if os.Getenv("CSI_PROW_ENABLE_GROUP_SNAPSHOT") == "true" {
 		capabilities[storageframework.CapVolumeGroupSnapshot] = true
@@ -374,6 +379,22 @@ func (h *hostpathCSIDriver) PrepareTest(ctx context.Context, f *framework.Framew
 
 	if err != nil {
 		framework.Failf("deploying %s driver: %v", h.driverInfo.Name, err)
+	}
+
+	if h.driverInfo.Capabilities[storageframework.CapSnapshotMetadata] {
+		// Create snapshot metadata resources (CRD is already created by test runner script)
+		ginkgo.By("Creating snapshot metadata resources")
+		err = utils.CreateSnapshotMetadataResources(ctx, f, config.Driver.GetDriverInfo().Name, driverns)
+		if err != nil {
+			framework.Failf("failed to create snapshot metadata resources: %v", err)
+		}
+		ginkgo.DeferCleanup(func(ctx context.Context) {
+			ginkgo.By("Cleaning up snapshot metadata resources")
+			err = utils.CleanupSnapshotMetadataResources(ctx, f, config.Driver.GetDriverInfo().Name, driverns)
+			if err != nil {
+				framework.Logf("Warning: failed to cleanup snapshot metadata resources: %v", err)
+			}
+		})
 	}
 
 	cleanupFunc := generateDriverCleanupFunc(
