@@ -17,6 +17,8 @@ limitations under the License.
 package filters
 
 import (
+	"encoding/binary"
+	"math/rand/v2"
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -26,13 +28,33 @@ import (
 	"github.com/google/uuid"
 )
 
+// nonCryptoRandReader is an io.Reader backed by math/rand/v2 for generating
+// audit IDs without going through crypto/rand (which is expensive in FIPS mode).
+type nonCryptoRandReader struct{}
+
+func (nonCryptoRandReader) Read(b []byte) (int, error) {
+	for i := 0; i+8 <= len(b); i += 8 {
+		binary.NativeEndian.PutUint64(b[i:], rand.Uint64())
+	}
+	// handle trailing bytes
+	if tail := len(b) % 8; tail > 0 {
+		var buf [8]byte
+		binary.NativeEndian.PutUint64(buf[:], rand.Uint64())
+		copy(b[len(b)-tail:], buf[:tail])
+	}
+	return len(b), nil
+}
+
 // WithAuditInit initializes the audit context and attaches the Audit-ID associated with a request.
 //
 // a. If the caller does not specify a value for Audit-ID in the request header, we generate a new audit ID
 // b. We echo the Audit-ID value to the caller via the response Header 'Audit-ID'.
 func WithAuditInit(handler http.Handler) http.Handler {
+	// Audit IDs are correlation tokens, not security-sensitive. Use non-crypto
+	// randomness to avoid expensive FIPS-mode crypto/rand on every request.
+	reader := nonCryptoRandReader{}
 	return withAuditInit(handler, func() string {
-		return uuid.New().String()
+		return uuid.Must(uuid.NewRandomFromReader(reader)).String()
 	})
 }
 
