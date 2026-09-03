@@ -1128,7 +1128,11 @@ type Mount struct {
 	// not empty and does not exist in the image, then runtimes should fail and
 	// return an error.
 	// Introduced in the Image Volume Source KEP beta graduation: https://kep.k8s.io/4639
-	ImageSubPath  string `protobuf:"bytes,10,opt,name=image_sub_path,json=imageSubPath,proto3" json:"image_sub_path,omitempty"`
+	ImageSubPath string `protobuf:"bytes,10,opt,name=image_sub_path,json=imageSubPath,proto3" json:"image_sub_path,omitempty"`
+	// mount_options specifies additional bind mount options (e.g., noexec,
+	// nodev, nosuid) that the runtime must apply when mounting this volume
+	// into the container. These are passed as OCI mount options.
+	MountOptions  []string `protobuf:"bytes,11,rep,name=mount_options,json=mountOptions,proto3" json:"mount_options,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1231,6 +1235,13 @@ func (x *Mount) GetImageSubPath() string {
 		return x.ImageSubPath
 	}
 	return ""
+}
+
+func (x *Mount) GetMountOptions() []string {
+	if x != nil {
+		return x.MountOptions
+	}
+	return nil
 }
 
 // IDMapping describes host to container ID mappings for a pod sandbox.
@@ -8902,6 +8913,9 @@ type RuntimeFeatures struct {
 	// user_namespaces_host_network is set to true if the runtime supports containers using both
 	// host network and user namespace simultaneously.
 	UserNamespacesHostNetwork bool `protobuf:"varint,2,opt,name=user_namespaces_host_network,json=userNamespacesHostNetwork,proto3" json:"user_namespaces_host_network,omitempty"`
+	// mount_options is set to true if the runtime supports additional bind
+	// mount options (noexec, nodev, nosuid) on container mounts.
+	MountOptions              bool `protobuf:"varint,3,opt,name=mount_options,json=mountOptions,proto3" json:"mount_options,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -8946,6 +8960,13 @@ func (x *RuntimeFeatures) GetSupplementalGroupsPolicy() bool {
 func (x *RuntimeFeatures) GetUserNamespacesHostNetwork() bool {
 	if x != nil {
 		return x.UserNamespacesHostNetwork
+	}
+	return false
+}
+
+func (x *RuntimeFeatures) GetMountOptions() bool {
+	if x != nil {
+		return x.MountOptions
 	}
 	return false
 }
