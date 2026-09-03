@@ -255,6 +255,12 @@ var _ = SIGDescribe("Deployment", func() {
 		})
 		framework.ExpectNoError(err, "failed to see replicas of %v in namespace %v scale to requested amount of %v", testDeployment.Name, testNamespaceName, testDeploymentDefaultReplicas)
 
+		// Refresh the deployment list to get a current resourceVersion.
+		// The RV from the initial List may be too old for the watch cache
+		// after waiting for pods to become ready (image pulls can take 60s+).
+		deploymentsList, err = f.ClientSet.AppsV1().Deployments("").List(ctx, metav1.ListOptions{LabelSelector: testDeploymentLabelsFlat})
+		framework.ExpectNoError(err, "failed to list Deployments")
+
 		ginkgo.By("patching the Deployment")
 		deploymentPatch, err := json.Marshal(map[string]interface{}{
 			"metadata": map[string]interface{}{
