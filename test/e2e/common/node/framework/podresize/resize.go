@@ -396,6 +396,12 @@ func WaitForPodResizeActuation(ctx context.Context, f *framework.Framework, podC
 			if !podutils.IsPodReady(pod) {
 				return func() string { return "pod is not ready" }, nil
 			}
+
+			if resourceErrs := VerifyPodStatusResources(pod, expectedContainers); resourceErrs != nil {
+				return func() string {
+					return fmt.Sprintf("waiting for pod status resources to match expected: %v", resourceErrs)
+				}, nil
+			}
 			return nil, nil
 		})),
 	)
