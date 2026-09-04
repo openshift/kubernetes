@@ -64,7 +64,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-77243
 			// Requires CRI-O be configured to accept insecure registries, which is not done OOTB and not typically recommended (though is possible to do).
-			"[sig-node] Container Runtime blackbox test when running a container with a new image [Serial] should be able to pull from private registry with secret [NodeConformance]",
+			"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret [NodeConformance] [Serial]",
 		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
