@@ -46,7 +46,7 @@ func addEnvironmentSelectors(specs et.ExtensionTestSpecs) {
 
 // filterByPlatform is a helper function to do, simple, "NameContains" filtering on tests by platform
 func filterByPlatform(specs et.ExtensionTestSpecs) {
-	var platformExclusions = map[string][]string{
+	platformExclusions := map[string][]string{
 		"alibabacloud": {
 			// LoadBalancer tests in 1.31 require explicit platform-specific skips
 			// https://issues.redhat.com/browse/OCPBUGS-38840
@@ -162,7 +162,7 @@ func filterByPlatform(specs et.ExtensionTestSpecs) {
 
 // filterByExternalConnectivity is a helper function to do, simple, "NameContains" filtering on tests by external connectivity
 func filterByExternalConnectivity(specs et.ExtensionTestSpecs) {
-	var externalConnectivityExclusions = map[string][]string{
+	externalConnectivityExclusions := map[string][]string{
 		// Tests that don't pass on disconnected, either due to requiring
 		// internet access for GitHub (e.g. many of the s2i builds), or
 		// because of pullthrough not supporting ICSP (https://bugzilla.redhat.com/show_bug.cgi?id=1918376)
@@ -218,7 +218,7 @@ func filterByExternalConnectivity(specs et.ExtensionTestSpecs) {
 
 // filterByTopology is a helper function to do, simple, "NameContains" filtering on tests by topology
 func filterByTopology(specs et.ExtensionTestSpecs) {
-	var topologyExclusions = map[string][]string{
+	topologyExclusions := map[string][]string{
 		"SingleReplica": {
 			"[sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]",
 			"[sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes",
@@ -250,7 +250,7 @@ func filterByTopology(specs et.ExtensionTestSpecs) {
 // filterByNoOptionalCapabilities is a helper function to facilitate adding environment selectors for tests which can't
 // be run/don't make sense to run against a cluster with all optional capabilities disabled
 func filterByNoOptionalCapabilities(specs et.ExtensionTestSpecs) {
-	var exclusions = []string{
+	exclusions := []string{
 		// Requires CSISnapshot capability
 		"[Feature:VolumeSnapshotDataSource]",
 		// Requires Storage capability
@@ -269,7 +269,12 @@ func filterByNoOptionalCapabilities(specs et.ExtensionTestSpecs) {
 
 // filterByNetwork is a helper function to do, simple, "NameContains" filtering on tests by network
 func filterByNetwork(specs et.ExtensionTestSpecs) {
-	var networkExclusions = map[string][]string{}
+	networkExclusions := map[string][]string{
+		"OVNKubernetes": {
+			// OVN-K does not implement the optional localhost nodeports feature.
+			"[Feature:LocalhostNodePorts]",
+		},
+	}
 
 	for network, exclusions := range networkExclusions {
 		var selectFunctions []et.SelectFunction
