@@ -33,6 +33,9 @@ COMMON_SKIPS="\[Slow\]|\[Disruptive\]|\[Flaky\]|\[Disabled:.+\]|\[Skipped:${PLAT
 # Skip tests for features that require a TechPreview cluster. TODO: Remove when the feature is enabled by default.
 COMMON_SKIPS="\[OCPFeatureGate:VolumeGroupSnapshot\]|\[Feature:OffByDefault\]|\[DRA\]|${COMMON_SKIPS}"
 
+# Temporarily skip CSI mock SELinux tests during 1.37 rebase
+COMMON_SKIPS="\[sig-storage\].CSI.Mock.selinux.on.mount.metrics.and.SELinuxWarningController|${COMMON_SKIPS}"
+
 case "${TEST_SUITE}" in
 serial)
   DEFAULT_TEST_ARGS="-focus=\[Serial\] -skip=${COMMON_SKIPS}"

@@ -182,6 +182,9 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://redhat.atlassian.net/browse/OCPBUGS-64847
 			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-2",
+
+			// https://redhat.atlassian.net/browse/STOR-3089
+			"[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux]",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
