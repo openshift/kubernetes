@@ -1169,6 +1169,21 @@
               },
               "scope": "Cluster",
               "singularResource": "csinode",
+              "subresources": [
+                {
+                  "responseKind": {
+                    "group": "",
+                    "kind": "CSINode",
+                    "version": ""
+                  },
+                  "subresource": "status",
+                  "verbs": [
+                    "get",
+                    "patch",
+                    "update"
+                  ]
+                }
+              ],
               "verbs": [
                 "create",
                 "delete",
@@ -1733,7 +1748,7 @@
               ]
             }
           ],
-          "version": "v1alpha2"
+          "version": "v1alpha3"
         }
       ]
     },
