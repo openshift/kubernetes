@@ -11,7 +11,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 		"Alpha": { // alpha features that are not gated
 			"[Feature:StorageVersionAPI]",
 			"[Feature:ClusterTrustBundle]",
-			"[sig-cli] Kubectl client Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
+			"[sig-cli] kubectl apply Kubectl prune with applyset should apply and prune objects", // Alpha feature since k8s 1.27
 			// 4.19
 			"[Feature:PodLogsQuerySplitStreams]",
 		},
@@ -64,7 +64,7 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://issues.redhat.com/browse/OCPBUGS-77243
 			// Requires CRI-O be configured to accept insecure registries, which is not done OOTB and not typically recommended (though is possible to do).
-			"[sig-node] Container Runtime blackbox test when running a container with a new image [Serial] should be able to pull from private registry with secret [NodeConformance]",
+			"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret [NodeConformance] [Serial]",
 		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
@@ -163,8 +163,14 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			// https://issues.redhat.com/browse/OCPBUGS-45275
 			"[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod",
 
+			// https://issues.redhat.com/browse/OCPBUGS-63132
+			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-3",
+
 			// https://issues.redhat.com/browse/OCPBUGS-99058
 			"[sig-node] [DRA] [FeatureGate:DRAExtendedResource] [Beta] [Feature:DynamicResourceAllocation] must run pods with extended resource on dra nodes and device plugin nodes [Serial] [KubeletMinVersion:1.35]",
+
+			// https://redhat.atlassian.net/browse/CORENET-7172
+			"[sig-network] Netpol NetworkPolicy between server and client should not allow all ports if it cannot limit to the requested port [Feature:NetworkPolicy]",
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"RebaseInProgress": {
@@ -176,6 +182,9 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 
 			// https://redhat.atlassian.net/browse/OCPBUGS-64847
 			"[sig-node] [Serial] Pod InPlace Resize Container (deferred-resizes) [FeatureGate:InPlacePodVerticalScaling] pod-resize-retry-deferred-test-2",
+
+			// https://redhat.atlassian.net/browse/STOR-3089
+			"[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux]",
 		},
 		// tests that may work, but we don't support them
 		"Unsupported": {
