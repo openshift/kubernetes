@@ -95,32 +95,6 @@ func streamCipherMode(skip int, createFunc func(key, iv []byte) (cipher.Stream, 
 }
 
 // cipherModes documents properties of supported ciphers. Ciphers not included
-<<<<<<< HEAD
-// are not supported and will not be negotiated, even if explicitly requested in
-// ClientConfig.Crypto.Ciphers.
-var cipherModes = map[string]*cipherMode{
-	// Ciphers from RFC 4344, which introduced many CTR-based ciphers. Algorithms
-	// are defined in the order specified in the RFC.
-	CipherAES128CTR: {16, aes.BlockSize, streamCipherMode(0, newAESCTR)},
-	CipherAES192CTR: {24, aes.BlockSize, streamCipherMode(0, newAESCTR)},
-	CipherAES256CTR: {32, aes.BlockSize, streamCipherMode(0, newAESCTR)},
-
-	// Ciphers from RFC 4345, which introduces security-improved arcfour ciphers.
-	// They are defined in the order specified in the RFC.
-	InsecureCipherRC4128: {16, 0, streamCipherMode(1536, newRC4)},
-	InsecureCipherRC4256: {32, 0, streamCipherMode(1536, newRC4)},
-
-	// Cipher defined in RFC 4253, which describes SSH Transport Layer Protocol.
-	// Note that this cipher is not safe, as stated in RFC 4253: "Arcfour (and
-	// RC4) has problems with weak keys, and should be used with caution."
-	// RFC 4345 introduces improved versions of Arcfour.
-	InsecureCipherRC4: {16, 0, streamCipherMode(0, newRC4)},
-
-	// AEAD ciphers
-	CipherAES128GCM:        {16, 12, newGCMCipher},
-	CipherAES256GCM:        {32, 12, newGCMCipher},
-	CipherChaCha20Poly1305: {64, 0, newChaCha20Cipher},
-=======
 // are not supported and will not be negotiated, even if explicitly configured.
 // When FIPS mode is enabled, only FIPS-approved algorithms are included.
 var cipherModes = map[string]*cipherMode{}
@@ -143,7 +117,6 @@ func init() {
 		})
 		return
 	}
->>>>>>> v1.34.11
 
 	cipherModes[CipherChaCha20Poly1305] = &cipherMode{64, 0, newChaCha20Cipher}
 	// Insecure ciphers not included in the default configuration.
@@ -155,16 +128,8 @@ func init() {
 	// needed, it's possible to specify a custom Config to enable it.
 	// You should expect that an active attacker can recover plaintext if
 	// you do.
-<<<<<<< HEAD
-	InsecureCipherAES128CBC: {16, aes.BlockSize, newAESCBCCipher},
-
-	// 3des-cbc is insecure and is not included in the default
-	// config.
-	InsecureCipherTripleDESCBC: {24, des.BlockSize, newTripleDESCBCCipher},
-=======
 	cipherModes[InsecureCipherAES128CBC] = &cipherMode{16, aes.BlockSize, newAESCBCCipher}
 	cipherModes[InsecureCipherTripleDESCBC] = &cipherMode{24, des.BlockSize, newTripleDESCBCCipher}
->>>>>>> v1.34.11
 }
 
 // prefixLen is the length of the packet prefix that contains the packet length

@@ -48,25 +48,6 @@ func (t truncatingMAC) Size() int {
 
 func (t truncatingMAC) BlockSize() int { return t.hmac.BlockSize() }
 
-<<<<<<< HEAD
-var macModes = map[string]*macMode{
-	HMACSHA512ETM: {64, true, func(key []byte) hash.Hash {
-		return hmac.New(sha512.New, key)
-	}},
-	HMACSHA256ETM: {32, true, func(key []byte) hash.Hash {
-		return hmac.New(sha256.New, key)
-	}},
-	HMACSHA512: {64, false, func(key []byte) hash.Hash {
-		return hmac.New(sha512.New, key)
-	}},
-	HMACSHA256: {32, false, func(key []byte) hash.Hash {
-		return hmac.New(sha256.New, key)
-	}},
-	HMACSHA1: {20, false, func(key []byte) hash.Hash {
-		return hmac.New(sha1.New, key)
-	}},
-	InsecureHMACSHA196: {20, false, func(key []byte) hash.Hash {
-=======
 // macModes defines the supported MACs. MACs not included are not supported
 // and will not be negotiated, even if explicitly configured. When FIPS mode is
 // enabled, only FIPS-approved algorithms are included.
@@ -98,7 +79,6 @@ func init() {
 		return hmac.New(sha1.New, key)
 	}}
 	macModes[InsecureHMACSHA196] = &macMode{20, false, func(key []byte) hash.Hash {
->>>>>>> v1.34.11
 		return truncatingMAC{12, hmac.New(sha1.New, key)}
 	}}
 }

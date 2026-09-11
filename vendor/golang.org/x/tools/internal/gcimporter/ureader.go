@@ -11,6 +11,7 @@ import (
 	"go/token"
 	"go/types"
 	"sort"
+	"strings"
 
 	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/pkgbits"

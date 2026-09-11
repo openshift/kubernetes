@@ -257,21 +257,6 @@ type Algorithms struct {
 	PublicKeyAuths []string
 }
 
-<<<<<<< HEAD
-// SupportedAlgorithms returns algorithms currently implemented by this package,
-// excluding those with security issues, which are returned by
-// InsecureAlgorithms. The algorithms listed here are in preference order.
-func SupportedAlgorithms() Algorithms {
-	return Algorithms{
-		Ciphers:        slices.Clone(supportedCiphers),
-		MACs:           slices.Clone(supportedMACs),
-		KeyExchanges:   slices.Clone(supportedKexAlgos),
-		HostKeys:       slices.Clone(supportedHostKeyAlgos),
-		PublicKeyAuths: slices.Clone(supportedPubKeyAuthAlgos),
-	}
-}
-
-=======
 func init() {
 	if fips140.Enabled() {
 		defaultHostKeyAlgos = slices.DeleteFunc(defaultHostKeyAlgos, func(algo string) bool {
@@ -319,7 +304,6 @@ func SupportedAlgorithms() Algorithms {
 	}
 }
 
->>>>>>> v1.34.11
 // InsecureAlgorithms returns algorithms currently implemented by this package
 // and which have security issues.
 func InsecureAlgorithms() Algorithms {
@@ -334,24 +318,6 @@ func InsecureAlgorithms() Algorithms {
 
 var supportedCompressions = []string{compressionNone}
 
-<<<<<<< HEAD
-// hashFuncs keeps the mapping of supported signature algorithms to their
-// respective hashes needed for signing and verification.
-var hashFuncs = map[string]crypto.Hash{
-	KeyAlgoRSA:         crypto.SHA1,
-	KeyAlgoRSASHA256:   crypto.SHA256,
-	KeyAlgoRSASHA512:   crypto.SHA512,
-	InsecureKeyAlgoDSA: crypto.SHA1,
-	KeyAlgoECDSA256:    crypto.SHA256,
-	KeyAlgoECDSA384:    crypto.SHA384,
-	KeyAlgoECDSA521:    crypto.SHA512,
-	// KeyAlgoED25519 doesn't pre-hash.
-	KeyAlgoSKECDSA256: crypto.SHA256,
-	KeyAlgoSKED25519:  crypto.SHA256,
-}
-
-=======
->>>>>>> v1.34.11
 // algorithmsForKeyFormat returns the supported signature algorithms for a given
 // public key format (PublicKey.Type), in order of preference. See RFC 8332,
 // Section 2. See also the note in sendKexInit on backwards compatibility.
@@ -598,11 +564,7 @@ func (c *Config) SetDefaults() {
 		if kexAlgoMap[k] != nil {
 			// Ignore the KEX if we have no kexAlgoMap definition.
 			kexs = append(kexs, k)
-<<<<<<< HEAD
-			if k == KeyExchangeCurve25519 && !contains(c.KeyExchanges, keyExchangeCurve25519LibSSH) {
-=======
 			if k == KeyExchangeCurve25519 && !slices.Contains(c.KeyExchanges, keyExchangeCurve25519LibSSH) {
->>>>>>> v1.34.11
 				kexs = append(kexs, keyExchangeCurve25519LibSSH)
 			}
 		}

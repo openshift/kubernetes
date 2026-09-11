@@ -1921,10 +1921,7 @@ const (
 	LANDLOCK_RESTRICT_SELF_LOG_NEW_EXEC_ON      = 0x2
 	LANDLOCK_RESTRICT_SELF_LOG_SAME_EXEC_OFF    = 0x1
 	LANDLOCK_RESTRICT_SELF_LOG_SUBDOMAINS_OFF   = 0x4
-<<<<<<< HEAD
-=======
 	LANDLOCK_RESTRICT_SELF_TSYNC                = 0x8
->>>>>>> v1.34.11
 	LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET         = 0x1
 	LANDLOCK_SCOPE_SIGNAL                       = 0x2
 	LINUX_REBOOT_CMD_CAD_OFF                    = 0x0
@@ -3011,10 +3008,7 @@ const (
 	PR_TAGGED_ADDR_ENABLE                       = 0x1
 	PR_TASK_PERF_EVENTS_DISABLE                 = 0x1f
 	PR_TASK_PERF_EVENTS_ENABLE                  = 0x20
-<<<<<<< HEAD
-=======
 	PR_THP_DISABLE_EXCEPT_ADVISED               = 0x2
->>>>>>> v1.34.11
 	PR_TIMER_CREATE_RESTORE_IDS                 = 0x4d
 	PR_TIMER_CREATE_RESTORE_IDS_GET             = 0x2
 	PR_TIMER_CREATE_RESTORE_IDS_OFF             = 0x0
@@ -3393,11 +3387,7 @@ const (
 	RWF_NOAPPEND                                = 0x20
 	RWF_NOSIGNAL                                = 0x100
 	RWF_NOWAIT                                  = 0x8
-<<<<<<< HEAD
-	RWF_SUPPORTED                               = 0xff
-=======
 	RWF_SUPPORTED                               = 0x1ff
->>>>>>> v1.34.11
 	RWF_SYNC                                    = 0x4
 	RWF_WRITE_LIFE_NOT_SET                      = 0x0
 	SCHED_BATCH                                 = 0x3
@@ -3780,11 +3770,7 @@ const (
 	TASKSTATS_GENL_NAME                         = "TASKSTATS"
 	TASKSTATS_GENL_VERSION                      = 0x1
 	TASKSTATS_TYPE_MAX                          = 0x6
-<<<<<<< HEAD
-	TASKSTATS_VERSION                           = 0x10
-=======
 	TASKSTATS_VERSION                           = 0x11
->>>>>>> v1.34.11
 	TCIFLUSH                                    = 0x0
 	TCIOFF                                      = 0x2
 	TCIOFLUSH                                   = 0x2

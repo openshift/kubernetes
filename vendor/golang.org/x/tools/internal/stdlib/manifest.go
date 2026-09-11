@@ -16,8 +16,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Writer).Flush", Method, 0, ""},
 		{"(*Writer).Write", Method, 0, ""},
 		{"(*Writer).WriteHeader", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(FileInfoNames).Gname", Method, 23, ""},
 		{"(FileInfoNames).IsDir", Method, 23, ""},
 		{"(FileInfoNames).ModTime", Method, 23, ""},
@@ -26,7 +24,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(FileInfoNames).Size", Method, 23, ""},
 		{"(FileInfoNames).Sys", Method, 23, ""},
 		{"(FileInfoNames).Uname", Method, 23, ""},
->>>>>>> v1.34.11
 		{"(Format).String", Method, 10, ""},
 		{"ErrFieldTooLong", Var, 0, ""},
 		{"ErrHeader", Var, 0, ""},
@@ -236,10 +233,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Buffer).Grow", Method, 1, ""},
 		{"(*Buffer).Len", Method, 0, ""},
 		{"(*Buffer).Next", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*Buffer).Peek", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*Buffer).Read", Method, 0, ""},
 		{"(*Buffer).ReadByte", Method, 0, ""},
 		{"(*Buffer).ReadBytes", Method, 0, ""},
@@ -276,10 +270,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ContainsRune", Func, 7, "func(b []byte, r rune) bool"},
 		{"Count", Func, 0, "func(s []byte, sep []byte) int"},
 		{"Cut", Func, 18, "func(s []byte, sep []byte) (before []byte, after []byte, found bool)"},
-<<<<<<< HEAD
-=======
 		{"CutLast", Func, 27, "func(s []byte, sep []byte) (before []byte, after []byte, found bool)"},
->>>>>>> v1.34.11
 		{"CutPrefix", Func, 20, "func(s []byte, prefix []byte) (after []byte, found bool)"},
 		{"CutSuffix", Func, 20, "func(s []byte, suffix []byte) (before []byte, found bool)"},
 		{"Equal", Func, 0, "func(a []byte, b []byte) bool"},
@@ -356,12 +347,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Writer).Write", Method, 0, ""},
 		{"(CorruptInputError).Error", Method, 0, ""},
 		{"(InternalError).Error", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Reader).Read", Method, 0, ""},
 		{"(Reader).ReadByte", Method, 0, ""},
 		{"(Resetter).Reset", Method, 4, ""},
->>>>>>> v1.34.11
 		{"BestCompression", Const, 0, ""},
 		{"BestSpeed", Const, 0, ""},
 		{"CorruptInputError", Type, 0, ""},
@@ -433,10 +421,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Writer).Flush", Method, 0, ""},
 		{"(*Writer).Reset", Method, 2, ""},
 		{"(*Writer).Write", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Resetter).Reset", Method, 4, ""},
->>>>>>> v1.34.11
 		{"BestCompression", Const, 0, ""},
 		{"BestSpeed", Const, 0, ""},
 		{"DefaultCompression", Const, 0, ""},
@@ -454,14 +439,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"Writer", Type, 0, ""},
 	},
 	"container/heap": {
-<<<<<<< HEAD
-=======
 		{"(Interface).Len", Method, 0, ""},
 		{"(Interface).Less", Method, 0, ""},
 		{"(Interface).Pop", Method, 0, ""},
 		{"(Interface).Push", Method, 0, ""},
 		{"(Interface).Swap", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Fix", Func, 2, "func(h Interface, i int)"},
 		{"Init", Func, 0, "func(h Interface)"},
 		{"Interface", Type, 0, ""},
@@ -505,13 +487,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"Ring.Value", Field, 0, ""},
 	},
 	"context": {
-<<<<<<< HEAD
-=======
 		{"(Context).Deadline", Method, 7, ""},
 		{"(Context).Done", Method, 7, ""},
 		{"(Context).Err", Method, 7, ""},
 		{"(Context).Value", Method, 7, ""},
->>>>>>> v1.34.11
 		{"AfterFunc", Func, 21, "func(ctx Context, f func()) (stop func() bool)"},
 		{"Background", Func, 7, "func() Context"},
 		{"CancelCauseFunc", Type, 20, ""},
@@ -531,51 +510,37 @@ var PackageSymbols = map[string][]Symbol{
 		{"WithoutCancel", Func, 21, "func(parent Context) Context"},
 	},
 	"crypto": {
-<<<<<<< HEAD
-=======
 		{"(Decapsulator).Decapsulate", Method, 26, ""},
 		{"(Decapsulator).Encapsulator", Method, 26, ""},
 		{"(Decrypter).Decrypt", Method, 5, ""},
 		{"(Decrypter).Public", Method, 5, ""},
 		{"(Encapsulator).Bytes", Method, 26, ""},
 		{"(Encapsulator).Encapsulate", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(Hash).Available", Method, 0, ""},
 		{"(Hash).HashFunc", Method, 4, ""},
 		{"(Hash).New", Method, 0, ""},
 		{"(Hash).Size", Method, 0, ""},
 		{"(Hash).String", Method, 15, ""},
-<<<<<<< HEAD
-=======
 		{"(MessageSigner).Public", Method, 25, ""},
 		{"(MessageSigner).Sign", Method, 25, ""},
 		{"(MessageSigner).SignMessage", Method, 25, ""},
 		{"(Signer).Public", Method, 4, ""},
 		{"(Signer).Sign", Method, 4, ""},
 		{"(SignerOpts).HashFunc", Method, 4, ""},
->>>>>>> v1.34.11
 		{"BLAKE2b_256", Const, 9, ""},
 		{"BLAKE2b_384", Const, 9, ""},
 		{"BLAKE2b_512", Const, 9, ""},
 		{"BLAKE2s_256", Const, 9, ""},
-<<<<<<< HEAD
-		{"Decrypter", Type, 5, ""},
-		{"DecrypterOpts", Type, 5, ""},
-=======
 		{"Decapsulator", Type, 26, ""},
 		{"Decrypter", Type, 5, ""},
 		{"DecrypterOpts", Type, 5, ""},
 		{"Encapsulator", Type, 26, ""},
->>>>>>> v1.34.11
 		{"Hash", Type, 0, ""},
 		{"MD4", Const, 0, ""},
 		{"MD5", Const, 0, ""},
 		{"MD5SHA1", Const, 0, ""},
-<<<<<<< HEAD
-=======
 		{"MLDSAMu", Const, 27, ""},
 		{"MessageSigner", Type, 25, ""},
->>>>>>> v1.34.11
 		{"PrivateKey", Type, 0, ""},
 		{"PublicKey", Type, 2, ""},
 		{"RIPEMD160", Const, 0, ""},
@@ -591,10 +556,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"SHA512", Const, 0, ""},
 		{"SHA512_224", Const, 5, ""},
 		{"SHA512_256", Const, 5, ""},
-<<<<<<< HEAD
-=======
 		{"SignMessage", Func, 25, "func(signer Signer, rand io.Reader, msg []byte, opts SignerOpts) (signature []byte, err error)"},
->>>>>>> v1.34.11
 		{"Signer", Type, 4, ""},
 		{"SignerOpts", Type, 4, ""},
 	},
@@ -605,8 +567,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"NewCipher", Func, 0, "func(key []byte) (cipher.Block, error)"},
 	},
 	"crypto/cipher": {
-<<<<<<< HEAD
-=======
 		{"(AEAD).NonceSize", Method, 2, ""},
 		{"(AEAD).Open", Method, 2, ""},
 		{"(AEAD).Overhead", Method, 2, ""},
@@ -617,7 +577,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(BlockMode).BlockSize", Method, 0, ""},
 		{"(BlockMode).CryptBlocks", Method, 0, ""},
 		{"(Stream).XORKeyStream", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(StreamReader).Read", Method, 0, ""},
 		{"(StreamWriter).Close", Method, 0, ""},
 		{"(StreamWriter).Write", Method, 0, ""},
@@ -669,11 +628,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"PublicKey", Type, 0, ""},
 		{"PublicKey.Parameters", Field, 0, ""},
 		{"PublicKey.Y", Field, 0, ""},
-<<<<<<< HEAD
-		{"Sign", Func, 0, "func(rand io.Reader, priv *PrivateKey, hash []byte) (r *big.Int, s *big.Int, err error)"},
-=======
 		{"Sign", Func, 0, "func(random io.Reader, priv *PrivateKey, hash []byte) (r *big.Int, s *big.Int, err error)"},
->>>>>>> v1.34.11
 		{"Verify", Func, 0, "func(pub *PublicKey, hash []byte, r *big.Int, s *big.Int) bool"},
 	},
 	"crypto/ecdh": {
@@ -686,9 +641,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*PublicKey).Bytes", Method, 20, ""},
 		{"(*PublicKey).Curve", Method, 20, ""},
 		{"(*PublicKey).Equal", Method, 20, ""},
-<<<<<<< HEAD
-		{"Curve", Type, 20, ""},
-=======
 		{"(Curve).GenerateKey", Method, 20, ""},
 		{"(Curve).NewPrivateKey", Method, 20, ""},
 		{"(Curve).NewPublicKey", Method, 20, ""},
@@ -696,7 +648,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(KeyExchanger).ECDH", Method, 26, ""},
 		{"(KeyExchanger).PublicKey", Method, 26, ""},
 		{"KeyExchanger", Type, 26, ""},
->>>>>>> v1.34.11
 		{"P256", Func, 20, "func() Curve"},
 		{"P384", Func, 20, "func() Curve"},
 		{"P521", Func, 20, "func() Curve"},
@@ -705,18 +656,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"X25519", Func, 20, "func() Curve"},
 	},
 	"crypto/ecdsa": {
-<<<<<<< HEAD
-=======
 		{"(*PrivateKey).Bytes", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*PrivateKey).ECDH", Method, 20, ""},
 		{"(*PrivateKey).Equal", Method, 15, ""},
 		{"(*PrivateKey).Public", Method, 4, ""},
 		{"(*PrivateKey).Sign", Method, 4, ""},
-<<<<<<< HEAD
-=======
 		{"(*PublicKey).Bytes", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*PublicKey).ECDH", Method, 20, ""},
 		{"(*PublicKey).Equal", Method, 15, ""},
 		{"(PrivateKey).Add", Method, 0, ""},
@@ -731,13 +676,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"(PublicKey).Params", Method, 0, ""},
 		{"(PublicKey).ScalarBaseMult", Method, 0, ""},
 		{"(PublicKey).ScalarMult", Method, 0, ""},
-<<<<<<< HEAD
-		{"GenerateKey", Func, 0, "func(c elliptic.Curve, rand io.Reader) (*PrivateKey, error)"},
-=======
 		{"GenerateKey", Func, 0, "func(c elliptic.Curve, r io.Reader) (*PrivateKey, error)"},
 		{"ParseRawPrivateKey", Func, 25, "func(curve elliptic.Curve, data []byte) (*PrivateKey, error)"},
 		{"ParseUncompressedPublicKey", Func, 25, "func(curve elliptic.Curve, data []byte) (*PublicKey, error)"},
->>>>>>> v1.34.11
 		{"PrivateKey", Type, 0, ""},
 		{"PrivateKey.D", Field, 0, ""},
 		{"PrivateKey.PublicKey", Field, 0, ""},
@@ -746,11 +687,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"PublicKey.X", Field, 0, ""},
 		{"PublicKey.Y", Field, 0, ""},
 		{"Sign", Func, 0, "func(rand io.Reader, priv *PrivateKey, hash []byte) (r *big.Int, s *big.Int, err error)"},
-<<<<<<< HEAD
-		{"SignASN1", Func, 15, "func(rand io.Reader, priv *PrivateKey, hash []byte) ([]byte, error)"},
-=======
 		{"SignASN1", Func, 15, "func(r io.Reader, priv *PrivateKey, hash []byte) ([]byte, error)"},
->>>>>>> v1.34.11
 		{"Verify", Func, 0, "func(pub *PublicKey, hash []byte, r *big.Int, s *big.Int) bool"},
 		{"VerifyASN1", Func, 15, "func(pub *PublicKey, hash []byte, sig []byte) bool"},
 	},
@@ -761,11 +698,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(PrivateKey).Seed", Method, 13, ""},
 		{"(PrivateKey).Sign", Method, 13, ""},
 		{"(PublicKey).Equal", Method, 15, ""},
-<<<<<<< HEAD
-		{"GenerateKey", Func, 13, "func(rand io.Reader) (PublicKey, PrivateKey, error)"},
-=======
 		{"GenerateKey", Func, 13, "func(random io.Reader) (PublicKey, PrivateKey, error)"},
->>>>>>> v1.34.11
 		{"NewKeyFromSeed", Func, 13, "func(seed []byte) PrivateKey"},
 		{"Options", Type, 20, ""},
 		{"Options.Context", Field, 20, ""},
@@ -787,15 +720,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*CurveParams).Params", Method, 0, ""},
 		{"(*CurveParams).ScalarBaseMult", Method, 0, ""},
 		{"(*CurveParams).ScalarMult", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Curve).Add", Method, 0, ""},
 		{"(Curve).Double", Method, 0, ""},
 		{"(Curve).IsOnCurve", Method, 0, ""},
 		{"(Curve).Params", Method, 0, ""},
 		{"(Curve).ScalarBaseMult", Method, 0, ""},
 		{"(Curve).ScalarMult", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Curve", Type, 0, ""},
 		{"CurveParams", Type, 0, ""},
 		{"CurveParams.B", Field, 0, ""},
@@ -817,12 +747,9 @@ var PackageSymbols = map[string][]Symbol{
 	},
 	"crypto/fips140": {
 		{"Enabled", Func, 24, "func() bool"},
-<<<<<<< HEAD
-=======
 		{"Enforced", Func, 26, "func() bool"},
 		{"Version", Func, 26, "func() string"},
 		{"WithoutEnforcement", Func, 26, "func(f func())"},
->>>>>>> v1.34.11
 	},
 	"crypto/hkdf": {
 		{"Expand", Func, 24, "func[H hash.Hash](h func() H, pseudorandomKey []byte, info string, keyLength int) ([]byte, error)"},
@@ -832,8 +759,6 @@ var PackageSymbols = map[string][]Symbol{
 	"crypto/hmac": {
 		{"Equal", Func, 1, "func(mac1 []byte, mac2 []byte) bool"},
 		{"New", Func, 0, "func(h func() hash.Hash, key []byte) hash.Hash"},
-<<<<<<< HEAD
-=======
 	},
 	"crypto/hpke": {
 		{"(*Recipient).Export", Method, 26, ""},
@@ -882,7 +807,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"SHAKE256", Func, 26, "func() KDF"},
 		{"Seal", Func, 26, "func(pk PublicKey, kdf KDF, aead AEAD, info []byte, plaintext []byte) ([]byte, error)"},
 		{"Sender", Type, 26, ""},
->>>>>>> v1.34.11
 	},
 	"crypto/md5": {
 		{"BlockSize", Const, 0, ""},
@@ -890,8 +814,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Size", Const, 0, ""},
 		{"Sum", Func, 2, "func(data []byte) [16]byte"},
 	},
-<<<<<<< HEAD
-=======
 	"crypto/mldsa": {
 		{"(*Options).HashFunc", Method, 27, ""},
 		{"(*PrivateKey).Bytes", Method, 27, ""},
@@ -926,22 +848,15 @@ var PackageSymbols = map[string][]Symbol{
 		{"PublicKey", Type, 27, ""},
 		{"Verify", Func, 27, "func(pk *PublicKey, message []byte, signature []byte, opts *Options) error"},
 	},
->>>>>>> v1.34.11
 	"crypto/mlkem": {
 		{"(*DecapsulationKey1024).Bytes", Method, 24, ""},
 		{"(*DecapsulationKey1024).Decapsulate", Method, 24, ""},
 		{"(*DecapsulationKey1024).EncapsulationKey", Method, 24, ""},
-<<<<<<< HEAD
-		{"(*DecapsulationKey768).Bytes", Method, 24, ""},
-		{"(*DecapsulationKey768).Decapsulate", Method, 24, ""},
-		{"(*DecapsulationKey768).EncapsulationKey", Method, 24, ""},
-=======
 		{"(*DecapsulationKey1024).Encapsulator", Method, 26, ""},
 		{"(*DecapsulationKey768).Bytes", Method, 24, ""},
 		{"(*DecapsulationKey768).Decapsulate", Method, 24, ""},
 		{"(*DecapsulationKey768).EncapsulationKey", Method, 24, ""},
 		{"(*DecapsulationKey768).Encapsulator", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*EncapsulationKey1024).Bytes", Method, 24, ""},
 		{"(*EncapsulationKey1024).Encapsulate", Method, 24, ""},
 		{"(*EncapsulationKey768).Bytes", Method, 24, ""},
@@ -963,23 +878,16 @@ var PackageSymbols = map[string][]Symbol{
 		{"SeedSize", Const, 24, ""},
 		{"SharedKeySize", Const, 24, ""},
 	},
-<<<<<<< HEAD
-=======
 	"crypto/mlkem/mlkemtest": {
 		{"Encapsulate1024", Func, 26, "func(ek *mlkem.EncapsulationKey1024, random []byte) (sharedKey []byte, ciphertext []byte, err error)"},
 		{"Encapsulate768", Func, 26, "func(ek *mlkem.EncapsulationKey768, random []byte) (sharedKey []byte, ciphertext []byte, err error)"},
 	},
->>>>>>> v1.34.11
 	"crypto/pbkdf2": {
 		{"Key", Func, 24, "func[Hash hash.Hash](h func() Hash, password string, salt []byte, iter int, keyLength int) ([]byte, error)"},
 	},
 	"crypto/rand": {
 		{"Int", Func, 0, "func(rand io.Reader, max *big.Int) (n *big.Int, err error)"},
-<<<<<<< HEAD
-		{"Prime", Func, 0, "func(rand io.Reader, bits int) (*big.Int, error)"},
-=======
 		{"Prime", Func, 0, "func(r io.Reader, bits int) (*big.Int, error)"},
->>>>>>> v1.34.11
 		{"Read", Func, 0, "func(b []byte) (n int, err error)"},
 		{"Reader", Var, 0, ""},
 		{"Text", Func, 24, "func() string"},
@@ -1011,10 +919,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"DecryptPKCS1v15", Func, 0, "func(random io.Reader, priv *PrivateKey, ciphertext []byte) ([]byte, error)"},
 		{"DecryptPKCS1v15SessionKey", Func, 0, "func(random io.Reader, priv *PrivateKey, ciphertext []byte, key []byte) error"},
 		{"EncryptOAEP", Func, 0, "func(hash hash.Hash, random io.Reader, pub *PublicKey, msg []byte, label []byte) ([]byte, error)"},
-<<<<<<< HEAD
-=======
 		{"EncryptOAEPWithOptions", Func, 26, "func(random io.Reader, pub *PublicKey, msg []byte, opts *OAEPOptions) ([]byte, error)"},
->>>>>>> v1.34.11
 		{"EncryptPKCS1v15", Func, 0, "func(random io.Reader, pub *PublicKey, msg []byte) ([]byte, error)"},
 		{"ErrDecryption", Var, 0, ""},
 		{"ErrMessageTooLong", Var, 0, ""},
@@ -1046,11 +951,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"PublicKey.E", Field, 0, ""},
 		{"PublicKey.N", Field, 0, ""},
 		{"SignPKCS1v15", Func, 0, "func(random io.Reader, priv *PrivateKey, hash crypto.Hash, hashed []byte) ([]byte, error)"},
-<<<<<<< HEAD
-		{"SignPSS", Func, 2, "func(rand io.Reader, priv *PrivateKey, hash crypto.Hash, digest []byte, opts *PSSOptions) ([]byte, error)"},
-=======
 		{"SignPSS", Func, 2, "func(random io.Reader, priv *PrivateKey, hash crypto.Hash, digest []byte, opts *PSSOptions) ([]byte, error)"},
->>>>>>> v1.34.11
 		{"VerifyPKCS1v15", Func, 0, "func(pub *PublicKey, hash crypto.Hash, hashed []byte, sig []byte) error"},
 		{"VerifyPSS", Func, 2, "func(pub *PublicKey, hash crypto.Hash, digest []byte, sig []byte, opts *PSSOptions) error"},
 	},
@@ -1072,10 +973,7 @@ var PackageSymbols = map[string][]Symbol{
 	"crypto/sha3": {
 		{"(*SHA3).AppendBinary", Method, 24, ""},
 		{"(*SHA3).BlockSize", Method, 24, ""},
-<<<<<<< HEAD
-=======
 		{"(*SHA3).Clone", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*SHA3).MarshalBinary", Method, 24, ""},
 		{"(*SHA3).Reset", Method, 24, ""},
 		{"(*SHA3).Size", Method, 24, ""},
@@ -1174,11 +1072,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*SessionState).Bytes", Method, 21, ""},
 		{"(AlertError).Error", Method, 21, ""},
 		{"(ClientAuthType).String", Method, 15, ""},
-<<<<<<< HEAD
-=======
 		{"(ClientSessionCache).Get", Method, 3, ""},
 		{"(ClientSessionCache).Put", Method, 3, ""},
->>>>>>> v1.34.11
 		{"(CurveID).String", Method, 15, ""},
 		{"(QUICEncryptionLevel).String", Method, 21, ""},
 		{"(RecordHeaderError).Error", Method, 6, ""},
@@ -1211,10 +1106,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ClientHelloInfo.CipherSuites", Field, 4, ""},
 		{"ClientHelloInfo.Conn", Field, 8, ""},
 		{"ClientHelloInfo.Extensions", Field, 24, ""},
-<<<<<<< HEAD
-=======
 		{"ClientHelloInfo.HelloRetryRequest", Field, 26, ""},
->>>>>>> v1.34.11
 		{"ClientHelloInfo.ServerName", Field, 4, ""},
 		{"ClientHelloInfo.SignatureSchemes", Field, 8, ""},
 		{"ClientHelloInfo.SupportedCurves", Field, 4, ""},
@@ -1237,10 +1129,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Config.GetCertificate", Field, 4, ""},
 		{"Config.GetClientCertificate", Field, 8, ""},
 		{"Config.GetConfigForClient", Field, 8, ""},
-<<<<<<< HEAD
-=======
 		{"Config.GetEncryptedClientHelloKeys", Field, 25, ""},
->>>>>>> v1.34.11
 		{"Config.InsecureSkipVerify", Field, 0, ""},
 		{"Config.KeyLogWriter", Field, 8, ""},
 		{"Config.MaxVersion", Field, 2, ""},
@@ -1266,11 +1155,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"ConnectionState.DidResume", Field, 1, ""},
 		{"ConnectionState.ECHAccepted", Field, 23, ""},
 		{"ConnectionState.HandshakeComplete", Field, 0, ""},
-<<<<<<< HEAD
-=======
 		{"ConnectionState.HelloRetryRequest", Field, 26, ""},
 		{"ConnectionState.LocalCertificate", Field, 27, ""},
->>>>>>> v1.34.11
 		{"ConnectionState.NegotiatedProtocol", Field, 0, ""},
 		{"ConnectionState.NegotiatedProtocolIsMutual", Field, 0, ""},
 		{"ConnectionState.OCSPResponse", Field, 5, ""},
@@ -1303,13 +1189,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"InsecureCipherSuites", Func, 14, "func() []*CipherSuite"},
 		{"Listen", Func, 0, "func(network string, laddr string, config *Config) (net.Listener, error)"},
 		{"LoadX509KeyPair", Func, 0, "func(certFile string, keyFile string) (Certificate, error)"},
-<<<<<<< HEAD
-=======
 		{"MLDSA44", Const, 27, ""},
 		{"MLDSA65", Const, 27, ""},
 		{"MLDSA87", Const, 27, ""},
 		{"MLKEM1024", Const, 27, ""},
->>>>>>> v1.34.11
 		{"NewLRUClientSessionCache", Func, 3, "func(capacity int) ClientSessionCache"},
 		{"NewListener", Func, 0, "func(inner net.Listener, config *Config) net.Listener"},
 		{"NewResumptionState", Func, 21, "func(ticket []byte, state *SessionState) (*ClientSessionState, error)"},
@@ -1324,10 +1207,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ParseSessionState", Func, 21, "func(data []byte) (*SessionState, error)"},
 		{"QUICClient", Func, 21, "func(config *QUICConfig) *QUICConn"},
 		{"QUICConfig", Type, 21, ""},
-<<<<<<< HEAD
-=======
 		{"QUICConfig.ClientHelloInfoConn", Field, 27, ""},
->>>>>>> v1.34.11
 		{"QUICConfig.EnableSessionEvents", Field, 23, ""},
 		{"QUICConfig.TLSConfig", Field, 21, ""},
 		{"QUICConn", Type, 21, ""},
@@ -1336,15 +1216,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"QUICEncryptionLevelEarly", Const, 21, ""},
 		{"QUICEncryptionLevelHandshake", Const, 21, ""},
 		{"QUICEncryptionLevelInitial", Const, 21, ""},
-<<<<<<< HEAD
-		{"QUICEvent", Type, 21, ""},
-		{"QUICEvent.Data", Field, 21, ""},
-=======
 		{"QUICErrorEvent", Const, 26, ""},
 		{"QUICEvent", Type, 21, ""},
 		{"QUICEvent.Data", Field, 21, ""},
 		{"QUICEvent.Err", Field, 26, ""},
->>>>>>> v1.34.11
 		{"QUICEvent.Kind", Field, 21, ""},
 		{"QUICEvent.Level", Field, 21, ""},
 		{"QUICEvent.SessionState", Field, 23, ""},
@@ -1375,11 +1250,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"RequestClientCert", Const, 0, ""},
 		{"RequireAndVerifyClientCert", Const, 0, ""},
 		{"RequireAnyClientCert", Const, 0, ""},
-<<<<<<< HEAD
-=======
 		{"SecP256r1MLKEM768", Const, 26, ""},
 		{"SecP384r1MLKEM1024", Const, 26, ""},
->>>>>>> v1.34.11
 		{"Server", Func, 0, "func(conn net.Conn, config *Config) *Conn"},
 		{"SessionState", Type, 21, ""},
 		{"SessionState.EarlyData", Field, 21, ""},
@@ -1444,16 +1316,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*RevocationList).CheckSignatureFrom", Method, 19, ""},
 		{"(CertificateInvalidError).Error", Method, 0, ""},
 		{"(ConstraintViolationError).Error", Method, 0, ""},
-<<<<<<< HEAD
-		{"(HostnameError).Error", Method, 0, ""},
-		{"(InsecureAlgorithmError).Error", Method, 6, ""},
-=======
 		{"(ExtKeyUsage).OID", Method, 26, ""},
 		{"(ExtKeyUsage).String", Method, 26, ""},
 		{"(HostnameError).Error", Method, 0, ""},
 		{"(InsecureAlgorithmError).Error", Method, 6, ""},
 		{"(KeyUsage).String", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(OID).AppendBinary", Method, 24, ""},
 		{"(OID).AppendText", Method, 24, ""},
 		{"(OID).Equal", Method, 22, ""},
@@ -1509,10 +1376,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Certificate.PublicKeyAlgorithm", Field, 0, ""},
 		{"Certificate.Raw", Field, 0, ""},
 		{"Certificate.RawIssuer", Field, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Certificate.RawSignatureAlgorithm", Field, 27, ""},
->>>>>>> v1.34.11
 		{"Certificate.RawSubject", Field, 0, ""},
 		{"Certificate.RawSubjectPublicKeyInfo", Field, 0, ""},
 		{"Certificate.RawTBSCertificate", Field, 0, ""},
@@ -1541,10 +1405,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"CertificateRequest.PublicKey", Field, 3, ""},
 		{"CertificateRequest.PublicKeyAlgorithm", Field, 3, ""},
 		{"CertificateRequest.Raw", Field, 3, ""},
-<<<<<<< HEAD
-=======
 		{"CertificateRequest.RawSignatureAlgorithm", Field, 27, ""},
->>>>>>> v1.34.11
 		{"CertificateRequest.RawSubject", Field, 3, ""},
 		{"CertificateRequest.RawSubjectPublicKeyInfo", Field, 3, ""},
 		{"CertificateRequest.RawTBSCertificateRequest", Field, 3, ""},
@@ -1605,13 +1466,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"KeyUsageKeyEncipherment", Const, 0, ""},
 		{"MD2WithRSA", Const, 0, ""},
 		{"MD5WithRSA", Const, 0, ""},
-<<<<<<< HEAD
-=======
 		{"MLDSA", Const, 27, ""},
 		{"MLDSA44", Const, 27, ""},
 		{"MLDSA65", Const, 27, ""},
 		{"MLDSA87", Const, 27, ""},
->>>>>>> v1.34.11
 		{"MarshalECPrivateKey", Func, 2, "func(key *ecdsa.PrivateKey) ([]byte, error)"},
 		{"MarshalPKCS1PrivateKey", Func, 0, "func(key *rsa.PrivateKey) []byte"},
 		{"MarshalPKCS1PublicKey", Func, 10, "func(key *rsa.PublicKey) []byte"},
@@ -1623,10 +1481,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"NoValidChains", Const, 24, ""},
 		{"NotAuthorizedToSign", Const, 0, ""},
 		{"OID", Type, 22, ""},
-<<<<<<< HEAD
-=======
 		{"OIDFromASN1OID", Func, 26, "func(asn1OID asn1.ObjectIdentifier) (OID, error)"},
->>>>>>> v1.34.11
 		{"OIDFromInts", Func, 22, "func(oid []uint64) (OID, error)"},
 		{"PEMCipher", Type, 1, ""},
 		{"PEMCipher3DES", Const, 1, ""},
@@ -1661,10 +1516,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"RevocationList.Number", Field, 15, ""},
 		{"RevocationList.Raw", Field, 19, ""},
 		{"RevocationList.RawIssuer", Field, 19, ""},
-<<<<<<< HEAD
-=======
 		{"RevocationList.RawSignatureAlgorithm", Field, 27, ""},
->>>>>>> v1.34.11
 		{"RevocationList.RawTBSRevocationList", Field, 19, ""},
 		{"RevocationList.RevokedCertificateEntries", Field, 21, ""},
 		{"RevocationList.RevokedCertificates", Field, 15, ""},
@@ -1840,17 +1692,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"(NullInt64).Value", Method, 0, ""},
 		{"(NullString).Value", Method, 0, ""},
 		{"(NullTime).Value", Method, 13, ""},
-<<<<<<< HEAD
-		{"ColumnType", Type, 8, ""},
-		{"Conn", Type, 9, ""},
-=======
 		{"(Result).LastInsertId", Method, 0, ""},
 		{"(Result).RowsAffected", Method, 0, ""},
 		{"(Scanner).Scan", Method, 0, ""},
 		{"ColumnType", Type, 8, ""},
 		{"Conn", Type, 9, ""},
 		{"ConvertAssign", Func, 27, "func(scanCtx driver.ScanContext, dest any, src driver.Value) error"},
->>>>>>> v1.34.11
 		{"DB", Type, 0, ""},
 		{"DBStats", Type, 5, ""},
 		{"DBStats.Idle", Field, 11, ""},
@@ -1880,11 +1727,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"NamedArg.Name", Field, 8, ""},
 		{"NamedArg.Value", Field, 8, ""},
 		{"Null", Type, 22, ""},
-<<<<<<< HEAD
-		{"Null.V", Field, 22, ""},
-		{"Null.Valid", Field, 22, ""},
-=======
->>>>>>> v1.34.11
 		{"NullBool", Type, 0, ""},
 		{"NullBool.Bool", Field, 0, ""},
 		{"NullBool.Valid", Field, 0, ""},
@@ -1927,12 +1769,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"TxOptions.ReadOnly", Field, 8, ""},
 	},
 	"database/sql/driver": {
-<<<<<<< HEAD
-		{"(NotNull).ConvertValue", Method, 0, ""},
-		{"(Null).ConvertValue", Method, 0, ""},
-		{"(RowsAffected).LastInsertId", Method, 0, ""},
-		{"(RowsAffected).RowsAffected", Method, 0, ""},
-=======
 		{"(ColumnConverter).ColumnConverter", Method, 0, ""},
 		{"(Conn).Begin", Method, 0, ""},
 		{"(Conn).Close", Method, 0, ""},
@@ -2000,7 +1836,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Validator).IsValid", Method, 15, ""},
 		{"(ValueConverter).ConvertValue", Method, 0, ""},
 		{"(Valuer).Value", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Bool", Var, 0, ""},
 		{"ColumnConverter", Type, 0, ""},
 		{"Conn", Type, 0, ""},
@@ -2035,20 +1870,14 @@ var PackageSymbols = map[string][]Symbol{
 		{"ResultNoRows", Var, 0, ""},
 		{"Rows", Type, 0, ""},
 		{"RowsAffected", Type, 0, ""},
-<<<<<<< HEAD
-=======
 		{"RowsColumnScanner", Type, 27, ""},
->>>>>>> v1.34.11
 		{"RowsColumnTypeDatabaseTypeName", Type, 8, ""},
 		{"RowsColumnTypeLength", Type, 8, ""},
 		{"RowsColumnTypeNullable", Type, 8, ""},
 		{"RowsColumnTypePrecisionScale", Type, 8, ""},
 		{"RowsColumnTypeScanType", Type, 8, ""},
 		{"RowsNextResultSet", Type, 8, ""},
-<<<<<<< HEAD
-=======
 		{"ScanContext", Type, 27, ""},
->>>>>>> v1.34.11
 		{"SessionResetter", Type, 10, ""},
 		{"Stmt", Type, 0, ""},
 		{"StmtExecContext", Type, 8, ""},
@@ -2169,12 +1998,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"(DecodeError).Error", Method, 0, ""},
 		{"(Tag).GoString", Method, 0, ""},
 		{"(Tag).String", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Type).Common", Method, 0, ""},
 		{"(Type).Size", Method, 0, ""},
 		{"(Type).String", Method, 0, ""},
->>>>>>> v1.34.11
 		{"AddrType", Type, 0, ""},
 		{"AddrType.BasicType", Field, 0, ""},
 		{"ArrayType", Type, 0, ""},
@@ -3582,10 +3408,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"R_LARCH_B16", Const, 20, ""},
 		{"R_LARCH_B21", Const, 20, ""},
 		{"R_LARCH_B26", Const, 20, ""},
-<<<<<<< HEAD
-=======
 		{"R_LARCH_CALL36", Const, 26, ""},
->>>>>>> v1.34.11
 		{"R_LARCH_CFA", Const, 22, ""},
 		{"R_LARCH_COPY", Const, 19, ""},
 		{"R_LARCH_DELETE", Const, 22, ""},
@@ -3643,8 +3466,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"R_LARCH_SUB64", Const, 19, ""},
 		{"R_LARCH_SUB8", Const, 19, ""},
 		{"R_LARCH_SUB_ULEB128", Const, 22, ""},
-<<<<<<< HEAD
-=======
 		{"R_LARCH_TLS_DESC32", Const, 26, ""},
 		{"R_LARCH_TLS_DESC64", Const, 26, ""},
 		{"R_LARCH_TLS_DESC64_HI12", Const, 26, ""},
@@ -3658,16 +3479,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"R_LARCH_TLS_DESC_PCREL20_S2", Const, 26, ""},
 		{"R_LARCH_TLS_DESC_PC_HI20", Const, 26, ""},
 		{"R_LARCH_TLS_DESC_PC_LO12", Const, 26, ""},
->>>>>>> v1.34.11
 		{"R_LARCH_TLS_DTPMOD32", Const, 19, ""},
 		{"R_LARCH_TLS_DTPMOD64", Const, 19, ""},
 		{"R_LARCH_TLS_DTPREL32", Const, 19, ""},
 		{"R_LARCH_TLS_DTPREL64", Const, 19, ""},
 		{"R_LARCH_TLS_GD_HI20", Const, 20, ""},
-<<<<<<< HEAD
-=======
 		{"R_LARCH_TLS_GD_PCREL20_S2", Const, 26, ""},
->>>>>>> v1.34.11
 		{"R_LARCH_TLS_GD_PC_HI20", Const, 20, ""},
 		{"R_LARCH_TLS_IE64_HI12", Const, 20, ""},
 		{"R_LARCH_TLS_IE64_LO20", Const, 20, ""},
@@ -3678,13 +3495,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"R_LARCH_TLS_IE_PC_HI20", Const, 20, ""},
 		{"R_LARCH_TLS_IE_PC_LO12", Const, 20, ""},
 		{"R_LARCH_TLS_LD_HI20", Const, 20, ""},
-<<<<<<< HEAD
-		{"R_LARCH_TLS_LD_PC_HI20", Const, 20, ""},
-		{"R_LARCH_TLS_LE64_HI12", Const, 20, ""},
-		{"R_LARCH_TLS_LE64_LO20", Const, 20, ""},
-		{"R_LARCH_TLS_LE_HI20", Const, 20, ""},
-		{"R_LARCH_TLS_LE_LO12", Const, 20, ""},
-=======
 		{"R_LARCH_TLS_LD_PCREL20_S2", Const, 26, ""},
 		{"R_LARCH_TLS_LD_PC_HI20", Const, 20, ""},
 		{"R_LARCH_TLS_LE64_HI12", Const, 20, ""},
@@ -3694,7 +3504,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"R_LARCH_TLS_LE_HI20_R", Const, 26, ""},
 		{"R_LARCH_TLS_LE_LO12", Const, 20, ""},
 		{"R_LARCH_TLS_LE_LO12_R", Const, 26, ""},
->>>>>>> v1.34.11
 		{"R_LARCH_TLS_TPREL32", Const, 19, ""},
 		{"R_LARCH_TLS_TPREL64", Const, 19, ""},
 		{"R_MIPS", Type, 6, ""},
@@ -4399,10 +4208,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(FatArch).ImportedSymbols", Method, 3, ""},
 		{"(FatArch).Section", Method, 3, ""},
 		{"(FatArch).Segment", Method, 3, ""},
-<<<<<<< HEAD
-=======
 		{"(Load).Raw", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(LoadBytes).Raw", Method, 0, ""},
 		{"(LoadCmd).GoString", Method, 0, ""},
 		{"(LoadCmd).String", Method, 0, ""},
@@ -5049,15 +4855,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"FS", Type, 16, ""},
 	},
 	"encoding": {
-<<<<<<< HEAD
-=======
 		{"(BinaryAppender).AppendBinary", Method, 24, ""},
 		{"(BinaryMarshaler).MarshalBinary", Method, 2, ""},
 		{"(BinaryUnmarshaler).UnmarshalBinary", Method, 2, ""},
 		{"(TextAppender).AppendText", Method, 24, ""},
 		{"(TextMarshaler).MarshalText", Method, 2, ""},
 		{"(TextUnmarshaler).UnmarshalText", Method, 2, ""},
->>>>>>> v1.34.11
 		{"BinaryAppender", Type, 24, ""},
 		{"BinaryMarshaler", Type, 2, ""},
 		{"BinaryUnmarshaler", Type, 2, ""},
@@ -5173,8 +4976,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"URLEncoding", Var, 0, ""},
 	},
 	"encoding/binary": {
-<<<<<<< HEAD
-=======
 		{"(AppendByteOrder).AppendUint16", Method, 19, ""},
 		{"(AppendByteOrder).AppendUint32", Method, 19, ""},
 		{"(AppendByteOrder).AppendUint64", Method, 19, ""},
@@ -5186,7 +4987,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(ByteOrder).Uint16", Method, 0, ""},
 		{"(ByteOrder).Uint32", Method, 0, ""},
 		{"(ByteOrder).Uint64", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Append", Func, 23, "func(buf []byte, order ByteOrder, data any) ([]byte, error)"},
 		{"AppendByteOrder", Type, 19, ""},
 		{"AppendUvarint", Func, 19, "func(buf []byte, x uint64) []byte"},
@@ -5249,11 +5049,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Decoder).DecodeValue", Method, 0, ""},
 		{"(*Encoder).Encode", Method, 0, ""},
 		{"(*Encoder).EncodeValue", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(GobDecoder).GobDecode", Method, 0, ""},
 		{"(GobEncoder).GobEncode", Method, 0, ""},
->>>>>>> v1.34.11
 		{"CommonType", Type, 0, ""},
 		{"CommonType.Id", Field, 0, ""},
 		{"CommonType.Name", Field, 0, ""},
@@ -5298,28 +5095,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*InvalidUnmarshalError).Error", Method, 0, ""},
 		{"(*MarshalerError).Error", Method, 0, ""},
 		{"(*MarshalerError).Unwrap", Method, 13, ""},
-<<<<<<< HEAD
-=======
 		{"(*Number).UnmarshalJSONFrom", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*RawMessage).MarshalJSON", Method, 0, ""},
 		{"(*RawMessage).UnmarshalJSON", Method, 0, ""},
 		{"(*SyntaxError).Error", Method, 0, ""},
 		{"(*UnmarshalFieldError).Error", Method, 0, ""},
 		{"(*UnmarshalTypeError).Error", Method, 0, ""},
-<<<<<<< HEAD
-		{"(*UnsupportedTypeError).Error", Method, 0, ""},
-		{"(*UnsupportedValueError).Error", Method, 0, ""},
-		{"(Delim).String", Method, 5, ""},
-		{"(Number).Float64", Method, 1, ""},
-		{"(Number).Int64", Method, 1, ""},
-		{"(Number).String", Method, 1, ""},
-		{"(RawMessage).MarshalJSON", Method, 8, ""},
-		{"Compact", Func, 0, "func(dst *bytes.Buffer, src []byte) error"},
-		{"Decoder", Type, 0, ""},
-		{"Delim", Type, 5, ""},
-		{"Encoder", Type, 0, ""},
-=======
 		{"(*UnmarshalTypeError).Unwrap", Method, 27, ""},
 		{"(*UnsupportedTypeError).Error", Method, 0, ""},
 		{"(*UnsupportedValueError).Error", Method, 0, ""},
@@ -5340,7 +5121,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"FormatByteArrayAsArray", Func, 27, "func(v bool) Options"},
 		{"FormatBytesWithLegacySemantics", Func, 27, "func(v bool) Options"},
 		{"FormatDurationAsNano", Func, 27, "func(v bool) Options"},
->>>>>>> v1.34.11
 		{"HTMLEscape", Func, 0, "func(dst *bytes.Buffer, src []byte)"},
 		{"Indent", Func, 0, "func(dst *bytes.Buffer, src []byte, prefix string, indent string) error"},
 		{"InvalidUTF8Error", Type, 0, ""},
@@ -5353,12 +5133,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"MarshalerError", Type, 0, ""},
 		{"MarshalerError.Err", Field, 0, ""},
 		{"MarshalerError.Type", Field, 0, ""},
-<<<<<<< HEAD
-		{"NewDecoder", Func, 0, "func(r io.Reader) *Decoder"},
-		{"NewEncoder", Func, 0, "func(w io.Writer) *Encoder"},
-		{"Number", Type, 1, ""},
-		{"RawMessage", Type, 0, ""},
-=======
 		{"MatchCaseSensitiveDelimiter", Func, 27, "func(v bool) Options"},
 		{"MergeWithLegacySemantics", Func, 27, "func(v bool) Options"},
 		{"NewDecoder", Func, 0, "func(r io.Reader) *Decoder"},
@@ -5371,24 +5145,17 @@ var PackageSymbols = map[string][]Symbol{
 		{"RawMessage", Type, 0, ""},
 		{"ReportErrorsWithLegacySemantics", Func, 27, "func(v bool) Options"},
 		{"StringifyWithLegacySemantics", Func, 27, "func(v bool) Options"},
->>>>>>> v1.34.11
 		{"SyntaxError", Type, 0, ""},
 		{"SyntaxError.Offset", Field, 0, ""},
 		{"Token", Type, 5, ""},
 		{"Unmarshal", Func, 0, "func(data []byte, v any) error"},
-<<<<<<< HEAD
-=======
 		{"UnmarshalArrayFromAnyLength", Func, 27, "func(v bool) Options"},
->>>>>>> v1.34.11
 		{"UnmarshalFieldError", Type, 0, ""},
 		{"UnmarshalFieldError.Field", Field, 0, ""},
 		{"UnmarshalFieldError.Key", Field, 0, ""},
 		{"UnmarshalFieldError.Type", Field, 0, ""},
 		{"UnmarshalTypeError", Type, 0, ""},
-<<<<<<< HEAD
-=======
 		{"UnmarshalTypeError.Err", Field, 27, ""},
->>>>>>> v1.34.11
 		{"UnmarshalTypeError.Field", Field, 8, ""},
 		{"UnmarshalTypeError.Offset", Field, 5, ""},
 		{"UnmarshalTypeError.Struct", Field, 8, ""},
@@ -5401,8 +5168,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"UnsupportedValueError.Str", Field, 0, ""},
 		{"UnsupportedValueError.Value", Field, 0, ""},
 		{"Valid", Func, 9, "func(data []byte) bool"},
-<<<<<<< HEAD
-=======
 	},
 	"encoding/json/jsontext": {
 		{"(*Decoder).InputOffset", Method, 27, ""},
@@ -5555,7 +5320,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Unmarshalers", Type, 27, ""},
 		{"WithMarshalers", Func, 27, "func(v *Marshalers) Options"},
 		{"WithUnmarshalers", Func, 27, "func(v *Unmarshalers) Options"},
->>>>>>> v1.34.11
 	},
 	"encoding/pem": {
 		{"Block", Type, 0, ""},
@@ -5586,12 +5350,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(CharData).Copy", Method, 0, ""},
 		{"(Comment).Copy", Method, 0, ""},
 		{"(Directive).Copy", Method, 0, ""},
-<<<<<<< HEAD
-		{"(ProcInst).Copy", Method, 0, ""},
-		{"(StartElement).Copy", Method, 0, ""},
-		{"(StartElement).End", Method, 2, ""},
-		{"(UnmarshalError).Error", Method, 0, ""},
-=======
 		{"(Marshaler).MarshalXML", Method, 2, ""},
 		{"(MarshalerAttr).MarshalXMLAttr", Method, 2, ""},
 		{"(ProcInst).Copy", Method, 0, ""},
@@ -5601,7 +5359,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(UnmarshalError).Error", Method, 0, ""},
 		{"(Unmarshaler).UnmarshalXML", Method, 2, ""},
 		{"(UnmarshalerAttr).UnmarshalXMLAttr", Method, 2, ""},
->>>>>>> v1.34.11
 		{"Attr", Type, 0, ""},
 		{"Attr.Name", Field, 0, ""},
 		{"Attr.Value", Field, 0, ""},
@@ -5659,10 +5416,7 @@ var PackageSymbols = map[string][]Symbol{
 	},
 	"errors": {
 		{"As", Func, 13, "func(err error, target any) bool"},
-<<<<<<< HEAD
-=======
 		{"AsType", Func, 26, "func[E error](err error) (E, bool)"},
->>>>>>> v1.34.11
 		{"ErrUnsupported", Var, 21, ""},
 		{"Is", Func, 13, "func(err error, target error) bool"},
 		{"Join", Func, 20, "func(errs ...error) error"},
@@ -5691,10 +5445,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*String).Value", Method, 8, ""},
 		{"(Func).String", Method, 0, ""},
 		{"(Func).Value", Method, 8, ""},
-<<<<<<< HEAD
-=======
 		{"(Var).String", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Do", Func, 0, "func(f func(KeyValue))"},
 		{"Float", Type, 0, ""},
 		{"Func", Type, 0, ""},
@@ -5750,14 +5501,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*FlagSet).Var", Method, 0, ""},
 		{"(*FlagSet).Visit", Method, 0, ""},
 		{"(*FlagSet).VisitAll", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Getter).Get", Method, 2, ""},
 		{"(Getter).Set", Method, 2, ""},
 		{"(Getter).String", Method, 2, ""},
 		{"(Value).Set", Method, 0, ""},
 		{"(Value).String", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Arg", Func, 0, "func(i int) string"},
 		{"Args", Func, 0, "func() []string"},
 		{"Bool", Func, 0, "func(name string, value bool, usage string) *bool"},
@@ -5809,12 +5557,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"VisitAll", Func, 0, "func(fn func(*Flag))"},
 	},
 	"fmt": {
-<<<<<<< HEAD
-		{"Append", Func, 19, "func(b []byte, a ...any) []byte"},
-		{"Appendf", Func, 19, "func(b []byte, format string, a ...any) []byte"},
-		{"Appendln", Func, 19, "func(b []byte, a ...any) []byte"},
-		{"Errorf", Func, 0, "func(format string, a ...any) error"},
-=======
 		{"(Formatter).Format", Method, 0, ""},
 		{"(GoStringer).GoString", Method, 0, ""},
 		{"(ScanState).Read", Method, 0, ""},
@@ -5833,7 +5575,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Appendf", Func, 19, "func(b []byte, format string, a ...any) []byte"},
 		{"Appendln", Func, 19, "func(b []byte, a ...any) []byte"},
 		{"Errorf", Func, 0, "func(format string, a ...any) (err error)"},
->>>>>>> v1.34.11
 		{"FormatString", Func, 20, "func(state State, verb rune) string"},
 		{"Formatter", Type, 0, ""},
 		{"Fprint", Func, 0, "func(w io.Writer, a ...any) (n int, err error)"},
@@ -5898,12 +5639,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*DeclStmt).Pos", Method, 0, ""},
 		{"(*DeferStmt).End", Method, 0, ""},
 		{"(*DeferStmt).Pos", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*Directive).End", Method, 26, ""},
 		{"(*Directive).ParseArgs", Method, 26, ""},
 		{"(*Directive).Pos", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*Ellipsis).End", Method, 0, ""},
 		{"(*Ellipsis).Pos", Method, 0, ""},
 		{"(*EmptyStmt).End", Method, 0, ""},
@@ -5991,9 +5729,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(CommentMap).Filter", Method, 1, ""},
 		{"(CommentMap).String", Method, 1, ""},
 		{"(CommentMap).Update", Method, 1, ""},
-<<<<<<< HEAD
-		{"(ObjKind).String", Method, 0, ""},
-=======
 		{"(Decl).End", Method, 0, ""},
 		{"(Decl).Pos", Method, 0, ""},
 		{"(Expr).End", Method, 0, ""},
@@ -6006,7 +5741,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Stmt).End", Method, 0, ""},
 		{"(Stmt).Pos", Method, 0, ""},
 		{"(Visitor).Visit", Method, 0, ""},
->>>>>>> v1.34.11
 		{"ArrayType", Type, 0, ""},
 		{"ArrayType.Elt", Field, 0, ""},
 		{"ArrayType.Lbrack", Field, 0, ""},
@@ -6029,10 +5763,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"BasicLit", Type, 0, ""},
 		{"BasicLit.Kind", Field, 0, ""},
 		{"BasicLit.Value", Field, 0, ""},
-<<<<<<< HEAD
-=======
 		{"BasicLit.ValueEnd", Field, 26, ""},
->>>>>>> v1.34.11
 		{"BasicLit.ValuePos", Field, 0, ""},
 		{"BinaryExpr", Type, 0, ""},
 		{"BinaryExpr.Op", Field, 0, ""},
@@ -6082,17 +5813,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"CompositeLit.Rbrace", Field, 0, ""},
 		{"CompositeLit.Type", Field, 0, ""},
 		{"Con", Const, 0, ""},
-<<<<<<< HEAD
-		{"Decl", Type, 0, ""},
-=======
->>>>>>> v1.34.11
 		{"DeclStmt", Type, 0, ""},
 		{"DeclStmt.Decl", Field, 0, ""},
 		{"DeferStmt", Type, 0, ""},
 		{"DeferStmt.Call", Field, 0, ""},
 		{"DeferStmt.Defer", Field, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Directive", Type, 26, ""},
 		{"Directive.Args", Field, 26, ""},
 		{"Directive.ArgsPos", Field, 26, ""},
@@ -6102,17 +5827,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"DirectiveArg", Type, 26, ""},
 		{"DirectiveArg.Arg", Field, 26, ""},
 		{"DirectiveArg.Pos", Field, 26, ""},
->>>>>>> v1.34.11
 		{"Ellipsis", Type, 0, ""},
 		{"Ellipsis.Ellipsis", Field, 0, ""},
 		{"Ellipsis.Elt", Field, 0, ""},
 		{"EmptyStmt", Type, 0, ""},
 		{"EmptyStmt.Implicit", Field, 5, ""},
 		{"EmptyStmt.Semicolon", Field, 0, ""},
-<<<<<<< HEAD
-		{"Expr", Type, 0, ""},
-=======
->>>>>>> v1.34.11
 		{"ExprStmt", Type, 0, ""},
 		{"ExprStmt.X", Field, 0, ""},
 		{"Field", Type, 0, ""},
@@ -6255,15 +5975,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"ParenExpr.Lparen", Field, 0, ""},
 		{"ParenExpr.Rparen", Field, 0, ""},
 		{"ParenExpr.X", Field, 0, ""},
-<<<<<<< HEAD
-		{"Pkg", Const, 0, ""},
-		{"Preorder", Func, 23, "func(root Node) iter.Seq[Node]"},
-=======
 		{"ParseDirective", Func, 26, "func(pos token.Pos, c string) (Directive, bool)"},
 		{"Pkg", Const, 0, ""},
 		{"Preorder", Func, 23, "func(root Node) iter.Seq[Node]"},
 		{"PreorderStack", Func, 25, "func(root Node, stack []Node, f func(n Node, stack []Node) bool)"},
->>>>>>> v1.34.11
 		{"Print", Func, 0, "func(fset *token.FileSet, x any) error"},
 		{"RECV", Const, 0, ""},
 		{"RangeStmt", Type, 0, ""},
@@ -6301,17 +6016,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"SliceExpr.Slice3", Field, 2, ""},
 		{"SliceExpr.X", Field, 0, ""},
 		{"SortImports", Func, 0, "func(fset *token.FileSet, f *File)"},
-<<<<<<< HEAD
-		{"Spec", Type, 0, ""},
 		{"StarExpr", Type, 0, ""},
 		{"StarExpr.Star", Field, 0, ""},
 		{"StarExpr.X", Field, 0, ""},
-		{"Stmt", Type, 0, ""},
-=======
-		{"StarExpr", Type, 0, ""},
-		{"StarExpr.Star", Field, 0, ""},
-		{"StarExpr.X", Field, 0, ""},
->>>>>>> v1.34.11
 		{"StructType", Type, 0, ""},
 		{"StructType.Fields", Field, 0, ""},
 		{"StructType.Incomplete", Field, 0, ""},
@@ -6466,18 +6173,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*SyntaxError).Error", Method, 16, ""},
 		{"(*TagExpr).Eval", Method, 16, ""},
 		{"(*TagExpr).String", Method, 16, ""},
-<<<<<<< HEAD
-		{"AndExpr", Type, 16, ""},
-		{"AndExpr.X", Field, 16, ""},
-		{"AndExpr.Y", Field, 16, ""},
-		{"Expr", Type, 16, ""},
-=======
 		{"(Expr).Eval", Method, 16, ""},
 		{"(Expr).String", Method, 16, ""},
 		{"AndExpr", Type, 16, ""},
 		{"AndExpr.X", Field, 16, ""},
 		{"AndExpr.Y", Field, 16, ""},
->>>>>>> v1.34.11
 		{"GoVersion", Func, 21, "func(x Expr) string"},
 		{"IsGoBuild", Func, 16, "func(line string) bool"},
 		{"IsPlusBuild", Func, 16, "func(line string) bool"},
@@ -6496,12 +6196,9 @@ var PackageSymbols = map[string][]Symbol{
 	},
 	"go/constant": {
 		{"(Kind).String", Method, 18, ""},
-<<<<<<< HEAD
-=======
 		{"(Value).ExactString", Method, 6, ""},
 		{"(Value).Kind", Method, 5, ""},
 		{"(Value).String", Method, 5, ""},
->>>>>>> v1.34.11
 		{"BinaryOp", Func, 5, "func(x_ Value, op token.Token, y_ Value) Value"},
 		{"BitLen", Func, 5, "func(x Value) int"},
 		{"Bool", Const, 5, ""},
@@ -6532,10 +6229,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Shift", Func, 5, "func(x Value, op token.Token, s uint) Value"},
 		{"Sign", Func, 5, "func(x Value) int"},
 		{"String", Const, 5, ""},
-<<<<<<< HEAD
-=======
 		{"StringLen", Func, 27, "func(x Value) int64"},
->>>>>>> v1.34.11
 		{"StringVal", Func, 5, "func(x Value) string"},
 		{"ToComplex", Func, 6, "func(x Value) Value"},
 		{"ToFloat", Func, 6, "func(x Value) Value"},
@@ -6544,10 +6238,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"UnaryOp", Func, 5, "func(op token.Token, y Value, prec uint) Value"},
 		{"Unknown", Const, 5, ""},
 		{"Val", Func, 13, "func(x Value) any"},
-<<<<<<< HEAD
-		{"Value", Type, 5, ""},
-=======
->>>>>>> v1.34.11
 	},
 	"go/doc": {
 		{"(*Package).Filter", Method, 0, ""},
@@ -6631,10 +6321,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Printer).HTML", Method, 19, ""},
 		{"(*Printer).Markdown", Method, 19, ""},
 		{"(*Printer).Text", Method, 19, ""},
-<<<<<<< HEAD
-		{"Block", Type, 19, ""},
-=======
->>>>>>> v1.34.11
 		{"Code", Type, 19, ""},
 		{"Code.Text", Field, 19, ""},
 		{"DefaultLookupPackage", Func, 19, "func(name string) (importPath string, ok bool)"},
@@ -6679,10 +6365,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Printer.TextCodePrefix", Field, 19, ""},
 		{"Printer.TextPrefix", Field, 19, ""},
 		{"Printer.TextWidth", Field, 19, ""},
-<<<<<<< HEAD
-		{"Text", Type, 19, ""},
-=======
->>>>>>> v1.34.11
 	},
 	"go/format": {
 		{"Node", Func, 1, "func(dst io.Writer, fset *token.FileSet, node any) error"},
@@ -6729,10 +6411,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*ErrorList).Add", Method, 0, ""},
 		{"(*ErrorList).RemoveMultiples", Method, 0, ""},
 		{"(*ErrorList).Reset", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*Scanner).End", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*Scanner).Init", Method, 0, ""},
 		{"(*Scanner).Scan", Method, 0, ""},
 		{"(Error).Error", Method, 0, ""},
@@ -6758,10 +6437,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*File).AddLineColumnInfo", Method, 11, ""},
 		{"(*File).AddLineInfo", Method, 0, ""},
 		{"(*File).Base", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*File).End", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*File).Line", Method, 0, ""},
 		{"(*File).LineCount", Method, 0, ""},
 		{"(*File).LineStart", Method, 12, ""},
@@ -6775,11 +6451,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*File).SetLines", Method, 0, ""},
 		{"(*File).SetLinesForContent", Method, 0, ""},
 		{"(*File).Size", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*File).String", Method, 27, ""},
 		{"(*FileSet).AddExistingFiles", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*FileSet).AddFile", Method, 0, ""},
 		{"(*FileSet).Base", Method, 0, ""},
 		{"(*FileSet).File", Method, 0, ""},
@@ -7086,10 +6759,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Tuple).Variables", Method, 24, ""},
 		{"(*TypeList).At", Method, 18, ""},
 		{"(*TypeList).Len", Method, 18, ""},
-<<<<<<< HEAD
-=======
 		{"(*TypeList).String", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*TypeList).Types", Method, 24, ""},
 		{"(*TypeName).Exported", Method, 5, ""},
 		{"(*TypeName).Id", Method, 5, ""},
@@ -7108,10 +6778,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*TypeParam).Underlying", Method, 18, ""},
 		{"(*TypeParamList).At", Method, 18, ""},
 		{"(*TypeParamList).Len", Method, 18, ""},
-<<<<<<< HEAD
-=======
 		{"(*TypeParamList).String", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*TypeParamList).TypeParams", Method, 24, ""},
 		{"(*Union).Len", Method, 18, ""},
 		{"(*Union).String", Method, 18, ""},
@@ -7136,8 +6803,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Checker).PkgNameOf", Method, 22, ""},
 		{"(Checker).TypeOf", Method, 5, ""},
 		{"(Error).Error", Method, 5, ""},
-<<<<<<< HEAD
-=======
 		{"(Hasher).Equal", Method, 27, ""},
 		{"(Hasher).Hash", Method, 27, ""},
 		{"(HasherIgnoreTags).Equal", Method, 27, ""},
@@ -7159,7 +6824,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Sizes).Sizeof", Method, 5, ""},
 		{"(Type).String", Method, 5, ""},
 		{"(Type).Underlying", Method, 5, ""},
->>>>>>> v1.34.11
 		{"(TypeAndValue).Addressable", Method, 5, ""},
 		{"(TypeAndValue).Assignable", Method, 5, ""},
 		{"(TypeAndValue).HasOk", Method, 5, ""},
@@ -7216,11 +6880,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"Float32", Const, 5, ""},
 		{"Float64", Const, 5, ""},
 		{"Func", Type, 5, ""},
-<<<<<<< HEAD
-=======
 		{"Hasher", Type, 27, ""},
 		{"HasherIgnoreTags", Type, 27, ""},
->>>>>>> v1.34.11
 		{"Id", Func, 5, "func(pkg *Package, name string) string"},
 		{"Identical", Func, 5, "func(x Type, y Type) bool"},
 		{"IdenticalIgnoreTags", Func, 8, "func(x Type, y Type) bool"},
@@ -7266,11 +6927,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Label", Type, 5, ""},
 		{"LocalVar", Const, 25, ""},
 		{"LookupFieldOrMethod", Func, 5, "func(T Type, addressable bool, pkg *Package, name string) (obj Object, index []int, indirect bool)"},
-<<<<<<< HEAD
-		{"LookupSelection", Func, 25, ""},
-=======
 		{"LookupSelection", Func, 25, "func(T Type, addressable bool, pkg *Package, name string) (Selection, bool)"},
->>>>>>> v1.34.11
 		{"Map", Type, 5, ""},
 		{"MethodExpr", Const, 5, ""},
 		{"MethodSet", Type, 5, ""},
@@ -7307,10 +6964,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"NewUnion", Func, 18, "func(terms []*Term) *Union"},
 		{"NewVar", Func, 5, "func(pos token.Pos, pkg *Package, name string, typ Type) *Var"},
 		{"Nil", Type, 5, ""},
-<<<<<<< HEAD
-		{"Object", Type, 5, ""},
-=======
->>>>>>> v1.34.11
 		{"ObjectString", Func, 5, "func(obj Object, qf Qualifier) string"},
 		{"Package", Type, 5, ""},
 		{"PackageVar", Const, 25, ""},
@@ -7381,11 +7034,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Lang", Func, 22, "func(x string) string"},
 	},
 	"hash": {
-<<<<<<< HEAD
-		{"Hash", Type, 0, ""},
-		{"Hash32", Type, 0, ""},
-		{"Hash64", Type, 0, ""},
-=======
 		{"(Cloner).BlockSize", Method, 25, ""},
 		{"(Cloner).Clone", Method, 25, ""},
 		{"(Cloner).Reset", Method, 25, ""},
@@ -7418,7 +7066,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Hash32", Type, 0, ""},
 		{"Hash64", Type, 0, ""},
 		{"XOF", Type, 25, ""},
->>>>>>> v1.34.11
 	},
 	"hash/adler32": {
 		{"Checksum", Func, 0, "func(data []byte) uint32"},
@@ -7459,10 +7106,7 @@ var PackageSymbols = map[string][]Symbol{
 	},
 	"hash/maphash": {
 		{"(*Hash).BlockSize", Method, 14, ""},
-<<<<<<< HEAD
-=======
 		{"(*Hash).Clone", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*Hash).Reset", Method, 14, ""},
 		{"(*Hash).Seed", Method, 14, ""},
 		{"(*Hash).SetSeed", Method, 14, ""},
@@ -7472,11 +7116,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Hash).Write", Method, 14, ""},
 		{"(*Hash).WriteByte", Method, 14, ""},
 		{"(*Hash).WriteString", Method, 14, ""},
-<<<<<<< HEAD
-		{"Bytes", Func, 19, "func(seed Seed, b []byte) uint64"},
-		{"Comparable", Func, 24, "func[T comparable](seed Seed, v T) uint64"},
-		{"Hash", Type, 14, ""},
-=======
 		{"(ComparableHasher).Equal", Method, 27, ""},
 		{"(ComparableHasher).Hash", Method, 27, ""},
 		{"Bytes", Func, 19, "func(seed Seed, b []byte) uint64"},
@@ -7484,7 +7123,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"ComparableHasher", Type, 27, ""},
 		{"Hash", Type, 14, ""},
 		{"Hasher", Type, 27, ""},
->>>>>>> v1.34.11
 		{"MakeSeed", Func, 14, "func() Seed"},
 		{"Seed", Type, 14, ""},
 		{"String", Func, 19, "func(seed Seed, s string) uint64"},
@@ -7692,8 +7330,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*YCbCr).SubImage", Method, 0, ""},
 		{"(*YCbCr).YCbCrAt", Method, 4, ""},
 		{"(*YCbCr).YOffset", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Image).At", Method, 0, ""},
 		{"(Image).Bounds", Method, 0, ""},
 		{"(Image).ColorModel", Method, 0, ""},
@@ -7701,7 +7337,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(PalettedImage).Bounds", Method, 0, ""},
 		{"(PalettedImage).ColorIndexAt", Method, 0, ""},
 		{"(PalettedImage).ColorModel", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(Point).Add", Method, 0, ""},
 		{"(Point).Div", Method, 0, ""},
 		{"(Point).Eq", Method, 0, ""},
@@ -7710,13 +7345,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Point).Mul", Method, 0, ""},
 		{"(Point).String", Method, 0, ""},
 		{"(Point).Sub", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(RGBA64Image).At", Method, 17, ""},
 		{"(RGBA64Image).Bounds", Method, 17, ""},
 		{"(RGBA64Image).ColorModel", Method, 17, ""},
 		{"(RGBA64Image).RGBA64At", Method, 17, ""},
->>>>>>> v1.34.11
 		{"(Rectangle).Add", Method, 0, ""},
 		{"(Rectangle).At", Method, 5, ""},
 		{"(Rectangle).Bounds", Method, 5, ""},
@@ -7841,15 +7473,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Alpha).RGBA", Method, 0, ""},
 		{"(Alpha16).RGBA", Method, 0, ""},
 		{"(CMYK).RGBA", Method, 5, ""},
-<<<<<<< HEAD
-		{"(Gray).RGBA", Method, 0, ""},
-		{"(Gray16).RGBA", Method, 0, ""},
-=======
 		{"(Color).RGBA", Method, 0, ""},
 		{"(Gray).RGBA", Method, 0, ""},
 		{"(Gray16).RGBA", Method, 0, ""},
 		{"(Model).Convert", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(NRGBA).RGBA", Method, 0, ""},
 		{"(NRGBA64).RGBA", Method, 0, ""},
 		{"(NYCbCrA).RGBA", Method, 6, ""},
@@ -7927,9 +7554,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"WebSafe", Var, 2, ""},
 	},
 	"image/draw": {
-<<<<<<< HEAD
-		{"(Op).Draw", Method, 2, ""},
-=======
 		{"(Drawer).Draw", Method, 2, ""},
 		{"(Image).At", Method, 0, ""},
 		{"(Image).Bounds", Method, 0, ""},
@@ -7943,7 +7567,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(RGBA64Image).RGBA64At", Method, 17, ""},
 		{"(RGBA64Image).Set", Method, 17, ""},
 		{"(RGBA64Image).SetRGBA64", Method, 17, ""},
->>>>>>> v1.34.11
 		{"Draw", Func, 0, "func(dst Image, r image.Rectangle, src image.Image, sp image.Point, op Op)"},
 		{"DrawMask", Func, 0, "func(dst Image, r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op Op)"},
 		{"Drawer", Type, 2, ""},
@@ -7978,11 +7601,8 @@ var PackageSymbols = map[string][]Symbol{
 	},
 	"image/jpeg": {
 		{"(FormatError).Error", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Reader).Read", Method, 0, ""},
 		{"(Reader).ReadByte", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(UnsupportedError).Error", Method, 0, ""},
 		{"Decode", Func, 0, "func(r io.Reader) (image.Image, error)"},
 		{"DecodeConfig", Func, 0, "func(r io.Reader) (image.Config, error)"},
@@ -7996,11 +7616,8 @@ var PackageSymbols = map[string][]Symbol{
 	},
 	"image/png": {
 		{"(*Encoder).Encode", Method, 4, ""},
-<<<<<<< HEAD
-=======
 		{"(EncoderBufferPool).Get", Method, 9, ""},
 		{"(EncoderBufferPool).Put", Method, 9, ""},
->>>>>>> v1.34.11
 		{"(FormatError).Error", Method, 0, ""},
 		{"(UnsupportedError).Error", Method, 0, ""},
 		{"BestCompression", Const, 4, ""},
@@ -8044,8 +7661,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*SectionReader).ReadAt", Method, 0, ""},
 		{"(*SectionReader).Seek", Method, 0, ""},
 		{"(*SectionReader).Size", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(ByteReader).ReadByte", Method, 0, ""},
 		{"(ByteScanner).ReadByte", Method, 0, ""},
 		{"(ByteScanner).UnreadByte", Method, 0, ""},
@@ -8081,7 +7696,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Writer).Write", Method, 0, ""},
 		{"(WriterAt).WriteAt", Method, 0, ""},
 		{"(WriterTo).WriteTo", Method, 0, ""},
->>>>>>> v1.34.11
 		{"ByteReader", Type, 0, ""},
 		{"ByteScanner", Type, 0, ""},
 		{"ByteWriter", Type, 1, ""},
@@ -8141,8 +7755,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*PathError).Error", Method, 16, ""},
 		{"(*PathError).Timeout", Method, 16, ""},
 		{"(*PathError).Unwrap", Method, 16, ""},
-<<<<<<< HEAD
-=======
 		{"(DirEntry).Info", Method, 16, ""},
 		{"(DirEntry).IsDir", Method, 16, ""},
 		{"(DirEntry).Name", Method, 16, ""},
@@ -8157,14 +7769,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(FileInfo).Name", Method, 16, ""},
 		{"(FileInfo).Size", Method, 16, ""},
 		{"(FileInfo).Sys", Method, 16, ""},
->>>>>>> v1.34.11
 		{"(FileMode).IsDir", Method, 16, ""},
 		{"(FileMode).IsRegular", Method, 16, ""},
 		{"(FileMode).Perm", Method, 16, ""},
 		{"(FileMode).String", Method, 16, ""},
 		{"(FileMode).Type", Method, 16, ""},
-<<<<<<< HEAD
-=======
 		{"(GlobFS).Glob", Method, 16, ""},
 		{"(GlobFS).Open", Method, 16, ""},
 		{"(ReadDirFS).Open", Method, 16, ""},
@@ -8182,7 +7791,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(StatFS).Stat", Method, 16, ""},
 		{"(SubFS).Open", Method, 16, ""},
 		{"(SubFS).Sub", Method, 16, ""},
->>>>>>> v1.34.11
 		{"DirEntry", Type, 16, ""},
 		{"ErrClosed", Var, 16, ""},
 		{"ErrExist", Var, 16, ""},
@@ -8198,11 +7806,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"FormatFileInfo", Func, 21, "func(info FileInfo) string"},
 		{"Glob", Func, 16, "func(fsys FS, pattern string) (matches []string, err error)"},
 		{"GlobFS", Type, 16, ""},
-<<<<<<< HEAD
-		{"Lstat", Func, 25, ""},
-=======
 		{"Lstat", Func, 25, "func(fsys FS, name string) (FileInfo, error)"},
->>>>>>> v1.34.11
 		{"ModeAppend", Const, 16, ""},
 		{"ModeCharDevice", Const, 16, ""},
 		{"ModeDevice", Const, 16, ""},
@@ -8227,11 +7831,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ReadDirFile", Type, 16, ""},
 		{"ReadFile", Func, 16, "func(fsys FS, name string) ([]byte, error)"},
 		{"ReadFileFS", Type, 16, ""},
-<<<<<<< HEAD
-		{"ReadLink", Func, 25, ""},
-=======
 		{"ReadLink", Func, 25, "func(fsys FS, name string) (string, error)"},
->>>>>>> v1.34.11
 		{"ReadLinkFS", Type, 25, ""},
 		{"SkipAll", Var, 20, ""},
 		{"SkipDir", Var, 16, ""},
@@ -8331,13 +7931,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Logger).WarnContext", Method, 21, ""},
 		{"(*Logger).With", Method, 21, ""},
 		{"(*Logger).WithGroup", Method, 21, ""},
-<<<<<<< HEAD
-=======
 		{"(*MultiHandler).Enabled", Method, 26, ""},
 		{"(*MultiHandler).Handle", Method, 26, ""},
 		{"(*MultiHandler).WithAttrs", Method, 26, ""},
 		{"(*MultiHandler).WithGroup", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*Record).Add", Method, 21, ""},
 		{"(*Record).AddAttrs", Method, 21, ""},
 		{"(*TextHandler).Enabled", Method, 21, ""},
@@ -8346,31 +7943,22 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*TextHandler).WithGroup", Method, 21, ""},
 		{"(Attr).Equal", Method, 21, ""},
 		{"(Attr).String", Method, 21, ""},
-<<<<<<< HEAD
-=======
 		{"(Handler).Enabled", Method, 21, ""},
 		{"(Handler).Handle", Method, 21, ""},
 		{"(Handler).WithAttrs", Method, 21, ""},
 		{"(Handler).WithGroup", Method, 21, ""},
->>>>>>> v1.34.11
 		{"(Kind).String", Method, 21, ""},
 		{"(Level).AppendText", Method, 24, ""},
 		{"(Level).Level", Method, 21, ""},
 		{"(Level).MarshalJSON", Method, 21, ""},
 		{"(Level).MarshalText", Method, 21, ""},
 		{"(Level).String", Method, 21, ""},
-<<<<<<< HEAD
-		{"(Record).Attrs", Method, 21, ""},
-		{"(Record).Clone", Method, 21, ""},
-		{"(Record).NumAttrs", Method, 21, ""},
-=======
 		{"(Leveler).Level", Method, 21, ""},
 		{"(LogValuer).LogValue", Method, 21, ""},
 		{"(Record).Attrs", Method, 21, ""},
 		{"(Record).Clone", Method, 21, ""},
 		{"(Record).NumAttrs", Method, 21, ""},
 		{"(Record).Source", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(Value).Any", Method, 21, ""},
 		{"(Value).Bool", Method, 21, ""},
 		{"(Value).Duration", Method, 21, ""},
@@ -8402,10 +7990,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Float64", Func, 21, "func(key string, v float64) Attr"},
 		{"Float64Value", Func, 21, "func(v float64) Value"},
 		{"Group", Func, 21, "func(key string, args ...any) Attr"},
-<<<<<<< HEAD
-=======
 		{"GroupAttrs", Func, 25, "func(key string, attrs ...Attr) Attr"},
->>>>>>> v1.34.11
 		{"GroupValue", Func, 21, "func(as ...Attr) Value"},
 		{"Handler", Type, 21, ""},
 		{"HandlerOptions", Type, 21, ""},
@@ -8443,17 +8028,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"LogValuer", Type, 21, ""},
 		{"Logger", Type, 21, ""},
 		{"MessageKey", Const, 21, ""},
-<<<<<<< HEAD
-		{"New", Func, 21, "func(h Handler) *Logger"},
-		{"NewJSONHandler", Func, 21, "func(w io.Writer, opts *HandlerOptions) *JSONHandler"},
-		{"NewLogLogger", Func, 21, "func(h Handler, level Level) *log.Logger"},
-=======
 		{"MultiHandler", Type, 26, ""},
 		{"New", Func, 21, "func(h Handler) *Logger"},
 		{"NewJSONHandler", Func, 21, "func(w io.Writer, opts *HandlerOptions) *JSONHandler"},
 		{"NewLogLogger", Func, 21, "func(h Handler, level Level) *log.Logger"},
 		{"NewMultiHandler", Func, 26, "func(handlers ...Handler) *MultiHandler"},
->>>>>>> v1.34.11
 		{"NewRecord", Func, 21, "func(t time.Time, level Level, msg string, pc uintptr) Record"},
 		{"NewTextHandler", Func, 21, "func(w io.Writer, opts *HandlerOptions) *TextHandler"},
 		{"Record", Type, 21, ""},
@@ -8608,11 +8187,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"MinInt64", Const, 0, ""},
 		{"MinInt8", Const, 0, ""},
 		{"Mod", Func, 0, "func(x float64, y float64) float64"},
-<<<<<<< HEAD
-		{"Modf", Func, 0, "func(f float64) (int float64, frac float64)"},
-=======
 		{"Modf", Func, 0, "func(f float64) (integer float64, fractional float64)"},
->>>>>>> v1.34.11
 		{"NaN", Func, 0, "func() float64"},
 		{"Nextafter", Func, 0, "func(x float64, y float64) (r float64)"},
 		{"Nextafter32", Func, 4, "func(x float32, y float32) (r float32)"},
@@ -8703,10 +8278,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Int).CmpAbs", Method, 10, ""},
 		{"(*Int).Div", Method, 0, ""},
 		{"(*Int).DivMod", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*Int).Divide", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*Int).Exp", Method, 0, ""},
 		{"(*Int).FillBytes", Method, 15, ""},
 		{"(*Int).Float64", Method, 21, ""},
@@ -8791,17 +8363,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"Accuracy", Type, 5, ""},
 		{"AwayFromZero", Const, 5, ""},
 		{"Below", Const, 5, ""},
-<<<<<<< HEAD
-		{"ErrNaN", Type, 5, ""},
-		{"Exact", Const, 5, ""},
-		{"Float", Type, 5, ""},
-=======
 		{"Ceil", Const, 27, ""},
 		{"ErrNaN", Type, 5, ""},
 		{"Exact", Const, 5, ""},
 		{"Float", Type, 5, ""},
 		{"Floor", Const, 27, ""},
->>>>>>> v1.34.11
 		{"Int", Type, 0, ""},
 		{"Jacobi", Func, 5, "func(x *Int, y *Int) int"},
 		{"MaxBase", Const, 0, ""},
@@ -8813,20 +8379,14 @@ var PackageSymbols = map[string][]Symbol{
 		{"NewRat", Func, 0, "func(a int64, b int64) *Rat"},
 		{"ParseFloat", Func, 5, "func(s string, base int, prec uint, mode RoundingMode) (f *Float, b int, err error)"},
 		{"Rat", Type, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Round", Const, 27, ""},
->>>>>>> v1.34.11
 		{"RoundingMode", Type, 5, ""},
 		{"ToNearestAway", Const, 5, ""},
 		{"ToNearestEven", Const, 5, ""},
 		{"ToNegativeInf", Const, 5, ""},
 		{"ToPositiveInf", Const, 5, ""},
 		{"ToZero", Const, 5, ""},
-<<<<<<< HEAD
-=======
 		{"Trunc", Const, 27, ""},
->>>>>>> v1.34.11
 		{"Word", Type, 0, ""},
 	},
 	"math/bits": {
@@ -8928,14 +8488,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Rand).Uint32", Method, 0, ""},
 		{"(*Rand).Uint64", Method, 8, ""},
 		{"(*Zipf).Uint64", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Source).Int63", Method, 0, ""},
 		{"(Source).Seed", Method, 0, ""},
 		{"(Source64).Int63", Method, 8, ""},
 		{"(Source64).Seed", Method, 8, ""},
 		{"(Source64).Uint64", Method, 8, ""},
->>>>>>> v1.34.11
 		{"ExpFloat64", Func, 0, "func() float64"},
 		{"Float32", Func, 0, "func() float32"},
 		{"Float64", Func, 0, "func() float64"},
@@ -8981,10 +8538,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Rand).Int64", Method, 22, ""},
 		{"(*Rand).Int64N", Method, 22, ""},
 		{"(*Rand).IntN", Method, 22, ""},
-<<<<<<< HEAD
-=======
 		{"(*Rand).N", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*Rand).NormFloat64", Method, 22, ""},
 		{"(*Rand).Perm", Method, 22, ""},
 		{"(*Rand).Shuffle", Method, 22, ""},
@@ -8995,10 +8549,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Rand).Uint64N", Method, 22, ""},
 		{"(*Rand).UintN", Method, 22, ""},
 		{"(*Zipf).Uint64", Method, 22, ""},
-<<<<<<< HEAD
-=======
 		{"(Source).Uint64", Method, 22, ""},
->>>>>>> v1.34.11
 		{"ChaCha8", Type, 22, ""},
 		{"ExpFloat64", Func, 22, "func() float64"},
 		{"Float32", Func, 22, "func() float32"},
@@ -9062,11 +8613,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Writer).FormDataContentType", Method, 0, ""},
 		{"(*Writer).SetBoundary", Method, 1, ""},
 		{"(*Writer).WriteField", Method, 0, ""},
-<<<<<<< HEAD
-		{"ErrMessageTooLarge", Var, 9, ""},
-		{"File", Type, 0, ""},
-		{"FileContentDisposition", Func, 25, ""},
-=======
 		{"(File).Close", Method, 0, ""},
 		{"(File).Read", Method, 0, ""},
 		{"(File).ReadAt", Method, 0, ""},
@@ -9074,7 +8620,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"ErrMessageTooLarge", Var, 9, ""},
 		{"File", Type, 0, ""},
 		{"FileContentDisposition", Func, 25, "func(fieldname string, filename string) string"},
->>>>>>> v1.34.11
 		{"FileHeader", Type, 0, ""},
 		{"FileHeader.Filename", Field, 0, ""},
 		{"FileHeader.Header", Field, 0, ""},
@@ -9115,13 +8660,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*DNSError).Unwrap", Method, 23, ""},
 		{"(*Dialer).Dial", Method, 1, ""},
 		{"(*Dialer).DialContext", Method, 7, ""},
-<<<<<<< HEAD
-=======
 		{"(*Dialer).DialIP", Method, 26, ""},
 		{"(*Dialer).DialTCP", Method, 26, ""},
 		{"(*Dialer).DialUDP", Method, 26, ""},
 		{"(*Dialer).DialUnix", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*Dialer).MultipathTCP", Method, 21, ""},
 		{"(*Dialer).SetMultipathTCP", Method, 21, ""},
 		{"(*IP).UnmarshalText", Method, 2, ""},
@@ -9259,8 +8801,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*UnixListener).SetDeadline", Method, 0, ""},
 		{"(*UnixListener).SetUnlinkOnClose", Method, 8, ""},
 		{"(*UnixListener).SyscallConn", Method, 10, ""},
-<<<<<<< HEAD
-=======
 		{"(Addr).Network", Method, 0, ""},
 		{"(Addr).String", Method, 0, ""},
 		{"(Conn).Close", Method, 0, ""},
@@ -9274,7 +8814,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Error).Error", Method, 0, ""},
 		{"(Error).Temporary", Method, 0, ""},
 		{"(Error).Timeout", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(Flags).String", Method, 0, ""},
 		{"(HardwareAddr).String", Method, 0, ""},
 		{"(IP).AppendText", Method, 24, ""},
@@ -9298,8 +8837,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(InvalidAddrError).Error", Method, 0, ""},
 		{"(InvalidAddrError).Temporary", Method, 0, ""},
 		{"(InvalidAddrError).Timeout", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Listener).Accept", Method, 0, ""},
 		{"(Listener).Addr", Method, 0, ""},
 		{"(Listener).Close", Method, 0, ""},
@@ -9310,7 +8847,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(PacketConn).SetReadDeadline", Method, 0, ""},
 		{"(PacketConn).SetWriteDeadline", Method, 0, ""},
 		{"(PacketConn).WriteTo", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(UnknownNetworkError).Error", Method, 0, ""},
 		{"(UnknownNetworkError).Temporary", Method, 0, ""},
 		{"(UnknownNetworkError).Timeout", Method, 0, ""},
@@ -9486,10 +9022,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Client).Head", Method, 0, ""},
 		{"(*Client).Post", Method, 0, ""},
 		{"(*Client).PostForm", Method, 0, ""},
-<<<<<<< HEAD
-		{"(*Cookie).String", Method, 0, ""},
-		{"(*Cookie).Valid", Method, 18, ""},
-=======
 		{"(*ClientConn).Available", Method, 26, ""},
 		{"(*ClientConn).Close", Method, 26, ""},
 		{"(*ClientConn).Err", Method, 26, ""},
@@ -9505,7 +9037,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*CrossOriginProtection).Check", Method, 25, ""},
 		{"(*CrossOriginProtection).Handler", Method, 25, ""},
 		{"(*CrossOriginProtection).SetDenyHandler", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*MaxBytesError).Error", Method, 19, ""},
 		{"(*ProtocolError).Error", Method, 0, ""},
 		{"(*ProtocolError).Is", Method, 21, ""},
@@ -9558,12 +9089,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Transport).CancelRequest", Method, 1, ""},
 		{"(*Transport).Clone", Method, 13, ""},
 		{"(*Transport).CloseIdleConnections", Method, 0, ""},
-<<<<<<< HEAD
-		{"(*Transport).RegisterProtocol", Method, 0, ""},
-		{"(*Transport).RoundTrip", Method, 0, ""},
-		{"(ConnState).String", Method, 3, ""},
-		{"(Dir).Open", Method, 0, ""},
-=======
 		{"(*Transport).NewClientConn", Method, 26, ""},
 		{"(*Transport).RegisterProtocol", Method, 0, ""},
 		{"(*Transport).RoundTrip", Method, 0, ""},
@@ -9580,7 +9105,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(FileSystem).Open", Method, 0, ""},
 		{"(Flusher).Flush", Method, 0, ""},
 		{"(Handler).ServeHTTP", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(HandlerFunc).ServeHTTP", Method, 0, ""},
 		{"(Header).Add", Method, 0, ""},
 		{"(Header).Clone", Method, 13, ""},
@@ -9590,22 +9114,16 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Header).Values", Method, 14, ""},
 		{"(Header).Write", Method, 0, ""},
 		{"(Header).WriteSubset", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Hijacker).Hijack", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(Protocols).HTTP1", Method, 24, ""},
 		{"(Protocols).HTTP2", Method, 24, ""},
 		{"(Protocols).String", Method, 24, ""},
 		{"(Protocols).UnencryptedHTTP2", Method, 24, ""},
-<<<<<<< HEAD
-=======
 		{"(Pusher).Push", Method, 8, ""},
 		{"(ResponseWriter).Header", Method, 0, ""},
 		{"(ResponseWriter).Write", Method, 0, ""},
 		{"(ResponseWriter).WriteHeader", Method, 0, ""},
 		{"(RoundTripper).RoundTrip", Method, 0, ""},
->>>>>>> v1.34.11
 		{"AllowQuerySemicolons", Func, 17, "func(h Handler) Handler"},
 		{"CanonicalHeaderKey", Func, 0, "func(s string) string"},
 		{"Client", Type, 0, ""},
@@ -9613,10 +9131,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Client.Jar", Field, 0, ""},
 		{"Client.Timeout", Field, 3, ""},
 		{"Client.Transport", Field, 0, ""},
-<<<<<<< HEAD
-=======
 		{"ClientConn", Type, 26, ""},
->>>>>>> v1.34.11
 		{"CloseNotifier", Type, 1, ""},
 		{"ConnState", Type, 3, ""},
 		{"Cookie", Type, 0, ""},
@@ -9635,10 +9150,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Cookie.Unparsed", Field, 0, ""},
 		{"Cookie.Value", Field, 0, ""},
 		{"CookieJar", Type, 0, ""},
-<<<<<<< HEAD
-=======
 		{"CrossOriginProtection", Type, 25, ""},
->>>>>>> v1.34.11
 		{"DefaultClient", Var, 0, ""},
 		{"DefaultMaxHeaderBytes", Const, 0, ""},
 		{"DefaultMaxIdleConnsPerHost", Const, 0, ""},
@@ -9687,10 +9199,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"HTTP2Config.PermitProhibitedCipherSuites", Field, 24, ""},
 		{"HTTP2Config.PingTimeout", Field, 24, ""},
 		{"HTTP2Config.SendPingTimeout", Field, 24, ""},
-<<<<<<< HEAD
-=======
 		{"HTTP2Config.StrictMaxConcurrentRequests", Field, 26, ""},
->>>>>>> v1.34.11
 		{"HTTP2Config.WriteByteTimeout", Field, 24, ""},
 		{"Handle", Func, 0, "func(pattern string, handler Handler)"},
 		{"HandleFunc", Func, 0, "func(pattern string, handler func(ResponseWriter, *Request))"},
@@ -9715,10 +9224,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"MethodPost", Const, 6, ""},
 		{"MethodPut", Const, 6, ""},
 		{"MethodTrace", Const, 6, ""},
-<<<<<<< HEAD
-=======
 		{"NewCrossOriginProtection", Func, 25, "func() *CrossOriginProtection"},
->>>>>>> v1.34.11
 		{"NewFileTransport", Func, 0, "func(fs FileSystem) RoundTripper"},
 		{"NewFileTransportFS", Func, 22, "func(fsys fs.FS) RoundTripper"},
 		{"NewRequest", Func, 0, "func(method string, url string, body io.Reader) (*Request, error)"},
@@ -9728,11 +9234,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"NoBody", Var, 8, ""},
 		{"NotFound", Func, 0, "func(w ResponseWriter, r *Request)"},
 		{"NotFoundHandler", Func, 0, "func() Handler"},
-<<<<<<< HEAD
-		{"ParseCookie", Func, 23, "func(line string) ([]*Cookie, error)"},
-=======
 		{"ParseCookie", Func, 23, "func(line string) (#rv1 []*Cookie, #rv2 error)"},
->>>>>>> v1.34.11
 		{"ParseHTTPVersion", Func, 0, "func(vers string) (major int, minor int, ok bool)"},
 		{"ParseSetCookie", Func, 23, "func(line string) (*Cookie, error)"},
 		{"ParseTime", Func, 1, "func(text string) (t time.Time, err error)"},
@@ -9808,10 +9310,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Server.BaseContext", Field, 13, ""},
 		{"Server.ConnContext", Field, 13, ""},
 		{"Server.ConnState", Field, 3, ""},
-<<<<<<< HEAD
-=======
 		{"Server.DisableClientPriority", Field, 27, ""},
->>>>>>> v1.34.11
 		{"Server.DisableGeneralOptionsHandler", Field, 20, ""},
 		{"Server.ErrorLog", Field, 3, ""},
 		{"Server.HTTP2", Field, 24, ""},
@@ -9944,11 +9443,8 @@ var PackageSymbols = map[string][]Symbol{
 	"net/http/cookiejar": {
 		{"(*Jar).Cookies", Method, 1, ""},
 		{"(*Jar).SetCookies", Method, 1, ""},
-<<<<<<< HEAD
-=======
 		{"(PublicSuffixList).PublicSuffix", Method, 1, ""},
 		{"(PublicSuffixList).String", Method, 1, ""},
->>>>>>> v1.34.11
 		{"Jar", Type, 1, ""},
 		{"New", Func, 1, "func(o *Options) (*Jar, error)"},
 		{"Options", Type, 1, ""},
@@ -9980,10 +9476,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"NewRequestWithContext", Func, 23, "func(ctx context.Context, method string, target string, body io.Reader) *http.Request"},
 		{"NewServer", Func, 0, "func(handler http.Handler) *Server"},
 		{"NewTLSServer", Func, 0, "func(handler http.Handler) *Server"},
-<<<<<<< HEAD
-=======
 		{"NewTestServer", Func, 27, "func(t testing.TB, handler http.Handler) *Server"},
->>>>>>> v1.34.11
 		{"NewUnstartedServer", Func, 0, "func(handler http.Handler) *Server"},
 		{"ResponseRecorder", Type, 0, ""},
 		{"ResponseRecorder.Body", Field, 0, ""},
@@ -10046,11 +9539,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*ServerConn).Pending", Method, 0, ""},
 		{"(*ServerConn).Read", Method, 0, ""},
 		{"(*ServerConn).Write", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(BufferPool).Get", Method, 6, ""},
 		{"(BufferPool).Put", Method, 6, ""},
->>>>>>> v1.34.11
 		{"BufferPool", Type, 6, ""},
 		{"ClientConn", Type, 0, ""},
 		{"DumpRequest", Func, 0, "func(req *http.Request, body bool) ([]byte, error)"},
@@ -10163,10 +9653,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Prefix).AppendText", Method, 24, ""},
 		{"(Prefix).AppendTo", Method, 18, ""},
 		{"(Prefix).Bits", Method, 18, ""},
-<<<<<<< HEAD
-=======
 		{"(Prefix).Compare", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(Prefix).Contains", Method, 18, ""},
 		{"(Prefix).IsSingleIP", Method, 18, ""},
 		{"(Prefix).IsValid", Method, 18, ""},
@@ -10207,8 +9694,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Server).ServeConn", Method, 0, ""},
 		{"(*Server).ServeHTTP", Method, 0, ""},
 		{"(*Server).ServeRequest", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(ClientCodec).Close", Method, 0, ""},
 		{"(ClientCodec).ReadResponseBody", Method, 0, ""},
 		{"(ClientCodec).ReadResponseHeader", Method, 0, ""},
@@ -10217,7 +9702,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(ServerCodec).ReadRequestBody", Method, 0, ""},
 		{"(ServerCodec).ReadRequestHeader", Method, 0, ""},
 		{"(ServerCodec).WriteResponse", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(ServerError).Error", Method, 0, ""},
 		{"Accept", Func, 0, "func(lis net.Listener)"},
 		{"Call", Type, 0, ""},
@@ -10276,11 +9760,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Client).StartTLS", Method, 0, ""},
 		{"(*Client).TLSConnectionState", Method, 5, ""},
 		{"(*Client).Verify", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Auth).Next", Method, 0, ""},
 		{"(Auth).Start", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Auth", Type, 0, ""},
 		{"CRAMMD5Auth", Func, 0, "func(username string, secret string) Auth"},
 		{"Client", Type, 0, ""},
@@ -10366,10 +9847,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Error).Timeout", Method, 6, ""},
 		{"(*Error).Unwrap", Method, 13, ""},
 		{"(*URL).AppendBinary", Method, 24, ""},
-<<<<<<< HEAD
-=======
 		{"(*URL).Clone", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(*URL).EscapedFragment", Method, 15, ""},
 		{"(*URL).EscapedPath", Method, 5, ""},
 		{"(*URL).Hostname", Method, 8, ""},
@@ -10390,10 +9868,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(EscapeError).Error", Method, 0, ""},
 		{"(InvalidHostError).Error", Method, 6, ""},
 		{"(Values).Add", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Values).Clone", Method, 27, ""},
->>>>>>> v1.34.11
 		{"(Values).Del", Method, 0, ""},
 		{"(Values).Encode", Method, 0, ""},
 		{"(Values).Get", Method, 0, ""},
@@ -10464,10 +9939,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Process).Release", Method, 0, ""},
 		{"(*Process).Signal", Method, 0, ""},
 		{"(*Process).Wait", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(*Process).WithHandle", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(*ProcessState).ExitCode", Method, 12, ""},
 		{"(*ProcessState).Exited", Method, 0, ""},
 		{"(*ProcessState).Pid", Method, 0, ""},
@@ -10487,24 +9959,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Root).Link", Method, 25, ""},
 		{"(*Root).Lstat", Method, 24, ""},
 		{"(*Root).Mkdir", Method, 24, ""},
-<<<<<<< HEAD
-=======
 		{"(*Root).MkdirAll", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*Root).Name", Method, 24, ""},
 		{"(*Root).Open", Method, 24, ""},
 		{"(*Root).OpenFile", Method, 24, ""},
 		{"(*Root).OpenRoot", Method, 24, ""},
-<<<<<<< HEAD
-		{"(*Root).Readlink", Method, 25, ""},
-		{"(*Root).Remove", Method, 24, ""},
-		{"(*Root).Rename", Method, 25, ""},
-		{"(*Root).Stat", Method, 24, ""},
-		{"(*Root).Symlink", Method, 25, ""},
-		{"(*SyscallError).Error", Method, 0, ""},
-		{"(*SyscallError).Timeout", Method, 10, ""},
-		{"(*SyscallError).Unwrap", Method, 13, ""},
-=======
 		{"(*Root).ReadFile", Method, 25, ""},
 		{"(*Root).Readlink", Method, 25, ""},
 		{"(*Root).Remove", Method, 24, ""},
@@ -10522,16 +9981,12 @@ var PackageSymbols = map[string][]Symbol{
 		{"(FileInfo).Name", Method, 0, ""},
 		{"(FileInfo).Size", Method, 0, ""},
 		{"(FileInfo).Sys", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(FileMode).IsDir", Method, 0, ""},
 		{"(FileMode).IsRegular", Method, 1, ""},
 		{"(FileMode).Perm", Method, 0, ""},
 		{"(FileMode).String", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Signal).Signal", Method, 0, ""},
 		{"(Signal).String", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Args", Var, 0, ""},
 		{"Chdir", Func, 0, "func(dir string) error"},
 		{"Chmod", Func, 0, "func(name string, mode FileMode) error"},
@@ -10550,10 +10005,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ErrExist", Var, 0, ""},
 		{"ErrInvalid", Var, 0, ""},
 		{"ErrNoDeadline", Var, 10, ""},
-<<<<<<< HEAD
-=======
 		{"ErrNoHandle", Var, 26, ""},
->>>>>>> v1.34.11
 		{"ErrNotExist", Var, 0, ""},
 		{"ErrPermission", Var, 0, ""},
 		{"ErrProcessDone", Var, 16, ""},
@@ -10781,11 +10233,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ListSeparator", Const, 0, ""},
 		{"Localize", Func, 23, "func(path string) (string, error)"},
 		{"Match", Func, 0, "func(pattern string, name string) (matched bool, err error)"},
-<<<<<<< HEAD
-		{"Rel", Func, 0, "func(basepath string, targpath string) (string, error)"},
-=======
 		{"Rel", Func, 0, "func(basePath string, targPath string) (string, error)"},
->>>>>>> v1.34.11
 		{"Separator", Const, 0, ""},
 		{"SkipAll", Var, 20, ""},
 		{"SkipDir", Var, 0, ""},
@@ -10815,8 +10263,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(StructField).IsExported", Method, 17, ""},
 		{"(StructTag).Get", Method, 0, ""},
 		{"(StructTag).Lookup", Method, 7, ""},
-<<<<<<< HEAD
-=======
 		{"(Type).Align", Method, 0, ""},
 		{"(Type).AssignableTo", Method, 0, ""},
 		{"(Type).Bits", Method, 0, ""},
@@ -10856,7 +10302,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Type).PkgPath", Method, 0, ""},
 		{"(Type).Size", Method, 0, ""},
 		{"(Type).String", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(Value).Addr", Method, 0, ""},
 		{"(Value).Bool", Method, 0, ""},
 		{"(Value).Bytes", Method, 0, ""},
@@ -10883,10 +10328,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Value).FieldByIndexErr", Method, 18, ""},
 		{"(Value).FieldByName", Method, 0, ""},
 		{"(Value).FieldByNameFunc", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Value).Fields", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(Value).Float", Method, 0, ""},
 		{"(Value).Grow", Method, 20, ""},
 		{"(Value).Index", Method, 0, ""},
@@ -10903,10 +10345,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Value).MapRange", Method, 12, ""},
 		{"(Value).Method", Method, 0, ""},
 		{"(Value).MethodByName", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Value).Methods", Method, 26, ""},
->>>>>>> v1.34.11
 		{"(Value).NumField", Method, 0, ""},
 		{"(Value).NumMethod", Method, 0, ""},
 		{"(Value).OverflowComplex", Method, 0, ""},
@@ -11022,11 +10461,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"StructOf", Func, 7, "func(fields []StructField) Type"},
 		{"StructTag", Type, 0, ""},
 		{"Swapper", Func, 8, "func(slice any) func(i int, j int)"},
-<<<<<<< HEAD
-		{"Type", Type, 0, ""},
-=======
 		{"TypeAssert", Func, 25, "func[T any](v Value) (T, bool)"},
->>>>>>> v1.34.11
 		{"TypeFor", Func, 22, "func[T any]() Type"},
 		{"TypeOf", Func, 0, "func(i any) Type"},
 		{"Uint", Const, 0, ""},
@@ -11227,11 +10662,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*TypeAssertionError).Error", Method, 0, ""},
 		{"(*TypeAssertionError).RuntimeError", Method, 0, ""},
 		{"(Cleanup).Stop", Method, 24, ""},
-<<<<<<< HEAD
-=======
 		{"(Error).Error", Method, 0, ""},
 		{"(Error).RuntimeError", Method, 0, ""},
->>>>>>> v1.34.11
 		{"AddCleanup", Func, 24, "func[T, S any](ptr *T, cleanup func(S), arg S) Cleanup"},
 		{"BlockProfile", Func, 1, "func(p []BlockProfileRecord) (n int, ok bool)"},
 		{"BlockProfileRecord", Type, 1, ""},
@@ -11314,18 +10746,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"PanicNilError", Type, 21, ""},
 		{"Pinner", Type, 21, ""},
 		{"ReadMemStats", Func, 0, "func(m *MemStats)"},
-<<<<<<< HEAD
-		{"ReadTrace", Func, 5, "func() []byte"},
-		{"SetBlockProfileRate", Func, 1, "func(rate int)"},
-		{"SetCPUProfileRate", Func, 0, "func(hz int)"},
-		{"SetCgoTraceback", Func, 7, "func(version int, traceback unsafe.Pointer, context unsafe.Pointer, symbolizer unsafe.Pointer)"},
-=======
 		{"ReadTrace", Func, 5, "func() (buf []byte)"},
 		{"SetBlockProfileRate", Func, 1, "func(rate int)"},
 		{"SetCPUProfileRate", Func, 0, "func(hz int)"},
 		{"SetCgoTraceback", Func, 7, "func(version int, traceback unsafe.Pointer, context unsafe.Pointer, symbolizer unsafe.Pointer)"},
 		{"SetDefaultGOMAXPROCS", Func, 25, "func()"},
->>>>>>> v1.34.11
 		{"SetFinalizer", Func, 0, "func(obj any, finalizer any)"},
 		{"SetMutexProfileFraction", Func, 8, "func(rate int) int"},
 		{"Stack", Func, 0, "func(buf []byte, all bool) int"},
@@ -11438,13 +10863,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"WriteHeapProfile", Func, 0, "func(w io.Writer) error"},
 	},
 	"runtime/trace": {
-<<<<<<< HEAD
-		{"(*Region).End", Method, 11, ""},
-		{"(*Task).End", Method, 11, ""},
-		{"IsEnabled", Func, 11, "func() bool"},
-		{"Log", Func, 11, "func(ctx context.Context, category string, message string)"},
-		{"Logf", Func, 11, "func(ctx context.Context, category string, format string, args ...any)"},
-=======
 		{"(*FlightRecorder).Enabled", Method, 25, ""},
 		{"(*FlightRecorder).Start", Method, 25, ""},
 		{"(*FlightRecorder).Stop", Method, 25, ""},
@@ -11459,7 +10877,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Log", Func, 11, "func(ctx context.Context, category string, message string)"},
 		{"Logf", Func, 11, "func(ctx context.Context, category string, format string, args ...any)"},
 		{"NewFlightRecorder", Func, 25, "func(cfg FlightRecorderConfig) *FlightRecorder"},
->>>>>>> v1.34.11
 		{"NewTask", Func, 11, "func(pctx context.Context, taskType string) (ctx context.Context, task *Task)"},
 		{"Region", Type, 11, ""},
 		{"Start", Func, 5, "func(w io.Writer) error"},
@@ -11521,12 +10938,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"(IntSlice).Search", Method, 0, ""},
 		{"(IntSlice).Sort", Method, 0, ""},
 		{"(IntSlice).Swap", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Interface).Len", Method, 0, ""},
 		{"(Interface).Less", Method, 0, ""},
 		{"(Interface).Swap", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(StringSlice).Len", Method, 0, ""},
 		{"(StringSlice).Less", Method, 0, ""},
 		{"(StringSlice).Search", Method, 0, ""},
@@ -11632,10 +11046,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ContainsRune", Func, 0, "func(s string, r rune) bool"},
 		{"Count", Func, 0, "func(s string, substr string) int"},
 		{"Cut", Func, 18, "func(s string, sep string) (before string, after string, found bool)"},
-<<<<<<< HEAD
-=======
 		{"CutLast", Func, 27, "func(s string, sep string) (before string, after string, found bool)"},
->>>>>>> v1.34.11
 		{"CutPrefix", Func, 20, "func(s string, prefix string) (after string, found bool)"},
 		{"CutSuffix", Func, 20, "func(s string, suffix string) (before string, found bool)"},
 		{"EqualFold", Func, 0, "func(s string, t string) bool"},
@@ -11722,11 +11133,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*WaitGroup).Done", Method, 0, ""},
 		{"(*WaitGroup).Go", Method, 25, ""},
 		{"(*WaitGroup).Wait", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Locker).Lock", Method, 0, ""},
 		{"(Locker).Unlock", Method, 0, ""},
->>>>>>> v1.34.11
 		{"Cond", Type, 0, ""},
 		{"Cond.L", Field, 0, ""},
 		{"Locker", Type, 0, ""},
@@ -11868,20 +11276,14 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*Timeval).Nano", Method, 0, ""},
 		{"(*Timeval).Nanoseconds", Method, 0, ""},
 		{"(*Timeval).Unix", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Conn).SyscallConn", Method, 9, ""},
->>>>>>> v1.34.11
 		{"(Errno).Error", Method, 0, ""},
 		{"(Errno).Is", Method, 13, ""},
 		{"(Errno).Temporary", Method, 0, ""},
 		{"(Errno).Timeout", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(RawConn).Control", Method, 9, ""},
 		{"(RawConn).Read", Method, 9, ""},
 		{"(RawConn).Write", Method, 9, ""},
->>>>>>> v1.34.11
 		{"(Signal).Signal", Method, 0, ""},
 		{"(Signal).String", Method, 0, ""},
 		{"(Token).Close", Method, 0, ""},
@@ -15801,11 +15203,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"RouteMessage.Data", Field, 0, ""},
 		{"RouteMessage.Header", Field, 0, ""},
 		{"RouteRIB", Func, 0, ""},
-<<<<<<< HEAD
-		{"RoutingMessage", Type, 0, ""},
-=======
 		{"RoutingMessage", Type, 14, ""},
->>>>>>> v1.34.11
 		{"RtAttr", Type, 0, ""},
 		{"RtAttr.Len", Field, 0, ""},
 		{"RtAttr.Type", Field, 0, ""},
@@ -17291,10 +16689,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"SockFprog.Filter", Field, 0, ""},
 		{"SockFprog.Len", Field, 0, ""},
 		{"SockFprog.Pad_cgo_0", Field, 0, ""},
-<<<<<<< HEAD
-		{"Sockaddr", Type, 0, ""},
-=======
->>>>>>> v1.34.11
 		{"SockaddrDatalink", Type, 0, ""},
 		{"SockaddrDatalink.Alen", Field, 0, ""},
 		{"SockaddrDatalink.Data", Field, 0, ""},
@@ -18108,11 +17502,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"ValueOf", Func, 0, ""},
 	},
 	"testing": {
-<<<<<<< HEAD
-=======
 		{"(*B).ArtifactDir", Method, 26, ""},
 		{"(*B).Attr", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*B).Chdir", Method, 24, ""},
 		{"(*B).Cleanup", Method, 14, ""},
 		{"(*B).Context", Method, 24, ""},
@@ -18129,10 +17520,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*B).Logf", Method, 0, ""},
 		{"(*B).Loop", Method, 24, ""},
 		{"(*B).Name", Method, 8, ""},
-<<<<<<< HEAD
-=======
 		{"(*B).Output", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*B).ReportAllocs", Method, 1, ""},
 		{"(*B).ReportMetric", Method, 13, ""},
 		{"(*B).ResetTimer", Method, 0, ""},
@@ -18149,11 +17537,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*B).StopTimer", Method, 0, ""},
 		{"(*B).TempDir", Method, 15, ""},
 		{"(*F).Add", Method, 18, ""},
-<<<<<<< HEAD
-=======
 		{"(*F).ArtifactDir", Method, 26, ""},
 		{"(*F).Attr", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*F).Chdir", Method, 24, ""},
 		{"(*F).Cleanup", Method, 18, ""},
 		{"(*F).Context", Method, 24, ""},
@@ -18169,10 +17554,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*F).Log", Method, 18, ""},
 		{"(*F).Logf", Method, 18, ""},
 		{"(*F).Name", Method, 18, ""},
-<<<<<<< HEAD
-=======
 		{"(*F).Output", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*F).Setenv", Method, 18, ""},
 		{"(*F).Skip", Method, 18, ""},
 		{"(*F).SkipNow", Method, 18, ""},
@@ -18181,11 +17563,8 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*F).TempDir", Method, 18, ""},
 		{"(*M).Run", Method, 4, ""},
 		{"(*PB).Next", Method, 3, ""},
-<<<<<<< HEAD
-=======
 		{"(*T).ArtifactDir", Method, 26, ""},
 		{"(*T).Attr", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*T).Chdir", Method, 24, ""},
 		{"(*T).Cleanup", Method, 14, ""},
 		{"(*T).Context", Method, 24, ""},
@@ -18201,10 +17580,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(*T).Log", Method, 0, ""},
 		{"(*T).Logf", Method, 0, ""},
 		{"(*T).Name", Method, 8, ""},
-<<<<<<< HEAD
-=======
 		{"(*T).Output", Method, 25, ""},
->>>>>>> v1.34.11
 		{"(*T).Parallel", Method, 0, ""},
 		{"(*T).Run", Method, 7, ""},
 		{"(*T).Setenv", Method, 17, ""},
@@ -18218,8 +17594,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(BenchmarkResult).MemString", Method, 1, ""},
 		{"(BenchmarkResult).NsPerOp", Method, 0, ""},
 		{"(BenchmarkResult).String", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(TB).ArtifactDir", Method, 26, ""},
 		{"(TB).Attr", Method, 25, ""},
 		{"(TB).Chdir", Method, 24, ""},
@@ -18243,7 +17617,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(TB).Skipf", Method, 2, ""},
 		{"(TB).Skipped", Method, 2, ""},
 		{"(TB).TempDir", Method, 15, ""},
->>>>>>> v1.34.11
 		{"AllocsPerRun", Func, 1, "func(runs int, f func()) (avg float64)"},
 		{"B", Type, 0, ""},
 		{"B.N", Field, 0, ""},
@@ -18294,17 +17667,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"RunTests", Func, 0, "func(matchString func(pat string, str string) (bool, error), tests []InternalTest) (ok bool)"},
 		{"Short", Func, 0, "func() bool"},
 		{"T", Type, 0, ""},
-<<<<<<< HEAD
-		{"TB", Type, 2, ""},
-		{"Testing", Func, 21, "func() bool"},
-		{"Verbose", Func, 1, "func() bool"},
-=======
 		{"Testing", Func, 21, "func() bool"},
 		{"Verbose", Func, 1, "func() bool"},
 	},
 	"testing/cryptotest": {
 		{"SetGlobalRandom", Func, 26, "func(t *testing.T, seed uint64)"},
->>>>>>> v1.34.11
 	},
 	"testing/fstest": {
 		{"(MapFS).Glob", Method, 16, ""},
@@ -18338,10 +17705,7 @@ var PackageSymbols = map[string][]Symbol{
 	"testing/quick": {
 		{"(*CheckEqualError).Error", Method, 0, ""},
 		{"(*CheckError).Error", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(Generator).Generate", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(SetupError).Error", Method, 0, ""},
 		{"Check", Func, 0, "func(f any, config *Config) error"},
 		{"CheckEqual", Func, 0, "func(f any, g any, config *Config) error"},
@@ -18364,14 +17728,11 @@ var PackageSymbols = map[string][]Symbol{
 	"testing/slogtest": {
 		{"Run", Func, 22, "func(t *testing.T, newHandler func(*testing.T) slog.Handler, result func(*testing.T) map[string]any)"},
 		{"TestHandler", Func, 21, "func(h slog.Handler, results func() []map[string]any) error"},
-<<<<<<< HEAD
-=======
 	},
 	"testing/synctest": {
 		{"Sleep", Func, 27, "func(d time.Duration)"},
 		{"Test", Func, 25, "func(t *testing.T, f func(*testing.T))"},
 		{"Wait", Func, 25, "func()"},
->>>>>>> v1.34.11
 	},
 	"text/scanner": {
 		{"(*Position).IsValid", Method, 0, ""},
@@ -18552,13 +17913,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"(ListNode).Position", Method, 1, ""},
 		{"(ListNode).Type", Method, 0, ""},
 		{"(NilNode).Position", Method, 1, ""},
-<<<<<<< HEAD
-=======
 		{"(Node).Copy", Method, 0, ""},
 		{"(Node).Position", Method, 1, ""},
 		{"(Node).String", Method, 0, ""},
 		{"(Node).Type", Method, 0, ""},
->>>>>>> v1.34.11
 		{"(NodeType).Type", Method, 0, ""},
 		{"(NumberNode).Position", Method, 1, ""},
 		{"(NumberNode).Type", Method, 0, ""},
@@ -18877,10 +18235,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Bassa_Vah", Var, 4, ""},
 		{"Batak", Var, 0, ""},
 		{"Bengali", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Beria_Erfe", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Bhaiksuki", Var, 7, ""},
 		{"Bidi_Control", Var, 0, ""},
 		{"Bopomofo", Var, 0, ""},
@@ -18897,10 +18252,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"CaseRange.Lo", Field, 0, ""},
 		{"CaseRanges", Var, 0, ""},
 		{"Categories", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"CategoryAliases", Var, 25, ""},
->>>>>>> v1.34.11
 		{"Caucasian_Albanian", Var, 4, ""},
 		{"Cc", Var, 0, ""},
 		{"Cf", Var, 0, ""},
@@ -18908,10 +18260,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Cham", Var, 0, ""},
 		{"Cherokee", Var, 0, ""},
 		{"Chorasmian", Var, 16, ""},
-<<<<<<< HEAD
-=======
 		{"Cn", Var, 25, ""},
->>>>>>> v1.34.11
 		{"Co", Var, 0, ""},
 		{"Common", Var, 0, ""},
 		{"Coptic", Var, 0, ""},
@@ -18936,10 +18285,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Extender", Var, 0, ""},
 		{"FoldCategory", Var, 0, ""},
 		{"FoldScript", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Garay", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Georgian", Var, 0, ""},
 		{"Glagolitic", Var, 0, ""},
 		{"Gothic", Var, 0, ""},
@@ -18949,10 +18295,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Gujarati", Var, 0, ""},
 		{"Gunjala_Gondi", Var, 13, ""},
 		{"Gurmukhi", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Gurung_Khema", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Han", Var, 0, ""},
 		{"Hangul", Var, 0, ""},
 		{"Hanifi_Rohingya", Var, 13, ""},
@@ -18964,12 +18307,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"Hyphen", Var, 0, ""},
 		{"IDS_Binary_Operator", Var, 0, ""},
 		{"IDS_Trinary_Operator", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"IDS_Unary_Operator", Var, 27, ""},
 		{"ID_Compat_Math_Continue", Var, 27, ""},
 		{"ID_Compat_Math_Start", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Ideographic", Var, 0, ""},
 		{"Imperial_Aramaic", Var, 0, ""},
 		{"In", Func, 2, "func(r rune, ranges ...*RangeTable) bool"},
@@ -19003,13 +18343,9 @@ var PackageSymbols = map[string][]Symbol{
 		{"Khmer", Var, 0, ""},
 		{"Khojki", Var, 4, ""},
 		{"Khudawadi", Var, 4, ""},
-<<<<<<< HEAD
-		{"L", Var, 0, ""},
-=======
 		{"Kirat_Rai", Var, 27, ""},
 		{"L", Var, 0, ""},
 		{"LC", Var, 25, ""},
->>>>>>> v1.34.11
 		{"Lao", Var, 0, ""},
 		{"Latin", Var, 0, ""},
 		{"Lepcha", Var, 0, ""},
@@ -19051,10 +18387,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Miao", Var, 1, ""},
 		{"Mn", Var, 0, ""},
 		{"Modi", Var, 4, ""},
-<<<<<<< HEAD
-=======
 		{"Modifier_Combining_Mark", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Mongolian", Var, 0, ""},
 		{"Mro", Var, 4, ""},
 		{"Multani", Var, 5, ""},
@@ -19075,10 +18408,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Nyiakeng_Puachue_Hmong", Var, 14, ""},
 		{"Ogham", Var, 0, ""},
 		{"Ol_Chiki", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Ol_Onal", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Old_Hungarian", Var, 5, ""},
 		{"Old_Italic", Var, 0, ""},
 		{"Old_North_Arabian", Var, 4, ""},
@@ -19148,10 +18478,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Sharada", Var, 1, ""},
 		{"Shavian", Var, 0, ""},
 		{"Siddham", Var, 4, ""},
-<<<<<<< HEAD
-=======
 		{"Sidetic", Var, 27, ""},
->>>>>>> v1.34.11
 		{"SignWriting", Var, 5, ""},
 		{"SimpleFold", Func, 0, "func(r rune) rune"},
 		{"Sinhala", Var, 0, ""},
@@ -19165,10 +18492,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Space", Var, 0, ""},
 		{"SpecialCase", Type, 0, ""},
 		{"Sundanese", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Sunuwar", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Syloti_Nagri", Var, 0, ""},
 		{"Symbol", Var, 0, ""},
 		{"Syriac", Var, 0, ""},
@@ -19177,10 +18501,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"Tai_Le", Var, 0, ""},
 		{"Tai_Tham", Var, 0, ""},
 		{"Tai_Viet", Var, 0, ""},
-<<<<<<< HEAD
-=======
 		{"Tai_Yo", Var, 27, ""},
->>>>>>> v1.34.11
 		{"Takri", Var, 1, ""},
 		{"Tamil", Var, 0, ""},
 		{"Tangsa", Var, 21, ""},
@@ -19198,14 +18519,10 @@ var PackageSymbols = map[string][]Symbol{
 		{"ToLower", Func, 0, "func(r rune) rune"},
 		{"ToTitle", Func, 0, "func(r rune) rune"},
 		{"ToUpper", Func, 0, "func(r rune) rune"},
-<<<<<<< HEAD
-		{"Toto", Var, 21, ""},
-=======
 		{"Todhri", Var, 27, ""},
 		{"Tolong_Siki", Var, 27, ""},
 		{"Toto", Var, 21, ""},
 		{"Tulu_Tigalari", Var, 27, ""},
->>>>>>> v1.34.11
 		{"TurkishCase", Var, 0, ""},
 		{"Ugaritic", Var, 0, ""},
 		{"Unified_Ideograph", Var, 0, ""},
@@ -19273,8 +18590,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"String", Func, 0, ""},
 		{"StringData", Func, 0, ""},
 	},
-<<<<<<< HEAD
-=======
 	"uuid": {
 		{"(*UUID).UnmarshalText", Method, 27, ""},
 		{"(UUID).AppendText", Method, 27, ""},
@@ -19290,7 +18605,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"Parse", Func, 27, "func(s string) (UUID, error)"},
 		{"UUID", Type, 27, ""},
 	},
->>>>>>> v1.34.11
 	"weak": {
 		{"(Pointer).Value", Method, 24, ""},
 		{"Make", Func, 24, "func[T any](ptr *T) Pointer[T]"},

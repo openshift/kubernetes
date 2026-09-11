@@ -7,9 +7,6 @@
 // Almost no users should need to import this package directly.
 // The net/http package supports HTTP/2 natively.
 //
-<<<<<<< HEAD
-// See https://http2.github.io/ for more information on HTTP/2.
-=======
 // To enable or disable HTTP/2 support in net/http clients and servers, see
 // [http.Transport.Protocols] and [http.Server.Protocols].
 //
@@ -18,7 +15,6 @@
 //
 // To create HTTP/1 or HTTP/2 connections, see
 // [http.Transport.NewClientConn].
->>>>>>> v1.34.11
 package http2 // import "golang.org/x/net/http2"
 
 import (

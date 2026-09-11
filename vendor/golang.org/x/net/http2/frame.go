@@ -44,18 +44,6 @@ const (
 )
 
 var frameNames = [...]string{
-<<<<<<< HEAD
-	FrameData:         "DATA",
-	FrameHeaders:      "HEADERS",
-	FramePriority:     "PRIORITY",
-	FrameRSTStream:    "RST_STREAM",
-	FrameSettings:     "SETTINGS",
-	FramePushPromise:  "PUSH_PROMISE",
-	FramePing:         "PING",
-	FrameGoAway:       "GOAWAY",
-	FrameWindowUpdate: "WINDOW_UPDATE",
-	FrameContinuation: "CONTINUATION",
-=======
 	FrameData:           "DATA",
 	FrameHeaders:        "HEADERS",
 	FramePriority:       "PRIORITY",
@@ -67,7 +55,6 @@ var frameNames = [...]string{
 	FrameWindowUpdate:   "WINDOW_UPDATE",
 	FrameContinuation:   "CONTINUATION",
 	FramePriorityUpdate: "PRIORITY_UPDATE",
->>>>>>> v1.34.11
 }
 
 func (t FrameType) String() string {
@@ -143,18 +130,6 @@ var flagName = map[FrameType]map[Flags]string{
 type frameParser func(fc *frameCache, fh FrameHeader, countError func(string), payload []byte) (Frame, error)
 
 var frameParsers = [...]frameParser{
-<<<<<<< HEAD
-	FrameData:         parseDataFrame,
-	FrameHeaders:      parseHeadersFrame,
-	FramePriority:     parsePriorityFrame,
-	FrameRSTStream:    parseRSTStreamFrame,
-	FrameSettings:     parseSettingsFrame,
-	FramePushPromise:  parsePushPromise,
-	FramePing:         parsePingFrame,
-	FrameGoAway:       parseGoAwayFrame,
-	FrameWindowUpdate: parseWindowUpdateFrame,
-	FrameContinuation: parseContinuationFrame,
-=======
 	FrameData:           parseDataFrame,
 	FrameHeaders:        parseHeadersFrame,
 	FramePriority:       parsePriorityFrame,
@@ -166,18 +141,13 @@ var frameParsers = [...]frameParser{
 	FrameWindowUpdate:   parseWindowUpdateFrame,
 	FrameContinuation:   parseContinuationFrame,
 	FramePriorityUpdate: parsePriorityUpdateFrame,
->>>>>>> v1.34.11
 }
 
 func typeFrameParser(t FrameType) frameParser {
 	if int(t) < len(frameParsers) {
-<<<<<<< HEAD
-		return frameParsers[t]
-=======
 		if f := frameParsers[t]; f != nil {
 			return f
 		}
->>>>>>> v1.34.11
 	}
 	return parseUnknownFrame
 }
@@ -546,11 +516,7 @@ func (fr *Framer) ReadFrameHeader() (FrameHeader, error) {
 	}
 	if fh.Length > fr.maxReadSize {
 		if fh == invalidHTTP1LookingFrameHeader() {
-<<<<<<< HEAD
-			return nil, fmt.Errorf("http2: failed reading the frame payload: %w, note that the frame header looked like an HTTP/1.1 header", ErrFrameTooLarge)
-=======
 			return fh, fmt.Errorf("http2: failed reading the frame payload: %w, note that the frame header looked like an HTTP/1.1 header", ErrFrameTooLarge)
->>>>>>> v1.34.11
 		}
 		return fh, ErrFrameTooLarge
 	}

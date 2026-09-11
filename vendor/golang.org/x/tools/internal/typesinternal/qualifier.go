@@ -15,8 +15,6 @@ import (
 // file.
 // If the same package is imported multiple times, the last appearance is
 // recorded.
-<<<<<<< HEAD
-=======
 //
 // TODO(adonovan): this function ignores the effect of shadowing. It
 // should accept a [token.Pos] and a [types.Info] and compute only the
@@ -25,7 +23,6 @@ import (
 // effect) the set of additional imports required to ensure that there
 // is an accessible import for each necessary package, making it
 // converge even more closely with AddImport.
->>>>>>> v1.34.11
 func FileQualifier(f *ast.File, pkg *types.Package) types.Qualifier {
 	// Construct mapping of import paths to their defined names.
 	// It is only necessary to look at renaming imports.

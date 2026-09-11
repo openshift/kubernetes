@@ -2175,43 +2175,7 @@ func Preadv2(fd int, iovs [][]byte, offset int64, flags int) (n int, err error) 
 	return n, err
 }
 
-<<<<<<< HEAD
-func readvRacedetect(iovecs []Iovec, n int, err error) {
-	if !raceenabled {
-		return
-	}
-	for i := 0; n > 0 && i < len(iovecs); i++ {
-		m := min(int(iovecs[i].Len), n)
-		n -= m
-		if m > 0 {
-			raceWriteRange(unsafe.Pointer(iovecs[i].Base), m)
-		}
-	}
-	if err == nil {
-		raceAcquire(unsafe.Pointer(&ioSync))
-	}
-}
-
-func Writev(fd int, iovs [][]byte) (n int, err error) {
-	iovecs := make([]Iovec, 0, minIovec)
-	iovecs = appendBytes(iovecs, iovs)
-	if raceenabled {
-		raceReleaseMerge(unsafe.Pointer(&ioSync))
-	}
-	n, err = writev(fd, iovecs)
-	writevRacedetect(iovecs, n)
-	return n, err
-}
-
-func Pwritev(fd int, iovs [][]byte, offset int64) (n int, err error) {
-	iovecs := make([]Iovec, 0, minIovec)
-	iovecs = appendBytes(iovecs, iovs)
-	if raceenabled {
-		raceReleaseMerge(unsafe.Pointer(&ioSync))
-	}
-=======
 func pwritev(fd int, iovecs []Iovec, offset int64) (n int, err error) {
->>>>>>> v1.34.11
 	lo, hi := offs2lohi(offset)
 	return pwritevSyscall(fd, iovecs, lo, hi)
 }
@@ -2228,22 +2192,6 @@ func Pwritev2(fd int, iovs [][]byte, offset int64, flags int) (n int, err error)
 	return n, err
 }
 
-<<<<<<< HEAD
-func writevRacedetect(iovecs []Iovec, n int) {
-	if !raceenabled {
-		return
-	}
-	for i := 0; n > 0 && i < len(iovecs); i++ {
-		m := min(int(iovecs[i].Len), n)
-		n -= m
-		if m > 0 {
-			raceReadRange(unsafe.Pointer(iovecs[i].Base), m)
-		}
-	}
-}
-
-=======
->>>>>>> v1.34.11
 // mmap varies by architecture; see syscall_linux_*.go.
 //sys	munmap(addr uintptr, length uintptr) (err error)
 //sys	mremap(oldaddr uintptr, oldlength uintptr, newlength uintptr, flags int, newaddr uintptr) (xaddr uintptr, err error)

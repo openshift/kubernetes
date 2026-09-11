@@ -3969,8 +3969,6 @@ const (
 	MOUSE_EVENT              = 0x0002
 	WINDOW_BUFFER_SIZE_EVENT = 0x0004
 )
-<<<<<<< HEAD
-=======
 
 // The processor features to be tested for IsProcessorFeaturePresent, see
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-isprocessorfeaturepresent
@@ -4056,4 +4054,3 @@ const (
 	PF_ARM_SME_FA64_INSTRUCTIONS_AVAILABLE     = 88
 	PF_UMONITOR_INSTRUCTION_AVAILABLE          = 89
 )
->>>>>>> v1.34.11

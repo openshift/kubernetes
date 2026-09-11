@@ -16,10 +16,7 @@ func initOptions() {
 		{Name: "zba", Feature: &RISCV64.HasZba},
 		{Name: "zbb", Feature: &RISCV64.HasZbb},
 		{Name: "zbs", Feature: &RISCV64.HasZbs},
-<<<<<<< HEAD
-=======
 		{Name: "zbc", Feature: &RISCV64.HasZbc},
->>>>>>> v1.34.11
 		// RISC-V Cryptography Extensions
 		{Name: "zvbb", Feature: &RISCV64.HasZvbb},
 		{Name: "zvbc", Feature: &RISCV64.HasZvbc},

@@ -563,12 +563,8 @@ type importReader struct {
 // for 1.24, but the fix was not worth back-porting).
 var markBlack = func(name *types.TypeName) {}
 
-<<<<<<< HEAD
-func (r *importReader) obj(name string) {
-=======
 // obj decodes and declares the package-level object denoted by (pkg, name).
 func (r *importReader) obj(pkg *types.Package, name string) {
->>>>>>> v1.34.11
 	tag := r.byte()
 	pos := r.pos()
 
@@ -579,11 +575,7 @@ func (r *importReader) obj(pkg *types.Package, name string) {
 			tparams = r.tparamList()
 		}
 		typ := r.typ()
-<<<<<<< HEAD
-		obj := aliases.NewAlias(r.p.aliases, pos, r.currPkg, name, typ, tparams)
-=======
 		obj := aliases.New(pos, pkg, name, typ, tparams)
->>>>>>> v1.34.11
 		markBlack(obj) // workaround for golang/go#69912
 		r.declare(obj)
 
@@ -682,11 +674,7 @@ func (r *importReader) obj(pkg *types.Package, name string) {
 	case varTag:
 		typ := r.typ()
 
-<<<<<<< HEAD
-		v := types.NewVar(pos, r.currPkg, name, typ)
-=======
 		v := types.NewVar(pos, pkg, name, typ)
->>>>>>> v1.34.11
 		typesinternal.SetVarKind(v, typesinternal.PackageVar)
 		r.declare(v)
 

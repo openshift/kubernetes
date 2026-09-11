@@ -486,11 +486,7 @@ func visualLength(runes []rune) int {
 	return length
 }
 
-<<<<<<< HEAD
-// histroryAt unlocks the terminal and relocks it while calling History.At.
-=======
 // historyAt unlocks the terminal and relocks it while calling History.At.
->>>>>>> v1.34.11
 func (t *Terminal) historyAt(idx int) (string, bool) {
 	t.lock.Unlock()     // Unlock to avoid deadlock if History methods use the output writer.
 	defer t.lock.Lock() // panic in At (or Len) protection.

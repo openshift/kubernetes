@@ -7,10 +7,6 @@ package label
 import (
 	"fmt"
 	"io"
-<<<<<<< HEAD
-	"reflect"
-=======
->>>>>>> v1.34.11
 	"slices"
 	"unsafe"
 )

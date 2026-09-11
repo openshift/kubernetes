@@ -352,11 +352,7 @@ func NewServerConn(c net.Conn, config *ServerConfig) (*ServerConn, <-chan NewCha
 		fullConf.PublicKeyAuthAlgorithms = defaultPubKeyAuthAlgos
 	} else {
 		for _, algo := range fullConf.PublicKeyAuthAlgorithms {
-<<<<<<< HEAD
-			if !contains(SupportedAlgorithms().PublicKeyAuths, algo) && !contains(InsecureAlgorithms().PublicKeyAuths, algo) {
-=======
 			if !slices.Contains(SupportedAlgorithms().PublicKeyAuths, algo) && !slices.Contains(InsecureAlgorithms().PublicKeyAuths, algo) {
->>>>>>> v1.34.11
 				c.Close()
 				return nil, nil, nil, fmt.Errorf("ssh: unsupported public key authentication algorithm %s", algo)
 			}

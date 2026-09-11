@@ -28,11 +28,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-<<<<<<< HEAD
-	"maps"
-
-=======
->>>>>>> v1.34.11
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/internal/event"
 	"golang.org/x/tools/internal/gocommand"
@@ -278,10 +273,6 @@ func (p *pass) loadPackageNames(ctx context.Context, imports []*ImportInfo) erro
 		}
 		unknown = append(unknown, imp.ImportPath)
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> v1.34.11
 	names, err := p.source.LoadPackageNames(ctx, p.srcDir, unknown)
 	if err != nil {
 		return err

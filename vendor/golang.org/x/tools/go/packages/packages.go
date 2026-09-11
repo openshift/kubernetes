@@ -1084,11 +1084,7 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 	}
 
 	// TODO(adonovan): this condition looks wrong:
-<<<<<<< HEAD
-	// I think it should be lpkg.needtypes && !lpg.needsrc,
-=======
 	// I think it should be lpkg.needtypes && !lpkg.needsrc,
->>>>>>> v1.34.11
 	// so that NeedSyntax without NeedTypes can be satisfied by export data.
 	if !lpkg.needsrc {
 		if err := ld.loadFromExportData(lpkg); err != nil {
@@ -1207,24 +1203,7 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		return
 	}
 
-<<<<<<< HEAD
-	// Populate TypesInfo only if needed, as it
-	// causes the type checker to work much harder.
-	if ld.Config.Mode&NeedTypesInfo != 0 {
-		lpkg.TypesInfo = &types.Info{
-			Types:        make(map[ast.Expr]types.TypeAndValue),
-			Defs:         make(map[*ast.Ident]types.Object),
-			Uses:         make(map[*ast.Ident]types.Object),
-			Implicits:    make(map[ast.Node]types.Object),
-			Instances:    make(map[*ast.Ident]types.Instance),
-			Scopes:       make(map[ast.Node]*types.Scope),
-			Selections:   make(map[*ast.SelectorExpr]*types.Selection),
-			FileVersions: make(map[*ast.File]string),
-		}
-	}
-=======
 	lpkg.TypesInfo = ld.newTypesInfo()
->>>>>>> v1.34.11
 	lpkg.TypesSizes = ld.sizes
 
 	importer := importerFunc(func(path string) (*types.Package, error) {
@@ -1616,8 +1595,6 @@ func usesExportData(cfg *Config) bool {
 }
 
 type unit struct{}
-<<<<<<< HEAD
-=======
 
 func cond[T any](cond bool, t, f T) T {
 	if cond {
@@ -1626,4 +1603,3 @@ func cond[T any](cond bool, t, f T) T {
 		return f
 	}
 }
->>>>>>> v1.34.11

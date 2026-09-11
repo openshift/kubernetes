@@ -404,8 +404,6 @@ func ecHash(curve elliptic.Curve) crypto.Hash {
 var kexAlgoMap = map[string]kexAlgorithm{}
 
 func init() {
-<<<<<<< HEAD
-=======
 	// mlkem768x25519-sha256 we'll work with fips140=on but not fips140=only
 	// until Go 1.26.
 	kexAlgoMap[KeyExchangeMLKEM768X25519] = &mlkem768WithCurve25519sha256{}
@@ -421,7 +419,6 @@ func init() {
 		return
 	}
 
->>>>>>> v1.34.11
 	p, _ := new(big.Int).SetString(oakleyGroup2, 16)
 	kexAlgoMap[InsecureKeyExchangeDH1SHA1] = &dhGroup{
 		g:        new(big.Int).SetInt64(2),
@@ -455,20 +452,10 @@ func init() {
 		hashFunc: crypto.SHA512,
 	}
 
-<<<<<<< HEAD
-	kexAlgoMap[KeyExchangeECDHP521] = &ecdh{elliptic.P521()}
-	kexAlgoMap[KeyExchangeECDHP384] = &ecdh{elliptic.P384()}
-	kexAlgoMap[KeyExchangeECDHP256] = &ecdh{elliptic.P256()}
-=======
->>>>>>> v1.34.11
 	kexAlgoMap[KeyExchangeCurve25519] = &curve25519sha256{}
 	kexAlgoMap[keyExchangeCurve25519LibSSH] = &curve25519sha256{}
 	kexAlgoMap[InsecureKeyExchangeDHGEXSHA1] = &dhGEXSHA{hashFunc: crypto.SHA1}
 	kexAlgoMap[KeyExchangeDHGEXSHA256] = &dhGEXSHA{hashFunc: crypto.SHA256}
-<<<<<<< HEAD
-	kexAlgoMap[KeyExchangeMLKEM768X25519] = &mlkem768WithCurve25519sha256{}
-=======
->>>>>>> v1.34.11
 }
 
 // curve25519sha256 implements the curve25519-sha256 (formerly known as
@@ -732,21 +719,9 @@ func (gex *dhGEXSHA) Server(c packetConn, randSource io.Reader, magics *handshak
 			kexDHGexRequest.MaxBits, kexDHGexRequest.PreferredBits)
 	}
 
-<<<<<<< HEAD
-	var p *big.Int
-	// We hardcode sending Oakley Group 14 (2048 bits), Oakley Group 15 (3072
-	// bits) or Oakley Group 16 (4096 bits), based on the requested max size.
-	if kexDHGexRequest.MaxBits < 3072 {
-		p, _ = new(big.Int).SetString(oakleyGroup14, 16)
-	} else if kexDHGexRequest.MaxBits < 4096 {
-		p, _ = new(big.Int).SetString(oakleyGroup15, 16)
-	} else {
-		p, _ = new(big.Int).SetString(oakleyGroup16, 16)
-=======
 	p, err := chooseDH(kexDHGexRequest)
 	if err != nil {
 		return nil, err
->>>>>>> v1.34.11
 	}
 
 	g := big.NewInt(2)

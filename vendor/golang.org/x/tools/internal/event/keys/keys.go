@@ -30,11 +30,7 @@ func (k *Value) Append(buf []byte, l label.Label) []byte {
 	return fmt.Append(buf, k.From(l))
 }
 
-<<<<<<< HEAD
-// Get can be used to get a label for the key from a label.Map.
-=======
 // Get returns the label for the key of a label.Map.
->>>>>>> v1.34.11
 func (k *Value) Get(lm label.Map) any {
 	if t := lm.Find(k); t.Valid() {
 		return k.From(t)
@@ -42,11 +38,7 @@ func (k *Value) Get(lm label.Map) any {
 	return nil
 }
 
-<<<<<<< HEAD
-// From can be used to get a value from a Label.
-=======
 // From returns the value of a Label.
->>>>>>> v1.34.11
 func (k *Value) From(t label.Label) any { return t.UnpackValue() }
 
 // Of creates a new Label with this key and the supplied value.

@@ -24,14 +24,8 @@ import (
 	"go/types"
 	"iter"
 	"reflect"
-<<<<<<< HEAD
-	"unsafe"
-
-	"golang.org/x/tools/internal/aliases"
-=======
 
 	"golang.org/x/tools/go/ast/inspector"
->>>>>>> v1.34.11
 )
 
 func SetUsesCgo(conf *types.Config) bool {
@@ -148,11 +142,7 @@ var (
 func Origin(t NamedOrAlias) NamedOrAlias {
 	switch t := t.(type) {
 	case *types.Alias:
-<<<<<<< HEAD
-		return aliases.Origin(t)
-=======
 		return t.Origin()
->>>>>>> v1.34.11
 	case *types.Named:
 		return t.Origin()
 	}
@@ -177,8 +167,6 @@ func NewTypesInfo() *types.Info {
 		FileVersions: map[*ast.File]string{},
 	}
 }
-<<<<<<< HEAD
-=======
 
 // EnclosingScope returns the innermost block logically enclosing the cursor.
 func EnclosingScope(info *types.Info, cur inspector.Cursor) *types.Scope {
@@ -282,4 +270,3 @@ func ImplicitFieldSelections(seln types.Selection) iter.Seq2[*types.Var, bool] {
 		}
 	}
 }
->>>>>>> v1.34.11

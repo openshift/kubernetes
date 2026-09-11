@@ -1675,8 +1675,6 @@ func GetIfEntry(pIfRow *MibIfRow) (errcode error) {
 
 func GetIfEntry2Ex(level uint32, row *MibIfRow2) (errcode error) {
 	r0, _, _ := syscall.SyscallN(procGetIfEntry2Ex.Addr(), uintptr(level), uintptr(unsafe.Pointer(row)))
-<<<<<<< HEAD
-=======
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -1717,7 +1715,6 @@ func GetIpInterfaceEntry(row *MibIpInterfaceRow) (errcode error) {
 
 func GetIpInterfaceTable(family uint16, table **MibIpInterfaceTable) (errcode error) {
 	r0, _, _ := syscall.SyscallN(procGetIpInterfaceTable.Addr(), uintptr(family), uintptr(unsafe.Pointer(table)))
->>>>>>> v1.34.11
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -1726,8 +1723,6 @@ func GetIpInterfaceTable(family uint16, table **MibIpInterfaceTable) (errcode er
 
 func GetUnicastIpAddressEntry(row *MibUnicastIpAddressRow) (errcode error) {
 	r0, _, _ := syscall.SyscallN(procGetUnicastIpAddressEntry.Addr(), uintptr(unsafe.Pointer(row)))
-<<<<<<< HEAD
-=======
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -1736,7 +1731,6 @@ func GetUnicastIpAddressEntry(row *MibUnicastIpAddressRow) (errcode error) {
 
 func GetUnicastIpAddressTable(family uint16, table **MibUnicastIpAddressTable) (errcode error) {
 	r0, _, _ := syscall.SyscallN(procGetUnicastIpAddressTable.Addr(), uintptr(family), uintptr(unsafe.Pointer(table)))
->>>>>>> v1.34.11
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -1749,8 +1743,6 @@ func NotifyIpInterfaceChange(family uint16, callback uintptr, callerContext unsa
 		_p0 = 1
 	}
 	r0, _, _ := syscall.SyscallN(procNotifyIpInterfaceChange.Addr(), uintptr(family), uintptr(callback), uintptr(callerContext), uintptr(_p0), uintptr(unsafe.Pointer(notificationHandle)))
-<<<<<<< HEAD
-=======
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -1763,7 +1755,6 @@ func NotifyRouteChange2(family uint16, callback uintptr, callerContext unsafe.Po
 		_p0 = 1
 	}
 	r0, _, _ := syscall.SyscallN(procNotifyRouteChange2.Addr(), uintptr(family), uintptr(callback), uintptr(callerContext), uintptr(_p0), uintptr(unsafe.Pointer(notificationHandle)))
->>>>>>> v1.34.11
 	if r0 != 0 {
 		errcode = syscall.Errno(r0)
 	}
@@ -2193,8 +2184,6 @@ func FindVolumeClose(findVolume Handle) (err error) {
 
 func FindVolumeMountPointClose(findVolumeMountPoint Handle) (err error) {
 	r1, _, e1 := syscall.SyscallN(procFindVolumeMountPointClose.Addr(), uintptr(findVolumeMountPoint))
-<<<<<<< HEAD
-=======
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -2203,7 +2192,6 @@ func FindVolumeMountPointClose(findVolumeMountPoint Handle) (err error) {
 
 func FlushConsoleInputBuffer(console Handle) (err error) {
 	r1, _, e1 := syscall.SyscallN(procFlushConsoleInputBuffer.Addr(), uintptr(console))
->>>>>>> v1.34.11
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -2574,8 +2562,6 @@ func GetNamedPipeInfo(pipe Handle, flags *uint32, outSize *uint32, inSize *uint3
 
 func GetNamedPipeServerProcessId(pipe Handle, serverProcessID *uint32) (err error) {
 	r1, _, e1 := syscall.SyscallN(procGetNamedPipeServerProcessId.Addr(), uintptr(pipe), uintptr(unsafe.Pointer(serverProcessID)))
-<<<<<<< HEAD
-=======
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -2584,7 +2570,6 @@ func GetNamedPipeServerProcessId(pipe Handle, serverProcessID *uint32) (err erro
 
 func GetNumberOfConsoleInputEvents(console Handle, numevents *uint32) (err error) {
 	r1, _, e1 := syscall.SyscallN(procGetNumberOfConsoleInputEvents.Addr(), uintptr(console), uintptr(unsafe.Pointer(numevents)))
->>>>>>> v1.34.11
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -3752,8 +3737,6 @@ func NtCreateFile(handle *Handle, access uint32, oa *OBJECT_ATTRIBUTES, iosb *IO
 
 func NtCreateNamedPipeFile(pipe *Handle, access uint32, oa *OBJECT_ATTRIBUTES, iosb *IO_STATUS_BLOCK, share uint32, disposition uint32, options uint32, typ uint32, readMode uint32, completionMode uint32, maxInstances uint32, inboundQuota uint32, outputQuota uint32, timeout *int64) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procNtCreateNamedPipeFile.Addr(), uintptr(unsafe.Pointer(pipe)), uintptr(access), uintptr(unsafe.Pointer(oa)), uintptr(unsafe.Pointer(iosb)), uintptr(share), uintptr(disposition), uintptr(options), uintptr(typ), uintptr(readMode), uintptr(completionMode), uintptr(maxInstances), uintptr(inboundQuota), uintptr(outputQuota), uintptr(unsafe.Pointer(timeout)))
-<<<<<<< HEAD
-=======
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -3778,7 +3761,6 @@ func NtQueryEaFile(handle Handle, iosb *IO_STATUS_BLOCK, outBuffer *byte, outBuf
 
 func NtQueryInformationFile(handle Handle, iosb *IO_STATUS_BLOCK, outBuffer *byte, outBufferLen uint32, class uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procNtQueryInformationFile.Addr(), uintptr(handle), uintptr(unsafe.Pointer(iosb)), uintptr(unsafe.Pointer(outBuffer)), uintptr(outBufferLen), uintptr(class))
->>>>>>> v1.34.11
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -3795,8 +3777,6 @@ func NtQueryInformationProcess(proc Handle, procInfoClass int32, procInfo unsafe
 
 func NtQuerySystemInformation(sysInfoClass int32, sysInfo unsafe.Pointer, sysInfoLen uint32, retLen *uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procNtQuerySystemInformation.Addr(), uintptr(sysInfoClass), uintptr(sysInfo), uintptr(sysInfoLen), uintptr(unsafe.Pointer(retLen)))
-<<<<<<< HEAD
-=======
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}
@@ -3805,7 +3785,6 @@ func NtQuerySystemInformation(sysInfoClass int32, sysInfo unsafe.Pointer, sysInf
 
 func NtSetEaFile(handle Handle, iosb *IO_STATUS_BLOCK, inBuffer *byte, inBufferLen uint32) (ntstatus error) {
 	r0, _, _ := syscall.SyscallN(procNtSetEaFile.Addr(), uintptr(handle), uintptr(unsafe.Pointer(iosb)), uintptr(unsafe.Pointer(inBuffer)), uintptr(inBufferLen))
->>>>>>> v1.34.11
 	if r0 != 0 {
 		ntstatus = NTStatus(r0)
 	}

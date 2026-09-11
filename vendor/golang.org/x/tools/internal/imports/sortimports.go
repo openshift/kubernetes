@@ -11,10 +11,7 @@ import (
 	"go/ast"
 	"go/token"
 	"log"
-<<<<<<< HEAD
-=======
 	"reflect"
->>>>>>> v1.34.11
 	"slices"
 	"sort"
 	"strconv"

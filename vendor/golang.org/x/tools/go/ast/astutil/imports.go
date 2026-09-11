@@ -9,10 +9,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-<<<<<<< HEAD
-=======
 	"reflect"
->>>>>>> v1.34.11
 	"slices"
 	"strconv"
 	"strings"
