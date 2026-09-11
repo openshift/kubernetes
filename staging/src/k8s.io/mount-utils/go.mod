@@ -9,11 +9,7 @@ godebug default=go1.24
 require (
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/stretchr/testify v1.11.1
-<<<<<<< HEAD
-	golang.org/x/sys v0.36.0
-=======
 	golang.org/x/sys v0.46.0
->>>>>>> v1.34.11
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 )
