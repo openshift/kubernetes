@@ -561,23 +561,11 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types.Package, string) {
 
 		case pkgbits.ObjFunc:
 			pos := r.pos()
-<<<<<<< HEAD
-			var rtparams []*types.TypeParam
-			var recv *types.Var
-			if r.Version().Has(pkgbits.GenericMethods) && r.Bool() {
-				r.selector()
-				rtparams = r.typeParamNames(true)
-				recv = r.param()
-			}
-			tparams := r.typeParamNames(false)
-			sig := r.signature(recv, rtparams, tparams)
-=======
 			if r.Version().Has(pkgbits.GenericMethods) {
 				assert(!r.Bool()) // generic methods are read in their defining type
 			}
 			tparams := r.typeParamNames(false)
 			sig := r.signature(nil, nil, tparams)
->>>>>>> v1.35.8
 			declare(types.NewFunc(pos, objPkg, objName, sig))
 
 		case pkgbits.ObjType:
@@ -691,11 +679,7 @@ func (pr *pkgReader) objDictIdx(idx pkgbits.Index) *readerDict {
 		}
 
 		nreceivers := 0
-<<<<<<< HEAD
-		if r.Version().Has(pkgbits.GenericMethods) && r.Bool() {
-=======
 		if r.Version().Has(pkgbits.GenericMethods) {
->>>>>>> v1.35.8
 			nreceivers = r.Len()
 		}
 		nexplicits := r.Len()

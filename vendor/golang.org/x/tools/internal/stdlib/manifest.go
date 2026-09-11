@@ -1156,10 +1156,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"ConnectionState.ECHAccepted", Field, 23, ""},
 		{"ConnectionState.HandshakeComplete", Field, 0, ""},
 		{"ConnectionState.HelloRetryRequest", Field, 26, ""},
-<<<<<<< HEAD
-=======
 		{"ConnectionState.LocalCertificate", Field, 27, ""},
->>>>>>> v1.35.8
 		{"ConnectionState.NegotiatedProtocol", Field, 0, ""},
 		{"ConnectionState.NegotiatedProtocolIsMutual", Field, 0, ""},
 		{"ConnectionState.OCSPResponse", Field, 5, ""},
@@ -1797,14 +1794,11 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Rows).Next", Method, 0, ""},
 		{"(RowsAffected).LastInsertId", Method, 0, ""},
 		{"(RowsAffected).RowsAffected", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"(RowsColumnScanner).Close", Method, 27, ""},
 		{"(RowsColumnScanner).Columns", Method, 27, ""},
 		{"(RowsColumnScanner).Next", Method, 27, ""},
 		{"(RowsColumnScanner).NextRow", Method, 27, ""},
 		{"(RowsColumnScanner).ScanColumn", Method, 27, ""},
->>>>>>> v1.35.8
 		{"(RowsColumnTypeDatabaseTypeName).Close", Method, 8, ""},
 		{"(RowsColumnTypeDatabaseTypeName).ColumnTypeDatabaseTypeName", Method, 8, ""},
 		{"(RowsColumnTypeDatabaseTypeName).Columns", Method, 8, ""},
@@ -5118,10 +5112,7 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Number).String", Method, 1, ""},
 		{"(RawMessage).MarshalJSON", Method, 8, ""},
 		{"(Unmarshaler).UnmarshalJSON", Method, 0, ""},
-<<<<<<< HEAD
-=======
 		{"CallMethodsWithLegacySemantics", Func, 27, "func(v bool) Options"},
->>>>>>> v1.35.8
 		{"Compact", Func, 0, "func(dst *bytes.Buffer, src []byte) error"},
 		{"Decoder", Type, 0, ""},
 		{"DefaultOptionsV1", Func, 27, "func() Options"},
@@ -6812,11 +6803,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(Checker).PkgNameOf", Method, 22, ""},
 		{"(Checker).TypeOf", Method, 5, ""},
 		{"(Error).Error", Method, 5, ""},
-<<<<<<< HEAD
-		{"(Importer).Import", Method, 5, ""},
-		{"(ImporterFrom).Import", Method, 6, ""},
-		{"(ImporterFrom).ImportFrom", Method, 6, ""},
-=======
 		{"(Hasher).Equal", Method, 27, ""},
 		{"(Hasher).Hash", Method, 27, ""},
 		{"(HasherIgnoreTags).Equal", Method, 27, ""},
@@ -6825,7 +6811,6 @@ var PackageSymbols = map[string][]Symbol{
 		{"(ImporterFrom).Import", Method, 6, ""},
 		{"(ImporterFrom).ImportFrom", Method, 6, ""},
 		{"(Instance).String", Method, 27, ""},
->>>>>>> v1.35.8
 		{"(Object).Exported", Method, 5, ""},
 		{"(Object).Id", Method, 5, ""},
 		{"(Object).Name", Method, 5, ""},

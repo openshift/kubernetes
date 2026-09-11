@@ -243,8 +243,6 @@ func ObjectKind(obj types.Object) string {
 	}
 	return "unknown symbol"
 }
-<<<<<<< HEAD
-=======
 
 // ImplicitFieldSelections returns the sequence of implicit embedded fields
 // traversed by the given selection. It skips the final leaf field or method.
@@ -272,4 +270,3 @@ func ImplicitFieldSelections(seln types.Selection) iter.Seq2[*types.Var, bool] {
 		}
 	}
 }
->>>>>>> v1.35.8
