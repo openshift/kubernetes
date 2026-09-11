@@ -22,8 +22,13 @@ import (
 )
 
 func configureTransport(t1 *http.Transport) error {
+<<<<<<< HEAD
 	// ConfigureTransport is a no-op: The http.Transport already supports HTTP/2.
 	return nil
+=======
+	_, err := configureTransports(t1)
+	return err
+>>>>>>> v1.35.8
 }
 
 func configureTransports(t1 *http.Transport) (*Transport, error) {
@@ -31,6 +36,20 @@ func configureTransports(t1 *http.Transport) (*Transport, error) {
 	// linked to the http.Transport's.
 	tr2 := &Transport{}
 	tr2.configure(t1)
+<<<<<<< HEAD
+=======
+	// Enable HTTP/2 on the transport, as the pre-wrapping implementation did:
+	// net/http does not auto-enable it for a transport with a custom
+	// TLSClientConfig or dialer.
+	if t1.TLSClientConfig == nil {
+		t1.TLSClientConfig = &tls.Config{}
+	}
+	if t1.Protocols == nil {
+		t1.Protocols = new(http.Protocols)
+		t1.Protocols.SetHTTP1(true)
+	}
+	t1.Protocols.SetHTTP2(true)
+>>>>>>> v1.35.8
 	return tr2, nil
 }
 

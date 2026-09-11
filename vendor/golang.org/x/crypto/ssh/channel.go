@@ -634,7 +634,14 @@ func (ch *channel) SendRequest(name string, wantReply bool, payload []byte) (boo
 	drain:
 		for {
 			select {
+<<<<<<< HEAD
 			case <-ch.msg:
+=======
+			case _, ok := <-ch.msg:
+				if !ok {
+					break drain
+				}
+>>>>>>> v1.35.8
 			default:
 				break drain
 			}
