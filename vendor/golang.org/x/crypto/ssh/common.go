@@ -6,6 +6,7 @@ package ssh
 
 import (
 	"crypto"
+	"crypto/fips140"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -256,6 +257,7 @@ type Algorithms struct {
 	PublicKeyAuths []string
 }
 
+<<<<<<< HEAD
 // SupportedAlgorithms returns algorithms currently implemented by this package,
 // excluding those with security issues, which are returned by
 // InsecureAlgorithms. The algorithms listed here are in preference order.
@@ -269,6 +271,55 @@ func SupportedAlgorithms() Algorithms {
 	}
 }
 
+=======
+func init() {
+	if fips140.Enabled() {
+		defaultHostKeyAlgos = slices.DeleteFunc(defaultHostKeyAlgos, func(algo string) bool {
+			_, err := hashFunc(underlyingAlgo(algo))
+			return err != nil
+		})
+		defaultPubKeyAuthAlgos = slices.DeleteFunc(defaultPubKeyAuthAlgos, func(algo string) bool {
+			_, err := hashFunc(underlyingAlgo(algo))
+			return err != nil
+		})
+	}
+}
+
+func hashFunc(format string) (crypto.Hash, error) {
+	switch format {
+	case KeyAlgoRSASHA256, KeyAlgoECDSA256, KeyAlgoSKED25519, KeyAlgoSKECDSA256:
+		return crypto.SHA256, nil
+	case KeyAlgoECDSA384:
+		return crypto.SHA384, nil
+	case KeyAlgoRSASHA512, KeyAlgoECDSA521:
+		return crypto.SHA512, nil
+	case KeyAlgoED25519:
+		// KeyAlgoED25519 doesn't pre-hash.
+		return 0, nil
+	case KeyAlgoRSA, InsecureKeyAlgoDSA:
+		if fips140.Enabled() {
+			return 0, fmt.Errorf("ssh: hash algorithm for format %q not allowed in FIPS 140 mode", format)
+		}
+		return crypto.SHA1, nil
+	default:
+		return 0, fmt.Errorf("ssh: hash algorithm for format %q not mapped", format)
+	}
+}
+
+// SupportedAlgorithms returns algorithms currently implemented by this package,
+// excluding those with security issues, which are returned by
+// InsecureAlgorithms. The algorithms listed here are in preference order.
+func SupportedAlgorithms() Algorithms {
+	return Algorithms{
+		Ciphers:        slices.Clone(supportedCiphers),
+		MACs:           slices.Clone(supportedMACs),
+		KeyExchanges:   slices.Clone(supportedKexAlgos),
+		HostKeys:       slices.Clone(supportedHostKeyAlgos),
+		PublicKeyAuths: slices.Clone(supportedPubKeyAuthAlgos),
+	}
+}
+
+>>>>>>> v1.34.11
 // InsecureAlgorithms returns algorithms currently implemented by this package
 // and which have security issues.
 func InsecureAlgorithms() Algorithms {
@@ -283,6 +334,7 @@ func InsecureAlgorithms() Algorithms {
 
 var supportedCompressions = []string{compressionNone}
 
+<<<<<<< HEAD
 // hashFuncs keeps the mapping of supported signature algorithms to their
 // respective hashes needed for signing and verification.
 var hashFuncs = map[string]crypto.Hash{
@@ -298,6 +350,8 @@ var hashFuncs = map[string]crypto.Hash{
 	KeyAlgoSKED25519:  crypto.SHA256,
 }
 
+=======
+>>>>>>> v1.34.11
 // algorithmsForKeyFormat returns the supported signature algorithms for a given
 // public key format (PublicKey.Type), in order of preference. See RFC 8332,
 // Section 2. See also the note in sendKexInit on backwards compatibility.
@@ -312,11 +366,40 @@ func algorithmsForKeyFormat(keyFormat string) []string {
 	}
 }
 
+// keyFormatForAlgorithm returns the key format corresponding to the given
+// signature algorithm. It returns an empty string if the signature algorithm is
+// invalid or unsupported.
+func keyFormatForAlgorithm(sigAlgo string) string {
+	switch sigAlgo {
+	case KeyAlgoRSA, KeyAlgoRSASHA256, KeyAlgoRSASHA512:
+		return KeyAlgoRSA
+	case CertAlgoRSAv01, CertAlgoRSASHA256v01, CertAlgoRSASHA512v01:
+		return CertAlgoRSAv01
+	case KeyAlgoED25519,
+		KeyAlgoSKED25519,
+		KeyAlgoSKECDSA256,
+		KeyAlgoECDSA256,
+		KeyAlgoECDSA384,
+		KeyAlgoECDSA521,
+		InsecureKeyAlgoDSA,
+		InsecureCertAlgoDSAv01,
+		CertAlgoECDSA256v01,
+		CertAlgoECDSA384v01,
+		CertAlgoECDSA521v01,
+		CertAlgoSKECDSA256v01,
+		CertAlgoED25519v01,
+		CertAlgoSKED25519v01:
+		return sigAlgo
+	default:
+		return ""
+	}
+}
+
 // isRSA returns whether algo is a supported RSA algorithm, including certificate
 // algorithms.
 func isRSA(algo string) bool {
 	algos := algorithmsForKeyFormat(KeyAlgoRSA)
-	return contains(algos, underlyingAlgo(algo))
+	return slices.Contains(algos, underlyingAlgo(algo))
 }
 
 func isRSACert(algo string) bool {
@@ -515,7 +598,11 @@ func (c *Config) SetDefaults() {
 		if kexAlgoMap[k] != nil {
 			// Ignore the KEX if we have no kexAlgoMap definition.
 			kexs = append(kexs, k)
+<<<<<<< HEAD
 			if k == KeyExchangeCurve25519 && !contains(c.KeyExchanges, keyExchangeCurve25519LibSSH) {
+=======
+			if k == KeyExchangeCurve25519 && !slices.Contains(c.KeyExchanges, keyExchangeCurve25519LibSSH) {
+>>>>>>> v1.34.11
 				kexs = append(kexs, keyExchangeCurve25519LibSSH)
 			}
 		}

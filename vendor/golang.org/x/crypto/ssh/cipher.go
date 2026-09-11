@@ -8,6 +8,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
+	"crypto/fips140"
 	"crypto/rc4"
 	"crypto/subtle"
 	"encoding/binary"
@@ -15,6 +16,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"slices"
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/internal/poly1305"
@@ -93,6 +95,7 @@ func streamCipherMode(skip int, createFunc func(key, iv []byte) (cipher.Stream, 
 }
 
 // cipherModes documents properties of supported ciphers. Ciphers not included
+<<<<<<< HEAD
 // are not supported and will not be negotiated, even if explicitly requested in
 // ClientConfig.Crypto.Ciphers.
 var cipherModes = map[string]*cipherMode{
@@ -117,17 +120,51 @@ var cipherModes = map[string]*cipherMode{
 	CipherAES128GCM:        {16, 12, newGCMCipher},
 	CipherAES256GCM:        {32, 12, newGCMCipher},
 	CipherChaCha20Poly1305: {64, 0, newChaCha20Cipher},
+=======
+// are not supported and will not be negotiated, even if explicitly configured.
+// When FIPS mode is enabled, only FIPS-approved algorithms are included.
+var cipherModes = map[string]*cipherMode{}
 
+func init() {
+	cipherModes[CipherAES128CTR] = &cipherMode{16, aes.BlockSize, streamCipherMode(0, newAESCTR)}
+	cipherModes[CipherAES192CTR] = &cipherMode{24, aes.BlockSize, streamCipherMode(0, newAESCTR)}
+	cipherModes[CipherAES256CTR] = &cipherMode{32, aes.BlockSize, streamCipherMode(0, newAESCTR)}
+	//  Use of GCM with arbitrary IVs is not allowed in FIPS 140-only mode,
+	// we'll wire it up to NewGCMForSSH in Go 1.26.
+	//
+	// For now it means we'll work with fips140=on but not fips140=only.
+	cipherModes[CipherAES128GCM] = &cipherMode{16, 12, newGCMCipher}
+	cipherModes[CipherAES256GCM] = &cipherMode{32, 12, newGCMCipher}
+
+	if fips140.Enabled() {
+		defaultCiphers = slices.DeleteFunc(defaultCiphers, func(algo string) bool {
+			_, ok := cipherModes[algo]
+			return !ok
+		})
+		return
+	}
+>>>>>>> v1.34.11
+
+	cipherModes[CipherChaCha20Poly1305] = &cipherMode{64, 0, newChaCha20Cipher}
+	// Insecure ciphers not included in the default configuration.
+	cipherModes[InsecureCipherRC4128] = &cipherMode{16, 0, streamCipherMode(1536, newRC4)}
+	cipherModes[InsecureCipherRC4256] = &cipherMode{32, 0, streamCipherMode(1536, newRC4)}
+	cipherModes[InsecureCipherRC4] = &cipherMode{16, 0, streamCipherMode(0, newRC4)}
 	// CBC mode is insecure and so is not included in the default config.
 	// (See https://www.ieee-security.org/TC/SP2013/papers/4977a526.pdf). If absolutely
 	// needed, it's possible to specify a custom Config to enable it.
 	// You should expect that an active attacker can recover plaintext if
 	// you do.
+<<<<<<< HEAD
 	InsecureCipherAES128CBC: {16, aes.BlockSize, newAESCBCCipher},
 
 	// 3des-cbc is insecure and is not included in the default
 	// config.
 	InsecureCipherTripleDESCBC: {24, des.BlockSize, newTripleDESCBCCipher},
+=======
+	cipherModes[InsecureCipherAES128CBC] = &cipherMode{16, aes.BlockSize, newAESCBCCipher}
+	cipherModes[InsecureCipherTripleDESCBC] = &cipherMode{24, des.BlockSize, newTripleDESCBCCipher}
+>>>>>>> v1.34.11
 }
 
 // prefixLen is the length of the packet prefix that contains the packet length
@@ -405,7 +442,7 @@ func (c *gcmCipher) readCipherPacket(seqNum uint32, r io.Reader) ([]byte, error)
 		return nil, fmt.Errorf("ssh: illegal padding %d", padding)
 	}
 
-	if int(padding+1) >= len(plain) {
+	if int(padding)+1 >= len(plain) {
 		return nil, fmt.Errorf("ssh: padding %d too large", padding)
 	}
 	plain = plain[1 : length-uint32(padding)]
@@ -584,7 +621,7 @@ func (c *cbcCipher) writeCipherPacket(seqNum uint32, w io.Writer, rand io.Reader
 
 	// Length of encrypted portion of the packet (header, payload, padding).
 	// Enforce minimum padding and packet size.
-	encLength := maxUInt32(prefixLen+len(packet)+cbcMinPaddingSize, cbcMinPaddingSize)
+	encLength := maxUInt32(prefixLen+len(packet)+cbcMinPaddingSize, cbcMinPacketSize)
 	// Enforce block size.
 	encLength = (encLength + effectiveBlockSize - 1) / effectiveBlockSize * effectiveBlockSize
 

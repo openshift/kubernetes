@@ -18,8 +18,16 @@ import (
 //
 // Two Cursors compare equal if they represent the same node.
 //
+<<<<<<< HEAD
 // Call [Inspector.Root] to obtain a valid cursor for the virtual root
 // node of the traversal.
+=======
+// The zero value of Cursor is not valid.
+//
+// Call [Inspector.Root] to obtain a cursor for the virtual root node
+// of the traversal. This is the sole valid cursor for which [Cursor.Node]
+// returns nil.
+>>>>>>> v1.34.11
 //
 // Use the following methods to navigate efficiently around the tree:
 //   - for ancestors, use [Cursor.Parent] and [Cursor.Enclosing];
@@ -37,10 +45,17 @@ type Cursor struct {
 	index int32 // index of push node; -1 for virtual root node
 }
 
+<<<<<<< HEAD
 // Root returns a cursor for the virtual root node,
 // whose children are the files provided to [New].
 //
 // Its [Cursor.Node] and [Cursor.Stack] methods return nil.
+=======
+// Root returns a valid cursor for the virtual root node,
+// whose children are the files provided to [New].
+//
+// Its [Cursor.Node] method return nil.
+>>>>>>> v1.34.11
 func (in *Inspector) Root() Cursor {
 	return Cursor{in, -1}
 }
@@ -61,14 +76,31 @@ func (in *Inspector) At(index int32) Cursor {
 	return Cursor{in, index}
 }
 
+<<<<<<< HEAD
 // Inspector returns the cursor's Inspector.
+=======
+// Valid reports whether the cursor is valid.
+// The zero value of cursor is invalid.
+// Unless otherwise documented, it is not safe to call
+// any other method on an invalid cursor.
+func (c Cursor) Valid() bool {
+	return c.in != nil
+}
+
+// Inspector returns the cursor's Inspector.
+// It returns nil if the Cursor is not valid.
+>>>>>>> v1.34.11
 func (c Cursor) Inspector() *Inspector { return c.in }
 
 // Index returns the index of this cursor position within the package.
 //
 // Clients should not assume anything about the numeric Index value
 // except that it increases monotonically throughout the traversal.
+<<<<<<< HEAD
 // It is provided for use with [At].
+=======
+// It is provided for use with [Inspector.At].
+>>>>>>> v1.34.11
 //
 // Index must not be called on the Root node.
 func (c Cursor) Index() int32 {
@@ -89,7 +121,11 @@ func (c Cursor) Node() ast.Node {
 
 // String returns information about the cursor's node, if any.
 func (c Cursor) String() string {
+<<<<<<< HEAD
 	if c.in == nil {
+=======
+	if !c.Valid() {
+>>>>>>> v1.34.11
 		return "(invalid)"
 	}
 	if c.index < 0 {
@@ -233,6 +269,21 @@ func (c Cursor) ParentEdge() (edge.Kind, int) {
 	return unpackEdgeKindAndIndex(events[pop].parent)
 }
 
+<<<<<<< HEAD
+=======
+// ParentEdgeKind returns the kind component of the result of [Cursor.ParentEdge].
+func (c Cursor) ParentEdgeKind() edge.Kind {
+	ek, _ := c.ParentEdge()
+	return ek
+}
+
+// ParentEdgeIndex returns the index component of the result of [Cursor.ParentEdge].
+func (c Cursor) ParentEdgeIndex() int {
+	_, index := c.ParentEdge()
+	return index
+}
+
+>>>>>>> v1.34.11
 // ChildAt returns the cursor for the child of the
 // current node identified by its edge and index.
 // The index must be -1 if the edge.Kind is not a slice.
@@ -453,6 +504,12 @@ func (c Cursor) FindNode(n ast.Node) (Cursor, bool) {
 // rooted at c such that n.Pos() <= start && end <= n.End().
 // (For an *ast.File, it uses the bounds n.FileStart-n.FileEnd.)
 //
+<<<<<<< HEAD
+=======
+// An empty range (start == end) between two adjacent nodes is
+// considered to belong to the first node.
+//
+>>>>>>> v1.34.11
 // It returns zero if none is found.
 // Precondition: start <= end.
 //
@@ -467,7 +524,13 @@ func (c Cursor) FindByPos(start, end token.Pos) (Cursor, bool) {
 	// This algorithm could be implemented using c.Inspect,
 	// but it is about 2.5x slower.
 
+<<<<<<< HEAD
 	best := int32(-1) // push index of latest (=innermost) node containing range
+=======
+	// best is the push-index of the latest (=innermost) node containing range.
+	// (Beware: latest is not always innermost because FuncDecl.{Name,Type} overlap.)
+	best := int32(-1)
+>>>>>>> v1.34.11
 	for i, limit := c.indices(); i < limit; i++ {
 		ev := events[i]
 		if ev.index > i { // push?
@@ -481,15 +544,44 @@ func (c Cursor) FindByPos(start, end token.Pos) (Cursor, bool) {
 					continue
 				}
 			} else {
+<<<<<<< HEAD
+=======
+				// Edge case: FuncDecl.Name and .Type overlap:
+				// Don't update best from Name to FuncDecl.Type.
+				//
+				// The condition can be read as:
+				// - n is FuncType
+				// - n.parent is FuncDecl
+				// - best is strictly beneath the FuncDecl
+				if ev.typ == 1<<nFuncType &&
+					events[ev.parent].typ == 1<<nFuncDecl &&
+					best > ev.parent {
+					continue
+				}
+
+>>>>>>> v1.34.11
 				nodeEnd = n.End()
 				if n.Pos() > start {
 					break // disjoint, after; stop
 				}
 			}
+<<<<<<< HEAD
+=======
+
+>>>>>>> v1.34.11
 			// Inv: node.{Pos,FileStart} <= start
 			if end <= nodeEnd {
 				// node fully contains target range
 				best = i
+<<<<<<< HEAD
+=======
+
+				// Don't search beyond end of the first match.
+				// This is important only for an empty range (start=end)
+				// between two adjoining nodes, which would otherwise
+				// match both nodes; we want to match only the first.
+				limit = ev.index
+>>>>>>> v1.34.11
 			} else if nodeEnd < start {
 				i = ev.index // disjoint, before; skip forward
 			}

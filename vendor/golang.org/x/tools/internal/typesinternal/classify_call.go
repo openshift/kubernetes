@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+<<<<<<< HEAD
 	_ "unsafe"
+=======
+	_ "unsafe" // for go:linkname hack
+>>>>>>> v1.34.11
 )
 
 // CallKind describes the function position of an [*ast.CallExpr].

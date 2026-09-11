@@ -38,7 +38,11 @@ func (w *Free) Has(typ types.Type) (res bool) {
 		break
 
 	case *types.Alias:
+<<<<<<< HEAD
 		if aliases.TypeParams(t).Len() > aliases.TypeArgs(t).Len() {
+=======
+		if t.TypeParams().Len() > t.TypeArgs().Len() {
+>>>>>>> v1.34.11
 			return true // This is an uninstantiated Alias.
 		}
 		// The expansion of an alias can have free type parameters,

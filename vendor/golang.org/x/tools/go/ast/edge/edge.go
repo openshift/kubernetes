@@ -12,7 +12,11 @@ import (
 	"reflect"
 )
 
+<<<<<<< HEAD
 // A Kind describes a field of an ast.Node struct.
+=======
+// A Kind describes a field of an [ast.Node] struct.
+>>>>>>> v1.34.11
 type Kind uint8
 
 // String returns a description of the edge kind.
@@ -41,6 +45,7 @@ func (k Kind) Get(n ast.Node, idx int) ast.Node {
 		panic(fmt.Sprintf("%v.Get(%T): invalid node type", k, n))
 	}
 	v := reflect.ValueOf(n).Elem().Field(fieldInfos[k].index)
+<<<<<<< HEAD
 	if idx != -1 {
 		v = v.Index(idx) // asserts valid index
 	} else {
@@ -56,6 +61,27 @@ const (
 	// Numbering is not stable.
 	// Each is named Type_Field, where Type is the
 	// ast.Node struct type and Field is the name of the field
+=======
+
+	if v.Kind() == reflect.Slice {
+		v = v.Index(idx) // asserts valid idx
+	} else if idx != -1 {
+		panic(fmt.Sprintf("%v, Get(%T, %d): cannot index non-slice", v, n, idx))
+	}
+
+	out, _ := v.Interface().(ast.Node) // may be nil
+	return out
+}
+
+// Each [Kind] is named Type_Field, where Type is the
+// [ast.Node] struct type and Field is the name of the field
+const (
+	Invalid Kind = iota // for nodes at the root of the traversal
+
+	// As of Go1.26 these kinds are sorted alphabetically, but
+	// numbering must be stable, so any new addition of const should
+	// use a new value (be added at the end of the list).
+>>>>>>> v1.34.11
 
 	ArrayType_Elt
 	ArrayType_Len

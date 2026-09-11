@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+<<<<<<< HEAD
 package typesinternal
 
 // TODO(adonovan): when CL 645115 lands, define the go1.25 version of
@@ -38,3 +39,24 @@ func GetVarKind(v *types.Var) VarKind { return 0 }
 
 // SetVarKind has no effect.
 func SetVarKind(v *types.Var, kind VarKind) {}
+=======
+//go:build go1.25
+
+package typesinternal
+
+import "go/types"
+
+type VarKind = types.VarKind
+
+const (
+	PackageVar = types.PackageVar
+	LocalVar   = types.LocalVar
+	RecvVar    = types.RecvVar
+	ParamVar   = types.ParamVar
+	ResultVar  = types.ResultVar
+	FieldVar   = types.FieldVar
+)
+
+func GetVarKind(v *types.Var) VarKind       { return v.Kind() }
+func SetVarKind(v *types.Var, kind VarKind) { v.SetKind(kind) }
+>>>>>>> v1.34.11

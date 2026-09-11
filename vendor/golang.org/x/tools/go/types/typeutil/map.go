@@ -11,7 +11,10 @@ import (
 	"fmt"
 	"go/types"
 	"hash/maphash"
+<<<<<<< HEAD
 	"unsafe"
+=======
+>>>>>>> v1.34.11
 
 	"golang.org/x/tools/internal/typeparams"
 )
@@ -305,8 +308,12 @@ func (h hasher) hash(t types.Type) uint32 {
 	case *types.Named:
 		hash := h.hashTypeName(t.Obj())
 		targs := t.TypeArgs()
+<<<<<<< HEAD
 		for i := 0; i < targs.Len(); i++ {
 			targ := targs.At(i)
+=======
+		for targ := range targs.Types() {
+>>>>>>> v1.34.11
 			hash += 2 * h.hash(targ)
 		}
 		return hash
@@ -380,6 +387,7 @@ var theSeed = maphash.MakeSeed()
 func (hasher) hashTypeName(tname *types.TypeName) uint32 {
 	// Since types.Identical uses == to compare TypeNames,
 	// the Hash function uses maphash.Comparable.
+<<<<<<< HEAD
 	// TODO(adonovan): or will, when it becomes available in go1.24.
 	// In the meantime we use the pointer's numeric value.
 	//
@@ -396,6 +404,10 @@ func (hasher) hashTypeName(tname *types.TypeName) uint32 {
 	} else {
 		return uint32(ptr)
 	}
+=======
+	hash := maphash.Comparable(theSeed, tname)
+	return uint32(hash ^ (hash >> 32))
+>>>>>>> v1.34.11
 }
 
 // shallowHash computes a hash of t without looking at any of its
