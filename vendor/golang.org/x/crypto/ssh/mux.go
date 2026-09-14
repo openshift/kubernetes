@@ -155,7 +155,14 @@ func (m *mux) SendRequest(name string, wantReply bool, payload []byte) (bool, []
 	drain:
 		for {
 			select {
+<<<<<<< HEAD
 			case <-m.globalResponses:
+=======
+			case _, ok := <-m.globalResponses:
+				if !ok {
+					break drain
+				}
+>>>>>>> v1.35.8
 			default:
 				break drain
 			}
