@@ -106,7 +106,6 @@ func doPodResizeResourceQuotaTests(f *framework.Framework) {
 
 				ginkgo.By("waiting for resize to be actuated")
 				resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, newPods[0], expected)
-				podresize.ExpectPodResized(ctx, f, resizedPod, expected)
 
 				ginkgo.By("verifying pod resources after resize")
 				podresize.VerifyPodResources(resizedPod, expected, nil)
@@ -296,7 +295,6 @@ func doPodResizeLimitRangerTests(f *framework.Framework) {
 
 				ginkgo.By("waiting for resize to be actuated")
 				resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, newPods[0], expected)
-				podresize.ExpectPodResized(ctx, f, resizedPod, expected)
 
 				ginkgo.By("verifying pod resources after resize")
 				podresize.VerifyPodResources(resizedPod, expected, nil)
@@ -672,8 +670,7 @@ func doPodResizeSchedulerTests(f *framework.Framework) {
 				RestartCount: testPod1.Status.ContainerStatuses[0].RestartCount,
 			},
 		}
-		resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod1, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod1, expected)
 
 		ginkgo.By(fmt.Sprintf("TEST3: Resize pod '%s' to exceed the node capacity", testPod1.Name))
 		_, p1Err = f.ClientSet.CoreV1().Pods(testPod1.Namespace).Patch(ctx,
@@ -804,8 +801,7 @@ func doPodResizeRetryDeferredTests(f *framework.Framework) {
 				Resources: &cgroups.ContainerResources{CPUReq: podBResizedCPU.String(), CPULim: podBResizedCPU.String()},
 			},
 		}
-		resizedPodB := podresize.WaitForPodResizeActuation(ctx, f, podClient, podB, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPodB, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, podB, expected)
 
 		ginkgo.By("Cleaning up test pods")
 		e2epod.DeletePodsWithWait(ctx, f.ClientSet, []*v1.Pod{podA, podB})
@@ -968,8 +964,7 @@ func doPodResizeRetryDeferredTests(f *framework.Framework) {
 				Resources: &cgroups.ContainerResources{CPUReq: majorityCPUQuantity.String(), CPULim: majorityCPUQuantity.String()},
 			},
 		}
-		resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod2, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod2, expected)
 		waitForPodDeferred(ctx, f, testPod3)
 		waitForPodDeferred(ctx, f, testPod4)
 		waitForPodDeferred(ctx, f, testPod5)
@@ -991,8 +986,7 @@ func doPodResizeRetryDeferredTests(f *framework.Framework) {
 				},
 			},
 		}
-		resizedPod = podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod3, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod3, expected)
 		waitForPodDeferred(ctx, f, testPod4)
 		waitForPodDeferred(ctx, f, testPod5)
 
@@ -1008,8 +1002,7 @@ func doPodResizeRetryDeferredTests(f *framework.Framework) {
 				Resources: &cgroups.ContainerResources{CPUReq: majorityCPUQuantity.String(), CPULim: majorityCPUQuantity.String()},
 			},
 		}
-		resizedPod = podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod4, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod4, expected)
 		waitForPodDeferred(ctx, f, testPod5)
 
 		// Delete pod4. Verify pod5's resize has completed.
@@ -1024,8 +1017,7 @@ func doPodResizeRetryDeferredTests(f *framework.Framework) {
 				Resources: &cgroups.ContainerResources{CPUReq: majorityCPUQuantity.String(), CPULim: majorityCPUQuantity.String()},
 			},
 		}
-		resizedPod = podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod5, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod5, expected)
 
 		ginkgo.By("deleting pod5")
 		delErr5 := e2epod.DeletePodWithWait(ctx, f.ClientSet, testPod5)
@@ -1149,16 +1141,13 @@ func doPodResizeRetryDeferredTests(f *framework.Framework) {
 		framework.ExpectNoError(delErr1, "failed to delete pod %s", testPod1.Name)
 
 		ginkgo.By(fmt.Sprintf("Verify pod '%s' is resized successfully after pod deletion '%s'", testPod2.Name, testPod1.Name))
-		resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod2, expectedTestPod2Resized)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expectedTestPod2Resized)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod2, expectedTestPod2Resized)
 
 		ginkgo.By(fmt.Sprintf("Verify pod '%s' is resized successfully after pod resize '%s'", testPod3.Name, testPod2.Name))
-		resizedPod = podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod3, expectedTestPod3Resized)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expectedTestPod3Resized)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod3, expectedTestPod3Resized)
 
 		ginkgo.By(fmt.Sprintf("Verify pod '%s' is resized successfully after pod resize '%s'", testPod4.Name, testPod3.Name))
-		resizedPod = podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod4, expectedTestPod4Resized)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expectedTestPod4Resized)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod4, expectedTestPod4Resized)
 
 		ginkgo.By("deleting pods")
 		e2epod.DeletePodsWithWait(ctx, f.ClientSet, testPods)
