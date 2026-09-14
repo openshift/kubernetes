@@ -615,13 +615,10 @@ func (r *importReader) obj(pkg *types.Package, name string) {
 			for n := r.uint64(); n > 0; n-- {
 				mpos := r.pos()
 				mname := r.ident()
-<<<<<<< HEAD
-=======
 				var tpars []*types.TypeParam
 				if r.p.version >= iexportVersionGenericMethods && r.bool() {
 					tpars = r.tparamList()
 				}
->>>>>>> v1.35.8
 				recv := r.param(pkg)
 
 				// If the receiver has any targs, set those as the
@@ -636,12 +633,7 @@ func (r *importReader) obj(pkg *types.Package, name string) {
 						rparams[i] = types.Unalias(targs.At(i)).(*types.TypeParam)
 					}
 				}
-<<<<<<< HEAD
-				msig := r.signature(pkg, recv, rparams, nil)
-
-=======
 				msig := r.signature(pkg, recv, rparams, tpars)
->>>>>>> v1.35.8
 				named.AddMethod(types.NewFunc(mpos, pkg, mname, msig))
 			}
 		}

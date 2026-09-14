@@ -259,15 +259,6 @@ func TypeExpr(t types.Type, qual types.Qualifier) ast.Expr {
 	case *types.Signature:
 		var params []*ast.Field
 		for v := range t.Params().Variables() {
-<<<<<<< HEAD
-			params = append(params, &ast.Field{
-				Type: TypeExpr(v.Type(), qual),
-				Names: []*ast.Ident{
-					{
-						Name: v.Name(),
-					},
-				},
-=======
 			var names []*ast.Ident
 			if v.Name() != "" {
 				names = []*ast.Ident{ast.NewIdent(v.Name())}
@@ -275,7 +266,6 @@ func TypeExpr(t types.Type, qual types.Qualifier) ast.Expr {
 			params = append(params, &ast.Field{
 				Type:  TypeExpr(v.Type(), qual),
 				Names: names,
->>>>>>> v1.35.8
 			})
 		}
 		if t.Variadic() {

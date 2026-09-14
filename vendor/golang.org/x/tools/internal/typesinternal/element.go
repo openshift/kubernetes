@@ -37,13 +37,10 @@ func ForEachElement(rtypes *typeutil.Map, msets *typeutil.MethodSetCache, T type
 		tmset := msets.MethodSet(T)
 		for method := range tmset.Methods() {
 			sig := method.Type().(*types.Signature)
-<<<<<<< HEAD
-=======
 			if sig.TypeParams() != nil {
 				continue // skip type-parameterized methods
 			}
 
->>>>>>> v1.35.8
 			// It is tempting to call visit(sig, false)
 			// but, as noted in golang.org/cl/65450043,
 			// the Signature.Recv field is ignored by
