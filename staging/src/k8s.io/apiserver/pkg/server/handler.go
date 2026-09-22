@@ -18,6 +18,7 @@ package server
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"net/http"
 	rt "runtime"
@@ -183,7 +184,25 @@ func serviceErrorHandler(s runtime.NegotiatedSerializer, serviceErr restful.Serv
 	)
 }
 
+// drbgPrewarmSem limits the number of goroutines concurrently triggering
+// per-thread DRBG initialization via crypto/rand. In FIPS/CGo mode, the first
+// crypto/rand call on a new OS thread initializes OpenSSL's per-thread DRBG,
+// causing Go to create a new OS thread for the CGo call. Without rate-limiting,
+// a reconnect storm (e.g., kubelet watches after apiserver restart) can
+// simultaneously trigger thousands of DRBG inits, exhausting the OS thread limit.
+// The semaphore caps concurrent inits to 64, staggering thread creation over time.
+var drbgPrewarmSem = make(chan struct{}, 64)
+
 // ServeHTTP makes it an http.Handler
 func (a *APIServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Pre-warm the per-thread DRBG under a rate limiter before entering the handler
+	// chain. This covers all crypto/rand callers in the request path, not just
+	// individual call sites. A nil or zero-length read does not trigger DRBG init in
+	// OpenSSL, so we read one byte.
+	var prewarmBuf [1]byte
+	drbgPrewarmSem <- struct{}{}
+	rand.Read(prewarmBuf[:]) //nolint:errcheck
+	<-drbgPrewarmSem
+
 	a.FullHandlerChain.ServeHTTP(w, r)
 }
