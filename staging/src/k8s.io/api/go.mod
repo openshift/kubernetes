@@ -23,8 +23,8 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
@@ -39,3 +39,5 @@ replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
 	k8s.io/apimachinery => ../apimachinery
 )
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.50.0-sec.4
