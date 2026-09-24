@@ -12,7 +12,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/pflag v1.0.6
 	go.yaml.in/yaml/v2 v2.4.2
-	golang.org/x/text v0.29.0
+	golang.org/x/text v0.34.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/gengo/v2 v2.0.0-20250604051438-85fd79dbfd9f
 	k8s.io/klog/v2 v2.130.1
@@ -37,10 +37,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/mod v0.32.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -53,3 +53,5 @@ replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20251001123353-fd5b1fb35db1
 	k8s.io/apimachinery => ../apimachinery
 )
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.50.0-sec.4
