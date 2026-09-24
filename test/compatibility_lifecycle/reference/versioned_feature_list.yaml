@@ -2221,6 +2221,12 @@
     lockToDefault: true
     preRelease: GA
     version: "1.36"
+- name: VolumeBindMountOptions
+  versionedSpecs:
+  - default: false
+    lockToDefault: false
+    preRelease: Alpha
+    version: "1.37"
 - name: VolumeLimitScaling
   versionedSpecs:
   - default: false

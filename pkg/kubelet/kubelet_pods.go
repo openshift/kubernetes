@@ -410,6 +410,7 @@ func makeMounts(logger klog.Logger, pod *v1.Pod, podDir string, container *v1.Co
 			RecursiveReadOnly: rro,
 			SELinuxRelabel:    relabelVolume,
 			Propagation:       propagation,
+			BindMountOptions:  mount.BindMountOptions,
 		})
 	}
 	if mountEtcHostsFile {
