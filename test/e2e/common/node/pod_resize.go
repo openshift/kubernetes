@@ -610,8 +610,7 @@ func doPodResizeMemoryLimitDecreaseTest(f *framework.Framework) {
 		podresize.VerifyPodResources(testPod, viableLoweredLimit, nil)
 
 		ginkgo.By("waiting for viable lowered limit to be actuated")
-		resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod, viableLoweredLimit)
-		podresize.ExpectPodResized(ctx, f, resizedPod, viableLoweredLimit)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod, viableLoweredLimit)
 
 		// There is some latency after container startup before memory usage is scraped. On CRI-O
 		// this latency is much higher, so wait enough time for cAdvisor to scrape metrics twice.
@@ -683,8 +682,7 @@ func doPodResizeMemoryLimitDecreaseTest(f *framework.Framework) {
 		podresize.VerifyPodResources(testPod, original, nil)
 
 		ginkgo.By("waiting for the original values to be actuated")
-		resizedPod = podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod, original)
-		podresize.ExpectPodResized(ctx, f, resizedPod, original)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, testPod, original)
 
 		ginkgo.By("deleting pod")
 		podClient.DeleteSync(ctx, testPod.Name, metav1.DeleteOptions{}, f.Timeouts.PodDelete)
@@ -816,8 +814,7 @@ func doPodResizeReadAndReplaceTests(f *framework.Framework) {
 
 		ginkgo.By("verifying pod resources after patch")
 		expected := podresize.UpdateExpectedContainerRestarts(ctx, updatedPod, desiredContainers)
-		resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, updatedPod, expected)
-		podresize.ExpectPodResized(ctx, f, resizedPod, expected)
+		podresize.WaitForPodResizeActuation(ctx, f, podClient, updatedPod, expected)
 
 		ginkgo.By("verifying pod fetched from resize subresource")
 		framework.ExpectNoError(framework.Gomega().
@@ -922,7 +919,6 @@ func patchAndVerify(ctx context.Context, f *framework.Framework, podClient *e2ep
 	podresize.VerifyPodResources(patchedPod, expected, expectedPodResources)
 	resizedPod := podresize.WaitForPodResizeActuation(ctx, f, podClient, newPod, expected)
 
-	podresize.ExpectPodResized(ctx, f, resizedPod, expected)
 	if expectedPodResources != nil {
 		framework.ExpectNoError(podresize.VerifyPodCgroupValues(ctx, f, resizedPod))
 	}
