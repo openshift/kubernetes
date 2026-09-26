@@ -13,14 +13,24 @@ require (
 	github.com/miekg/pkcs11 v1.0.3-0.20190429190417-a667d056470f // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
-	google.golang.org/grpc v1.79.3 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/grpc v1.82.1 // indirect
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 )
 
 replace k8s.io/kms => ../../../../kms
 
-replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20260424201627-4d4cc33d669d
+replace github.com/container-storage-interface/spec => github.com/gnufied/spec v1.7.1-0.20260718120346-8e06851c4133
+
+replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20260922200432-2b15107f443d
+
+replace github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20260924190215-d4bbd5ad8bba
+
+replace github.com/openshift/client-go => github.com/jubittajohn/client-go v0.0.0-20260924195151-6b78914cb152
+
+replace github.com/openshift/library-go => github.com/jubittajohn/library-go v0.0.0-20260924201448-7f2f43be53af
+
+replace github.com/openshift/apiserver-library-go => github.com/jubittajohn/apiserver-library-go v0.0.0-20260924205749-357e85cc8131
