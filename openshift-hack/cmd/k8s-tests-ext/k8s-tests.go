@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -116,13 +117,6 @@ func main() {
 		panic(err)
 	}
 
-	// Initialization for kube ginkgo test framework needs to run before all tests execute
-	specs.AddBeforeAll(func() {
-		if err := updateTestFrameworkForTests(os.Getenv("TEST_PROVIDER")); err != nil {
-			panic(err)
-		}
-	})
-
 	specs = filterOutDisabledSpecs(specs)
 	addLabelsToSpecs(specs)
 
@@ -137,14 +131,31 @@ func main() {
 		Long: "Kubernetes tests extension for OpenShift",
 	}
 
-	root.AddCommand(
-		cmd.DefaultExtensionCommands(extensionRegistry)...,
-	)
+	commands := cmd.DefaultExtensionCommands(extensionRegistry)
+	initializeTestFramework := newTestFrameworkPreRunE(updateTestFrameworkForTests)
+	for _, command := range commands {
+		switch command.Name() {
+		case "run-suite", "run-test":
+			command.PreRunE = initializeTestFramework
+		}
+	}
+	root.AddCommand(commands...)
 
 	if err := func() error {
 		return root.Execute()
 	}(); err != nil {
 		os.Exit(1)
+	}
+}
+
+type testFrameworkInitializer func(context.Context, string) error
+
+func newTestFrameworkPreRunE(initialize testFrameworkInitializer) func(*cobra.Command, []string) error {
+	return func(command *cobra.Command, _ []string) error {
+		if err := initialize(command.Context(), os.Getenv("TEST_PROVIDER")); err != nil {
+			return fmt.Errorf("failed to initialize Kubernetes test framework: %w", err)
+		}
+		return nil
 	}
 }
 
