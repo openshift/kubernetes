@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -22,13 +23,41 @@ func newOpenshiftAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.I
 	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-apiserver", "api")
 }
 
+// requiredConsecutiveSuccesses is the number of consecutive polls on which every endpoint of the aggregated
+// apiserver service must be reachable before the availability check reports complete.  A single successful
+// connection is not enough: right after a node reboot the pod network may still be converging and connectivity
+// flaps, so a lucky one-off connection must not mark this kube-apiserver as ready to serve aggregated APIs.
+const requiredConsecutiveSuccesses = 3
+
+// allEndpointsReachable returns true when the endpoints object lists at least one ready address and every
+// listed ready address accepts a connection.  Any http response (including errors) counts as reachable,
+// consistent with the anonymous probing done by this check.
+func allEndpointsReachable(client *http.Client, endpoints *corev1.Endpoints, port string) bool {
+	addressCount := 0
+	for _, subset := range endpoints.Subsets {
+		for _, address := range subset.Addresses {
+			addressCount++
+			url := fmt.Sprintf("https://%v", net.JoinHostPort(address.IP, port))
+			resp, err := client.Get(url)
+			if err != nil {
+				klog.V(2).Infof("failed to connect to %q: %v", url, err)
+				return false
+			}
+			response, dumpErr := httputil.DumpResponse(resp, true)
+			klog.V(4).Infof("reached to connect to %q: %v\n%v", url, dumpErr, string(response))
+			resp.Body.Close()
+		}
+	}
+	return addressCount > 0
+}
+
 func newOAuthPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP) *aggregatedAPIServiceAvailabilityCheck {
 	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-oauth-apiserver", "api")
 }
 
 // if the API service is not found, then this check returns quickly.
-// if the endpoint is not accessible within 60 seconds, we report ready no matter what
-// otherwise, wait for up to 60 seconds to be able to reach the apiserver
+// if the endpoints are not accessible within 60 seconds, we report ready no matter what
+// otherwise, wait for up to 60 seconds until every endpoint is reachable on consecutive polls
 func newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP, namespace, service string) *aggregatedAPIServiceAvailabilityCheck {
 	return &aggregatedAPIServiceAvailabilityCheck{
 		done:                          make(chan struct{}),
@@ -109,10 +138,14 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 		}
 	}
 
-	// Start a thread which repeatedly tries to connect to any aggregated apiserver endpoint.
+	// Start a thread which repeatedly tries to connect to every aggregated apiserver endpoint.
 	//  1. if the aggregated apiserver endpoint doesn't exist, logs a warning and reports ready
-	//  2. if a connection cannot be made, after 60 seconds logs an error and reports ready -- this avoids a rebootstrapping cycle
-	//  3. as soon as a connection can be made, logs a time to be ready and reports ready.
+	//  2. if the connections cannot be made, after 60 seconds logs an error and reports ready -- this avoids a rebootstrapping cycle
+	//  3. as soon as every listed endpoint is reachable on requiredConsecutiveSuccesses consecutive polls, logs a time to be
+	//     ready and reports ready.  Requiring all endpoints (instead of any one) on consecutive polls avoids latching ready
+	//     during a window where pod-network connectivity from this node is still flapping (for instance while OVN is still
+	//     converging right after a node reboot).  Connections established during such a window get pinned by the aggregator's
+	//     http2 transport and produce 503 "http2: client connection lost" errors for tens of seconds after the network heals.
 	go func() {
 		defer utilruntime.HandleCrash()
 
@@ -125,6 +158,7 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 			Timeout: 1 * time.Second, // these should all be very fast.  if none work, we continue anyway.
 		}
 
+		consecutiveSuccesses := 0
 		wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
 			ctx := gocontext.TODO()
 			openshiftEndpoints, err := kubeClient.CoreV1().Endpoints(c.namespace).Get(ctx, c.serviceName, metav1.GetOptions{})
@@ -136,24 +170,19 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 			}
 			if err != nil {
 				utilruntime.HandleError(err)
+				consecutiveSuccesses = 0
 				return false, nil
 			}
-			for _, subset := range openshiftEndpoints.Subsets {
-				for _, address := range subset.Addresses {
-					url := fmt.Sprintf("https://%v", net.JoinHostPort(address.IP, "8443"))
-					resp, err := client.Get(url)
-					if err == nil { // any http response is fine.  it means that we made contact
-						response, dumpErr := httputil.DumpResponse(resp, true)
-						klog.V(4).Infof("reached to connect to %q: %v\n%v", url, dumpErr, string(response))
-						close(reachedAggregatedAPIServer)
-						resp.Body.Close()
-						return true, nil
-					}
-					klog.V(2).Infof("failed to connect to %q: %v", url, err)
-				}
+			if !allEndpointsReachable(&client, openshiftEndpoints, "8443") {
+				consecutiveSuccesses = 0
+				return false, nil
 			}
-
-			return false, nil
+			consecutiveSuccesses++
+			if consecutiveSuccesses < requiredConsecutiveSuccesses {
+				return false, nil
+			}
+			close(reachedAggregatedAPIServer)
+			return true, nil
 		}, waitUntilCh)
 	}()
 
@@ -171,7 +200,7 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 
 	case <-reachedAggregatedAPIServer:
 		end := time.Now()
-		klog.Infof("reached %s via SDN after %v milliseconds", c.namespace, end.Sub(start).Milliseconds())
+		klog.Infof("reached all %s endpoints via SDN after %v milliseconds", c.namespace, end.Sub(start).Milliseconds())
 		return
 	}
 }
