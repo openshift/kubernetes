@@ -243,7 +243,8 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationv1api.APIServ
 		servicePort:      *apiService.Spec.Service.Port,
 		serviceAvailable: apiregistrationv1apihelper.IsAPIServiceConditionTrue(apiService, apiregistrationv1api.Available),
 	}
-	newInfo.proxyRoundTripper, newInfo.transportBuildingError = transport.New(newInfo.transportConfig)
+	// UPSTREAM: <carry>: use fast http2 health checking for aggregated API backend connections
+	newInfo.proxyRoundTripper, newInfo.transportBuildingError = newAggregatedAPIBackendRoundTripper(newInfo.transportConfig)
 	if newInfo.transportBuildingError != nil {
 		klog.Warning(newInfo.transportBuildingError.Error())
 	}
