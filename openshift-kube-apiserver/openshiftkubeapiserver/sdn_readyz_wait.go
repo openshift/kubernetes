@@ -2,11 +2,9 @@ package openshiftkubeapiserver
 
 import (
 	gocontext "context"
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,26 +13,28 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 )
 
 func newOpenshiftAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP) *aggregatedAPIServiceAvailabilityCheck {
-	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-apiserver", "api")
+	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-apiserver", "api", "/apis/route.openshift.io/v1")
 }
 
 func newOAuthPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP) *aggregatedAPIServiceAvailabilityCheck {
-	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-oauth-apiserver", "api")
+	return newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService, "openshift-oauth-apiserver", "api", "/apis/oauth.openshift.io/v1")
 }
 
-// if the API service is not found, then this check returns quickly.
-// if the endpoint is not accessible within 60 seconds, we report ready no matter what
-// otherwise, wait for up to 60 seconds to be able to reach the apiserver
-func newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP, namespace, service string) *aggregatedAPIServiceAvailabilityCheck {
+// if the aggregated API is not reachable through the aggregator within 60 seconds, we report ready
+// no matter what -- this avoids a rebootstrapping deadlock.
+// otherwise, wait for up to 60 seconds until a request through the aggregation layer succeeds.
+func newAggregatedAPIServiceReachabilityCheck(ipForKubernetesDefaultService net.IP, namespace, service, aggregatedAPIPath string) *aggregatedAPIServiceAvailabilityCheck {
 	return &aggregatedAPIServiceAvailabilityCheck{
 		done:                          make(chan struct{}),
 		ipForKubernetesDefaultService: ipForKubernetesDefaultService,
 		namespace:                     namespace,
 		serviceName:                   service,
+		aggregatedAPIPath:             aggregatedAPIPath,
 	}
 }
 
@@ -48,8 +48,11 @@ type aggregatedAPIServiceAvailabilityCheck struct {
 
 	// namespace is the namespace hosting the service for the aggregated api
 	namespace string
-	// serviceName is used to get a list of endpoints to directly dial
+	// serviceName is used to check for the existence of the aggregated apiserver's endpoints
 	serviceName string
+	// aggregatedAPIPath is the API group discovery path probed through the loopback to exercise the
+	// aggregator's actual proxy transport to the backend.
+	aggregatedAPIPath string
 }
 
 func (c *aggregatedAPIServiceAvailabilityCheck) Name() string {
@@ -72,7 +75,7 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 	noAggregatedAPIServer := make(chan struct{})
 	waitUntilCh := make(chan struct{})
 	defer func() {
-		close(waitUntilCh) // this stops the endpoint check
+		close(waitUntilCh) // this stops the polling
 		close(c.done)      // once this method is done, the ready check should return true
 	}()
 	start := time.Now()
@@ -86,7 +89,7 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 	ctx, cancel := gocontext.WithTimeout(gocontext.TODO(), 30*time.Second)
 	defer cancel()
 
-	// if the kubernetes.default.svc needs an endpoint and this is the only apiserver than can fulfill it, then we don't
+	// if the kubernetes.default.svc needs an endpoint and this is the only apiserver that can fulfill it, then we don't
 	// wait for reachability. We wait for other conditions, but unreachable apiservers correctly 503 for clients.
 	kubeEndpoints, err := kubeClient.CoreV1().Endpoints("default").Get(ctx, "kubernetes", metav1.GetOptions{})
 	switch {
@@ -109,69 +112,63 @@ func (c *aggregatedAPIServiceAvailabilityCheck) checkForConnection(context gener
 		}
 	}
 
-	// Start a thread which repeatedly tries to connect to any aggregated apiserver endpoint.
-	//  1. if the aggregated apiserver endpoint doesn't exist, logs a warning and reports ready
-	//  2. if a connection cannot be made, after 60 seconds logs an error and reports ready -- this avoids a rebootstrapping cycle
-	//  3. as soon as a connection can be made, logs a time to be ready and reports ready.
+	// Probe the aggregated API through this kube-apiserver's own aggregation layer via the
+	// loopback. This exercises the aggregator's actual http2 proxy transport to the backend,
+	// so a success means the aggregator can serve requests right now. If the aggregator has a
+	// dead connection pinned from the network convergence window, the request will fail until
+	// http2 PING-based dead connection detection closes it and the aggregator reconnects.
+	loopbackConfig := rest.CopyConfig(context.LoopbackClientConfig)
+	loopbackConfig.Timeout = 5 * time.Second
+	loopbackHTTPClient, err := rest.HTTPClientFor(loopbackConfig)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("%s failed to create loopback HTTP client: %v", c.Name(), err))
+		return
+	}
+
 	go func() {
 		defer utilruntime.HandleCrash()
 
-		client := http.Client{
-			Transport: &http.Transport{
-				// since any http return code satisfies us, we don't bother to send credentials.
-				// we don't care about someone faking a response and we aren't sending credentials, so we don't check the server CA
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-			Timeout: 1 * time.Second, // these should all be very fast.  if none work, we continue anyway.
-		}
-
 		wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
-			ctx := gocontext.TODO()
-			openshiftEndpoints, err := kubeClient.CoreV1().Endpoints(c.namespace).Get(ctx, c.serviceName, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				// if we have no aggregated apiserver endpoint, we have no reason to wait
-				klog.Warningf("%s.%s.svc endpoints were not found", c.serviceName, c.namespace)
+			loopbackURL := loopbackConfig.Host + c.aggregatedAPIPath
+			req, err := http.NewRequest("GET", loopbackURL, nil)
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("%s failed to create request: %v", c.Name(), err))
+				return false, nil
+			}
+			resp, err := loopbackHTTPClient.Do(req)
+			if err != nil {
+				klog.V(2).Infof("%s not yet reachable via aggregator: %v", c.Name(), err)
+				return false, nil
+			}
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusNotFound {
+				klog.Warningf("%s not found via aggregator, no APIService registered", c.Name())
 				close(noAggregatedAPIServer)
 				return true, nil
 			}
-			if err != nil {
-				utilruntime.HandleError(err)
+			if resp.StatusCode < 200 || resp.StatusCode > 299 {
+				klog.V(2).Infof("%s returned %d via aggregator", c.Name(), resp.StatusCode)
 				return false, nil
 			}
-			for _, subset := range openshiftEndpoints.Subsets {
-				for _, address := range subset.Addresses {
-					url := fmt.Sprintf("https://%v", net.JoinHostPort(address.IP, "8443"))
-					resp, err := client.Get(url)
-					if err == nil { // any http response is fine.  it means that we made contact
-						response, dumpErr := httputil.DumpResponse(resp, true)
-						klog.V(4).Infof("reached to connect to %q: %v\n%v", url, dumpErr, string(response))
-						close(reachedAggregatedAPIServer)
-						resp.Body.Close()
-						return true, nil
-					}
-					klog.V(2).Infof("failed to connect to %q: %v", url, err)
-				}
-			}
 
-			return false, nil
+			close(reachedAggregatedAPIServer)
+			return true, nil
 		}, waitUntilCh)
 	}()
 
 	select {
 	case <-time.After(60 * time.Second):
-		// if we timeout, always return ok so that we can start from a case where all kube-apiservers are down and the SDN isn't coming up
-		utilruntime.HandleError(fmt.Errorf("%s never reached apiserver", c.Name()))
+		utilruntime.HandleError(fmt.Errorf("%s never reached aggregated apiserver via aggregator", c.Name()))
 		return
 	case <-context.Done():
 		utilruntime.HandleError(fmt.Errorf("%s interrupted", c.Name()))
 		return
 	case <-noAggregatedAPIServer:
-		utilruntime.HandleError(fmt.Errorf("%s did not find an %s endpoint", c.Name(), c.namespace))
+		utilruntime.HandleError(fmt.Errorf("%s has no APIService registered", c.Name()))
 		return
-
 	case <-reachedAggregatedAPIServer:
 		end := time.Now()
-		klog.Infof("reached %s via SDN after %v milliseconds", c.namespace, end.Sub(start).Milliseconds())
+		klog.Infof("reached %s via aggregator after %v milliseconds", c.namespace, end.Sub(start).Milliseconds())
 		return
 	}
 }
