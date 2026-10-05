@@ -1,0 +1,58 @@
+# Lab repro for OCPBUGS-109667.
+#
+# CPU Manager static + full-pcpus-only will not admit a Guaranteed pod whose
+# CPU request is not a multiple of threads-per-core. This Deployment asks
+# for 5 CPUs, so on an SMT worker (2 threads per core) kubelet rejects it
+# with SMTAlignmentError. That part is expected.
+#
+# The status-manager bug is what happens next: TerminatePod used to stamp
+# the still-Waiting container as ContainerStatusUnknown, which hid the
+# admission reason. ReplicaSet then treats the pod as dead and creates
+# another one, so you get a replica storm even with replicas: 1.
+#
+# Need an SMT worker and kubelet CPU Manager static with
+# full-pcpus-only: "true" (PerformanceProfile or KubeletConfig):
+#   oc debug node/<node> -- chroot /host sh -c 'lscpu | grep Thread'
+#   oc get kubeletconfig -o yaml | grep -A2 full-pcpus-only
+#
+# oc new-project smt-repro
+# oc apply -f smt-odd-cpu-deployment.yaml
+# wait 20-30s, then:
+#   oc get pods -n smt-repro -o custom-columns='NAME:.metadata.name,PHASE:.status.phase,REASON:.status.reason,MSG:.status.message'
+#   oc get pods -n smt-repro -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[0].state}{"\n"}{end}'
+#
+# Before the kubelet change: StatusUnknown / ContainerStatusUnknown, and
+# the pod count climbs. After: Failed + SMTAlignmentError, container still
+# Waiting. ReplicaSet may still replace Failed pods; that is a separate
+# scheduler/controller problem.
+#
+# oc delete project smt-repro
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smt-odd-cpu
+  namespace: smt-repro
+  labels:
+    app: smt-odd-cpu
+    bug: OCPBUGS-109667
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smt-odd-cpu
+  template:
+    metadata:
+      labels:
+        app: smt-odd-cpu
+        bug: OCPBUGS-109667
+    spec:
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            cpu: "5"
+            memory: 100Mi
+          limits:
+            cpu: "5"
+            memory: 100Mi
