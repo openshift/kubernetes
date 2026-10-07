@@ -376,18 +376,22 @@ func (o *WaitOptions) RunWaitContext(ctx context.Context) error {
 		}
 
 		visitCount++
+		var finalObject runtime.Object
 		for _, condFn := range o.ConditionFn {
-			finalObject, success, err := condFn(ctx, info, o)
-			if success {
-				o.Printer.PrintObj(finalObject, o.Out) //nolint:errcheck
-				continue
+			var success bool
+			var err error
+			finalObject, success, err = condFn(ctx, info, o)
+			if !success {
+				if err == nil {
+					return fmt.Errorf("%v unsatisfied for unknown reason", finalObject)
+				}
+				return err
 			}
-			if err == nil {
-				return fmt.Errorf("%v unsatisfied for unknown reason", finalObject)
-			}
-			return err
-		}
-		return nil
+	}
+	if len(o.ConditionFn) > 0 {
+		o.Printer.PrintObj(finalObject, o.Out) //nolint:errcheck
+	}
+	return nil
 	}
 	visitor := o.ResourceFinder.Do()
 	isForDelete := containsCondition(o.ForCondition, "delete")
