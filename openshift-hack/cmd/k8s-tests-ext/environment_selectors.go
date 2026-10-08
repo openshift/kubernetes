@@ -213,7 +213,7 @@ func filterByExternalConnectivity(specs et.ExtensionTestSpecs) {
 func filterByTopology(specs et.ExtensionTestSpecs) {
 	topologyExclusions := map[string][]string{
 		"SingleReplica": {
-			"[sig-apps] Daemon set [Serial] should rollback without unnecessary restarts [Conformance]",
+			"[sig-apps] Daemon set should rollback without unnecessary restarts [Conformance] [Serial]",
 			"[sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes",
 			"[sig-node] NoExecuteTaintManager Single Pod [Serial] eventually evict pod with finite tolerations from tainted nodes",
 			"[sig-node] NoExecuteTaintManager Single Pod [Serial] evicts pods from tainted nodes",
