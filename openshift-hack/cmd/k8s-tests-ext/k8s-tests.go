@@ -110,25 +110,10 @@ func main() {
 
 	// FIXME(stbenjam): what other suites does k8s-test contribute to?
 
-	// Build our specs from ginkgo
-	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(ext.AllTestsIncludingVendored())
+	specs, err := buildKubeTestSpecs()
 	if err != nil {
 		panic(err)
 	}
-
-	// Initialization for kube ginkgo test framework needs to run before all tests execute
-	specs.AddBeforeAll(func() {
-		if err := updateTestFrameworkForTests(os.Getenv("TEST_PROVIDER")); err != nil {
-			panic(err)
-		}
-	})
-
-	specs = filterOutDisabledSpecs(specs)
-	addLabelsToSpecs(specs)
-
-	// EnvironmentSelectors added to the appropriate specs to facilitate including or excluding them
-	// based on attributes of the cluster they are running on
-	addEnvironmentSelectors(specs)
 
 	kubeTestsExtension.AddSpecs(specs)
 
@@ -146,6 +131,30 @@ func main() {
 	}(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func buildKubeTestSpecs() (ext.ExtensionTestSpecs, error) {
+	// Build our specs from ginkgo
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(ext.AllTestsIncludingVendored())
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialization for kube ginkgo test framework needs to run before all tests execute
+	specs.AddBeforeAll(func() {
+		if err := updateTestFrameworkForTests(os.Getenv("TEST_PROVIDER")); err != nil {
+			panic(err)
+		}
+	})
+
+	specs = filterOutDisabledSpecs(specs)
+	addLabelsToSpecs(specs)
+
+	// EnvironmentSelectors added to the appropriate specs to facilitate including or excluding them
+	// based on attributes of the cluster they are running on
+	addEnvironmentSelectors(specs)
+
+	return specs, nil
 }
 
 // convertToImages converts an image.Config to an extension.Image, which
