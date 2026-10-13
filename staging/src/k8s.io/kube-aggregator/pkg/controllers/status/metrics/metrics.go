@@ -17,6 +17,7 @@ limitations under the License.
 package metrics
 
 import (
+	"sort"
 	"sync"
 
 	"k8s.io/component-base/metrics"
@@ -47,6 +48,11 @@ type Metrics struct {
 	unavailableCounter *metrics.CounterVec
 
 	*availabilityCollector
+
+	// reasonsMtx guards unavailableReasons, the per-instance record of why each
+	// currently-unavailable APIService was marked unavailable by this instance.
+	reasonsMtx         sync.RWMutex
+	unavailableReasons map[string]string
 }
 
 func New() *Metrics {
@@ -60,6 +66,7 @@ func New() *Metrics {
 			[]string{"name", "reason"},
 		),
 		availabilityCollector: newAvailabilityCollector(),
+		unavailableReasons:    make(map[string]string),
 	}
 }
 
@@ -96,10 +103,16 @@ type availabilityCollector struct {
 // SetUnavailableGauge set the metrics so that it reflect the current state base on availability of the given service
 func (m *Metrics) SetUnavailableGauge(newAPIService *apiregistrationv1.APIService) {
 	if apiregistrationv1apihelper.IsAPIServiceConditionTrue(newAPIService, apiregistrationv1.Available) {
+		m.setUnavailableReason(newAPIService.Name, "")
 		m.SetAPIServiceAvailable(newAPIService.Name)
 		return
 	}
 
+	reason := "UnknownReason"
+	if condition := apiregistrationv1apihelper.GetAPIServiceConditionByType(newAPIService, apiregistrationv1.Available); condition != nil {
+		reason = condition.Reason
+	}
+	m.setUnavailableReason(newAPIService.Name, reason)
 	m.SetAPIServiceUnavailable(newAPIService.Name)
 }
 
@@ -174,4 +187,65 @@ func (c *availabilityCollector) ForgetAPIService(apiServiceKey string) {
 	defer c.mtx.Unlock()
 
 	delete(c.availabilities, apiServiceKey)
+}
+
+// UnavailableAPIServices returns the names of the APIServices currently
+// considered unavailable from this apiserver instance's point of view,
+// together with the reason recorded for the unavailability. Only APIServices
+// whose unavailability reason is contained in the given set are returned; an
+// empty set returns all unavailable APIServices.
+func (m *Metrics) UnavailableAPIServices(reasons ...string) []string {
+	unavailable := m.availabilityCollector.unavailableAPIServices()
+	if len(reasons) == 0 {
+		return unavailable
+	}
+
+	m.reasonsMtx.RLock()
+	defer m.reasonsMtx.RUnlock()
+
+	var filtered []string
+	for _, name := range unavailable {
+		for _, reason := range reasons {
+			if m.unavailableReasons[name] == reason {
+				filtered = append(filtered, name)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
+// ForgetAPIService removes all records of the given apiservice. It shadows
+// the embedded availabilityCollector method to also clear the recorded
+// unavailability reason.
+func (m *Metrics) ForgetAPIService(apiServiceKey string) {
+	m.setUnavailableReason(apiServiceKey, "")
+	m.availabilityCollector.ForgetAPIService(apiServiceKey)
+}
+
+func (m *Metrics) setUnavailableReason(apiServiceKey, reason string) {
+	m.reasonsMtx.Lock()
+	defer m.reasonsMtx.Unlock()
+
+	if reason == "" {
+		delete(m.unavailableReasons, apiServiceKey)
+		return
+	}
+	m.unavailableReasons[apiServiceKey] = reason
+}
+
+// unavailableAPIServices returns the names of the APIServices currently
+// considered unavailable from this apiserver instance's point of view.
+func (c *availabilityCollector) unavailableAPIServices() []string {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	var unavailable []string
+	for apiServiceName, isAvailable := range c.availabilities {
+		if !isAvailable {
+			unavailable = append(unavailable, apiServiceName)
+		}
+	}
+	sort.Strings(unavailable)
+	return unavailable
 }
