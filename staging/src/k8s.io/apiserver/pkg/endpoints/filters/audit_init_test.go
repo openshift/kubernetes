@@ -26,6 +26,44 @@ import (
 	"k8s.io/apiserver/pkg/audit"
 )
 
+func TestWithAuditInitGeneratesValidUUIDv4(t *testing.T) {
+	var auditIDGot string
+	handler := http.HandlerFunc(func(_ http.ResponseWriter, req *http.Request) {
+		v, ok := audit.AuditIDFrom(req.Context())
+		if !ok {
+			t.Fatal("expected AuditIDFrom to return true")
+		}
+		auditIDGot = string(v)
+	})
+
+	wrapped := WithAuditInit(handler)
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/namespaces", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	// No Audit-ID header set — force generation.
+
+	w := httptest.NewRecorder()
+	wrapped.ServeHTTP(w, req)
+
+	parsed, err := uuid.Parse(auditIDGot)
+	if err != nil {
+		t.Fatalf("generated audit ID %q is not a valid UUID: %v", auditIDGot, err)
+	}
+	if parsed.Version() != 4 {
+		t.Errorf("expected UUID version 4, got %d", parsed.Version())
+	}
+	if parsed.Variant() != uuid.RFC4122 {
+		t.Errorf("expected RFC 4122 variant, got %v", parsed.Variant())
+	}
+
+	echoed := w.Header().Get("Audit-ID")
+	if echoed != auditIDGot {
+		t.Errorf("Audit-ID response header %q doesn't match context value %q", echoed, auditIDGot)
+	}
+}
+
 func TestWithAuditID(t *testing.T) {
 	largeAuditID := fmt.Sprintf("%s-%s", uuid.New().String(), uuid.New().String())
 	tests := []struct {
