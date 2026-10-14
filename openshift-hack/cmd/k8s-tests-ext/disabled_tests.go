@@ -194,10 +194,10 @@ func filterOutDisabledSpecs(specs et.ExtensionTestSpecs) et.ExtensionTestSpecs {
 			"GlusterDynamicProvisioner", // OpenShift 4.x does not support Gluster
 
 			// Also, our CI doesn't support topology, so disable those tests
-			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies",
-			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should provision a volume and schedule a pod with AllowedTopologies",
-			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies",
-			"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should provision a volume and schedule a pod with AllowedTopologies",
+			"[sig-storage] In-tree Volumes [Driver: vsphere] [Provider:vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies",
+			"[sig-storage] In-tree Volumes [Driver: vsphere] [Provider:vsphere] [Testpattern: Dynamic PV (delayed binding)] topology should provision a volume and schedule a pod with AllowedTopologies",
+			"[sig-storage] In-tree Volumes [Driver: vsphere] [Provider:vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies",
+			"[sig-storage] In-tree Volumes [Driver: vsphere] [Provider:vsphere] [Testpattern: Dynamic PV (immediate binding)] topology should provision a volume and schedule a pod with AllowedTopologies",
 
 			// May become conformance in 4.22+, will need to revisit per https://issues.redhat.com/browse/OCPBUGS-61380
 			"[sig-network] Services should support named targetPorts that resolve to different ports on different endpoints",
