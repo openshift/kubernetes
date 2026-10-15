@@ -17,6 +17,7 @@ limitations under the License.
 package drivers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -30,6 +31,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,8 +55,14 @@ func diagnosticPod() *v1.Pod {
 				Name: "plugin", RestartCount: 2,
 				LastTerminationState: v1.ContainerState{Terminated: &v1.ContainerStateTerminated{ExitCode: 137, Reason: "OOMKilled"}},
 			}},
-			InitContainerStatuses:      []v1.ContainerStatus{{Name: "init", Ready: true}},
-			EphemeralContainerStatuses: []v1.ContainerStatus{{Name: "debug", RestartCount: 1}},
+			InitContainerStatuses: []v1.ContainerStatus{{
+				Name: "init", Ready: true, RestartCount: 1,
+				LastTerminationState: v1.ContainerState{Terminated: &v1.ContainerStateTerminated{ExitCode: 1, Reason: "Error"}},
+			}},
+			EphemeralContainerStatuses: []v1.ContainerStatus{{
+				Name: "debug", RestartCount: 1,
+				LastTerminationState: v1.ContainerState{Terminated: &v1.ContainerStateTerminated{ExitCode: 0, Reason: "Completed"}},
+			}},
 		},
 	}
 }
@@ -64,6 +72,7 @@ func TestCSIMockDiagnosticsCapture(testingContext *testing.T) {
 	directory := testingContext.TempDir()
 	client := fake.NewSimpleClientset(diagnosticPod())
 	requests := map[string]int{}
+	var requestOrder []string
 	client.PrependReactor("get", "pods", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		if action.GetSubresource() != "log" {
 			testingContext.Fatalf("unexpected action: %#v", action)
@@ -79,11 +88,16 @@ func TestCSIMockDiagnosticsCapture(testingContext *testing.T) {
 			testingContext.Errorf("unexpected namespace: %s", action.GetNamespace())
 		}
 		requests[fmt.Sprintf("%s/%t", options.Container, options.Previous)]++
+		requestOrder = append(requestOrder, fmt.Sprintf("%s/%t", options.Container, options.Previous))
 		return false, nil, nil
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	dumpCSIMockDiagnostics(ctx, client, "driver", directory, time.Second, time.Second)
+	wantOrder := []string{"plugin/true", "init/true", "debug/true", "plugin/false", "init/false", "debug/false"}
+	if !reflect.DeepEqual(requestOrder, wantOrder) {
+		testingContext.Errorf("log request order = %v, want %v", requestOrder, wantOrder)
+	}
 	for _, container := range []string{"plugin", "init", "debug"} {
 		for _, previous := range []bool{true, false} {
 			if requests[fmt.Sprintf("%s/%t", container, previous)] != 1 {
@@ -107,7 +121,10 @@ func TestCSIMockDiagnosticsCapture(testingContext *testing.T) {
 		testingContext.Errorf("incomplete status: %s", data)
 	}
 	for _, action := range client.Actions() {
-		if action.GetVerb() != "list" && action.GetSubresource() != "log" {
+		if action.GetResource().Resource != "pods" || action.GetNamespace() != "driver" {
+			testingContext.Errorf("snapshot accessed resources outside the driver pods: %#v", action)
+		}
+		if (action.GetVerb() != "list" || action.GetSubresource() != "") && (action.GetVerb() != "get" || action.GetSubresource() != "log") {
 			testingContext.Errorf("snapshot must not mutate resources or duplicate namespace event dumps: %#v", action)
 		}
 	}
@@ -163,11 +180,24 @@ func TestCSIMockDiagnosticsRequestErrorsAndDeadlines(testingContext *testing.T) 
 			pod := diagnosticPod()
 			pod.Spec.InitContainers = nil
 			pod.Spec.EphemeralContainers = nil
+			requests := make(chan string, 4)
+			canceled := make(chan string, 1)
 			client := diagnosticClient(testingContext, func(response http.ResponseWriter, request *http.Request) {
 				isLog := strings.HasSuffix(request.URL.Path, "/log")
 				previous := request.URL.Query().Get("previous") == "true"
+				operation := "list"
+				if isLog {
+					operation = fmt.Sprintf("logs/previous=%t", previous)
+					if request.URL.Path != "/api/v1/namespaces/driver/pods/mock/log" || request.URL.Query().Get("container") != "plugin" {
+						testingContext.Errorf("unexpected log request: %s", request.URL)
+					}
+				} else if request.URL.Path != "/api/v1/namespaces/driver/pods" {
+					testingContext.Errorf("unexpected list request: %s", request.URL)
+				}
+				requests <- operation
 				if (!isLog && testCase.listStalls) || (isLog && previous && testCase.previousStalls) {
 					<-request.Context().Done()
+					canceled <- operation
 					return
 				}
 				if !isLog {
@@ -185,6 +215,7 @@ func TestCSIMockDiagnosticsRequestErrorsAndDeadlines(testingContext *testing.T) 
 					response.WriteHeader(http.StatusOK)
 					response.(http.Flusher).Flush()
 					<-request.Context().Done()
+					canceled <- operation
 					return
 				}
 				if testCase.partialRead {
@@ -197,6 +228,34 @@ func TestCSIMockDiagnosticsRequestErrorsAndDeadlines(testingContext *testing.T) 
 			dumpCSIMockDiagnostics(context.Background(), client, "driver", directory, testCase.operationTimeout, testCase.budget)
 			if elapsed := time.Since(start); elapsed > 2*time.Second {
 				testingContext.Errorf("snapshot did not respect budget: %s", elapsed)
+			}
+			var requestOrder []string
+			for len(requests) > 0 {
+				requestOrder = append(requestOrder, <-requests)
+			}
+			wantOrder := []string{"list"}
+			if !testCase.listStalls {
+				wantOrder = append(wantOrder, "logs/previous=true")
+				if testCase.wantCurrent {
+					wantOrder = append(wantOrder, "logs/previous=false")
+				}
+			}
+			if !reflect.DeepEqual(requestOrder, wantOrder) {
+				testingContext.Errorf("request sequence = %v, want %v", requestOrder, wantOrder)
+			}
+			if testCase.listStalls || testCase.previousStalls || testCase.bodyStalls {
+				wantCanceled := "logs/previous=true"
+				if testCase.listStalls {
+					wantCanceled = "list"
+				}
+				select {
+				case operation := <-canceled:
+					if operation != wantCanceled {
+						testingContext.Errorf("canceled operation = %s, want %s", operation, wantCanceled)
+					}
+				case <-time.After(time.Second):
+					testingContext.Error("deadline did not cancel the stalled HTTP request")
+				}
 			}
 			data, err := os.ReadFile(filepath.Join(directory, "driver", "mock", "cleanup-plugin-previous-false.log"))
 			if testCase.wantCurrent {
@@ -271,7 +330,9 @@ func TestCSIMockDriverCleanupOrder(testingContext *testing.T) {
 }
 
 func TestCSIMockArtifactErrorDoesNotStopCleanup(testingContext *testing.T) {
-	testingContext.Parallel()
+	var captured bytes.Buffer
+	ginkgo.GinkgoWriter.TeeTo(&captured)
+	defer ginkgo.GinkgoWriter.ClearTeeWriters()
 	directory := filepath.Join(testingContext.TempDir(), "not-a-directory")
 	if err := os.WriteFile(directory, []byte("file"), 0600); err != nil {
 		testingContext.Fatal(err)
@@ -288,5 +349,14 @@ func TestCSIMockArtifactErrorDoesNotStopCleanup(testingContext *testing.T) {
 	})
 	if !reflect.DeepEqual(order, []string{"snapshot", "embedded", "delete"}) || len(client.Actions()) != 7 {
 		testingContext.Errorf("artifact errors must not stop capture or cleanup: order=%v, actions=%v", order, client.Actions())
+	}
+	output := captured.String()
+	for _, name := range []string{"cleanup-status.json", "cleanup-plugin-previous-true.log", "cleanup-init-previous-true.log", "cleanup-debug-previous-true.log", "cleanup-plugin-previous-false.log", "cleanup-init-previous-false.log", "cleanup-debug-previous-false.log"} {
+		if !strings.Contains(output, "CSI mock cleanup diagnostic driver/mock/"+name+":") {
+			testingContext.Errorf("missing fallback diagnostic: %s", name)
+		}
+	}
+	if !strings.Contains(output, `"lastState"`) || !strings.Contains(output, "OOMKilled") || !strings.Contains(output, "fake logs") {
+		testingContext.Errorf("fallback output lost diagnostic content: %s", output)
 	}
 }
