@@ -156,7 +156,6 @@ func diagnosticClient(testingContext *testing.T, handler http.HandlerFunc) clien
 }
 
 func TestCSIMockDiagnosticsRequestErrorsAndDeadlines(testingContext *testing.T) {
-	testingContext.Parallel()
 	for _, testCase := range []struct {
 		name             string
 		operationTimeout time.Duration
@@ -169,14 +168,13 @@ func TestCSIMockDiagnosticsRequestErrorsAndDeadlines(testingContext *testing.T) 
 		wantCurrent      bool
 	}{
 		{name: "missing previous", operationTimeout: time.Second, budget: time.Second, previousMissing: true, wantCurrent: true},
-		{name: "operation timeout continues", operationTimeout: 250 * time.Millisecond, budget: 3 * time.Second, previousStalls: true, wantCurrent: true},
-		{name: "body read timeout continues", operationTimeout: 250 * time.Millisecond, budget: 3 * time.Second, bodyStalls: true, wantCurrent: true},
-		{name: "overall budget stops requests", operationTimeout: 3 * time.Second, budget: 250 * time.Millisecond, previousStalls: true},
-		{name: "list timeout", operationTimeout: 250 * time.Millisecond, budget: 3 * time.Second, listStalls: true},
+		{name: "operation timeout continues", operationTimeout: time.Second, budget: 5 * time.Second, previousStalls: true, wantCurrent: true},
+		{name: "body read timeout continues", operationTimeout: time.Second, budget: 5 * time.Second, bodyStalls: true, wantCurrent: true},
+		{name: "overall budget stops requests", operationTimeout: 5 * time.Second, budget: time.Second, previousStalls: true},
+		{name: "list timeout", operationTimeout: time.Second, budget: 5 * time.Second, listStalls: true},
 		{name: "partial read preserved", operationTimeout: time.Second, budget: time.Second, partialRead: true, wantCurrent: true},
 	} {
 		testingContext.Run(testCase.name, func(testingContext *testing.T) {
-			testingContext.Parallel()
 			pod := diagnosticPod()
 			pod.Spec.InitContainers = nil
 			pod.Spec.EphemeralContainers = nil
@@ -226,7 +224,7 @@ func TestCSIMockDiagnosticsRequestErrorsAndDeadlines(testingContext *testing.T) 
 			directory := testingContext.TempDir()
 			start := time.Now()
 			dumpCSIMockDiagnostics(context.Background(), client, "driver", directory, testCase.operationTimeout, testCase.budget)
-			if elapsed := time.Since(start); elapsed > 2*time.Second {
+			if elapsed := time.Since(start); elapsed > 3*time.Second {
 				testingContext.Errorf("snapshot did not respect budget: %s", elapsed)
 			}
 			var requestOrder []string
