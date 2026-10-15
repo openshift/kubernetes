@@ -777,8 +777,9 @@ func (m *mockCSIDriver) PrepareTest(ctx context.Context, f *framework.Framework)
 		cancelLogging)
 
 	ginkgo.DeferCleanup(func(ctx context.Context) {
-		embeddedCleanup()
-		driverCleanupFunc(ctx)
+		runCSIMockDriverCleanup(ctx, ginkgo.CurrentSpecReport().Failed(), func(ctx context.Context) {
+			dumpCSIMockDiagnostics(ctx, cs, driverns, framework.TestContext.ReportDir, 5*time.Second, 30*time.Second)
+		}, embeddedCleanup, driverCleanupFunc)
 	})
 
 	return config
