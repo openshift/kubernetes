@@ -11,8 +11,8 @@ require (
 	github.com/jcchavezs/porto v0.6.0
 	github.com/vektra/mockery/v2 v2.53.3
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/mod v0.24.0
-	golang.org/x/tools v0.32.0
+	golang.org/x/mod v0.32.0
+	golang.org/x/tools v0.41.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.4
 	gotest.tools/gotestsum v1.12.0
@@ -54,11 +54,15 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
-	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/term v0.29.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260109210033-bd525da824e2 // indirect
+	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.50.0-sec.4
