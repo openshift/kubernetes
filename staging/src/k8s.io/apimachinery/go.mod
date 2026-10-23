@@ -19,7 +19,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/net v0.23.0
+	golang.org/x/net v0.25.0
 	golang.org/x/time v0.3.0
 	gopkg.in/inf.v0 v0.9.1
 	k8s.io/klog/v2 v2.110.1
@@ -47,9 +47,9 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.16.1 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -59,3 +59,5 @@ replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/ginkgo/v2 v2.6.1-0.20231031162821-c5e24be53ea7
 	k8s.io/apimachinery => ../apimachinery
 )
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.4
