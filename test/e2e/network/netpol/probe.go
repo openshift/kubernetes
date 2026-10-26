@@ -92,9 +92,7 @@ func ProbePodToPodConnectivity(prober Prober, allPods []TestPod, dnsDomain strin
 	for i := 0; i < size; i++ {
 		result := <-results
 		job := result.Job
-		if result.Err != nil {
-			framework.Logf("unable to perform probe %s -> %s: %v", job.PodFrom.PodString(), job.PodTo.PodString(), result.Err)
-		}
+		framework.ExpectNoError(result.Err, "unable to perform probe %s -> %s", job.PodFrom.PodString(), job.PodTo.PodString())
 		testCase.Reachability.Observe(job.PodFrom.PodString(), job.PodTo.PodString(), result.IsConnected)
 		expected := testCase.Reachability.Expected.Get(job.PodFrom.PodString().String(), job.PodTo.PodString().String())
 		if result.IsConnected != expected {
