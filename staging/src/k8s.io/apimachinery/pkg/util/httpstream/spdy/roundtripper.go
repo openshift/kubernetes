@@ -345,11 +345,11 @@ func (s *SpdyRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 		return nil, err
 	}
 	stop := context.AfterFunc(req.Context(), func() { conn.Close() })
-	defer stop()
 
 	responseReader := bufio.NewReader(conn)
 
 	resp, err := http.ReadResponse(responseReader, nil)
+	stop()
 	if contextError := req.Context().Err(); contextError != nil {
 		conn.Close()
 		return nil, contextError
