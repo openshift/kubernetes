@@ -293,7 +293,14 @@ func TestWriteClientCAs(t *testing.T) {
 			},
 			preexistingObjs: []runtime.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceSystem, Name: "extension-apiserver-authentication"},
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: metav1.NamespaceSystem,
+						Name:      "extension-apiserver-authentication",
+						Annotations: map[string]string{
+							tlsMetadataOwningComponentAnnotation: tlsMetadataOwningComponent,
+							tlsMetadataDescriptionAnnotation:     tlsMetadataDescription,
+						},
+					},
 					Data: map[string]string{
 						"requestheader-username-headers":     `[]`,
 						"requestheader-group-headers":        `[]`,
@@ -424,6 +431,13 @@ func TestWriteClientCAs(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			for _, configMap := range test.expectedConfigMaps {
+				configMap.Annotations = map[string]string{
+					tlsMetadataOwningComponentAnnotation: tlsMetadataOwningComponent,
+					tlsMetadataDescriptionAnnotation:     tlsMetadataDescription,
+				}
+			}
+
 			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.RemoteRequestHeaderUID, test.uidGate)
 
 			client := fake.NewSimpleClientset(test.preexistingObjs...)

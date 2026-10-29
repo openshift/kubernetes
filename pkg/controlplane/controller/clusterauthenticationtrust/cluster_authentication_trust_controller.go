@@ -51,6 +51,11 @@ import (
 const (
 	configMapNamespace = "kube-system"
 	configMapName      = "extension-apiserver-authentication"
+
+	tlsMetadataOwningComponentAnnotation = "openshift.io/owning-component"
+	tlsMetadataDescriptionAnnotation     = "openshift.io/description"
+	tlsMetadataOwningComponent           = "kube-apiserver"
+	tlsMetadataDescription               = "CA bundle used to verify client certificates for aggregated API servers, managed by kube-apiserver."
 )
 
 // Controller holds the running state for the controller
@@ -148,6 +153,11 @@ func (c *Controller) syncConfigMap() error {
 	}
 	// keep the original to diff against later before updating
 	authConfigMap := originalAuthConfigMap.DeepCopy()
+	if authConfigMap.Annotations == nil {
+		authConfigMap.Annotations = map[string]string{}
+	}
+	authConfigMap.Annotations[tlsMetadataOwningComponentAnnotation] = tlsMetadataOwningComponent
+	authConfigMap.Annotations[tlsMetadataDescriptionAnnotation] = tlsMetadataDescription
 
 	existingAuthenticationInfo, err := getClusterAuthenticationInfoFor(originalAuthConfigMap.Data)
 	if err != nil {
