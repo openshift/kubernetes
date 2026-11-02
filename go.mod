@@ -46,7 +46,7 @@ require (
 	github.com/opencontainers/selinux v1.15.1
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20260812190735-a8b44e9f9fed
 	github.com/openshift/api v0.0.0-20261001152744-764bd4c566f9
-	github.com/openshift/apiserver-library-go v0.0.0-20261001145254-218f2c488d90
+	github.com/openshift/apiserver-library-go v0.0.0-20261012193134-31972f8dd9b9
 	github.com/openshift/client-go v0.0.0-20261001003915-dcaad1dc7fe8
 	github.com/openshift/library-go v0.0.0-20261001144932-192662696fc7
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
@@ -237,6 +237,7 @@ require (
 replace (
 	github.com/google/cadvisor/lib => github.com/openshift/google-cadvisor/lib v0.60.5-openshift-5.1-fix
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20260807173042-3ac00363bb14
+	github.com/openshift/apiserver-library-go => github.com/jbpratt/apiserver-library-go v0.0.0-20261012193134-31972f8dd9b9
 	k8s.io/api => ./staging/src/k8s.io/api
 	k8s.io/apiextensions-apiserver => ./staging/src/k8s.io/apiextensions-apiserver
 	k8s.io/apimachinery => ./staging/src/k8s.io/apimachinery
