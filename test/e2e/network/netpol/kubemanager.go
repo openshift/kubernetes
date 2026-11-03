@@ -18,12 +18,14 @@ package netpol
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
+	utilexec "k8s.io/client-go/util/exec"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	netutils "k8s.io/utils/net"
@@ -184,13 +186,21 @@ func (k *kubeManager) probeConnectivity(args *probeConnectivityArgs) (bool, stri
 
 	// probeError will be the return value of this function[probeConnectivity] call.
 	var probeError error
+	var execError error
 	var stderr string
 
-	// Instead of re-running the job on connectivity failure, the following conditionFunc when passed to PollImmediate, reruns
-	// the job when the observed value don't match the expected value, so we don't rely on return value of PollImmediate, we
-	// simply discard it and use probeError, defined outside scope of conditionFunc, for returning the result of probeConnectivity.
-	conditionFunc := func() (bool, error) {
-		_, stderr, probeError = k.executeRemoteCommand(args.nsFrom, args.podFrom, args.containerFrom, cmd)
+	conditionFunc := func(ctx context.Context) (bool, error) {
+		if err := ctx.Err(); err != nil {
+			return false, err
+		}
+		_, stderr, probeError = k.executeRemoteCommand(ctx, args.nsFrom, args.podFrom, args.containerFrom, cmd)
+		if probeError != nil {
+			var exitError utilexec.ExitError
+			if !errors.As(probeError, &exitError) || !exitError.Exited() || exitError.ExitStatus() != 1 {
+				execError = fmt.Errorf("unable to execute connectivity probe: %w", probeError)
+				return false, execError
+			}
+		}
 		// retry should only occur if expected and observed value don't match.
 		if args.expectConnectivity {
 			if probeError != nil {
@@ -223,12 +233,16 @@ func (k *kubeManager) probeConnectivity(args *probeConnectivityArgs) (bool, stri
 		}
 	}
 
-	// ignore the result of PollImmediate, we are only concerned with probeError.
-	_ = wait.PollImmediate(
+	_ = wait.PollUntilContextTimeout(
+		context.Background(),
 		time.Duration(args.pollIntervalSeconds)*time.Second,
 		time.Duration(args.pollTimeoutSeconds)*time.Second,
+		true,
 		conditionFunc,
 	)
+	if execError != nil {
+		return false, commandDebugString, execError
+	}
 
 	if probeError != nil {
 		return false, commandDebugString, nil
@@ -237,8 +251,8 @@ func (k *kubeManager) probeConnectivity(args *probeConnectivityArgs) (bool, stri
 }
 
 // executeRemoteCommand executes a remote shell command on the given pod.
-func (k *kubeManager) executeRemoteCommand(namespace string, pod string, containerName string, command []string) (string, string, error) {
-	return e2epod.ExecWithOptions(k.framework, e2epod.ExecOptions{
+func (k *kubeManager) executeRemoteCommand(ctx context.Context, namespace string, pod string, containerName string, command []string) (string, string, error) {
+	return e2epod.ExecWithOptionsContext(ctx, k.framework, e2epod.ExecOptions{
 		Command:            command,
 		Namespace:          namespace,
 		PodName:            pod,
