@@ -18,8 +18,12 @@ package proxy
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -544,5 +548,67 @@ func TestNoDialWhenAllSlotsAreTaken(t *testing.T) {
 	}
 	if n := storedConnections(l); n != maxConcurrentConnections {
 		t.Errorf("published %d connections, want %d", n, maxConcurrentConnections)
+	}
+}
+
+// testRequestURL is the shape of URL the port-forward request carries: the
+// apiserver endpoint plus the pod path.
+const testRequestURL = "https://api.test.example.com:6443/api/v1/namespaces/ns/pods/pod/portforward"
+
+// transportError reproduces what client-go hands back when the SPDY upgrade
+// request fails. spdy.Negotiate flattens the *url.Error with %v, not %w, so
+// the context classification is already gone by the time dial sees it.
+func transportError(cause error) error {
+	return fmt.Errorf("error sending request: %v", &url.Error{
+		Op:  "Post",
+		URL: testRequestURL,
+		Err: cause,
+	})
+}
+
+// TestCanceledDialErrorOmitsRequestURL covers the one error the cancellation
+// support newly produces. Shutting the listener down is routine, so the log
+// line it leaves behind should not repeat the apiserver URL, and it has to
+// stay classifiable as a cancellation.
+func TestCanceledDialErrorOmitsRequestURL(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := dial(ctx, "test", func(ctx context.Context) (httpstream.Connection, error) {
+		return nil, transportError(ctx.Err())
+	}, testAddr.Port)
+
+	if err == nil {
+		t.Fatal("dial returned no error for a canceled context")
+	}
+	if got := err.Error(); strings.Contains(got, testRequestURL) ||
+		strings.Contains(got, "api.test.example.com") {
+		t.Errorf("canceled dial leaked the request URL: %q", got)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("canceled dial is not classifiable as context.Canceled: %v", err)
+	}
+}
+
+// TestFailedDialErrorIsPreserved is the other half: a real failure must keep
+// its full text. Diagnosing an unreachable apiserver needs the URL, so the
+// sanitizing above must apply only to cancellation.
+func TestFailedDialErrorIsPreserved(t *testing.T) {
+	cause := errors.New("dial tcp 10.0.0.1:6443: connect: connection refused")
+
+	// Not canceled: this is a genuine failure, not a shutdown.
+	_, err := dial(context.Background(), "test", func(ctx context.Context) (httpstream.Connection, error) {
+		return nil, transportError(cause)
+	}, testAddr.Port)
+
+	if err == nil {
+		t.Fatal("dial returned no error for a failing dialer")
+	}
+	got := err.Error()
+	if !strings.Contains(got, testRequestURL) {
+		t.Errorf("failed dial dropped the request URL, losing diagnosis: %q", got)
+	}
+	if !strings.Contains(got, "connection refused") {
+		t.Errorf("failed dial dropped the cause: %q", got)
 	}
 }

@@ -250,6 +250,16 @@ type stream struct {
 func dial(ctx context.Context, prefix string, dialer dialFunc, port int) (s *stream, finalErr error) {
 	streamConn, err := dialer(ctx)
 	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			// Closing the listener is the normal way this dial ends, and the
+			// transport reports that as a *url.Error repeating the whole
+			// apiserver request URL, which says nothing a caller did not
+			// already know. Report the cause instead. It also restores the
+			// classification that client-go loses by flattening the error
+			// with %v, so errors.Is can tell a canceled dial from a failed
+			// one. Genuine failures below keep their full text.
+			return nil, fmt.Errorf("dial canceled: %w", ctxErr)
+		}
 		return nil, fmt.Errorf("dialer failed: %w", err)
 	}
 	requestID := "1"
