@@ -178,7 +178,7 @@ controller, and serviceaccounts controller.`,
 			if utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
 				ctx = signals.SetupSignalContext()
 			}
-			stopCh := server.SetupSignalHandler()
+			stopCh := signals.SetupSignalHandler()
 			return Run(ctx, c.Complete(), stopCh)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
