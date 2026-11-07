@@ -41,10 +41,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/flagz"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/apiserver/pkg/server/mux"
+	"k8s.io/apiserver/pkg/server/signals"
 	"k8s.io/apiserver/pkg/server/statusz"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	cacheddiscovery "k8s.io/client-go/discovery/cached/memory"
@@ -68,6 +68,7 @@ import (
 	logsapi "k8s.io/component-base/logs/api/v1"
 	metricsfeatures "k8s.io/component-base/metrics/features"
 	controllersmetrics "k8s.io/component-base/metrics/prometheus/controllers"
+	featuremetrics "k8s.io/component-base/metrics/prometheus/feature"
 	"k8s.io/component-base/metrics/prometheus/slis"
 	"k8s.io/component-base/term"
 	utilversion "k8s.io/component-base/version"
@@ -164,14 +165,14 @@ controller, and serviceaccounts controller.`,
 
 			// add feature enablement metrics
 			fg := s.ComponentGlobalsRegistry.FeatureGateFor(basecompatibility.DefaultKubeComponent)
-			fg.(featuregate.MutableFeatureGate).AddMetrics()
+			fg.(featuregate.MutableFeatureGate).AddMetrics(featuremetrics.RecordFeatureInfo)
 			// add component version metrics
 			s.ComponentGlobalsRegistry.AddMetrics()
 
 			if utilfeature.DefaultFeatureGate.Enabled(cmfeatures.ControllerManagerReleaseLeaderElectionLockOnExit) {
-				ctx = server.SetupSignalContext()
+				ctx = signals.SetupSignalContext()
 			}
-			stopCh := server.SetupSignalHandler()
+			stopCh := signals.SetupSignalHandler()
 			return Run(ctx, c.Complete(), stopCh)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -676,7 +677,8 @@ type HealthCheckAdder interface {
 // If the controller implements controller.HealthCheckable, though, the given check is used.
 // The controller can also implement controller.Debuggable, in which case the debug handler is registered with the given mux.
 func BuildControllers(ctx context.Context, controllerCtx ControllerContext, controllerDescriptors map[string]*ControllerDescriptor,
-	unsecuredMux *mux.PathRecorderMux, healthzHandler HealthCheckAdder) ([]Controller, error) {
+	unsecuredMux *mux.PathRecorderMux, healthzHandler HealthCheckAdder,
+) ([]Controller, error) {
 	logger := klog.FromContext(ctx)
 	var (
 		controllers []Controller
@@ -760,7 +762,8 @@ func BuildControllers(ctx context.Context, controllerCtx ControllerContext, cont
 // When the timeout is reached, the function unblocks and returns false.
 // Zero shutdown timeout means that there is no timeout.
 func RunControllers(ctx context.Context, controllerCtx ControllerContext, controllers []Controller,
-	controllerStartJitterMaxFactor float64, shutdownTimeout time.Duration) bool {
+	controllerStartJitterMaxFactor float64, shutdownTimeout time.Duration,
+) bool {
 	logger := klog.FromContext(ctx)
 
 	// We gather running controllers names for logging purposes.
@@ -871,12 +874,10 @@ func readCA(file string) ([]byte, error) {
 
 // createClientBuilders creates clientBuilder and rootClientBuilder from the given configuration
 func createClientBuilders(c *config.CompletedConfig) (clientBuilder clientbuilder.ControllerClientBuilder, rootClientBuilder clientbuilder.ControllerClientBuilder) {
-
 	rootClientBuilder = clientbuilder.SimpleControllerClientBuilder{
 		ClientConfig: c.Kubeconfig,
 	}
 	if c.ComponentConfig.KubeCloudShared.UseServiceAccountCredentials {
-
 		clientBuilder = clientbuilder.NewDynamicClientBuilder(
 			libgorestclient.AnonymousClientConfigWithWrapTransport(c.Kubeconfig),
 			c.Client.CoreV1(),
