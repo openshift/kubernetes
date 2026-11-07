@@ -1,4 +1,4 @@
-//go:build !windows && !godbus_no_tcp
+//go:build !windows
 
 package dbus
 

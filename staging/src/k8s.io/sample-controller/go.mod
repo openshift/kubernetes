@@ -4,17 +4,17 @@ module k8s.io/sample-controller
 
 go 1.27.0
 
-godebug default=go1.27
+godebug default=go1.26
 
 require (
 	golang.org/x/time v0.16.0
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
-	k8s.io/code-generator v0.0.0
+	k8s.io/api v0.38.0-alpha.3
+	k8s.io/apimachinery v0.38.0-alpha.3
+	k8s.io/client-go v0.38.0-alpha.3
+	k8s.io/code-generator v0.38.0-alpha.3
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kube-openapi v0.0.0-20261014044854-ca3452a79603
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/structured-merge-diff/v7 v7.0.1
 )
 

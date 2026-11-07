@@ -4,7 +4,7 @@ module k8s.io/apiserver
 
 go 1.27.0
 
-godebug default=go1.27
+godebug default=go1.26
 
 require (
 	github.com/blang/semver/v4 v4.0.0
@@ -23,6 +23,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+	github.com/openshift/library-go v0.0.0-20261106022420-ba29d61509b5
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
 	go.etcd.io/etcd/api/v3 v3.7.3
@@ -36,6 +37,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.47.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
+	go.uber.org/atomic v1.12.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.61.0
@@ -48,15 +50,15 @@ require (
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/evanphx/json-patch.v4 v4.13.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
-	k8s.io/client-go v0.0.0
-	k8s.io/component-base v0.0.0
+	k8s.io/api v0.38.0-alpha.3
+	k8s.io/apimachinery v0.38.0-alpha.3
+	k8s.io/client-go v0.38.0-alpha.3
+	k8s.io/component-base v0.38.0-alpha.3
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/kms v0.0.0
+	k8s.io/kms v0.38.0-alpha.3
 	k8s.io/kube-openapi v0.0.0-20261014044854-ca3452a79603
-	k8s.io/streaming v0.0.0
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd
+	k8s.io/streaming v0.38.0-alpha.3
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.37.0
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
 	sigs.k8s.io/randfill v1.0.0
@@ -118,11 +120,16 @@ require (
 )
 
 replace (
+	github.com/openshift/api => github.com/jacobsee/openshift-api v0.0.0-20261106022001-374174abb082
+	github.com/openshift/client-go => github.com/jacobsee/client-go v0.0.0-20261106022329-e989649e9e4c
+	github.com/openshift/library-go => github.com/jacobsee/library-go v0.0.0-20261106022420-ba29d61509b5
 	k8s.io/api => ../api
+	k8s.io/apiextensions-apiserver => ../apiextensions-apiserver
 	k8s.io/apimachinery => ../apimachinery
 	k8s.io/client-go => ../client-go
 	k8s.io/component-base => ../component-base
 	k8s.io/kms => ../kms
 	k8s.io/ktesting => ../ktesting
+	k8s.io/kube-aggregator => ../kube-aggregator
 	k8s.io/streaming => ../streaming
 )

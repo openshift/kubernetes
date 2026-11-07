@@ -24,7 +24,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	k8s.io/apimachinery v0.0.0 // indirect
+	k8s.io/apimachinery v0.38.0-alpha.3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 )
 

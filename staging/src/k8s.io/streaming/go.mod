@@ -4,14 +4,14 @@ module k8s.io/streaming
 
 go 1.27.0
 
-godebug default=go1.27
+godebug default=go1.26
 
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/moby/spdystream v0.5.1
 	golang.org/x/net v0.61.0
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 )
 
 require github.com/go-logr/logr v1.4.4 // indirect
