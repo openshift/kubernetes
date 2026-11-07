@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -99,8 +100,42 @@ func Listen(ctx context.Context, clientset kubernetes.Interface, restConfig *res
 	if err != nil {
 		return nil, fmt.Errorf("create round tripper: %w", err)
 	}
-	dialer := spdy.NewDialerForStreaming(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
+	return listenWithDialer(ctx, clientset, spdyDialer(upgrader, &http.Client{Transport: transport}, req.URL()), addr), nil
+}
 
+// dialFunc opens a new SPDY connection to the pod. It takes a context because
+// httpstream.Dialer.Dial does not.
+type dialFunc func(ctx context.Context) (httpstream.Connection, error)
+
+// spdyDialer returns a dialFunc which puts ctx on the port-forward request, so
+// that a stalled connection attempt is actually aborted when ctx is canceled.
+//
+// spdy.NewDialerForStreaming cannot do this: its Dial builds the request with
+// http.NewRequest, so the request always carries context.Background() and the
+// DialContext and HandshakeContext calls inside SpdyRoundTripper have nothing
+// to cancel on. spdy.NegotiateStreaming runs the same negotiation but takes
+// the request from us, so we can supply one that carries ctx.
+//
+// Cancellation reaches the TCP connect and the TLS handshake, which is where a
+// connection to an unresponsive apiserver gets stuck. It does not reach the
+// request write and the response read that follow a completed handshake:
+// SpdyRoundTripper performs those directly on the connection without a
+// deadline. A stall in that window therefore still blocks this dial, so
+// callers must not hold a lock across it.
+func spdyDialer(upgrader spdy.Upgrader, client *http.Client, reqURL *url.URL) dialFunc {
+	return func(ctx context.Context) (httpstream.Connection, error) {
+		req, err := http.NewRequestWithContext(ctx, "POST", reqURL.String(), nil)
+		if err != nil {
+			return nil, fmt.Errorf("create request: %w", err)
+		}
+		conn, _, err := spdy.NegotiateStreaming(upgrader, client, req, portforward.PortForwardProtocolV1Name)
+		return conn, err
+	}
+}
+
+// listenWithDialer implements Listen for an already constructed dialer. It
+// exists so that tests can drive the listener with a stub dialer.
+func listenWithDialer(ctx context.Context, clientset kubernetes.Interface, dialer dialFunc, addr Addr) net.Listener {
 	prefix := fmt.Sprintf("port forwarding for %s", addr)
 	ctx, cancel := context.WithCancel(ctx)
 	l := &listener{
@@ -122,33 +157,33 @@ func Listen(ctx context.Context, clientset kubernetes.Interface, restConfig *res
 			case <-ctx.Done():
 				return
 			case <-tryConnect.C:
-				func() {
-					l.mutex.Lock()
-					defer l.mutex.Unlock()
+				if !l.hasFreeSlot() {
+					continue
+				}
 
-					for i, c := range l.connections {
-						if c == nil {
-							// This can fail repeatedly while the apiserver is down. This is nothing to worry about.
-							klog.V(7).Infof("%s: trying to create a new connection #%d", prefix, connectionsCreated)
-							stream, err := dial(ctx, fmt.Sprintf("%s #%d", prefix, connectionsCreated), dialer, addr.Port)
-							if err != nil {
-								klog.V(7).Infof("%s: no connection: %v", prefix, err)
-								return
-							}
-							// Make the connection available to Accept below.
-							klog.V(5).Infof("%s: created a new connection #%d", prefix, connectionsCreated)
-							c := &connection{
-								l:       l,
-								stream:  stream,
-								addr:    addr,
-								counter: connectionsCreated,
-							}
-							l.connections[i] = c
-							connectionsCreated++
-							return
-						}
-					}
-				}()
+				// The mutex must not be held while dialing: dial can block
+				// for a long time (it has no deadline of its own beyond the
+				// context) and Accept and Close need the mutex to stay
+				// responsive. Dialing here is still serialized, because this
+				// is the only goroutine that dials.
+				//
+				// This can fail repeatedly while the apiserver is down. This is nothing to worry about.
+				klog.V(7).Infof("%s: trying to create a new connection #%d", prefix, connectionsCreated)
+				stream, err := dial(ctx, fmt.Sprintf("%s #%d", prefix, connectionsCreated), dialer, addr.Port)
+				if err != nil {
+					klog.V(7).Infof("%s: no connection: %v", prefix, err)
+					continue
+				}
+				// Make the connection available to Accept below. The listener
+				// may have been closed or filled up while dialing, in which
+				// case the stream is ours to discard.
+				if !l.addConnection(stream, connectionsCreated) {
+					klog.V(5).Infof("%s: discarding connection #%d, listener no longer accepts it", prefix, connectionsCreated)
+					stream.Close()
+					continue
+				}
+				klog.V(5).Infof("%s: created a new connection #%d", prefix, connectionsCreated)
+				connectionsCreated++
 			}
 		}
 	}
@@ -185,7 +220,7 @@ func Listen(ctx context.Context, clientset kubernetes.Interface, restConfig *res
 		}
 	}()
 
-	return l, nil
+	return l
 }
 
 // Addr contains all relevant parameters for a certain port in a pod.
@@ -210,9 +245,21 @@ type stream struct {
 	streamConn httpstream.Connection
 }
 
-func dial(ctx context.Context, prefix string, dialer httpstream.Dialer, port int) (s *stream, finalErr error) {
-	streamConn, _, err := dialer.Dial(portforward.PortForwardProtocolV1Name)
+// dial creates a new port-forwarding stream. Canceling ctx aborts the
+// connection attempt as far as the transport allows; see spdyDialer.
+func dial(ctx context.Context, prefix string, dialer dialFunc, port int) (s *stream, finalErr error) {
+	streamConn, err := dialer(ctx)
 	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			// Closing the listener is the normal way this dial ends, and the
+			// transport reports that as a *url.Error repeating the whole
+			// apiserver request URL, which says nothing a caller did not
+			// already know. Report the cause instead. It also restores the
+			// classification that client-go loses by flattening the error
+			// with %v, so errors.Is can tell a canceled dial from a failed
+			// one. Genuine failures below keep their full text.
+			return nil, fmt.Errorf("dial canceled: %w", ctxErr)
+		}
 		return nil, fmt.Errorf("dialer failed: %w", err)
 	}
 	requestID := "1"
@@ -269,10 +316,52 @@ type listener struct {
 	cancel func()
 
 	mutex       sync.Mutex
+	closed      bool
 	connections [maxConcurrentConnections]*connection
 }
 
 var _ net.Listener = &listener{}
+
+// hasFreeSlot reports whether a new connection could be stored. It is only a
+// hint: the answer may already be stale when the caller acts on it, which is
+// why addConnection checks again.
+func (l *listener) hasFreeSlot() bool {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	if l.closed {
+		return false
+	}
+	for _, c := range l.connections {
+		if c == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// addConnection publishes a freshly dialed stream so that Accept can return
+// it. It reports false when the listener was closed or ran out of slots while
+// the dial was in flight; the caller then still owns the stream and must close
+// it.
+func (l *listener) addConnection(s *stream, counter int) bool {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	if l.closed {
+		return false
+	}
+	for i, c := range l.connections {
+		if c == nil {
+			l.connections[i] = &connection{
+				l:       l,
+				stream:  s,
+				addr:    l.addr,
+				counter: counter,
+			}
+			return true
+		}
+	}
+	return false
+}
 
 func (l *listener) Close() error {
 	klog.V(5).Infof("forward listener for %s: closing", l.addr)
@@ -280,9 +369,13 @@ func (l *listener) Close() error {
 
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	for _, c := range l.connections {
+	l.closed = true
+	for i, c := range l.connections {
 		if c != nil {
 			c.stream.Close()
+			// Drop the reference: a closed listener owns nothing, so it
+			// must not keep connections and their streams alive.
+			l.connections[i] = nil
 		}
 	}
 
