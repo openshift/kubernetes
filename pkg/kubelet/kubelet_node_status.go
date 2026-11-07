@@ -901,4 +901,3 @@ func nodeConditionsHaveChanged(originalConditions []v1.NodeCondition, conditions
 	}
 	return false
 }
-
