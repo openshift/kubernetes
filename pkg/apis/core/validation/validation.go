@@ -240,10 +240,9 @@ func ValidateTolerationsInPodAnnotations(annotations map[string]string, fldPath 
 	return allErrs
 }
 
-func ValidatePodSpecificAnnotationUpdates(newPod, oldPod *core.Pod, fldPath *field.Path, opts PodValidationOptions) field.ErrorList {
+func ValidatePodSpecificAnnotationUpdates(newPod *core.Pod, oldAnnotations map[string]string, fldPath *field.Path, opts PodValidationOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 	newAnnotations := newPod.Annotations
-	oldAnnotations := oldPod.Annotations
 	for k, oldVal := range oldAnnotations {
 		if newVal, exists := newAnnotations[k]; exists && newVal == oldVal {
 			continue // No change.
@@ -1320,8 +1319,17 @@ func validateProjectionSources(projection *core.ProjectedVolumeSource, projectio
 			switch source.PodCertificate.KeyType {
 			case "RSA3072", "RSA4096", "ECDSAP256", "ECDSAP384", "ECDSAP521", "ED25519":
 				// ok
+			case "MLDSA44", "MLDSA65", "MLDSA87":
+				if !opts.AllowMLDSAPodCertificateKeyTypes {
+					allErrs = append(allErrs, field.NotSupported(projPath.Child("keyType"), source.PodCertificate.KeyType, []string{"RSA3072", "RSA4096", "ECDSAP256", "ECDSAP384", "ECDSAP521", "ED25519"}))
+				}
 			default:
-				allErrs = append(allErrs, field.NotSupported(projPath.Child("keyType"), source.PodCertificate.KeyType, []string{"RSA3072", "RSA4096", "ECDSAP256", "ECDSAP384", "ECDSAP521", "ED25519"}))
+				supportedKeyTypes := []string{"RSA3072", "RSA4096", "ECDSAP256", "ECDSAP384", "ECDSAP521", "ED25519"}
+				if opts.AllowMLDSAPodCertificateKeyTypes {
+					supportedKeyTypes = append(supportedKeyTypes, "MLDSA44", "MLDSA65", "MLDSA87")
+				}
+
+				allErrs = append(allErrs, field.NotSupported(projPath.Child("keyType"), source.PodCertificate.KeyType, supportedKeyTypes))
 			}
 
 			if source.PodCertificate.MaxExpirationSeconds != nil {
@@ -4147,7 +4155,7 @@ func validateContainers(containers []core.Container, os *core.PodOS, volumes map
 	allErrs := field.ErrorList{}
 
 	if len(containers) == 0 {
-		return append(allErrs, field.Required(fldPath, ""))
+		return append(allErrs, field.Required(fldPath, "").MarkCoveredByDeclarative())
 	}
 
 	allNames := sets.Set[string]{}
@@ -4632,6 +4640,8 @@ type PodValidationOptions struct {
 	AllowEmptyImageVolumeReference bool
 	// Allow containers to have CAP_SYS_ADMIN even if AllowPrivilegeEscalation is false
 	AllowSysAdminWhenPrivilegeEscalationFalse bool
+	// Allow podCertificate volumes to specify ML-DSA algorithms in the keyType field
+	AllowMLDSAPodCertificateKeyTypes bool
 }
 
 // validatePodMetadataAndSpec tests if required fields in the pod.metadata and pod.spec are set,
@@ -4831,8 +4841,10 @@ func ValidatePodSpec(spec *core.PodSpec, podMeta *metav1.ObjectMeta, fldPath *fi
 
 	if spec.ActiveDeadlineSeconds != nil {
 		value := *spec.ActiveDeadlineSeconds
-		if value < 1 || value > math.MaxInt32 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("activeDeadlineSeconds"), value, validation.InclusiveRangeError(1, math.MaxInt32)))
+		if value < 1 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("activeDeadlineSeconds"), value, validation.InclusiveRangeError(1, math.MaxInt32)).WithOrigin("minimum").MarkCoveredByDeclarative())
+		} else if value > math.MaxInt32 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("activeDeadlineSeconds"), value, validation.InclusiveRangeError(1, math.MaxInt32)).WithOrigin("maximum").MarkCoveredByDeclarative())
 		}
 	}
 
@@ -5852,6 +5864,9 @@ var updatablePodSpecFields = []string{
 	"`spec.activeDeadlineSeconds`",
 	"`spec.tolerations` (only additions to existing tolerations)",
 	"`spec.terminationGracePeriodSeconds` (allow it to be set to 1 if it was previously negative)",
+	"`spec.schedulingGates` (only deletions of existing scheduling gates)",
+	"`spec.nodeSelector` (only additions, and only while the pod has scheduling gates)",
+	"`spec.affinity.nodeAffinity` (only while the pod has scheduling gates)",
 }
 
 // ValidatePodUpdate tests to see if the update is legal for an end user to make. newPod is updated with fields
@@ -5860,15 +5875,19 @@ func ValidatePodUpdate(newPod, oldPod *core.Pod, opts PodValidationOptions) fiel
 	fldPath := field.NewPath("metadata")
 	allErrs := ValidateObjectMetaUpdate(&newPod.ObjectMeta, &oldPod.ObjectMeta, fldPath)
 	allErrs = append(allErrs, validatePodMetadataAndSpec(newPod, opts)...)
-	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod, fldPath.Child("annotations"), opts)...)
+	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod.Annotations, fldPath.Child("annotations"), opts)...)
 	specPath := field.NewPath("spec")
 
 	// validate updateable fields:
 	// 1.  spec.containers[*].image
 	// 2.  spec.initContainers[*].image
 	// 3.  spec.activeDeadlineSeconds
-	// 4.  spec.terminationGracePeriodSeconds
-	// 5.  spec.schedulingGates
+	// 4.  spec.tolerations (only additions)
+	// 5.  spec.terminationGracePeriodSeconds (only negative -> 1)
+	// 6.  spec.schedulingGates (only deletions)
+	// 7.  spec.nodeSelector (only additions, only while gated)
+	// 8.  spec.affinity.nodeAffinity (only while gated)
+	// Keep this list in sync with updatablePodSpecFields.
 
 	containerErrs, stop := ValidateContainerUpdates(newPod.Spec.Containers, oldPod.Spec.Containers, specPath.Child("containers"))
 	allErrs = append(allErrs, containerErrs...)
@@ -6167,7 +6186,7 @@ func ValidateEphemeralContainerStateTransition(newStatuses, oldStatuses []core.C
 func ValidatePodStatusUpdate(newPod, oldPod *core.Pod, opts PodValidationOptions) field.ErrorList {
 	fldPath := field.NewPath("metadata")
 	allErrs := ValidateObjectMetaUpdate(&newPod.ObjectMeta, &oldPod.ObjectMeta, fldPath)
-	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod, fldPath.Child("annotations"), opts)...)
+	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod.Annotations, fldPath.Child("annotations"), opts)...)
 
 	fldPath = field.NewPath("status")
 	allErrs = append(allErrs, validatePodConditions(newPod.Status.Conditions, fldPath.Child("conditions"))...)
@@ -6334,6 +6353,14 @@ func validateNodeAllocatableResourceClaimStatus(podStatus core.PodStatus, podSpe
 				}
 			}
 		}
+		// Extended resources backed by DRA are satisfied by a scheduler-created
+		// ResourceClaim that is not referenced in podSpec.ResourceClaims nor in
+		// podStatus.ResourceClaimStatuses. Its name is recorded in
+		// podStatus.ExtendedResourceClaimStatus instead.
+		if !found && podStatus.ExtendedResourceClaimStatus != nil &&
+			podStatus.ExtendedResourceClaimStatus.ResourceClaimName == nodeAllocatableStatus.ResourceClaimName {
+			found = true
+		}
 
 		if !found {
 			allErrs = append(allErrs, field.Invalid(statusFldPath.Child("resourceClaimName"), nodeAllocatableStatus.ResourceClaimName, "no mapping found in pod reference"))
@@ -6457,7 +6484,7 @@ func ValidatePodEphemeralContainersUpdate(newPod, oldPod *core.Pod, opts PodVali
 	fldPath := field.NewPath("metadata")
 	allErrs := ValidateObjectMetaUpdate(&newPod.ObjectMeta, &oldPod.ObjectMeta, fldPath)
 	allErrs = append(allErrs, validatePodMetadataAndSpec(newPod, opts)...)
-	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod, fldPath.Child("annotations"), opts)...)
+	allErrs = append(allErrs, ValidatePodSpecificAnnotationUpdates(newPod, oldPod.Annotations, fldPath.Child("annotations"), opts)...)
 
 	// static pods don't support ephemeral containers #113935
 	if _, ok := oldPod.Annotations[core.MirrorPodAnnotationKey]; ok {
@@ -6965,6 +6992,9 @@ func ValidatePodBinding(binding *core.Binding) field.ErrorList {
 		}
 	}
 
+	allErrs = append(allErrs, apimachineryvalidation.ValidateAnnotations(binding.Annotations, field.NewPath("metadata", "annotations"))...)
+	allErrs = append(allErrs, unversionedvalidation.ValidateLabels(binding.Labels, field.NewPath("metadata", "labels"))...)
+
 	return allErrs
 }
 
@@ -7320,6 +7350,12 @@ func validateServiceInternalTrafficFieldsValue(service *core.Service) field.Erro
 	return allErrs
 }
 
+var supportedTrafficDistribution = []string{
+	v1.ServiceTrafficDistributionPreferClose,
+	v1.ServiceTrafficDistributionPreferSameZone,
+	v1.ServiceTrafficDistributionPreferSameNode,
+}
+
 // validateServiceTrafficDistribution validates the values for the
 // trafficDistribution field.
 func validateServiceTrafficDistribution(service *core.Service) field.ErrorList {
@@ -7327,19 +7363,6 @@ func validateServiceTrafficDistribution(service *core.Service) field.ErrorList {
 
 	if service.Spec.TrafficDistribution == nil {
 		return allErrs
-	}
-
-	var supportedTrafficDistribution []string
-	if !utilfeature.DefaultFeatureGate.Enabled(features.PreferSameTrafficDistribution) {
-		supportedTrafficDistribution = []string{
-			v1.ServiceTrafficDistributionPreferClose,
-		}
-	} else {
-		supportedTrafficDistribution = []string{
-			v1.ServiceTrafficDistributionPreferClose,
-			v1.ServiceTrafficDistributionPreferSameZone,
-			v1.ServiceTrafficDistributionPreferSameNode,
-		}
 	}
 
 	if !slices.Contains(supportedTrafficDistribution, *service.Spec.TrafficDistribution) {
@@ -7468,7 +7491,7 @@ func ValidatePodTemplateSpecForRC(template *core.PodTemplateSpec, selectorMap ma
 		allErrs = append(allErrs, ValidatePodTemplateSpec(template, fldPath, opts)...)
 		// RestartPolicy has already been first-order validated as per ValidatePodTemplateSpec().
 		if template.Spec.RestartPolicy != core.RestartPolicyAlways {
-			allErrs = append(allErrs, field.NotSupported(fldPath.Child("spec", "restartPolicy"), template.Spec.RestartPolicy, []core.RestartPolicy{core.RestartPolicyAlways}))
+			allErrs = append(allErrs, field.NotSupported(fldPath.Child("spec", "restartPolicy"), template.Spec.RestartPolicy, []core.RestartPolicy{core.RestartPolicyAlways}).MarkCoveredByDeclarative())
 		}
 		if template.Spec.ActiveDeadlineSeconds != nil {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("spec", "activeDeadlineSeconds"), "activeDeadlineSeconds in ReplicationController is not Supported"))
@@ -7480,13 +7503,8 @@ func ValidatePodTemplateSpecForRC(template *core.PodTemplateSpec, selectorMap ma
 // ValidateReplicationControllerSpec tests if required fields in the replication controller spec are set.
 func ValidateReplicationControllerSpec(spec, oldSpec *core.ReplicationControllerSpec, fldPath *field.Path, opts PodValidationOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, ValidateNonnegativeField(int64(spec.MinReadySeconds), fldPath.Child("minReadySeconds")).MarkCoveredByDeclarative()...)
+	// replicas and minReadySeconds are covered by declarative validation.
 	allErrs = append(allErrs, ValidateNonEmptySelector(spec.Selector, fldPath.Child("selector"))...)
-	if spec.Replicas == nil {
-		allErrs = append(allErrs, field.Required(fldPath.Child("replicas"), "").MarkCoveredByDeclarative())
-	} else {
-		allErrs = append(allErrs, ValidateNonnegativeField(int64(*spec.Replicas), fldPath.Child("replicas")).MarkCoveredByDeclarative()...)
-	}
 	allErrs = append(allErrs, ValidatePodTemplateSpecForRC(spec.Template, spec.Selector, fldPath.Child("template"), opts)...)
 	return allErrs
 }
@@ -7689,15 +7707,13 @@ func ValidateNodeUpdate(node, oldNode *core.Node) field.ErrorList {
 
 	// Allow the controller manager to assign a CIDR to a node if it doesn't have one.
 	if len(oldNode.Spec.PodCIDRs) > 0 {
-		// compare the entire slice
-		if len(oldNode.Spec.PodCIDRs) != len(node.Spec.PodCIDRs) {
+		if len(node.Spec.PodCIDRs) == 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "podCIDRs"), nil, "field cannot be cleared once set").WithOrigin("update").MarkCoveredByDeclarative())
+		} else if !apiequality.Semantic.DeepEqual(oldNode.Spec.PodCIDRs, node.Spec.PodCIDRs) {
+			// Modification of an already-assigned podCIDRs is not expressible with
+			// +k8s:update yet: NoModify is rejected on list fields, and the
+			// per-item form does not correlate changed values in a listType=set.
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "podCIDRs"), "node updates may not change podCIDR except from \"\" to valid"))
-		} else {
-			for idx, value := range oldNode.Spec.PodCIDRs {
-				if value != node.Spec.PodCIDRs[idx] {
-					allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "podCIDRs"), "node updates may not change podCIDR except from \"\" to valid"))
-				}
-			}
 		}
 	}
 
@@ -8245,8 +8261,16 @@ func ValidateConfigMapUpdate(newCfg, oldCfg *core.ConfigMap) field.ErrorList {
 }
 
 func validateBasicResource(quantity resource.Quantity, fldPath *field.Path) field.ErrorList {
-	if quantity.Value() < 0 {
-		return field.ErrorList{field.Invalid(fldPath, quantity.Value(), "must be a valid resource quantity")}
+	// Sign() rather than Value(): the check only cares about the sign, and Value()
+	// does not report it reliably. It overflows to a positive number for negative
+	// quantities such as -9.5Gi, and falls back to zero when its conversion fails,
+	// as for -1e30 -- both of which pass a "Value() < 0" test. Sign() is correct
+	// for every quantity, and does not depend on how overflow is handled.
+	//
+	// String() rather than Value() in the error for the same reason: the reported
+	// value would otherwise be the overflowed one rather than what was submitted.
+	if quantity.Sign() < 0 {
+		return field.ErrorList{field.Invalid(fldPath, quantity.String(), "must be a valid resource quantity")}
 	}
 	return field.ErrorList{}
 }
@@ -8531,14 +8555,15 @@ func ValidateResourceQuotaStatus(status *core.ResourceQuotaStatus, fld *field.Pa
 }
 
 func ValidateResourceQuotaSpec(resourceQuotaSpec *core.ResourceQuotaSpec, fld *field.Path) field.ErrorList {
+	return validateResourceQuotaSpec(resourceQuotaSpec, nil, fld)
+}
+
+// validateResourceQuotaSpec validates a spec against the hard limits the object
+// already stores, oldHard, which is nil on create. Nothing is mutated.
+func validateResourceQuotaSpec(resourceQuotaSpec *core.ResourceQuotaSpec, oldHard core.ResourceList, fld *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	fldPath := fld.Child("hard")
-	for k, v := range resourceQuotaSpec.Hard {
-		resPath := fldPath.Key(string(k))
-		allErrs = append(allErrs, ValidateResourceQuotaResourceName(k, resPath)...)
-		allErrs = append(allErrs, ValidateResourceQuantityValue(k, v, resPath)...)
-	}
+	allErrs = append(allErrs, validateResourceQuotaResourceList(resourceQuotaSpec.Hard, fld.Child("hard"), oldHard)...)
 
 	allErrs = append(allErrs, validateResourceQuotaScopes(resourceQuotaSpec, fld)...)
 	allErrs = append(allErrs, validateScopeSelector(resourceQuotaSpec, fld)...)
@@ -8546,12 +8571,50 @@ func ValidateResourceQuotaSpec(resourceQuotaSpec *core.ResourceQuotaSpec, fld *f
 	return allErrs
 }
 
+// validateResourceQuotaResourceList validates every name in values, and every
+// value that none of the stored lists holds under the same key. Nothing is mutated.
+func validateResourceQuotaResourceList(values core.ResourceList, fldPath *field.Path, stored ...core.ResourceList) field.ErrorList {
+	allErrs := field.ErrorList{}
+	for k, v := range values {
+		resPath := fldPath.Key(string(k))
+		allErrs = append(allErrs, ValidateResourceQuotaResourceName(k, resPath)...)
+		// A value the object already holds was accepted when it was stored.
+		if isStoredQuantity(k, v, stored) {
+			continue
+		}
+		allErrs = append(allErrs, ValidateResourceQuantityValue(k, v, resPath)...)
+	}
+	return allErrs
+}
+
+// isStoredQuantity reports whether one of the lists holds name with the same value.
+func isStoredQuantity(name core.ResourceName, value resource.Quantity, lists []core.ResourceList) bool {
+	for _, list := range lists {
+		if old, ok := list[name]; ok && old.Cmp(value) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// isIntegerResourceValue reports whether q may be used where whole units are
+// required. Wherever the milli projection fits in an int64 this is the check
+// that has always been applied, so values it accepted, such as 1.9999, still
+// pass. Past that range only an exact whole number passes.
+func isIntegerResourceValue(q resource.Quantity) bool {
+	if _, integer := q.AsScale(0); integer {
+		return true
+	}
+	milli, ok := q.AsMilliInt64()
+	return ok && milli%1000 == 0
+}
+
 // ValidateResourceQuantityValue enforces that specified quantity is valid for specified resource
 func ValidateResourceQuantityValue(resource core.ResourceName, value resource.Quantity, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, ValidateNonnegativeQuantity(value, fldPath)...)
 	if helper.IsIntegerResourceName(resource) {
-		if value.MilliValue()%int64(1000) != int64(0) {
+		if !isIntegerResourceValue(value) {
 			allErrs = append(allErrs, field.Invalid(fldPath, value, isNotIntegerErrorMsg))
 		}
 	}
@@ -8561,7 +8624,7 @@ func ValidateResourceQuantityValue(resource core.ResourceName, value resource.Qu
 // ValidateResourceQuotaUpdate tests to see if the update is legal for an end user to make.
 func ValidateResourceQuotaUpdate(newResourceQuota, oldResourceQuota *core.ResourceQuota) field.ErrorList {
 	allErrs := ValidateObjectMetaUpdate(&newResourceQuota.ObjectMeta, &oldResourceQuota.ObjectMeta, field.NewPath("metadata"))
-	allErrs = append(allErrs, ValidateResourceQuotaSpec(&newResourceQuota.Spec, field.NewPath("spec"))...)
+	allErrs = append(allErrs, validateResourceQuotaSpec(&newResourceQuota.Spec, oldResourceQuota.Spec.Hard, field.NewPath("spec"))...)
 
 	// ensure scopes cannot change, and that resources are still valid for scope
 	fldPath := field.NewPath("spec", "scopes")
@@ -8586,18 +8649,9 @@ func ValidateResourceQuotaStatusUpdate(newResourceQuota, oldResourceQuota *core.
 	if len(newResourceQuota.ResourceVersion) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("resourceVersion"), ""))
 	}
-	fldPath := field.NewPath("status", "hard")
-	for k, v := range newResourceQuota.Status.Hard {
-		resPath := fldPath.Key(string(k))
-		allErrs = append(allErrs, ValidateResourceQuotaResourceName(k, resPath)...)
-		allErrs = append(allErrs, ValidateResourceQuantityValue(k, v, resPath)...)
-	}
-	fldPath = field.NewPath("status", "used")
-	for k, v := range newResourceQuota.Status.Used {
-		resPath := fldPath.Key(string(k))
-		allErrs = append(allErrs, ValidateResourceQuotaResourceName(k, resPath)...)
-		allErrs = append(allErrs, ValidateResourceQuantityValue(k, v, resPath)...)
-	}
+	// The quota controller copies spec.hard into status.hard, so a stored spec value counts as stored here too.
+	allErrs = append(allErrs, validateResourceQuotaResourceList(newResourceQuota.Status.Hard, field.NewPath("status", "hard"), oldResourceQuota.Status.Hard, oldResourceQuota.Spec.Hard)...)
+	allErrs = append(allErrs, validateResourceQuotaResourceList(newResourceQuota.Status.Used, field.NewPath("status", "used"), oldResourceQuota.Status.Used)...)
 	return allErrs
 }
 

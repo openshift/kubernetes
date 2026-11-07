@@ -28,6 +28,7 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	internalapi "k8s.io/cri-api/pkg/apis"
 	podresourcesapi "k8s.io/kubelet/pkg/apis/podresources/v1"
+	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/memorymanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/resourceupdates"
@@ -73,7 +74,7 @@ func (cm *containerManagerStub) GetQOSContainersInfo() QOSContainersInfo {
 	return QOSContainersInfo{}
 }
 
-func (cm *containerManagerStub) UpdateQOSCgroups(logger klog.Logger) error {
+func (cm *containerManagerStub) UpdateQOSCgroups(_ klog.Logger) error {
 	return nil
 }
 
@@ -113,7 +114,7 @@ func (m *podContainerManagerStub) GetPodCgroupConfig(_ *v1.Pod, _ v1.ResourceNam
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *podContainerManagerStub) SetPodCgroupConfig(logger klog.Logger, pod *v1.Pod, resourceConfig *ResourceConfig) error {
+func (m *podContainerManagerStub) SetPodCgroupConfig(_ klog.Logger, _ *v1.Pod, _ *ResourceConfig) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -121,7 +122,7 @@ func (cm *containerManagerStub) NewPodContainerManager() PodContainerManager {
 	return &podContainerManagerStub{}
 }
 
-func (cm *containerManagerStub) GetResources(ctx context.Context, pod *v1.Pod, container *v1.Container) (*kubecontainer.RunContainerOptions, error) {
+func (cm *containerManagerStub) GetResources(_ context.Context, _ *v1.Pod, _ *v1.Container) (*kubecontainer.RunContainerOptions, error) {
 	return &kubecontainer.RunContainerOptions{}, nil
 }
 
@@ -141,7 +142,7 @@ func (cm *containerManagerStub) GetDevices(_, _ string) []*podresourcesapi.Conta
 	return nil
 }
 
-func (cm *containerManagerStub) GetAllocatableDevices(logger klog.Logger) []*podresourcesapi.ContainerDevices {
+func (cm *containerManagerStub) GetAllocatableDevices(_ klog.Logger) []*podresourcesapi.ContainerDevices {
 	return nil
 }
 
@@ -157,7 +158,7 @@ func (cm *containerManagerStub) UpdateAllocatedDevices(_ klog.Logger) {
 	return
 }
 
-func (cm *containerManagerStub) GetCPUs(pod *v1.Pod, container *v1.Container) []int64 {
+func (cm *containerManagerStub) GetCPUs(_ *v1.Pod, _ *v1.Container) []int64 {
 	return nil
 }
 
@@ -169,7 +170,7 @@ func (cm *containerManagerStub) GetAllocatableCPUs() []int64 {
 	return nil
 }
 
-func (cm *containerManagerStub) GetMemory(_ klog.Logger, pod *v1.Pod, container *v1.Container) []*podresourcesapi.ContainerMemory {
+func (cm *containerManagerStub) GetMemory(_ klog.Logger, _ *v1.Pod, _ *v1.Container) []*podresourcesapi.ContainerMemory {
 	return nil
 }
 
@@ -181,7 +182,7 @@ func (cm *containerManagerStub) GetAllocatableMemory(_ klog.Logger) []*podresour
 	return nil
 }
 
-func (cm *containerManagerStub) GetDynamicResources(logger klog.Logger, pod *v1.Pod, container *v1.Container) []*podresourcesapi.DynamicResource {
+func (cm *containerManagerStub) GetDynamicResources(_ klog.Logger, _ *v1.Pod, _ *v1.Container) []*podresourcesapi.DynamicResource {
 	return nil
 }
 
@@ -189,31 +190,43 @@ func (cm *containerManagerStub) GetNodeAllocatableAbsolute() v1.ResourceList {
 	return nil
 }
 
-func (cm *containerManagerStub) PrepareDynamicResources(ctx context.Context, pod *v1.Pod) error {
+func (cm *containerManagerStub) PrepareDynamicResources(_ context.Context, _ *v1.Pod) error {
 	return nil
 }
 
-func (cm *containerManagerStub) UnprepareDynamicResources(ctx context.Context, pod *v1.Pod) error {
+func (cm *containerManagerStub) UnprepareDynamicResources(_ context.Context, _ *v1.Pod) error {
 	return nil
 }
 
-func (cm *containerManagerStub) PodMightNeedToUnprepareResources(UID types.UID) bool {
+func (cm *containerManagerStub) PodMightNeedToUnprepareResources(_ types.UID) bool {
 	return false
 }
 
-func (cm *containerManagerStub) UpdateAllocatedResourcesStatus(logger klog.Logger, pod *v1.Pod, status *v1.PodStatus) {
+func (cm *containerManagerStub) UpdateAllocatedResourcesStatus(_ klog.Logger, _ *v1.Pod, _ *v1.PodStatus) {
 }
 
 func (cm *containerManagerStub) Updates() <-chan resourceupdates.Update {
 	return nil
 }
 
-func (cm *containerManagerStub) PodHasExclusiveCPUs(logger klog.Logger, pod *v1.Pod) bool {
+func (cm *containerManagerStub) PodHasExclusiveCPUs(_ klog.Logger, _ *v1.Pod) bool {
 	return false
 }
 
-func (cm *containerManagerStub) ContainerHasExclusiveCPUs(logger klog.Logger, pod *v1.Pod, container *v1.Container) bool {
+func (cm *containerManagerStub) ContainerHasExclusiveCPUs(_ klog.Logger, _ *v1.Pod, _ *v1.Container) bool {
 	return false
+}
+
+func (cm *containerManagerStub) AllocationMode(res v1.ResourceName) ResourceAllocationMode {
+	// run from the cheapest to the most expensive, mimicing production code
+	if cm.cpuManager.CanAllocateExclusively(res) || cm.memoryManager.CanAllocateExclusively(res) {
+		return ResourceAllocationModeExclusive
+	}
+	if res == v1.ResourceCPU || res == v1.ResourceMemory || v1helper.IsHugePageResourceName(res) {
+		return ResourceAllocationModeShared
+	}
+	// devices not supported - no fake device manager
+	return ResourceAllocationModeUnsupported
 }
 
 func NewStubContainerManager() ContainerManager {

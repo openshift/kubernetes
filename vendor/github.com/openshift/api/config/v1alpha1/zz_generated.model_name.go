@@ -56,31 +56,6 @@ func (in BasicAuth) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CRIOCredentialProviderConfig) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CRIOCredentialProviderConfigList) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CRIOCredentialProviderConfigSpec) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigSpec"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CRIOCredentialProviderConfigStatus) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.CRIOCredentialProviderConfigStatus"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in CertificateConfig) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.CertificateConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in ClusterMonitoring) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.ClusterMonitoring"
 }
@@ -106,23 +81,28 @@ func (in ContainerResource) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ControllerManager) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.ControllerManager"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ControllerManagerList) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.ControllerManagerList"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in ControllerManagerSpec) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.ControllerManagerSpec"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in CustomPKIPolicy) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.CustomPKIPolicy"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DefaultCertificateConfig) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.DefaultCertificateConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in DropEqualActionConfig) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.DropEqualActionConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in ECDSAKeyConfig) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.ECDSAKeyConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -163,11 +143,6 @@ func (in InsightsDataGatherStatus) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in KeepEqualActionConfig) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.KeepEqualActionConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in KeyConfig) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.KeyConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -336,8 +311,38 @@ func (in PKI) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKICertificateConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKICertificateConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in PKICertificateManagement) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.PKICertificateManagement"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKICertificatePolicy) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKICertificatePolicy"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKIDefaultCertificateConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKIDefaultCertificateConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKIECDSAKeyConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKIECDSAKeyConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKIKeyConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKIKeyConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKIKeyPolicy) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKIKeyPolicy"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -346,8 +351,23 @@ func (in PKIList) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKINamedCertificateConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKINamedCertificateConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKINamedKeyConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKINamedKeyConfig"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in PKIProfile) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.PKIProfile"
+}
+
+// OpenAPIModelName returns the OpenAPI model name for this type.
+func (in PKIRSAKeyConfig) OpenAPIModelName() string {
+	return "com.github.openshift.api.config.v1alpha1.PKIRSAKeyConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
@@ -388,11 +408,6 @@ func (in PrometheusRemoteWriteHeader) OpenAPIModelName() string {
 // OpenAPIModelName returns the OpenAPI model name for this type.
 func (in QueueConfig) OpenAPIModelName() string {
 	return "com.github.openshift.api.config.v1alpha1.QueueConfig"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in RSAKeyConfig) OpenAPIModelName() string {
-	return "com.github.openshift.api.config.v1alpha1.RSAKeyConfig"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

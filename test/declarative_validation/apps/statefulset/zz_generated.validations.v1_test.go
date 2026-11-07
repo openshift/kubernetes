@@ -41,10 +41,15 @@ func init() {
 			},
 			"metadata.generation": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+				{ErrorType: "FieldValueInvalid", Origin: "monotonic"},
+				{ErrorType: "FieldValueInvalid", Origin: "update"},
 			},
 			"metadata.managedFields[*].operation": {
 				{ErrorType: "FieldValueNotSupported"},
 				{ErrorType: "FieldValueRequired"},
+			},
+			"metadata.namespace": {
+				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
 			"metadata.ownerReferences[*].apiVersion": {
 				{ErrorType: "FieldValueRequired"},
@@ -71,6 +76,13 @@ func init() {
 			"spec.serviceName": {
 				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
+			"spec.template.spec.activeDeadlineSeconds": {
+				{ErrorType: "FieldValueInvalid", Origin: "maximum"},
+				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+			},
+			"spec.template.spec.containers": {
+				{ErrorType: "FieldValueRequired"},
+			},
 			"spec.template.spec.evictionResponders": {
 				{ErrorType: "FieldValueTooMany", Origin: "maxItems"},
 			},
@@ -85,6 +97,9 @@ func init() {
 				{ErrorType: "FieldValueInvalid", Origin: "maximum"},
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
 				{ErrorType: "FieldValueRequired"},
+			},
+			"spec.template.spec.restartPolicy": {
+				{ErrorType: "FieldValueNotSupported"},
 			},
 			"spec.template.spec.schedulingGroup": {
 				{ErrorType: "FieldValueForbidden", Origin: "dependentForbidden"},

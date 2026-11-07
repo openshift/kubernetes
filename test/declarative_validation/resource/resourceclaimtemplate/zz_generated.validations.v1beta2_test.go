@@ -41,10 +41,15 @@ func init() {
 			},
 			"metadata.generation": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+				{ErrorType: "FieldValueInvalid", Origin: "monotonic"},
+				{ErrorType: "FieldValueInvalid", Origin: "update"},
 			},
 			"metadata.managedFields[*].operation": {
 				{ErrorType: "FieldValueNotSupported"},
 				{ErrorType: "FieldValueRequired"},
+			},
+			"metadata.namespace": {
+				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
 			"metadata.ownerReferences[*].apiVersion": {
 				{ErrorType: "FieldValueRequired"},
@@ -80,9 +85,11 @@ func init() {
 			},
 			"spec.spec.devices.constraints[*].distinctAttribute": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-fully-qualified-name"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-fully-qualified-name"},
 			},
 			"spec.spec.devices.constraints[*].matchAttribute": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-fully-qualified-name"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-fully-qualified-name"},
 			},
 			"spec.spec.devices.constraints[*].requests": {
 				{ErrorType: "FieldValueTooMany", Origin: "maxItems"},
@@ -108,6 +115,7 @@ func init() {
 			"spec.spec.devices.requests[*].exactly.derivedAttributes[*].name": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-fully-qualified-name"},
 				{ErrorType: "FieldValueRequired"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-fully-qualified-name"},
 			},
 			"spec.spec.devices.requests[*].exactly.selectors": {
 				{ErrorType: "FieldValueTooMany", Origin: "maxItems"},
@@ -140,6 +148,7 @@ func init() {
 			"spec.spec.devices.requests[*].firstAvailable[*].derivedAttributes[*].name": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-fully-qualified-name"},
 				{ErrorType: "FieldValueRequired"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-fully-qualified-name"},
 			},
 			"spec.spec.devices.requests[*].firstAvailable[*].deviceClassName": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-long-name"},

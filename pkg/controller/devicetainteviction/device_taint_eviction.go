@@ -780,7 +780,7 @@ func newWithFeatures(c clientset.Interface, podInformer coreinformers.PodInforme
 // Run starts the controller which will run until the context is done.
 // An error is returned for startup problems.
 func (tc *Controller) Run(ctx context.Context, numWorkers int) error {
-	defer utilruntime.HandleCrash()
+	defer utilruntime.HandleCrashWithContext(ctx)
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting", "controller", tc.name, "numWorkers", numWorkers)
 	defer logger.Info("Shut down controller", "controller", tc.name, "reason", context.Cause(ctx))
@@ -810,6 +810,7 @@ func (tc *Controller) Run(ctx context.Context, numWorkers int) error {
 	tc.workqueue = workqueue.NewTypedRateLimitingQueueWithConfig(
 		workqueue.DefaultTypedControllerRateLimiter[workItem](),
 		workqueue.TypedRateLimitingQueueConfig[workItem]{
+			Logger:        &logger,
 			Name:          tc.name,
 			DelayingQueue: delayingQueue,
 		},
@@ -1234,7 +1235,8 @@ func (tc *Controller) claimEvictionTime(claim *resourceapi.ResourceClaim) *evict
 			haveToleration := false
 			tolerationSeconds := int64(math.MaxInt64)
 			for _, toleration := range allocatedDevice.Tolerations {
-				if toleration.Effect == resourceapi.DeviceTaintEffectNoExecute &&
+				// An empty effect matches all taint effects, including NoExecute.
+				if (toleration.Effect == "" || toleration.Effect == resourceapi.DeviceTaintEffectNoExecute) &&
 					resourceclaim.ToleratesTaint(toleration, *taint.deviceTaint()) {
 					if toleration.TolerationSeconds == nil {
 						// Tolerate forever -> ignore taint.
@@ -1496,7 +1498,8 @@ func (tc *Controller) handlePodChange(oldPod, newPod *v1.Pod) {
 	// to it.
 	if oldPod != nil &&
 		oldPod.Spec.NodeName == newPod.Spec.NodeName &&
-		apiequality.Semantic.DeepEqual(oldPod.Status.ResourceClaimStatuses, newPod.Status.ResourceClaimStatuses) {
+		resourceclaim.PodStatusEqual(oldPod.Status.ResourceClaimStatuses, newPod.Status.ResourceClaimStatuses) &&
+		resourceclaim.PodExtendedStatusEqual(oldPod.Status.ExtendedResourceClaimStatus, newPod.Status.ExtendedResourceClaimStatus) {
 		return
 	}
 
@@ -1577,17 +1580,8 @@ func (tc *Controller) podEvictionTime(pod *v1.Pod) *evictionAndReason {
 	// If any claim in use by the pod is tainted such that the taint is not tolerated,
 	// the pod needs to be evicted.
 	var eviction *evictionAndReason
-	for i := range pod.Spec.ResourceClaims {
-		claimName, mustCheckOwner, err := resourceclaim.Name(pod, &pod.Spec.ResourceClaims[i])
-		if err != nil {
-			// Not created yet or unsupported. Definitely not tainted.
-			continue
-		}
-		if claimName == nil {
-			// Claim not needed.
-			continue
-		}
-		allocatedClaim, ok := tc.allocatedClaims[types.NamespacedName{Namespace: pod.Namespace, Name: *claimName}]
+	for claimName, mustCheckOwner := range resourceclaim.PodClaims(pod) {
+		allocatedClaim, ok := tc.allocatedClaims[types.NamespacedName{Namespace: pod.Namespace, Name: claimName}]
 		if !ok {
 			// Referenced, but not found or not allocated. Also not tainted.
 			continue

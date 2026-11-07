@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/informers"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	"k8s.io/ktesting"
 	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/features"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/backend/cache"
@@ -40,7 +41,6 @@ import (
 	frameworkruntime "k8s.io/kubernetes/pkg/scheduler/framework/runtime"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
-	"k8s.io/kubernetes/test/utils/ktesting"
 )
 
 func init() {
@@ -286,7 +286,7 @@ func TestScorePlacement(t *testing.T) {
 					cpgPtrs[i] = &cpgs[i]
 				}
 
-				snapshot := internalcache.NewTestSnapshotWithCompositePodGroups(pods, nil, pgPtrs, cpgPtrs)
+				snapshot := internalcache.NewTestSnapshotWithPodGroups(pods, nil, pgPtrs, cpgPtrs)
 
 				fh, _ := frameworkruntime.NewFramework(tCtx, nil, nil,
 					frameworkruntime.WithInformerFactory(informerFactory),
@@ -381,7 +381,13 @@ func TestNormalizePlacementScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pl := &PodGroupPodsCount{}
-			pgInfo := &framework.PodGroupInfo{Name: "pg1", Type: fwk.PodGroupKeyType}
+			pgInfo := &framework.PodGroupInfo{
+				GenericPodGroup: fwk.NewGenericPodGroup(&schedulingapi.PodGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "pg1",
+					},
+				}),
+			}
 			status := pl.NormalizePlacementScore(context.Background(), nil, pgInfo, tt.scores)
 			if tt.expectedError != "" {
 				if status.IsSuccess() {
@@ -406,19 +412,13 @@ func TestNormalizePlacementScore(t *testing.T) {
 
 func makePodGroupInfoFromPG(pg *schedulingapi.PodGroup) fwk.PodGroupInfo {
 	return &framework.PodGroupInfo{
-		Name:      pg.Name,
-		Namespace: pg.Namespace,
-		PodGroup:  pg,
-		Type:      fwk.PodGroupKeyType,
+		GenericPodGroup: fwk.NewGenericPodGroup(pg),
 	}
 }
 
 func makePodGroupInfoFromCPG(cpg *schedulingv1alpha3.CompositePodGroup) fwk.PodGroupInfo {
 	return &framework.PodGroupInfo{
-		Name:              cpg.Name,
-		Namespace:         cpg.Namespace,
-		CompositePodGroup: cpg,
-		Type:              fwk.CompositePodGroupKeyType,
+		GenericPodGroup: fwk.NewGenericCompositePodGroup(cpg),
 	}
 }
 

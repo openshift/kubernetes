@@ -108,16 +108,28 @@ func (m *kubeGenericRuntimeManager) recordContainerEvent(ctx context.Context, po
 // containers, plus some additional fields. In both cases startSpec.container will be set.
 type startSpec struct {
 	container          *v1.Container
+	containerType      podutil.ContainerType
 	ephemeralContainer *v1.EphemeralContainer
 }
 
 func containerStartSpec(c *v1.Container) *startSpec {
-	return &startSpec{container: c}
+	return &startSpec{
+		container:     c,
+		containerType: podutil.Containers,
+	}
+}
+
+func initContainerStartSpec(c *v1.Container) *startSpec {
+	return &startSpec{
+		container:     c,
+		containerType: podutil.InitContainers,
+	}
 }
 
 func ephemeralContainerStartSpec(ec *v1.EphemeralContainer) *startSpec {
 	return &startSpec{
 		container:          (*v1.Container)(&ec.EphemeralContainerCommon),
+		containerType:      podutil.EphemeralContainers,
 		ephemeralContainer: ec,
 	}
 }
@@ -263,7 +275,7 @@ func (m *kubeGenericRuntimeManager) startContainer(ctx context.Context, podSandb
 	}
 
 	// When creating a container, mark the resources as actuated.
-	if err := m.setActuatedContainerResources(logger, pod, container); err != nil {
+	if err := m.setActuatedContainerResources(logger, pod, container, spec.containerType); err != nil {
 		m.recordContainerEvent(ctx, pod, container, "", v1.EventTypeWarning, events.FailedToCreateContainer, "Error: %v", err)
 		return err.Error(), ErrCreateContainerConfig
 	}
@@ -408,7 +420,7 @@ func (m *kubeGenericRuntimeManager) generateContainerConfig(ctx context.Context,
 	return config, cleanupAction, nil
 }
 
-func (m *kubeGenericRuntimeManager) updateContainerResources(ctx context.Context, pod *v1.Pod, container *v1.Container, containerID kubecontainer.ContainerID) error {
+func (m *kubeGenericRuntimeManager) updateContainerResources(ctx context.Context, pod *v1.Pod, container *v1.Container, containerID kubecontainer.ContainerID, containerType podutil.ContainerType) error {
 	logger := klog.FromContext(ctx)
 	containerResources := m.generateContainerResources(ctx, pod, container)
 	if containerResources == nil {
@@ -416,18 +428,18 @@ func (m *kubeGenericRuntimeManager) updateContainerResources(ctx context.Context
 	}
 	err := m.runtimeService.UpdateContainerResources(ctx, containerID.ID, containerResources)
 	if err == nil {
-		err = m.setActuatedContainerResources(logger, pod, container)
+		err = m.setActuatedContainerResources(logger, pod, container, containerType)
 	}
 	return err
 }
 
-func (m *kubeGenericRuntimeManager) setActuatedContainerResources(logger klog.Logger, pod *v1.Pod, container *v1.Container) error {
+func (m *kubeGenericRuntimeManager) setActuatedContainerResources(logger klog.Logger, pod *v1.Pod, container *v1.Container, containerType podutil.ContainerType) error {
 	containerResources := container.Resources
 	if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodLevelResourcesVerticalScaling) {
 		containerResources = *containerResources.DeepCopy()
 		containerResources.Limits = kubeutil.GetLimits(&kubeutil.ResourceOpts{PodResources: pod.Spec.Resources, ContainerResources: &container.Resources})
 	}
-	return m.actuatedState.SetContainerResources(logger, pod.UID, container.Name, containerResources)
+	return m.actuatedState.SetContainerResources(logger, pod.UID, container.Name, containerType, containerResources)
 }
 
 func (m *kubeGenericRuntimeManager) updatePodSandboxResources(ctx context.Context, sandboxID string, pod *v1.Pod, podResources *cm.ResourceConfig) error {
@@ -1320,6 +1332,15 @@ func (m *kubeGenericRuntimeManager) GetContainerLogs(ctx context.Context, pod *v
 	if status == nil {
 		return remote.ErrContainerStatusNil
 	}
+	// Since v1.32, stdout may be nil if the stream is not requested.
+	if stdout != nil {
+		// Do a zero-byte write to stdout before handing off to the container runtime.
+		// This ensures at least one Write call is made to the writer when copying starts,
+		// even if we then block waiting for log output from the container.
+		if _, err := stdout.Write([]byte{}); err != nil {
+			return err
+		}
+	}
 	return m.ReadLogs(ctx, status.GetLogPath(), containerID.ID, logOptions, stdout, stderr)
 }
 
@@ -1355,15 +1376,6 @@ func (m *kubeGenericRuntimeManager) GetAttach(ctx context.Context, id kubecontai
 		return nil, err
 	}
 	return url.Parse(resp.Url)
-}
-
-// RunInContainer synchronously executes the command in the container, and returns the output.
-func (m *kubeGenericRuntimeManager) RunInContainer(ctx context.Context, id kubecontainer.ContainerID, cmd []string, timeout time.Duration) ([]byte, error) {
-	stdout, stderr, err := m.runtimeService.ExecSync(ctx, id.ID, cmd, timeout)
-	// NOTE(tallclair): This does not correctly interleave stdout & stderr, but should be sufficient
-	// for logging purposes. A combined output option will need to be added to the ExecSyncRequest
-	// if more precise output ordering is ever required.
-	return append(stdout, stderr...), err
 }
 
 // removeContainer removes the container and optionally the container logs.

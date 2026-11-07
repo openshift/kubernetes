@@ -19,14 +19,10 @@ package preemption
 import (
 	v1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1"
-	schedulingv1alpha3 "k8s.io/api/scheduling/v1alpha3"
-	schedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/sets"
-	corev1helpers "k8s.io/component-helpers/scheduling/corev1"
+	policylisters "k8s.io/client-go/listers/policy/v1"
 	fwk "k8s.io/kube-scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/util"
 )
 
 // PodTerminatingByPreemption returns true if the pod is in the termination state caused by scheduler preemption.
@@ -80,7 +76,19 @@ func MoreImportantVictim(vi1, vi2 Victim) bool {
 		return len(vi1.Pods()) > len(vi2.Pods())
 	}
 
-	return vi1.EarliestStartTime().Before(vi2.EarliestStartTime())
+	t1, t2 := vi1.EarliestStartTime(), vi2.EarliestStartTime()
+	if t1 != nil && t2 != nil && !t1.Equal(t2) {
+		return t1.Before(t2)
+	}
+
+	return podIdentityLess(vi1, vi2)
+}
+
+// podIdentityLess provides a deterministic, stable ordering of victims based on
+// the representative pod's UID. The first pod in a victim's list is stable once
+// the victim is constructed, so a direct comparison is sufficient.
+func podIdentityLess(vi1, vi2 Victim) bool {
+	return vi1.Pods()[0].GetPod().UID < vi2.Pods()[0].GetPod().UID
 }
 
 func victimRank(vi Victim) int {
@@ -94,112 +102,12 @@ func victimRank(vi Victim) int {
 	}
 }
 
-// TraverseHierarchyUp traverses the hierarchy of PodGroups/CompositePodGroups upward from startKey.
-// At each node (either a PodGroup or a CompositePodGroup), visitFn is called.
-// If visitFn returns (stop = true), the traversal stops immediately.
-// If the next parent is missing, or cannot be listed, the traversal also stops.
-// This method assumes that both GenericWorkload as well as CompositePodGroup feature gates are enabled.
-// TODO: log/return an error if there is a gap in the hierarchy.
-func TraverseHierarchyUp(
-	namespace string,
-	startKey fwk.EntityKey,
-	pgLister fwk.PodGroupLister,
-	cpgLister fwk.CompositePodGroupLister,
-	visitFn func(key fwk.EntityKey, pg *schedulingv1beta1.PodGroup, cpg *schedulingv1alpha3.CompositePodGroup) (stop bool),
-) {
-	if pgLister == nil || cpgLister == nil {
-		return
-	}
-	currentKey := startKey
-	visited := sets.New[fwk.EntityKey]()
-	for range schedulingv1beta1.WorkloadMaxTreeDepth {
-		if visited.Has(currentKey) {
-			break
-		}
-		visited.Insert(currentKey)
-
-		switch currentKey.Type {
-		case fwk.PodGroupKeyType:
-			pg, err := pgLister.Get(namespace, currentKey.Name)
-			if err != nil || pg == nil {
-				return
-			}
-			if visitFn(currentKey, pg, nil) {
-				return
-			}
-			if pg.Spec.ParentCompositePodGroupName == nil {
-				return
-			}
-			currentKey = fwk.CompositePodGroupKey(namespace, *pg.Spec.ParentCompositePodGroupName)
-
-		case fwk.CompositePodGroupKeyType:
-			cpg, err := cpgLister.Get(namespace, currentKey.Name)
-			if err != nil || cpg == nil {
-				return
-			}
-			if visitFn(currentKey, nil, cpg) {
-				return
-			}
-			if cpg.Spec.ParentCompositePodGroupName == nil {
-				return
-			}
-			currentKey = fwk.CompositePodGroupKey(namespace, *cpg.Spec.ParentCompositePodGroupName)
-		}
-	}
-}
-
-// GetPodPriority returns the effective preemption priority of a pod. If the pod belongs to
-// a pod group or composite pod group hierarchy, it returns the priority of the root group of the hierarchy.
-// If podGroupLister is nil or the pod does not belong to a pod group, it returns the pod's own priority.
-// If compositePodGroupLister is nil or a parent composite pod group in the hierarchy is not found,
-// it falls back to the priority of the last successfully resolved group (or the pod's own priority).
-// TODO: log/return an error if there is a gap in the hierarchy.
-func GetPodPriority(p *v1.Pod, podGroupLister fwk.PodGroupLister, compositePodGroupLister fwk.CompositePodGroupLister) int32 {
-	if p.Spec.SchedulingGroup == nil || podGroupLister == nil {
-		return corev1helpers.PodPriority(p)
-	}
-	if compositePodGroupLister == nil {
-		pg, err := podGroupLister.Get(p.Namespace, *p.Spec.SchedulingGroup.PodGroupName)
-		if err != nil || pg == nil {
-			return corev1helpers.PodPriority(p)
-		}
-		return util.PodGroupPriority(pg)
-	}
-
-	startKey := fwk.PodGroupKey(p.Namespace, *p.Spec.SchedulingGroup.PodGroupName)
-	var lastPG *schedulingv1beta1.PodGroup
-	var lastCPG *schedulingv1alpha3.CompositePodGroup
-
-	TraverseHierarchyUp(p.Namespace, startKey, podGroupLister, compositePodGroupLister, func(key fwk.EntityKey, pg *schedulingv1beta1.PodGroup, cpg *schedulingv1alpha3.CompositePodGroup) bool {
-		if pg != nil {
-			lastPG = pg
-			lastCPG = nil
-		} else if cpg != nil {
-			lastCPG = cpg
-			lastPG = nil
-		}
-		return false
-	})
-
-	if lastCPG != nil {
-		return util.CompositePodGroupPriority(lastCPG)
-	}
-	if lastPG != nil {
-		return util.PodGroupPriority(lastPG)
-	}
-	return corev1helpers.PodPriority(p)
-}
-
 // FilterVictimsWithPDBViolation groups "victims" into "violatingVictims"
 // and "nonViolatingVictims" based on whether their PDBs will be violated if they are
 // preempted.
 func FilterVictimsWithPDBViolation[T Victim](victims []T, pdbs []*policy.PodDisruptionBudget) (violatingVictims []ViolatingVictim[T], nonViolatingVictims []T) {
 	pdbsAllowed := make([]int32, len(pdbs))
 	podIsViolating := func(pod *v1.Pod) bool {
-		if len(pod.Labels) == 0 {
-			return false
-		}
-
 		for i, pdb := range pdbs {
 			if pdb.Namespace != pod.Namespace {
 				continue
@@ -209,8 +117,7 @@ func FilterVictimsWithPDBViolation[T Victim](victims []T, pdbs []*policy.PodDisr
 				// This object has an invalid selector, it does not match the pod
 				continue
 			}
-			// A PDB with a nil or empty selector matches nothing.
-			if selector.Empty() || !selector.Matches(labels.Set(pod.Labels)) {
+			if !selector.Matches(labels.Set(pod.Labels)) {
 				continue
 			}
 
@@ -258,4 +165,9 @@ func FilterVictimsWithPDBViolation[T Victim](victims []T, pdbs []*policy.PodDisr
 	}
 
 	return violatingVictims, nonViolatingVictims
+}
+
+// getPodDisruptionBudgets returns all pod disruption budgets from the provided lister.
+func getPodDisruptionBudgets(pdbLister policylisters.PodDisruptionBudgetLister) ([]*policy.PodDisruptionBudget, error) {
+	return pdbLister.List(labels.Everything())
 }

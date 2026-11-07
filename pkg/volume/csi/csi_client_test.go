@@ -848,6 +848,31 @@ func TestNodeExpandVolume(t *testing.T) {
 			newSize:    *resource.NewQuantity(-10, resource.DecimalSI),
 			mustFail:   true,
 		},
+		{
+			// Quantity.Value() overflows an int64 for this input and does not
+			// preserve the sign, reporting a positive 8246196746. A negative size
+			// must still be rejected.
+			name:       "with negative quantity whose Value overflows",
+			volID:      "vol-1234",
+			volumePath: "/foo/bar",
+			newSize:    resource.MustParse("-9.5Gi"),
+			mustFail:   true,
+		},
+		{
+			name:       "with quantity of exactly MaxInt64 bytes",
+			volID:      "vol-1234",
+			volumePath: "/foo/bar",
+			newSize:    resource.MustParse("9223372036854775807"),
+			mustFail:   false,
+		},
+		{
+			// TODO(#141166): A size past int64 must be rejected before the CSI call.
+			name:       "with quantity past int64",
+			volID:      "vol-1234",
+			volumePath: "/foo/bar",
+			newSize:    resource.MustParse("100E"),
+			mustFail:   false,
+		},
 	}
 
 	for _, tc := range testCases {

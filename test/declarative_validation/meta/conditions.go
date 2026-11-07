@@ -61,6 +61,90 @@ func GenerateConditionTestCases(fldPath *field.Path) []ConditionTestCase {
 			},
 		},
 		{
+			Name: "invalid type format not a k8s label key",
+			Conditions: []metav1.Condition{
+				MkCondition(
+					TweakType("-InvalidType"),
+				),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.Invalid(
+					fldPath.Index(0).Child("type"),
+					"-InvalidType",
+					"",
+				).WithOrigin("format=k8s-label-key").MarkAlpha(),
+			},
+		},
+		{
+			Name: "invalid type format uppercase prefix",
+			Conditions: []metav1.Condition{
+				MkCondition(
+					TweakType("Example.com/Ready"),
+				),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.Invalid(
+					fldPath.Index(0).Child("type"),
+					"Example.com/Ready",
+					"",
+				).WithOrigin("format=k8s-label-key").MarkAlpha(),
+			},
+		},
+		{
+			Name: "invalid type format underscore in prefix",
+			Conditions: []metav1.Condition{
+				MkCondition(
+					TweakType("example_com/Ready"),
+				),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.Invalid(
+					fldPath.Index(0).Child("type"),
+					"example_com/Ready",
+					"",
+				).WithOrigin("format=k8s-label-key").MarkAlpha(),
+			},
+		},
+		{
+			Name: "invalid type format multiple slashes",
+			Conditions: []metav1.Condition{
+				MkCondition(
+					TweakType("example.com/foo/Ready"),
+				),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.Invalid(
+					fldPath.Index(0).Child("type"),
+					"example.com/foo/Ready",
+					"",
+				).WithOrigin("format=k8s-label-key").MarkAlpha(),
+			},
+		},
+		{
+			Name: "invalid type format empty prefix",
+			Conditions: []metav1.Condition{
+				MkCondition(
+					TweakType("/Ready"),
+				),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.Invalid(
+					fldPath.Index(0).Child("type"),
+					"/Ready",
+					"",
+				).WithOrigin("format=k8s-label-key").MarkAlpha(),
+			},
+		},
+		{
+			Name: "valid type format with prefix as a k8s label key",
+			Conditions: []metav1.Condition{
+				MkCondition(
+					TweakType("example.com/Ready"),
+				),
+			},
+			ExpectedErrs: nil,
+		},
+		{
 			Name: "invalid missing status",
 			Conditions: []metav1.Condition{
 				MkCondition(TweakStatus("")),
@@ -157,6 +241,38 @@ func GenerateConditionTestCases(fldPath *field.Path) []ConditionTestCase {
 				field.TooLong(fldPath.Index(0).Child("reason"), "", 1024).WithOrigin("maxBytes").MarkAlpha(),
 			},
 		},
+		{
+			Name: "valid message at max length",
+			Conditions: []metav1.Condition{
+				MkCondition(TweakMessage(strings.Repeat("a", 32768))),
+			},
+			ExpectedErrs: nil,
+		},
+		{
+			Name: "valid non ascii characters message at max length",
+			Conditions: []metav1.Condition{
+				MkCondition(TweakMessage(strings.Repeat("आ", 10922) + "aa")),
+			},
+			ExpectedErrs: nil,
+		},
+		{
+			Name: "invalid message",
+			Conditions: []metav1.Condition{
+				MkCondition(TweakMessage(strings.Repeat("a", 32769))),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.TooLong(fldPath.Index(0).Child("message"), "", 32768).WithOrigin("maxBytes").MarkAlpha(),
+			},
+		},
+		{
+			Name: "invalid non ascii characters message",
+			Conditions: []metav1.Condition{
+				MkCondition(TweakMessage(strings.Repeat("आ", 10923))),
+			},
+			ExpectedErrs: field.ErrorList{
+				field.TooLong(fldPath.Index(0).Child("message"), "", 32768).WithOrigin("maxBytes").MarkAlpha(),
+			},
+		},
 	}
 }
 
@@ -211,6 +327,12 @@ func TweakObservedGeneration(gen int64) func(*metav1.Condition) {
 func TweakLastTransitionTime(t metav1.Time) func(*metav1.Condition) {
 	return func(c *metav1.Condition) {
 		c.LastTransitionTime = t
+	}
+}
+
+func TweakMessage(message string) func(*metav1.Condition) {
+	return func(c *metav1.Condition) {
+		c.Message = message
 	}
 }
 

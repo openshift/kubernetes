@@ -26,8 +26,7 @@ import (
 	fmt "fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
-	apicorev1 "k8s.io/api/core/v1"
-	equality "k8s.io/apimachinery/pkg/api/equality"
+	corev1 "k8s.io/api/core/v1"
 	operation "k8s.io/apimachinery/pkg/api/operation"
 	safe "k8s.io/apimachinery/pkg/api/safe"
 	validate "k8s.io/apimachinery/pkg/api/validate"
@@ -35,7 +34,7 @@ import (
 	validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	field "k8s.io/apimachinery/pkg/util/validation/field"
-	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	apiscorev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 func init() { localSchemeBuilder.Register(RegisterValidations) }
@@ -136,7 +135,7 @@ func Validate_ControllerRevision(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -171,7 +170,7 @@ func Validate_DaemonSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -193,7 +192,7 @@ func Validate_DaemonSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -223,20 +222,34 @@ func Validate_DaemonSetSpec(
 	{ // field appsv1.DaemonSetSpec.Template
 		fn := func(
 			fldPath *field.Path,
-			obj, oldObj *apicorev1.PodTemplateSpec,
+			obj, oldObj *corev1.PodTemplateSpec,
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
+			// call field-attached validations
+			func() { // cohort = "spec.restartPolicy"
+				if e := validate.Subfield(ctx, op, fldPath, obj, oldObj, "spec",
+					func(o *corev1.PodTemplateSpec) *corev1.PodSpec { return &o.Spec }, validate.SemanticDeepEqual,
+					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *corev1.PodSpec) field.ErrorList {
+						return validate.Subfield(ctx, op, fldPath, obj, oldObj, "restartPolicy",
+							func(o *corev1.PodSpec) *corev1.RestartPolicy { return &o.RestartPolicy }, validate.DirectEqual,
+							func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *corev1.RestartPolicy) field.ErrorList {
+								return validate.EQ(ctx, op, fldPath, obj, oldObj, "Always")
+							})
+					}).MarkAlpha(); len(e) != 0 {
+					errs = append(errs, e...)
+				}
+			}()
 			// call the type's validation function
-			errs = append(errs, corev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
+			errs = append(errs, apiscorev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
 			return
 		}
 		oldVal := safe.Field(oldObj,
-			func(oldObj *appsv1.DaemonSetSpec) *apicorev1.PodTemplateSpec {
+			func(oldObj *appsv1.DaemonSetSpec) *corev1.PodTemplateSpec {
 				return &oldObj.Template
 			})
 		errs = append(errs, fn(fldPath.Child("template"), &obj.Template, oldVal, oldObj != nil)...)
@@ -263,7 +276,7 @@ func Validate_Deployment(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -285,7 +298,7 @@ func Validate_Deployment(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -316,20 +329,20 @@ func Validate_DeploymentSpec(
 	{ // field appsv1.DeploymentSpec.Template
 		fn := func(
 			fldPath *field.Path,
-			obj, oldObj *apicorev1.PodTemplateSpec,
+			obj, oldObj *corev1.PodTemplateSpec,
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call the type's validation function
-			errs = append(errs, corev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
+			errs = append(errs, apiscorev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
 			return
 		}
 		oldVal := safe.Field(oldObj,
-			func(oldObj *appsv1.DeploymentSpec) *apicorev1.PodTemplateSpec {
+			func(oldObj *appsv1.DeploymentSpec) *corev1.PodTemplateSpec {
 				return &oldObj.Template
 			})
 		errs = append(errs, fn(fldPath.Child("template"), &obj.Template, oldVal, oldObj != nil)...)
@@ -358,7 +371,7 @@ func Validate_ReplicaSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -380,7 +393,7 @@ func Validate_ReplicaSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -412,20 +425,20 @@ func Validate_ReplicaSetSpec(
 	{ // field appsv1.ReplicaSetSpec.Template
 		fn := func(
 			fldPath *field.Path,
-			obj, oldObj *apicorev1.PodTemplateSpec,
+			obj, oldObj *corev1.PodTemplateSpec,
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call the type's validation function
-			errs = append(errs, corev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
+			errs = append(errs, apiscorev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
 			return
 		}
 		oldVal := safe.Field(oldObj,
-			func(oldObj *appsv1.ReplicaSetSpec) *apicorev1.PodTemplateSpec {
+			func(oldObj *appsv1.ReplicaSetSpec) *corev1.PodTemplateSpec {
 				return &oldObj.Template
 			})
 		errs = append(errs, fn(fldPath.Child("template"), &obj.Template, oldVal, oldObj != nil)...)
@@ -449,7 +462,7 @@ func Validate_StatefulSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -471,7 +484,7 @@ func Validate_StatefulSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -505,7 +518,7 @@ func Validate_StatefulSetSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -534,20 +547,34 @@ func Validate_StatefulSetSpec(
 	{ // field appsv1.StatefulSetSpec.Template
 		fn := func(
 			fldPath *field.Path,
-			obj, oldObj *apicorev1.PodTemplateSpec,
+			obj, oldObj *corev1.PodTemplateSpec,
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
+			// call field-attached validations
+			func() { // cohort = "spec.restartPolicy"
+				if e := validate.Subfield(ctx, op, fldPath, obj, oldObj, "spec",
+					func(o *corev1.PodTemplateSpec) *corev1.PodSpec { return &o.Spec }, validate.SemanticDeepEqual,
+					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *corev1.PodSpec) field.ErrorList {
+						return validate.Subfield(ctx, op, fldPath, obj, oldObj, "restartPolicy",
+							func(o *corev1.PodSpec) *corev1.RestartPolicy { return &o.RestartPolicy }, validate.DirectEqual,
+							func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *corev1.RestartPolicy) field.ErrorList {
+								return validate.EQ(ctx, op, fldPath, obj, oldObj, "Always")
+							})
+					}).MarkAlpha(); len(e) != 0 {
+					errs = append(errs, e...)
+				}
+			}()
 			// call the type's validation function
-			errs = append(errs, corev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
+			errs = append(errs, apiscorev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
 			return
 		}
 		oldVal := safe.Field(oldObj,
-			func(oldObj *appsv1.StatefulSetSpec) *apicorev1.PodTemplateSpec {
+			func(oldObj *appsv1.StatefulSetSpec) *corev1.PodTemplateSpec {
 				return &oldObj.Template
 			})
 		errs = append(errs, fn(fldPath.Child("template"), &obj.Template, oldVal, oldObj != nil)...)
@@ -556,11 +583,11 @@ func Validate_StatefulSetSpec(
 	{ // field appsv1.StatefulSetSpec.VolumeClaimTemplates
 		fn := func(
 			fldPath *field.Path,
-			obj, oldObj []apicorev1.PersistentVolumeClaim,
+			obj, oldObj []corev1.PersistentVolumeClaim,
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -579,7 +606,7 @@ func Validate_StatefulSetSpec(
 			return
 		}
 		oldVal := safe.Field(oldObj,
-			func(oldObj *appsv1.StatefulSetSpec) []apicorev1.PersistentVolumeClaim {
+			func(oldObj *appsv1.StatefulSetSpec) []corev1.PersistentVolumeClaim {
 				return oldObj.VolumeClaimTemplates
 			})
 		errs = append(errs, fn(fldPath.Child("volumeClaimTemplates"), obj.VolumeClaimTemplates, oldVal, oldObj != nil)...)

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,7 +41,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/util/feature"
@@ -1068,55 +1068,12 @@ func TestDelayTerminalPhaseCondition(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		enableJobManagedBy bool
-
 		job                batchv1.Job
 		action             func(context.Context, clientset.Interface, *batchv1.Job)
 		wantInterimStatus  *batchv1.JobStatus
 		wantTerminalStatus batchv1.JobStatus
 	}{
-		"job backoff limit exceeded; JobManagedBy disabled": {
-			job: batchv1.Job{
-				Spec: batchv1.JobSpec{
-					Parallelism:  ptr.To[int32](2),
-					Completions:  ptr.To[int32](2),
-					Template:     podTemplateSpec,
-					BackoffLimit: ptr.To[int32](0),
-				},
-			},
-			action: failOnePod,
-			wantInterimStatus: &batchv1.JobStatus{
-				Failed:      2,
-				Terminating: ptr.To[int32](1),
-				Ready:       ptr.To[int32](0),
-				Conditions: []batchv1.JobCondition{
-					{
-						Type:   batchv1.JobFailureTarget,
-						Status: v1.ConditionTrue,
-						Reason: batchv1.JobReasonBackoffLimitExceeded,
-					},
-				},
-			},
-			wantTerminalStatus: batchv1.JobStatus{
-				Failed:      2,
-				Ready:       ptr.To[int32](0),
-				Terminating: ptr.To[int32](0),
-				Conditions: []batchv1.JobCondition{
-					{
-						Type:   batchv1.JobFailureTarget,
-						Status: v1.ConditionTrue,
-						Reason: batchv1.JobReasonBackoffLimitExceeded,
-					},
-					{
-						Type:   batchv1.JobFailed,
-						Status: v1.ConditionTrue,
-						Reason: batchv1.JobReasonBackoffLimitExceeded,
-					},
-				},
-			},
-		},
-		"job backoff limit exceeded; JobManagedBy enabled": {
-			enableJobManagedBy: true,
+		"job backoff limit exceeded": {
 			job: batchv1.Job{
 				Spec: batchv1.JobSpec{
 					Parallelism:  ptr.To[int32](2),
@@ -1156,53 +1113,7 @@ func TestDelayTerminalPhaseCondition(t *testing.T) {
 				},
 			},
 		},
-		"job scale down to meet completions; JobManagedBy disabled": {
-			job: batchv1.Job{
-				Spec: batchv1.JobSpec{
-					Parallelism:    ptr.To[int32](2),
-					Completions:    ptr.To[int32](2),
-					CompletionMode: ptr.To(batchv1.IndexedCompletion),
-					Template:       podTemplateSpec,
-				},
-			},
-			action: succeedOnePodAndScaleDown,
-			wantInterimStatus: &batchv1.JobStatus{
-				Succeeded:        1,
-				Ready:            ptr.To[int32](0),
-				Terminating:      ptr.To[int32](1),
-				CompletedIndexes: "0",
-				Conditions: []batchv1.JobCondition{
-					{
-						Type:    batchv1.JobSuccessCriteriaMet,
-						Status:  v1.ConditionTrue,
-						Reason:  batchv1.JobReasonCompletionsReached,
-						Message: "Reached expected number of succeeded pods",
-					},
-				},
-			},
-			wantTerminalStatus: batchv1.JobStatus{
-				Succeeded:        1,
-				Ready:            ptr.To[int32](0),
-				Terminating:      ptr.To[int32](0),
-				CompletedIndexes: "0",
-				Conditions: []batchv1.JobCondition{
-					{
-						Type:    batchv1.JobSuccessCriteriaMet,
-						Status:  v1.ConditionTrue,
-						Reason:  batchv1.JobReasonCompletionsReached,
-						Message: "Reached expected number of succeeded pods",
-					},
-					{
-						Type:    batchv1.JobComplete,
-						Status:  v1.ConditionTrue,
-						Reason:  batchv1.JobReasonCompletionsReached,
-						Message: "Reached expected number of succeeded pods",
-					},
-				},
-			},
-		},
-		"job scale down to meet completions; JobManagedBy enabled": {
-			enableJobManagedBy: true,
+		"job scale down to meet completions": {
 			job: batchv1.Job{
 				Spec: batchv1.JobSpec{
 					Parallelism:    ptr.To[int32](2),
@@ -1254,13 +1165,6 @@ func TestDelayTerminalPhaseCondition(t *testing.T) {
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
 			resetMetrics()
-			if !test.enableJobManagedBy {
-				// TODO: this will be removed in 1.38.
-				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.34"))
-			}
-			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-				features.JobManagedBy: test.enableJobManagedBy,
-			})
 
 			ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
 			t.Cleanup(cancel)
@@ -1710,7 +1614,7 @@ func TestBackoffLimitPerIndex(t *testing.T) {
 
 // TestManagedBy verifies the Job controller correctly makes a decision to
 // reconcile or skip reconciliation of the Job depending on the Job's managedBy
-// field, and the enablement of the JobManagedBy feature gate.
+// field.
 func TestManagedBy(t *testing.T) {
 	const blockDeletionFinalizerForTest string = "fake.example.com/blockDeletion"
 	customControllerName := "example.com/custom-job-controller"
@@ -1725,13 +1629,11 @@ func TestManagedBy(t *testing.T) {
 		},
 	}
 	testCases := map[string]struct {
-		enableJobManagedBy                     bool
 		job                                    batchv1.Job
 		wantReconciledByBuiltInController      bool
 		wantJobByExternalControllerTotalMetric metricLabelsWithValue
 	}{
 		"the Job controller reconciles jobs without the managedBy": {
-			enableJobManagedBy: true,
 			job: batchv1.Job{
 				Spec: batchv1.JobSpec{
 					Template: podTemplateSpec,
@@ -1747,7 +1649,6 @@ func TestManagedBy(t *testing.T) {
 			},
 		},
 		"the Job controller reconciles jobs with the well known value of the managedBy field": {
-			enableJobManagedBy: true,
 			job: batchv1.Job{
 				Spec: batchv1.JobSpec{
 					Template:  podTemplateSpec,
@@ -1760,22 +1661,7 @@ func TestManagedBy(t *testing.T) {
 				Value:  0,
 			},
 		},
-		"the Job controller reconciles an unsuspended with the custom value of managedBy; feature disabled": {
-			enableJobManagedBy: false,
-			job: batchv1.Job{
-				Spec: batchv1.JobSpec{
-					Template:  podTemplateSpec,
-					ManagedBy: ptr.To(customControllerName),
-				},
-			},
-			wantReconciledByBuiltInController: true,
-			wantJobByExternalControllerTotalMetric: metricLabelsWithValue{
-				Labels: []string{customControllerName},
-				Value:  0,
-			},
-		},
 		"the Job controller does not reconcile an unsuspended with the custom value of managedBy": {
-			enableJobManagedBy: true,
 			job: batchv1.Job{
 				Spec: batchv1.JobSpec{
 					Suspend:   ptr.To(false),
@@ -1790,7 +1676,6 @@ func TestManagedBy(t *testing.T) {
 			},
 		},
 		"the Job controller does not reconcile a suspended with the custom value of managedBy": {
-			enableJobManagedBy: true,
 			job: batchv1.Job{
 				Spec: batchv1.JobSpec{
 					Suspend:   ptr.To(true),
@@ -1810,10 +1695,6 @@ func TestManagedBy(t *testing.T) {
 	t.Cleanup(closeFn)
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
-			// TODO: this will be removed in 1.38.
-			featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.34"))
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, test.enableJobManagedBy)
-
 			ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
 			t.Cleanup(cancel)
 
@@ -1854,108 +1735,6 @@ func TestManagedBy(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestManagedBy_Reenabling verifies handling a Job with a custom value of the
-// managedBy field by the Job controller, as the JobManagedBy feature gate is
-// disabled and reenabled again. First, when the feature gate is enabled, the
-// synchronization is skipped, when it is disabled the synchronization is starts,
-// and is disabled again with re-enabling of the feature gate.
-func TestManagedBy_Reenabling(t *testing.T) {
-	customControllerName := "example.com/custom-job-controller"
-	// TODO: this will be removed in 1.38.
-	featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.34"))
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
-
-	closeFn, restConfig, clientSet, ns := setup(t, "managed-by-reenabling")
-	t.Cleanup(closeFn)
-	ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
-	t.Cleanup(func() {
-		cancel()
-	})
-	resetMetrics()
-
-	baseJob := batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "custom-job-test",
-			Namespace: ns.Name,
-		},
-		Spec: batchv1.JobSpec{
-			Completions: ptr.To[int32](1),
-			Parallelism: ptr.To[int32](1),
-			Template: v1.PodTemplateSpec{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Name:  "main-container",
-							Image: "foo",
-						},
-					},
-				},
-			},
-			ManagedBy: &customControllerName,
-		},
-	}
-	jobObj, err := createJobWithDefaults(ctx, clientSet, ns.Name, &baseJob)
-	if err != nil {
-		t.Fatalf("Error %v when creating the job %q", err, klog.KObj(jobObj))
-	}
-	jobClient := clientSet.BatchV1().Jobs(jobObj.Namespace)
-
-	validateCounterMetric(ctx, t, metrics.JobByExternalControllerTotal, metricLabelsWithValue{
-		Labels: []string{customControllerName},
-		Value:  1,
-	})
-
-	time.Sleep(sleepDurationForControllerLatency)
-	jobObj, err = jobClient.Get(ctx, jobObj.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Error %v when getting the latest job %v", err, klog.KObj(jobObj))
-	}
-	if diff := cmp.Diff(batchv1.JobStatus{}, jobObj.Status); diff != "" {
-		t.Fatalf("Unexpected status (-want/+got): %s", diff)
-	}
-
-	// Disable the feature gate and restart the controller
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, false)
-	cancel()
-	resetMetrics()
-	ctx, cancel = startJobControllerAndWaitForCaches(t, restConfig)
-
-	// Verify the built-in controller reconciles the Job
-	validateJobsPodsStatusOnly(ctx, t, clientSet, jobObj, "", podsByStatus{
-		Active:      1,
-		Ready:       ptr.To[int32](0),
-		Terminating: ptr.To[int32](0),
-	})
-
-	validateCounterMetric(ctx, t, metrics.JobByExternalControllerTotal, metricLabelsWithValue{
-		Labels: []string{customControllerName},
-		Value:  0,
-	})
-
-	// Reenable the feature gate and restart the controller
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
-	cancel()
-	resetMetrics()
-	ctx, cancel = startJobControllerAndWaitForCaches(t, restConfig)
-
-	// Marking the pod as finished, but it does not result in updating of the Job status.
-	if _, err := setJobPodsPhase(ctx, clientSet, jobObj, v1.PodSucceeded, 1); err != nil {
-		t.Fatalf("Error %v when setting phase %s on the pod of job %v", err, v1.PodSucceeded, klog.KObj(jobObj))
-	}
-
-	validateCounterMetric(ctx, t, metrics.JobByExternalControllerTotal, metricLabelsWithValue{
-		Labels: []string{customControllerName},
-		Value:  1,
-	})
-
-	time.Sleep(sleepDurationForControllerLatency)
-	validateJobsPodsStatusOnly(ctx, t, clientSet, jobObj, "", podsByStatus{
-		Active:      1,
-		Ready:       ptr.To[int32](0),
-		Terminating: ptr.To[int32](0),
-	})
 }
 
 // TestImmediateJobRecreation verifies that the replacement Job creates the Pods
@@ -2055,6 +1834,133 @@ func TestImmediateJobRecreation(t *testing.T) {
 	}
 }
 
+// TestJobRecreationClearsPodExpectations verifies that a replacement Job is
+// reconciled after the old Job leaves a pending Pod creation expectation. The
+// test blocks the old Pod POST, replaces the Job, waits for the informer to
+// observe the replacement UID, releases the POST, and verifies reconciliation.
+func TestJobRecreationClearsPodExpectations(t *testing.T) {
+	baseJob := batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-job"},
+		Spec: batchv1.JobSpec{
+			Completions: ptr.To[int32](1),
+			Parallelism: ptr.To[int32](1),
+		},
+	}
+	suspendedJob := baseJob.DeepCopy()
+	suspendedJob.Spec.Suspend = new(true)
+	unsuspendedJob := baseJob.DeepCopy()
+	unsuspendedJob.Spec.Suspend = new(false)
+	tests := map[string]struct {
+		baseJob            batchv1.Job
+		replacementJob     batchv1.Job
+		wantConditionTypes []batchv1.JobConditionType
+		wantPodsStatus     podsByStatus
+	}{
+		"suspended replacement": {
+			baseJob:            *baseJob.DeepCopy(),
+			replacementJob:     *suspendedJob,
+			wantConditionTypes: []batchv1.JobConditionType{batchv1.JobSuspended},
+			wantPodsStatus: podsByStatus{
+				Ready:       ptr.To[int32](0),
+				Terminating: ptr.To[int32](0),
+			},
+		},
+		"unsuspended replacement": {
+			baseJob:        *baseJob.DeepCopy(),
+			replacementJob: *unsuspendedJob,
+			wantPodsStatus: podsByStatus{
+				Active:      1,
+				Ready:       ptr.To[int32](0),
+				Terminating: ptr.To[int32](0),
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			testJobRecreationClearsPodExpectations(t, tc.baseJob, tc.replacementJob, tc.wantConditionTypes, tc.wantPodsStatus)
+		})
+	}
+}
+
+func testJobRecreationClearsPodExpectations(t *testing.T, baseJob, replacementJob batchv1.Job, wantConditionTypes []batchv1.JobConditionType, wantPodsStatus podsByStatus) {
+	closeFn, restConfig, clientSet, ns := setup(t, "recreate-job-expectations")
+	t.Cleanup(closeFn)
+
+	// Phase 1: Block the old Job's Pod POST after its expectation is recorded.
+	podCreateStarted := make(chan struct{})
+	allowPodCreate := make(chan struct{})
+	var blockOnce sync.Once
+	restConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/pods") {
+				blockOnce.Do(func() {
+					close(podCreateStarted)
+					<-allowPodCreate
+				})
+			}
+			return rt.RoundTrip(req)
+		})
+	}
+	t.Cleanup(func() {
+		select {
+		case <-allowPodCreate:
+		default:
+			close(allowPodCreate)
+		}
+	})
+
+	informerSet := informers.NewSharedInformerFactoryWithOptions(clientset.NewForConfigOrDie(restclient.AddUserAgent(restConfig, "job-informers")), 0)
+	jc, ctx, cancel := createJobControllerWithSharedInformers(t, restConfig, informerSet)
+	t.Cleanup(cancel)
+	informerSet.Start(ctx.Done())
+	go jc.Run(ctx, 1)
+	informerSet.WaitForCacheSync(ctx.Done())
+
+	baseJob.Namespace = ns.Name
+	oldJob, err := createJobWithDefaults(ctx, clientSet, ns.Name, &baseJob)
+	if err != nil {
+		t.Fatalf("Failed to create Job: %v", err)
+	}
+
+	select {
+	case <-podCreateStarted:
+	case <-time.After(wait.ForeverTestTimeout):
+		t.Fatal("Timed out waiting for the old Job's Pod creation to start")
+	}
+
+	// Phase 2: Replace the Job and wait for the informer to observe its new UID.
+	jobClient := clientSet.BatchV1().Jobs(ns.Name)
+	if err := jobClient.Delete(ctx, oldJob.Name, metav1.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
+		t.Fatalf("Failed to delete old Job: %v", err)
+	}
+	replacementJob.Namespace = ns.Name
+	newJob, err := createJobWithDefaults(ctx, clientSet, ns.Name, &replacementJob)
+	if err != nil {
+		t.Fatalf("Failed to create replacement Job: %v", err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Millisecond, wait.ForeverTestTimeout, true, func(ctx context.Context) (bool, error) {
+		cachedJob, err := informerSet.Batch().V1().Jobs().Lister().Jobs(ns.Name).Get(newJob.Name)
+		return err == nil && cachedJob.UID == newJob.UID, nil
+	})
+	if err != nil {
+		t.Fatalf("Timed out waiting for the informer to observe the replacement Job: %v", err)
+	}
+	close(allowPodCreate)
+
+	// Phase 3: Verify the replacement is reconciled after the old POST completes.
+	for _, conditionType := range wantConditionTypes {
+		validateJobCondition(ctx, t, clientSet, newJob, conditionType)
+	}
+	validateJobsPodsStatusOnlyWithTimeout(ctx, t, clientSet, newJob, "after recreation", wantPodsStatus, 5*time.Second)
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 // TestManagedBy_RecreatedJob verifies that the Job controller skips
 // reconciliation of a job with managedBy field, when this is a recreated job,
 // and there is still a pending sync queued for the previous job.
@@ -2065,8 +1971,6 @@ func TestImmediateJobRecreation(t *testing.T) {
 // on the new job, but is skipped.
 func TestManagedBy_RecreatedJob(t *testing.T) {
 	customControllerName := "example.com/custom-job-controller"
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
-
 	closeFn, restConfig, clientSet, ns := setup(t, "managed-by-recreate-job")
 	t.Cleanup(closeFn)
 	ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
@@ -2146,8 +2050,6 @@ func TestManagedBy_RecreatedJob(t *testing.T) {
 // when one forks the controller and does not rename the finalizer.
 func TestManagedBy_UsingReservedJobFinalizers(t *testing.T) {
 	customControllerName := "example.com/custom-job-controller"
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
-
 	closeFn, restConfig, clientSet, ns := setup(t, "managed-by-reserved-finalizers")
 	t.Cleanup(closeFn)
 	ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)
@@ -3640,8 +3542,6 @@ func TestSuspendJob(t *testing.T) {
 // TestStartTimeUpdateOnResume verifies that the job controller can update startTime
 // when resuming a suspended job (https://github.com/kubernetes/kubernetes/issues/134521).
 func TestStartTimeUpdateOnResume(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.JobManagedBy, true)
-
 	closeFn, restConfig, clientSet, ns := setup(t, "suspend-starttime-validation")
 	t.Cleanup(closeFn)
 	ctx, cancel := startJobControllerAndWaitForCaches(t, restConfig)

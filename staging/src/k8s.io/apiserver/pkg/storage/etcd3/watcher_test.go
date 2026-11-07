@@ -28,6 +28,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/server/v3/embed"
 	"google.golang.org/grpc"
 	grpccodes "google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
@@ -44,7 +45,6 @@ import (
 	"k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3/metrics"
-	"k8s.io/apiserver/pkg/storage/etcd3/testserver"
 	etcdfeature "k8s.io/apiserver/pkg/storage/feature"
 	storagetesting "k8s.io/apiserver/pkg/storage/testing"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -104,9 +104,9 @@ func TestWatch(t *testing.T) {
 		storagetesting.RunTestWatchInitializationSignal(ctx, t, store)
 	})
 	t.Run("ProgressNotify", func(t *testing.T) {
-		clusterConfig := testserver.NewTestConfig(t)
-		clusterConfig.WatchProgressNotifyInterval = time.Second
-		ctx, store, client := testSetup(t, withClientConfig(clusterConfig))
+		ctx, store, client := testSetup(t, withClientConfig(func(clusterConfig *embed.Config) {
+			clusterConfig.WatchProgressNotifyInterval = time.Second
+		}))
 
 		storagetesting.RunOptionalTestProgressNotify(ctx, t, store, increaseRVFunc(client.Client))
 	})
@@ -117,9 +117,9 @@ func TestWatch(t *testing.T) {
 		storagetesting.RunTestWatchWithUnsafeDelete(ctx, t, &storeWithTransformerOverride{Interface: store, store: store}, corruptErr)
 	})
 	t.Run("WatchDispatchBookmarkEvents", func(t *testing.T) {
-		clusterConfig := testserver.NewTestConfig(t)
-		clusterConfig.WatchProgressNotifyInterval = time.Second
-		ctx, store, _ := testSetup(t, withClientConfig(clusterConfig))
+		ctx, store, _ := testSetup(t, withClientConfig(func(clusterConfig *embed.Config) {
+			clusterConfig.WatchProgressNotifyInterval = time.Second
+		}))
 
 		storagetesting.RunTestWatchDispatchBookmarkEvents(ctx, t, store, false)
 	})
@@ -341,7 +341,7 @@ func TestWatchChanSync(t *testing.T) {
 				eventsReceived := 0
 				for event := range w.incomingEventChan {
 					eventsReceived++
-					storagetesting.ExpectContains(t, "incorrect list pods", initList, event.key)
+					storagetesting.ExpectContains(t, "incorrect list pods", initList, string(event.key))
 				}
 
 				if eventsReceived != testCase.expectEventCount {
@@ -427,7 +427,7 @@ func TestWatchChanSyncStreamFallsBackToPaginated(t *testing.T) {
 	eventsReceived := 0
 	for event := range w.incomingEventChan {
 		eventsReceived++
-		storagetesting.ExpectContains(t, "incorrect list pods", initList, event.key)
+		storagetesting.ExpectContains(t, "incorrect list pods", initList, string(event.key))
 	}
 	if eventsReceived != len(initList) {
 		t.Errorf("Unexpected number of events: %v, expected: %v", eventsReceived, len(initList))
@@ -443,7 +443,7 @@ func drainSync(t *testing.T, store *store, ctx context.Context, sync func(*watch
 	close(wc.incomingEventChan)
 	out := map[string]*event{}
 	for e := range wc.incomingEventChan {
-		out[e.key] = e
+		out[string(e.key)] = e
 	}
 	return out
 }
@@ -477,9 +477,9 @@ func TestWatchChanSyncStreamCompactionError(t *testing.T) {
 		t.Fatalf("expected ResourceExpired from a compacted revision, got %T %v", err, err)
 	}
 
-	expected := `# HELP etcd_request_errors_total [ALPHA] Etcd failed request counts for each operation and object type.
+	expected := `# HELP etcd_request_errors_total [ALPHA] Etcd failed request counts for each operation and object type. Reason response to grpc status, or transaction conflict.
 # TYPE etcd_request_errors_total counter
-etcd_request_errors_total{group="",operation="listStream",resource="pods"} 1
+etcd_request_errors_total{group="",operation="listStream",reason="OutOfRange",resource="pods"} 1
 `
 	if err := testutil.GatherAndCompare(legacyregistry.DefaultGatherer, strings.NewReader(expected), "etcd_request_errors_total"); err != nil {
 		t.Error(err)

@@ -18,6 +18,7 @@ package helper
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -161,6 +162,18 @@ func TestGetPodGroupStates(t *testing.T) {
 			rootEntityKey: fwk.CompositePodGroupKey("test", "cpg-root"),
 		},
 		{
+			name: "root is CompositePodGroup with nested CompositePodGroup",
+			podGroups: []*schedulingv1beta1.PodGroup{
+				st.MakePodGroup().Name("pg1").Namespace("test").ParentCompositePodGroup("cpg-root").Obj(),
+				st.MakePodGroup().Name("pg2").Namespace("test").ParentCompositePodGroup("cpg1").Obj(),
+			},
+			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
+				st.MakeCompositePodGroup().Name("cpg-root").Namespace("test").Obj(),
+				st.MakeCompositePodGroup().Name("cpg1").Namespace("test").ParentCompositePodGroup("cpg-root").Obj(),
+			},
+			rootEntityKey: fwk.CompositePodGroupKey("test", "cpg-root"),
+		},
+		{
 			name:      "root is CompositePodGroup and has no leaves",
 			podGroups: []*schedulingv1beta1.PodGroup{},
 			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
@@ -204,25 +217,6 @@ func TestGetPodGroupStates(t *testing.T) {
 			rootEntityKey: fwk.PodGroupKey("test", "non-existent"),
 			wantErrCount:  1,
 		},
-		{
-			name: "cpg tree exceeds the max depth",
-			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
-				st.MakeCompositePodGroup().Name("cpg-root").Namespace("test").Obj(),
-				st.MakeCompositePodGroup().Name("cpg1").Namespace("test").ParentCompositePodGroup("cpg-root").Obj(),
-				st.MakeCompositePodGroup().Name("cpg2.1").Namespace("test").ParentCompositePodGroup("cpg1").Obj(),
-				st.MakeCompositePodGroup().Name("cpg3").Namespace("test").ParentCompositePodGroup("cpg2.1").Obj(),
-				st.MakeCompositePodGroup().Name("cpg4").Namespace("test").ParentCompositePodGroup("cpg3").Obj(),
-				st.MakeCompositePodGroup().Name("cpg2.2").Namespace("test").ParentCompositePodGroup("cpg1").Obj(),
-			},
-			podGroups: []*schedulingv1beta1.PodGroup{
-				st.MakePodGroup().Name("pg-root").Namespace("test").ParentCompositePodGroup("cpg-root").Obj(),
-				st.MakePodGroup().Name("pg1").Namespace("test").ParentCompositePodGroup("cpg1").Obj(),
-				st.MakePodGroup().Name("pg2.1").Namespace("test").ParentCompositePodGroup("cpg2.1").Obj(),
-				st.MakePodGroup().Name("pg2.2").Namespace("test").ParentCompositePodGroup("cpg2.2").Obj(),
-			},
-			rootEntityKey: fwk.CompositePodGroupKey("test", "cpg-root"),
-			wantErrCount:  1,
-		},
 	}
 
 	for _, tt := range testCases {
@@ -234,7 +228,7 @@ func TestGetPodGroupStates(t *testing.T) {
 				wantPodGroups.Insert(pg.Name)
 			}
 
-			snapshot := internalcache.NewTestSnapshotWithCompositePodGroups(pods, nil, tt.podGroups, tt.compositePodGroups)
+			snapshot := internalcache.NewTestSnapshotWithPodGroups(pods, nil, tt.podGroups, tt.compositePodGroups)
 			sharedLister := &fakeSharedLister{
 				SharedLister:     snapshot,
 				faultyEntityKeys: sets.New(tt.faultyEntityKeys...),
@@ -275,7 +269,7 @@ func TestGetPodGroupStates_EarlyBreak(t *testing.T) {
 		st.MakeCompositePodGroup().Name("cpg-root").Namespace("test").Obj(),
 	}
 
-	snapshot := internalcache.NewTestSnapshotWithCompositePodGroups(nil, nil, podGroups, compositePodGroups)
+	snapshot := internalcache.NewTestSnapshotWithPodGroups(nil, nil, podGroups, compositePodGroups)
 	sharedLister := &fakeSharedLister{SharedLister: snapshot}
 	rootEntityKey := fwk.CompositePodGroupKey("test", "cpg-root")
 
@@ -287,5 +281,143 @@ func TestGetPodGroupStates_EarlyBreak(t *testing.T) {
 
 	if gotCount != 1 {
 		t.Errorf("GetPodGroupStates() yielded %d times after early break, want 1", gotCount)
+	}
+}
+
+func TestTraverseHierarchyUp(t *testing.T) {
+	const ns = "test"
+	testCases := []struct {
+		name                      string
+		disableCompositePodGroups bool
+		podGroups                 []*schedulingv1beta1.PodGroup
+		compositePodGroups        []*schedulingv1alpha3.CompositePodGroup
+		startKey                  fwk.EntityKey
+		// stopAt makes the consumer break out of the loop after this group, if non-empty.
+		stopAt   string
+		wantKeys []fwk.EntityKey
+		// wantErr is a substring of the error the traversal is expected to end with; empty means no error.
+		wantErr string
+	}{
+		{
+			name: "PodGroup without parent",
+			podGroups: []*schedulingv1beta1.PodGroup{
+				st.MakePodGroup().Name("pg1").Namespace(ns).Obj(),
+			},
+			startKey: fwk.PodGroupKey(ns, "pg1"),
+			wantKeys: []fwk.EntityKey{fwk.PodGroupKey(ns, "pg1")},
+		},
+		{
+			name: "PodGroup under two levels of CompositePodGroups",
+			podGroups: []*schedulingv1beta1.PodGroup{
+				st.MakePodGroup().Name("pg1").Namespace(ns).ParentCompositePodGroup("cpg1").Obj(),
+			},
+			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
+				st.MakeCompositePodGroup().Name("cpg1").Namespace(ns).ParentCompositePodGroup("cpg2").Obj(),
+				st.MakeCompositePodGroup().Name("cpg2").Namespace(ns).Obj(),
+			},
+			startKey: fwk.PodGroupKey(ns, "pg1"),
+			wantKeys: []fwk.EntityKey{
+				fwk.PodGroupKey(ns, "pg1"),
+				fwk.CompositePodGroupKey(ns, "cpg1"),
+				fwk.CompositePodGroupKey(ns, "cpg2"),
+			},
+		},
+		{
+			name: "start from a CompositePodGroup",
+			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
+				st.MakeCompositePodGroup().Name("cpg1").Namespace(ns).ParentCompositePodGroup("cpg2").Obj(),
+				st.MakeCompositePodGroup().Name("cpg2").Namespace(ns).Obj(),
+			},
+			startKey: fwk.CompositePodGroupKey(ns, "cpg1"),
+			wantKeys: []fwk.EntityKey{
+				fwk.CompositePodGroupKey(ns, "cpg1"),
+				fwk.CompositePodGroupKey(ns, "cpg2"),
+			},
+		},
+		{
+			name: "consumer stops early",
+			podGroups: []*schedulingv1beta1.PodGroup{
+				st.MakePodGroup().Name("pg1").Namespace(ns).ParentCompositePodGroup("cpg1").Obj(),
+			},
+			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
+				st.MakeCompositePodGroup().Name("cpg1").Namespace(ns).ParentCompositePodGroup("cpg2").Obj(),
+				st.MakeCompositePodGroup().Name("cpg2").Namespace(ns).Obj(),
+			},
+			startKey: fwk.PodGroupKey(ns, "pg1"),
+			stopAt:   "cpg1",
+			wantKeys: []fwk.EntityKey{
+				fwk.PodGroupKey(ns, "pg1"),
+				fwk.CompositePodGroupKey(ns, "cpg1"),
+			},
+		},
+		{
+			name:     "missing PodGroup",
+			startKey: fwk.PodGroupKey(ns, "missing"),
+			wantErr:  "not found",
+		},
+		{
+			name: "missing parent CompositePodGroup ends the traversal after the PodGroup",
+			podGroups: []*schedulingv1beta1.PodGroup{
+				st.MakePodGroup().Name("pg1").Namespace(ns).ParentCompositePodGroup("missing").Obj(),
+			},
+			startKey: fwk.PodGroupKey(ns, "pg1"),
+			wantKeys: []fwk.EntityKey{fwk.PodGroupKey(ns, "pg1")},
+			wantErr:  "not found",
+		},
+		{
+			name:                      "CompositePodGroup feature gate disabled ends the traversal after the PodGroup",
+			disableCompositePodGroups: true,
+			podGroups: []*schedulingv1beta1.PodGroup{
+				st.MakePodGroup().Name("pg1").Namespace(ns).ParentCompositePodGroup("cpg1").Obj(),
+			},
+			compositePodGroups: []*schedulingv1alpha3.CompositePodGroup{
+				st.MakeCompositePodGroup().Name("cpg1").Namespace(ns).Obj(),
+			},
+			startKey: fwk.PodGroupKey(ns, "pg1"),
+			wantKeys: []fwk.EntityKey{fwk.PodGroupKey(ns, "pg1")},
+			wantErr:  "feature gate is disabled",
+		},
+		{
+			name:     "unsupported key type",
+			startKey: fwk.PodKey(ns, "p1"),
+			wantErr:  "unsupported key type",
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			// The snapshot's listers enforce the gates, which is what the gate-disabled case relies on.
+			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+				features.GenericWorkload:                 true,
+				features.TopologyAwareWorkloadScheduling: true,
+				features.CompositePodGroup:               !tt.disableCompositePodGroups,
+			})
+			snapshot := internalcache.NewTestSnapshotWithPodGroups(nil, nil, tt.podGroups, tt.compositePodGroups)
+
+			var gotKeys []fwk.EntityKey
+			var gotErr error
+			for gpg, err := range TraverseHierarchyUp(snapshot, tt.startKey) {
+				if err != nil {
+					gotErr = err
+					continue
+				}
+				gotKeys = append(gotKeys, gpg.GetKey())
+				if tt.stopAt != "" && gpg.GetName() == tt.stopAt {
+					break
+				}
+			}
+
+			if diff := cmp.Diff(tt.wantKeys, gotKeys); diff != "" {
+				t.Errorf("TraverseHierarchyUp() yielded unexpected keys (-want +got):\n%s", diff)
+			}
+			switch {
+			case tt.wantErr == "" && gotErr != nil:
+				t.Errorf("TraverseHierarchyUp() yielded unexpected error: %v", gotErr)
+			case tt.wantErr != "" && gotErr == nil:
+				t.Errorf("TraverseHierarchyUp() yielded no error, want one containing %q", tt.wantErr)
+			case tt.wantErr != "" && !strings.Contains(gotErr.Error(), tt.wantErr):
+				t.Errorf("TraverseHierarchyUp() yielded error %q, want one containing %q", gotErr, tt.wantErr)
+			}
+		})
 	}
 }

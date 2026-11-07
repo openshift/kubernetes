@@ -274,6 +274,7 @@ func newRootCACertificatePublisherController(ctx context.Context, controllerCont
 	}
 
 	sac, err := rootcacertpublisher.NewPublisher(
+		ctx,
 		controllerContext.InformerFactory.Core().V1().ConfigMaps(),
 		controllerContext.InformerFactory.Core().V1().Namespaces(),
 		client,
@@ -296,7 +297,7 @@ func newKubeAPIServerSignerClusterTrustBundledPublisherDescriptor() *ControllerD
 	}
 }
 
-type controllerConstructor func(string, dynamiccertificates.CAContentProvider, kubernetes.Interface) (ctbpublisher.PublisherRunner, error)
+type controllerConstructor func(klog.Logger, string, dynamiccertificates.CAContentProvider, kubernetes.Interface) (ctbpublisher.PublisherRunner, error)
 
 func newKubeAPIServerSignerClusterTrustBundledPublisherController(
 	ctx context.Context, controllerContext ControllerContext, controllerName string,
@@ -341,6 +342,7 @@ func newKubeAPIServerSignerClusterTrustBundledPublisherController(
 		}
 
 		runner, err = schemaControllerMapping[gv](
+			klog.FromContext(ctx),
 			"kubernetes.io/kube-apiserver-serving",
 			servingSigners,
 			apiserverSignerClient,
@@ -352,7 +354,7 @@ func newKubeAPIServerSignerClusterTrustBundledPublisherController(
 	}
 
 	if runner == nil {
-		klog.Info("no known scheme version was found for clustertrustbundles, cannot start kube-apiserver-serving-clustertrustbundle-publisher-controller")
+		klog.FromContext(ctx).Info("no known scheme version was found for clustertrustbundles, cannot start kube-apiserver-serving-clustertrustbundle-publisher-controller")
 		return nil, nil
 	}
 

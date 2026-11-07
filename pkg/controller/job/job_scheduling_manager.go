@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 
 	batch "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -29,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -41,7 +39,6 @@ import (
 	jobutil "k8s.io/kubernetes/pkg/api/job"
 	apischeduling "k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/features"
-	hashutil "k8s.io/kubernetes/pkg/util/hash"
 )
 
 const (
@@ -521,7 +518,13 @@ func (jm *Controller) listPodGroupsForWorkload(workload *schedulingv1beta1.Workl
 // podGroupTemplateName returns the name of the single PodGroupTemplate the
 // controller compiles for a Job. For alpha there is exactly one template per Job.
 func podGroupTemplateName(job *batch.Job) string {
-	return fmt.Sprintf("%s-pgt-%d", job.Name, 0)
+	const suffix = "-pgt-0"
+	templateName := job.Name + suffix
+	// Preserve the suffix while keeping the name within the DNS label limit.
+	if len(templateName) > validation.DNS1123LabelMaxLength {
+		templateName = templateName[:validation.DNS1123LabelMaxLength-len(suffix)] + suffix
+	}
+	return templateName
 }
 
 // buildWorkloadItem assembles the single-node logical workload tree for a Job.
@@ -631,59 +634,14 @@ func (jm *Controller) createPodGroup(ctx context.Context, job *batch.Job, worklo
 	return created, nil
 }
 
-// computeWorkloadName generates a deterministic name for a Workload associated with a Job.
-// The pattern is: <truncated-job-name>-<hash>
-// The hash is derived from the Job UID to ensure uniqueness and stability across restarts.
+// computeWorkloadName is kept as a controller-local adapter for existing callers.
 func computeWorkloadName(job *batch.Job) string {
-	hasher := fnv.New32a()
-	hashutil.DeepHashObject(hasher, job.UID)
-	hash := rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
-
-	// hash is ~10 chars; include separator "-"
-	maxPrefixLen := validation.DNS1123SubdomainMaxLength - len(hash) - 1
-	prefix := job.Name
-	if len(prefix) > maxPrefixLen {
-		prefix = prefix[:maxPrefixLen]
-	}
-	return fmt.Sprintf("%s-%s", prefix, hash)
+	return workloadbuilder.GenerateWorkloadName(job.Name, job.UID)
 }
 
-// computePodGroupName generates a deterministic name for a PodGroup associated with a Workload.
-// The pattern is: <truncated-workload-name>-<truncated-template-name>-<hash>
-// The hash is derived from the workload name and template name for uniqueness.
+// computePodGroupName is kept as a controller-local adapter for existing callers.
 func computePodGroupName(workloadName, templateName string) string {
-	hasher := fnv.New32a()
-	// hash the full combination for uniqueness.
-	hasher.Write([]byte(workloadName))
-	hasher.Write([]byte(templateName))
-	hash := rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
-
-	// Truncate workloadName and templateName to fit within the DNS subdomain
-	// max length, reserving space for the hash and two "-" separators.
-	maxAvailable := validation.DNS1123SubdomainMaxLength - len(hash) - 2
-	wl := workloadName
-	tpl := templateName
-
-	if len(wl)+len(tpl) > maxAvailable {
-		// only truncate the part that exceeds its fair share.
-		// give each part up to half the space; if one is short, the other
-		// gets the remainder.
-		half := maxAvailable / 2
-		switch {
-		case len(wl) <= half:
-			// workload name fits in its half, give template the rest.
-			tpl = tpl[:maxAvailable-len(wl)]
-		case len(tpl) <= half:
-			// template name fits in its half, give workload the rest.
-			wl = wl[:maxAvailable-len(tpl)]
-		default:
-			// both exceed half, split evenly (workload gets the extra char if odd).
-			wl = wl[:maxAvailable-half]
-			tpl = tpl[:half]
-		}
-	}
-
-	return fmt.Sprintf("%s-%s-%s", wl, tpl, hash)
+	return workloadbuilder.GeneratePodGroupName(workloadName, templateName)
 }
 
 // addSchedulingInformers wires up Workload and PodGroup informers

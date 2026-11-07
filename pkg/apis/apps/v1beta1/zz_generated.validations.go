@@ -27,7 +27,6 @@ import (
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	apicorev1 "k8s.io/api/core/v1"
-	equality "k8s.io/apimachinery/pkg/api/equality"
 	operation "k8s.io/apimachinery/pkg/api/operation"
 	safe "k8s.io/apimachinery/pkg/api/safe"
 	validate "k8s.io/apimachinery/pkg/api/validate"
@@ -121,7 +120,7 @@ func Validate_ControllerRevision(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -156,7 +155,7 @@ func Validate_Deployment(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -178,7 +177,7 @@ func Validate_Deployment(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -213,7 +212,7 @@ func Validate_DeploymentSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -321,7 +320,7 @@ func Validate_StatefulSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -343,7 +342,7 @@ func Validate_StatefulSet(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -377,7 +376,7 @@ func Validate_StatefulSetSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -410,10 +409,24 @@ func Validate_StatefulSetSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
+			// call field-attached validations
+			func() { // cohort = "spec.restartPolicy"
+				if e := validate.Subfield(ctx, op, fldPath, obj, oldObj, "spec",
+					func(o *apicorev1.PodTemplateSpec) *apicorev1.PodSpec { return &o.Spec }, validate.SemanticDeepEqual,
+					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *apicorev1.PodSpec) field.ErrorList {
+						return validate.Subfield(ctx, op, fldPath, obj, oldObj, "restartPolicy",
+							func(o *apicorev1.PodSpec) *apicorev1.RestartPolicy { return &o.RestartPolicy }, validate.DirectEqual,
+							func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *apicorev1.RestartPolicy) field.ErrorList {
+								return validate.EQ(ctx, op, fldPath, obj, oldObj, "Always")
+							})
+					}).MarkAlpha(); len(e) != 0 {
+					errs = append(errs, e...)
+				}
+			}()
 			// call the type's validation function
 			errs = append(errs, corev1.Validate_PodTemplateSpec(ctx, op, fldPath, obj, oldObj)...)
 			return
@@ -432,7 +445,7 @@ func Validate_StatefulSetSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}

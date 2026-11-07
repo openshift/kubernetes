@@ -115,6 +115,10 @@ type Manager interface {
 
 	// GetResourceIsolationLevel returns the isolation level of the container.
 	GetResourceIsolationLevel(pod *v1.Pod, container *v1.Container) cmqos.ResourceIsolationLevel
+
+	// CanAllocateExclusively reports whether the configured policy supports exclusive
+	// assignment of the resource for eligible workloads, regardless of available capacity.
+	CanAllocateExclusively(res v1.ResourceName) bool
 }
 
 type manager struct {
@@ -170,8 +174,8 @@ var _ Manager = &manager{}
 
 type sourcesReadyStub struct{}
 
-func (s *sourcesReadyStub) AddSource(source string) {}
-func (s *sourcesReadyStub) AllReady() bool          { return true }
+func (s *sourcesReadyStub) AddSource(_ string) {}
+func (s *sourcesReadyStub) AllReady() bool     { return true }
 
 // NewManager creates new cpu manager based on provided policy
 func NewManager(logger klog.Logger, cpuPolicyName string, cpuPolicyOptions map[string]string, reconcilePeriod time.Duration, machineInfo *cadvisorapi.MachineInfo, specificCPUs cpuset.CPUSet, nodeAllocatableReservation v1.ResourceList, stateFileDirectory string, affinity topologymanager.Store) (Manager, error) {
@@ -617,4 +621,11 @@ func (m *manager) GetResourceIsolationLevel(pod *v1.Pod, container *v1.Container
 	}
 
 	return cmqos.ResourceIsolationContainer
+}
+
+func (m *manager) CanAllocateExclusively(res v1.ResourceName) bool {
+	if res != v1.ResourceCPU {
+		return false
+	}
+	return m.policy.CanAllocateExclusively()
 }

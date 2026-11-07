@@ -23,11 +23,11 @@ import (
 	fwk "k8s.io/kube-scheduler/framework"
 )
 
-// Entity is either a pod or a podgroup that gets recorded in the metrics.
+// Entity is either a pod, a pod group, or a composite pod group that gets recorded in the metrics.
 type Entity interface {
 	// Size returns the number of pods within the entity (1 for a single pod, or the pod count for a pod group).
 	Size() int
-	// Type returns the entity type (e.g. "pod" or "podgroup").
+	// Type returns the entity type (e.g. "pod", "podgroup", or "compositepodgroup").
 	Type() fwk.EntityKeyType
 }
 
@@ -83,38 +83,31 @@ func NewGatedEntitiesRecorder() *QueuedEntitiesRecorder {
 	}
 }
 
-// EntityToLabel converts an Entity to an entity metric label string.
-func EntityToLabel(entity Entity) (string, bool) {
-	if entity == nil {
-		return "", false
-	}
-
-	switch entity.Type() {
+// EntityTypeToLabel converts an fwk.EntityKeyType to an entity metric label string.
+func EntityTypeToLabel(entityType fwk.EntityKeyType) string {
+	switch entityType {
 	case fwk.PodKeyType:
-		return Pod, true
+		return Pod
 	case fwk.PodGroupKeyType:
-		return PodGroup, true
+		return PodGroup
+	case fwk.CompositePodGroupKeyType:
+		return CompositePodGroup
 	}
-
-	return "", false
+	return ""
 }
 
 // Add records the addition of an entity.
 // It increments pending pods and queued entities metric counters.
 func (r *QueuedEntitiesRecorder) Add(entity Entity) {
 	r.pods.Add(float64(entity.Size()))
-	if label, ok := EntityToLabel(entity); ok {
-		r.entities(label).Inc()
-	}
+	r.entities(EntityTypeToLabel(entity.Type())).Inc()
 }
 
 // Remove records the removal of an entity.
 // It decrements pending pods and queued entities metric counters.
 func (r *QueuedEntitiesRecorder) Remove(entity Entity) {
 	r.pods.Add(-float64(entity.Size()))
-	if label, ok := EntityToLabel(entity); ok {
-		r.entities(label).Dec()
-	}
+	r.entities(EntityTypeToLabel(entity.Type())).Dec()
 }
 
 // Update records the update of an entity.
@@ -130,6 +123,7 @@ func (r *QueuedEntitiesRecorder) Clear() {
 	r.pods.Set(float64(0))
 	r.entities(Pod).Set(float64(0))
 	r.entities(PodGroup).Set(float64(0))
+	r.entities(CompositePodGroup).Set(float64(0))
 }
 
 // histogramVecMetric is the data structure passed in the buffer channel between the main framework thread

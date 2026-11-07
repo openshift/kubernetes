@@ -18,13 +18,18 @@ package scheduler
 
 import (
 	"context"
-	"testing"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	schedulingv1alpha3 "k8s.io/api/scheduling/v1alpha3"
+	schedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/ktesting"
+	clientset "k8s.io/client-go/kubernetes"
 	configv1 "k8s.io/kube-scheduler/config/v1"
 	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler"
@@ -35,6 +40,7 @@ import (
 	frameworkruntime "k8s.io/kubernetes/pkg/scheduler/framework/runtime"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
 	testutils "k8s.io/kubernetes/test/integration/util"
+	utiltesting "k8s.io/kubernetes/test/utils"
 	"k8s.io/utils/ptr"
 )
 
@@ -45,7 +51,8 @@ import (
 // This should only be called when you want to kill the scheduler alone, away from apiserver.
 // For example, in scheduler integration tests, recreating apiserver is performance consuming,
 // then shutdown the scheduler and recreate it between each test case is a better approach.
-func InitTestSchedulerForFrameworkTest(t *testing.T, testCtx *testutils.TestContext, nodeCount int, runScheduler bool, opts ...scheduler.Option) (*testutils.TestContext, testutils.ShutdownFunc) {
+func InitTestSchedulerForFrameworkTest(t ktesting.TB, testCtx *testutils.TestContext, nodeCount int, runScheduler bool, opts ...scheduler.Option) (*testutils.TestContext, testutils.ShutdownFunc) {
+	tCtx := ktesting.Init(t)
 	testCtx = testutils.InitTestSchedulerWithOptions(t, testCtx, 0, opts...)
 	testutils.SyncSchedulerInformerFactory(testCtx)
 	if runScheduler {
@@ -55,7 +62,7 @@ func InitTestSchedulerForFrameworkTest(t *testing.T, testCtx *testutils.TestCont
 	if nodeCount > 0 {
 		if _, err := testutils.CreateAndWaitForNodesInCache(testCtx, "test-node", st.MakeNode(), nodeCount); err != nil {
 			// Make sure to cleanup the resources when initializing error.
-			testutils.CleanupTest(t, testCtx)
+			testutils.CleanupTest(tCtx, testCtx)
 			t.Fatal(err)
 		}
 	}
@@ -91,7 +98,7 @@ func NewPlugin(plugin fwk.Plugin) frameworkruntime.PluginFactory {
 }
 
 // InitRegistryAndConfig returns registry and plugins config based on give plugins.
-func InitRegistryAndConfig(t *testing.T, factory func(plugin fwk.Plugin) frameworkruntime.PluginFactory, plugins ...fwk.Plugin) (frameworkruntime.Registry, schedulerconfig.KubeSchedulerProfile) {
+func InitRegistryAndConfig(t utiltesting.TB, factory func(plugin fwk.Plugin) frameworkruntime.PluginFactory, plugins ...fwk.Plugin) (frameworkruntime.Registry, schedulerconfig.KubeSchedulerProfile) {
 	if len(plugins) == 0 {
 		return frameworkruntime.Registry{}, schedulerconfig.KubeSchedulerProfile{}
 	}
@@ -146,4 +153,46 @@ func InitRegistryAndConfig(t *testing.T, factory func(plugin fwk.Plugin) framewo
 	}
 	cfg := configtesting.V1ToInternalWithDefaults(t, versionedCfg)
 	return registry, cfg.Profiles[0]
+}
+
+// CleanupPodGroups deletes the given pod groups and waits for them to be actually deleted.
+func CleanupPodGroups(ctx context.Context, cs clientset.Interface, t utiltesting.TB, podGroups []*schedulingv1beta1.PodGroup) {
+	for _, pg := range podGroups {
+		patch := []byte(`{"metadata":{"finalizers":null}}`)
+		if _, err := cs.SchedulingV1beta1().PodGroups(pg.Namespace).Patch(ctx, pg.Name, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			t.Errorf("error while removing finalizers from podgroup %v/%v: %v", pg.Namespace, pg.Name, err)
+		}
+		if err := cs.SchedulingV1beta1().PodGroups(pg.Namespace).Delete(ctx, pg.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			t.Errorf("error while deleting podgroup %v/%v: %v", pg.Namespace, pg.Name, err)
+		}
+	}
+	for _, pg := range podGroups {
+		if err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, wait.ForeverTestTimeout, false, func(ctx context.Context) (bool, error) {
+			_, err := cs.SchedulingV1beta1().PodGroups(pg.Namespace).Get(ctx, pg.Name, metav1.GetOptions{})
+			return apierrors.IsNotFound(err), nil
+		}); err != nil {
+			t.Errorf("error while waiting for podgroup %v/%v to get deleted: %v", pg.Namespace, pg.Name, err)
+		}
+	}
+}
+
+// CleanupCompositePodGroups deletes the given composite pod groups and waits for them to be actually deleted.
+func CleanupCompositePodGroups(ctx context.Context, cs clientset.Interface, t utiltesting.TB, compositePodGroups []*schedulingv1alpha3.CompositePodGroup) {
+	for _, cpg := range compositePodGroups {
+		patch := []byte(`{"metadata":{"finalizers":null}}`)
+		if _, err := cs.SchedulingV1alpha3().CompositePodGroups(cpg.Namespace).Patch(ctx, cpg.Name, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			t.Errorf("error while removing finalizers from compositepodgroup %v/%v: %v", cpg.Namespace, cpg.Name, err)
+		}
+		if err := cs.SchedulingV1alpha3().CompositePodGroups(cpg.Namespace).Delete(ctx, cpg.Name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			t.Errorf("error while deleting compositepodgroup %v/%v: %v", cpg.Namespace, cpg.Name, err)
+		}
+	}
+	for _, cpg := range compositePodGroups {
+		if err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, wait.ForeverTestTimeout, false, func(ctx context.Context) (bool, error) {
+			_, err := cs.SchedulingV1alpha3().CompositePodGroups(cpg.Namespace).Get(ctx, cpg.Name, metav1.GetOptions{})
+			return apierrors.IsNotFound(err), nil
+		}); err != nil {
+			t.Errorf("error while waiting for compositepodgroup %v/%v to get deleted: %v", cpg.Namespace, cpg.Name, err)
+		}
+	}
 }

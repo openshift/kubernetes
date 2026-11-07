@@ -26,7 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	genericfeatures "k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/loadmetrics"
 	"k8s.io/apiserver/pkg/util/compatibility"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	basecompatibility "k8s.io/component-base/compatibility"
@@ -109,6 +111,10 @@ type ServerRunOptions struct {
 	// If false, error would be thrown if any GroupVersion or GroupVersionResource explicitly enabled in the --runtime-config flag is introduced after the emulation version.
 	RuntimeConfigEmulationForwardCompatible bool
 
+	// EnableEndpointLoadMetrics enables reporting Open Request Cost Aggregation (ORCA)
+	// endpoint load metrics via HTTP response headers when negotiated by the load balancer.
+	EnableEndpointLoadMetrics bool
+
 	// SendRetryAfterWhileNotReadyOnce, if enabled, the apiserver will
 	// reject all incoming requests with a 503 status code and a
 	// 'Retry-After' response header until the apiserver has fully
@@ -146,6 +152,7 @@ func NewServerRunOptionsForComponent(componentName string, componentGlobalsRegis
 		JSONPatchMaxCopyBytes:               defaults.JSONPatchMaxCopyBytes,
 		MaxRequestBodyBytes:                 defaults.MaxRequestBodyBytes,
 		ShutdownSendRetryAfter:              false,
+		EnableEndpointLoadMetrics:           false,
 		ComponentName:                       componentName,
 		ComponentGlobalsRegistry:            componentGlobalsRegistry,
 		SendRetryAfterWhileNotReadyOnce:     false,
@@ -178,6 +185,17 @@ func (s *ServerRunOptions) ApplyTo(c *server.Config) error {
 	c.EmulationForwardCompatible = s.EmulationForwardCompatible
 	c.RuntimeConfigEmulationForwardCompatible = s.RuntimeConfigEmulationForwardCompatible
 	c.SendRetryAfterWhileNotReadyOnce = s.SendRetryAfterWhileNotReadyOnce
+	featureGate := c.FeatureGate
+	if featureGate == nil {
+		featureGate = utilfeature.DefaultFeatureGate
+	}
+	if featureGate.Enabled(genericfeatures.RequestCostAggregation) && s.EnableEndpointLoadMetrics {
+		reporter, err := loadmetrics.NewLoadReporter()
+		if err != nil {
+			return fmt.Errorf("failed to initialize endpoint load metrics reporter: %w", err)
+		}
+		c.LoadReporter = reporter
+	}
 
 	return nil
 }
@@ -427,6 +445,10 @@ func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 		"If true, APIs identified by group/version that are enabled in the --runtime-config flag will be installed even if it is introduced after the emulation version. "+
 		"If false, server would fail to start if any APIs identified by group/version that are enabled in the --runtime-config flag are introduced after the emulation version. "+
 		"Can only be set to true if the emulation version is lower than the binary version.")
+
+	fs.BoolVar(&s.EnableEndpointLoadMetrics, "enable-endpoint-load-metrics", s.EnableEndpointLoadMetrics, ""+
+		"If true, enables reporting Open Request Cost Aggregation (ORCA) endpoint load metrics via HTTP response headers "+
+		"for requests carrying the 'endpoint-load-metrics-request' header. Requires the RequestCostAggregation feature gate to be enabled.")
 }
 
 // Complete fills missing fields with defaults.

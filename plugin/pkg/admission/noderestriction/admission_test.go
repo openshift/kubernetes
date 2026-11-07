@@ -1524,7 +1524,7 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			}.build(),
 		},
 		{
-			name:            "forbid create of token when audience in pod --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, csidriver not found",
+			name:            "forbid create of token when audience in pod --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, csidriver not found, authorizer denies",
 			podsGetter:      existingPods,
 			csiDriverGetter: noexistingCSIDriverLister,
 			features:        feature.DefaultFeatureGate,
@@ -1534,6 +1534,31 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			},
 			attributes: admission.NewAttributesRecord(makeTokenRequest(coremypodWithCSI.Name, v1mypodWithCSI.UID, []string{"foo"}), nil, tokenrequestKind, coremypod.Namespace, "mysa", svcacctResource, "token", admission.Create, &metav1.CreateOptions{}, false, mynode),
 			err:        `error validating audience "foo": csidriver.storage.k8s.io "com.example.csi.mydriver" not found`,
+			authz: saAuthorizerBuilder{
+				t:                  t,
+				serviceAccountName: "mysa",
+				namespace:          coremypod.Namespace,
+				requestAudience:    "foo",
+				decision:           authorizer.DecisionDeny,
+			}.build(),
+		},
+		{
+			name:            "allow create of token when audience in pod --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, csidriver not found, authorizer allows",
+			podsGetter:      existingPods,
+			csiDriverGetter: noexistingCSIDriverLister,
+			features:        feature.DefaultFeatureGate,
+			setupFunc: func(t *testing.T) {
+				t.Helper()
+				featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.ServiceAccountNodeAudienceRestriction, true)
+			},
+			attributes: admission.NewAttributesRecord(makeTokenRequest(coremypodWithCSI.Name, v1mypodWithCSI.UID, []string{"foo"}), nil, tokenrequestKind, coremypod.Namespace, "mysa", svcacctResource, "token", admission.Create, &metav1.CreateOptions{}, false, mynode),
+			authz: saAuthorizerBuilder{
+				t:                  t,
+				serviceAccountName: "mysa",
+				namespace:          coremypod.Namespace,
+				requestAudience:    "foo",
+				decision:           authorizer.DecisionAllow,
+			}.build(),
 		},
 		{
 			name:            "allow create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled",
@@ -1570,7 +1595,7 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			}.build(),
 		},
 		{
-			name:            "forbid create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, pvc not found",
+			name:            "forbid create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, pvc not found, authorizer denies",
 			podsGetter:      existingPods,
 			csiDriverGetter: csiDriverLister,
 			pvcGetter:       noexistingPVCLister,
@@ -1582,9 +1607,36 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			},
 			attributes: admission.NewAttributesRecord(makeTokenRequest(coremypodWithPVCRefCSI.Name, v1mypodWithPVCRefCSI.UID, []string{"foo"}), nil, tokenrequestKind, coremypod.Namespace, "mysa", svcacctResource, "token", admission.Create, &metav1.CreateOptions{}, false, mynode),
 			err:        `error validating audience "foo": persistentvolumeclaim "pvclaim" not found`,
+			authz: saAuthorizerBuilder{
+				t:                  t,
+				serviceAccountName: "mysa",
+				namespace:          coremypod.Namespace,
+				requestAudience:    "foo",
+				decision:           authorizer.DecisionDeny,
+			}.build(),
 		},
 		{
-			name:            "forbid create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, pv not found",
+			name:            "allow create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, pvc not found, authorizer allows",
+			podsGetter:      existingPods,
+			csiDriverGetter: csiDriverLister,
+			pvcGetter:       noexistingPVCLister,
+			pvGetter:        pvLister,
+			features:        feature.DefaultFeatureGate,
+			setupFunc: func(t *testing.T) {
+				t.Helper()
+				featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.ServiceAccountNodeAudienceRestriction, true)
+			},
+			attributes: admission.NewAttributesRecord(makeTokenRequest(coremypodWithPVCRefCSI.Name, v1mypodWithPVCRefCSI.UID, []string{"foo"}), nil, tokenrequestKind, coremypod.Namespace, "mysa", svcacctResource, "token", admission.Create, &metav1.CreateOptions{}, false, mynode),
+			authz: saAuthorizerBuilder{
+				t:                  t,
+				serviceAccountName: "mysa",
+				namespace:          coremypod.Namespace,
+				requestAudience:    "foo",
+				decision:           authorizer.DecisionAllow,
+			}.build(),
+		},
+		{
+			name:            "forbid create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, pv not found, authorizer denies",
 			podsGetter:      existingPods,
 			csiDriverGetter: csiDriverLister,
 			pvcGetter:       pvcLister,
@@ -1596,6 +1648,33 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			},
 			attributes: admission.NewAttributesRecord(makeTokenRequest(coremypodWithPVCRefCSI.Name, v1mypodWithPVCRefCSI.UID, []string{"foo"}), nil, tokenrequestKind, coremypod.Namespace, "mysa", svcacctResource, "token", admission.Create, &metav1.CreateOptions{}, false, mynode),
 			err:        `error validating audience "foo": persistentvolume "pvname" not found`,
+			authz: saAuthorizerBuilder{
+				t:                  t,
+				serviceAccountName: "mysa",
+				namespace:          coremypod.Namespace,
+				requestAudience:    "foo",
+				decision:           authorizer.DecisionDeny,
+			}.build(),
+		},
+		{
+			name:            "allow create of token when audience in pod --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled, pv not found, authorizer allows",
+			podsGetter:      existingPods,
+			csiDriverGetter: csiDriverLister,
+			pvcGetter:       pvcLister,
+			pvGetter:        noexistingPVLister,
+			features:        feature.DefaultFeatureGate,
+			setupFunc: func(t *testing.T) {
+				t.Helper()
+				featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.ServiceAccountNodeAudienceRestriction, true)
+			},
+			attributes: admission.NewAttributesRecord(makeTokenRequest(coremypodWithPVCRefCSI.Name, v1mypodWithPVCRefCSI.UID, []string{"foo"}), nil, tokenrequestKind, coremypod.Namespace, "mysa", svcacctResource, "token", admission.Create, &metav1.CreateOptions{}, false, mynode),
+			authz: saAuthorizerBuilder{
+				t:                  t,
+				serviceAccountName: "mysa",
+				namespace:          coremypod.Namespace,
+				requestAudience:    "foo",
+				decision:           authorizer.DecisionAllow,
+			}.build(),
 		},
 		{
 			name:            "allow create of token when audience in pod --> ephemeral --> pvc --> pv --> csi --> driver --> tokenrequest with audience and ServiceAccountNodeAudienceRestriction is enabled",
@@ -2700,116 +2779,64 @@ func TestAdmitResourceSlice(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		operation      admission.Operation
-		options        runtime.Object
-		obj, oldObj    runtime.Object
-		featureEnabled bool
-		expectError    string
+		operation   admission.Operation
+		options     runtime.Object
+		obj, oldObj runtime.Object
+		expectError string
 	}{
-		"create allowed, enabled": {
-			operation:      admission.Create,
-			options:        &metav1.CreateOptions{},
-			obj:            sliceNode,
-			featureEnabled: true,
-			expectError:    "",
+		"create allowed": {
+			operation:   admission.Create,
+			options:     &metav1.CreateOptions{},
+			obj:         sliceNode,
+			expectError: "",
 		},
-		"create disallowed, enabled": {
-			operation:      admission.Create,
-			options:        &metav1.CreateOptions{},
-			obj:            sliceOtherNode,
-			featureEnabled: true,
-			expectError:    createErr,
+		"create disallowed": {
+			operation:   admission.Create,
+			options:     &metav1.CreateOptions{},
+			obj:         sliceOtherNode,
+			expectError: createErr,
 		},
-		"create disallowed, no node name, enabled": {
-			operation:      admission.Create,
-			options:        &metav1.CreateOptions{},
-			obj:            sliceNoNode,
-			featureEnabled: true,
-			expectError:    createErr,
-		},
-		"create allowed, disabled": {
-			operation:      admission.Create,
-			options:        &metav1.CreateOptions{},
-			obj:            sliceNode,
-			featureEnabled: false,
-			expectError:    "",
-		},
-		"create disallowed, disabled": {
-			operation:      admission.Create,
-			options:        &metav1.CreateOptions{},
-			obj:            sliceOtherNode,
-			featureEnabled: false,
-			expectError:    createErr,
-		},
-		"create disallowed, no node name, disabled": {
-			operation:      admission.Create,
-			options:        &metav1.CreateOptions{},
-			obj:            sliceNoNode,
-			featureEnabled: false,
-			expectError:    createErr,
+		"create disallowed, no node name": {
+			operation:   admission.Create,
+			options:     &metav1.CreateOptions{},
+			obj:         sliceNoNode,
+			expectError: createErr,
 		},
 		"update allowed, same node": {
-			operation:      admission.Update,
-			options:        &metav1.UpdateOptions{},
-			obj:            sliceNode,
-			featureEnabled: true,
-			expectError:    "",
+			operation:   admission.Update,
+			options:     &metav1.UpdateOptions{},
+			obj:         sliceNode,
+			expectError: "",
 		},
 		"update allowed, other node": {
-			operation:      admission.Update,
-			options:        &metav1.UpdateOptions{},
-			obj:            sliceOtherNode,
-			featureEnabled: true,
-			expectError:    "",
+			operation:   admission.Update,
+			options:     &metav1.UpdateOptions{},
+			obj:         sliceOtherNode,
+			expectError: "",
 		},
 		"update allowed, no node": {
-			operation:      admission.Update,
-			options:        &metav1.UpdateOptions{},
-			obj:            sliceNoNode,
-			featureEnabled: true,
-			expectError:    "",
+			operation:   admission.Update,
+			options:     &metav1.UpdateOptions{},
+			obj:         sliceNoNode,
+			expectError: "",
 		},
-		"delete allowed, enabled": {
-			operation:      admission.Delete,
-			options:        &metav1.DeleteOptions{},
-			oldObj:         sliceNode,
-			featureEnabled: true,
-			expectError:    "",
+		"delete allowed": {
+			operation:   admission.Delete,
+			options:     &metav1.DeleteOptions{},
+			oldObj:      sliceNode,
+			expectError: "",
 		},
-		"delete disallowed, enabled": {
-			operation:      admission.Delete,
-			options:        &metav1.DeleteOptions{},
-			oldObj:         sliceOtherNode,
-			featureEnabled: true,
-			expectError:    deleteErr,
+		"delete disallowed": {
+			operation:   admission.Delete,
+			options:     &metav1.DeleteOptions{},
+			oldObj:      sliceOtherNode,
+			expectError: deleteErr,
 		},
-		"delete disallowed, no node name, enabled": {
-			operation:      admission.Delete,
-			options:        &metav1.DeleteOptions{},
-			oldObj:         sliceNoNode,
-			featureEnabled: true,
-			expectError:    deleteErr,
-		},
-		"delete allowed, disabled": {
-			operation:      admission.Delete,
-			options:        &metav1.DeleteOptions{},
-			oldObj:         sliceNode,
-			featureEnabled: false,
-			expectError:    "",
-		},
-		"delete disallowed, disabled": {
-			operation:      admission.Delete,
-			options:        &metav1.DeleteOptions{},
-			oldObj:         sliceOtherNode,
-			featureEnabled: false,
-			expectError:    deleteErr,
-		},
-		"delete disallowed, no node name, disabled": {
-			operation:      admission.Delete,
-			options:        &metav1.DeleteOptions{},
-			oldObj:         sliceNoNode,
-			featureEnabled: false,
-			expectError:    deleteErr,
+		"delete disallowed, no node name": {
+			operation:   admission.Delete,
+			options:     &metav1.DeleteOptions{},
+			oldObj:      sliceNoNode,
+			expectError: deleteErr,
 		},
 	}
 
@@ -2818,10 +2845,6 @@ func TestAdmitResourceSlice(t *testing.T) {
 			attributes := admission.NewAttributesRecord(
 				test.obj, test.oldObj, schema.GroupVersionKind{},
 				"", "foo", apiResource, "", test.operation, test.options, false, mynode)
-			if !test.featureEnabled {
-				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, version.MustParse("1.34"))
-			}
-			featuregatetesting.SetFeatureGateDuringTest(t, feature.DefaultFeatureGate, features.DynamicResourceAllocation, test.featureEnabled)
 			a := &admitTestCase{
 				name:       name,
 				attributes: attributes,

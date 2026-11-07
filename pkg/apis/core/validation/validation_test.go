@@ -11075,7 +11075,10 @@ func TestValidatePodDNSConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
+			if tc.legacyIPs {
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
+				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
+			}
 
 			if tc.dnsPolicy == nil {
 				tc.dnsPolicy = &testDNSClusterFirst
@@ -11330,7 +11333,6 @@ func TestValidatePodSpec(t *testing.T) {
 	}
 	for k, v := range successCases {
 		t.Run(k, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
 			opts := PodValidationOptions{
 				ResourceIsPod:            true,
 				PodLevelResourcesEnabled: true,
@@ -11357,6 +11359,7 @@ func TestValidatePodSpec(t *testing.T) {
 	}
 	for k, v := range legacyValidationCases {
 		t.Run(k, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
 			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
 			opts := PodValidationOptions{
 				ResourceIsPod:            true,
@@ -11497,7 +11500,6 @@ func TestValidatePodSpec(t *testing.T) {
 	}
 	for k, tc := range failureCases {
 		t.Run(k, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
 			opts := PodValidationOptions{
 				ResourceIsPod:            true,
 				PodLevelResourcesEnabled: true,
@@ -14272,6 +14274,38 @@ func TestValidatePodUpdate(t *testing.T) {
 			err:  "Forbidden: pod updates may not change fields other than",
 			test: "storage request change",
 		}, {
+			// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+			new: *podtest.MakePod("pod",
+				podtest.SetContainers(podtest.MakeContainer("container",
+					podtest.SetContainerResources(core.ResourceRequirements{
+						Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+					}))),
+			),
+			old: *podtest.MakePod("pod",
+				podtest.SetContainers(podtest.MakeContainer("container",
+					podtest.SetContainerResources(core.ResourceRequirements{
+						Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+					}))),
+			),
+			err:  "must be an integer",
+			test: "unchanged fractional extended resource limit",
+		}, {
+			// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+			new: *podtest.MakePod("pod",
+				podtest.SetInitContainers(podtest.MakeContainer("init",
+					podtest.SetContainerResources(core.ResourceRequirements{
+						Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+					}))),
+			),
+			old: *podtest.MakePod("pod",
+				podtest.SetInitContainers(podtest.MakeContainer("init",
+					podtest.SetContainerResources(core.ResourceRequirements{
+						Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+					}))),
+			),
+			err:  "must be an integer",
+			test: "unchanged fractional extended resource limit in init container",
+		}, {
 			new: *podtest.MakePod("pod",
 				podtest.SetContainers(podtest.MakeContainer("container",
 					podtest.SetContainerResources(core.ResourceRequirements{
@@ -15603,6 +15637,68 @@ func TestValidatePodUpdate(t *testing.T) {
 				t.Errorf("unexpected error message: %s\nExpected error: %s\nActual error: %s", test.test, test.err, actualErr)
 			}
 		}
+	}
+}
+
+func TestValidatePodTemplateUpdate(t *testing.T) {
+	makeTemplate := func(labels map[string]string, tweaks ...podtest.Tweak) core.PodTemplate {
+		return core.PodTemplate{
+			ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: "ns", ResourceVersion: "1", Labels: labels},
+			Template:   core.PodTemplateSpec{Spec: podtest.MakePodSpec(tweaks...)},
+		}
+	}
+	fractionalGPULimit := podtest.SetContainerResources(core.ResourceRequirements{
+		Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+	})
+
+	tests := []struct {
+		test string
+		old  core.PodTemplate
+		new  core.PodTemplate
+		err  string
+	}{{
+		test: "nothing",
+		old:  makeTemplate(nil),
+		new:  makeTemplate(nil),
+	}, {
+		test: "labels",
+		old:  makeTemplate(map[string]string{"foo": "bar"}),
+		new:  makeTemplate(map[string]string{"bar": "foo"}),
+	}, {
+		test: "image change",
+		old:  makeTemplate(nil, podtest.SetContainers(podtest.MakeContainer("ctr", podtest.SetContainerImage("image:v1")))),
+		new:  makeTemplate(nil, podtest.SetContainers(podtest.MakeContainer("ctr", podtest.SetContainerImage("image:v2")))),
+	}, {
+		test: "duplicate container names",
+		old:  makeTemplate(nil),
+		new:  makeTemplate(nil, podtest.SetContainers(podtest.MakeContainer("ctr"), podtest.MakeContainer("ctr"))),
+		err:  "template.spec.containers[1].name",
+	}, {
+		// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+		test: "unchanged fractional extended resource limit",
+		old:  makeTemplate(nil, podtest.SetContainers(podtest.MakeContainer("ctr", fractionalGPULimit))),
+		new:  makeTemplate(nil, podtest.SetContainers(podtest.MakeContainer("ctr", fractionalGPULimit))),
+		err:  "must be an integer",
+	}, {
+		// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+		test: "unchanged fractional extended resource limit in init container",
+		old:  makeTemplate(nil, podtest.SetInitContainers(podtest.MakeContainer("init", fractionalGPULimit))),
+		new:  makeTemplate(nil, podtest.SetInitContainers(podtest.MakeContainer("init", fractionalGPULimit))),
+		err:  "must be an integer",
+	}}
+	for _, tc := range tests {
+		t.Run(tc.test, func(t *testing.T) {
+			errs := ValidatePodTemplateUpdate(&tc.new, &tc.old, PodValidationOptions{})
+			if tc.err == "" {
+				if len(errs) != 0 {
+					t.Errorf("unexpected invalid: %v", errs)
+				}
+			} else if len(errs) == 0 {
+				t.Errorf("unexpected valid")
+			} else if actualErr := errs.ToAggregate().Error(); !strings.Contains(actualErr, tc.err) {
+				t.Errorf("unexpected error message:\nExpected error: %s\nActual error: %s", tc.err, actualErr)
+			}
+		})
 	}
 }
 
@@ -17569,6 +17665,55 @@ func TestValidateNodeAllocatableResourceClaimStatus(t *testing.T) {
 			errorField:  "status.nodeAllocatableResourceClaimStatuses[0].overhead[0].name",
 			errorMsg:    "must be a node allocatable resource name",
 		},
+		{
+			name: "Valid ResourceClaimName from ExtendedResourceClaimStatus",
+			spec: core.PodSpec{
+				Containers: []core.Container{
+					{Name: "c1", Image: "image"},
+				},
+			},
+			podStatus: core.PodStatus{
+				ExtendedResourceClaimStatus: &core.PodExtendedResourceClaimStatus{
+					ResourceClaimName: "extended-claim1",
+				},
+				NodeAllocatableResourceClaimStatuses: []core.NodeAllocatableResourceClaimStatus{
+					{
+						ResourceClaimName: "extended-claim1",
+						Containers:        []string{"c1"},
+						Mapping: []core.NodeAllocatableMappedResources{
+							{Name: core.ResourceCPU, Quantity: new(resource.MustParse("1"))},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "Invalid ResourceClaimName not matching ExtendedResourceClaimStatus",
+			spec: core.PodSpec{
+				Containers: []core.Container{
+					{Name: "c1", Image: "image"},
+				},
+			},
+			podStatus: core.PodStatus{
+				ExtendedResourceClaimStatus: &core.PodExtendedResourceClaimStatus{
+					ResourceClaimName: "extended-claim1",
+				},
+				NodeAllocatableResourceClaimStatuses: []core.NodeAllocatableResourceClaimStatus{
+					{
+						ResourceClaimName: "some-other-claim",
+						Containers:        []string{"c1"},
+						Mapping: []core.NodeAllocatableMappedResources{
+							{Name: core.ResourceCPU, Quantity: new(resource.MustParse("1"))},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorType:   field.ErrorTypeInvalid,
+			errorField:  "status.nodeAllocatableResourceClaimStatuses[0].resourceClaimName",
+			errorMsg:    "no mapping found in pod reference",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -17971,6 +18116,80 @@ func TestValidatePodEphemeralContainersUpdate(t *testing.T) {
 			return p
 		}(),
 		"Forbidden: static pods do not support ephemeral containers",
+	}, {
+		// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+		"Add an Ephemeral Container next to an unchanged fractional extended resource limit",
+		func() *core.Pod {
+			p := makePod([]core.EphemeralContainer{{
+				EphemeralContainerCommon: core.EphemeralContainerCommon{
+					Name:                     "debugger",
+					Image:                    "busybox",
+					ImagePullPolicy:          "IfNotPresent",
+					TerminationMessagePolicy: "File",
+				},
+			}})
+			p.Spec.Containers = []core.Container{{
+				Name:                     "ctr",
+				Image:                    "image",
+				ImagePullPolicy:          "IfNotPresent",
+				TerminationMessagePolicy: "File",
+				Resources: core.ResourceRequirements{
+					Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+				},
+			}}
+			return p
+		}(),
+		func() *core.Pod {
+			p := makePod(nil)
+			p.Spec.Containers = []core.Container{{
+				Name:                     "ctr",
+				Image:                    "image",
+				ImagePullPolicy:          "IfNotPresent",
+				TerminationMessagePolicy: "File",
+				Resources: core.ResourceRequirements{
+					Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+				},
+			}}
+			return p
+		}(),
+		"must be an integer",
+	}, {
+		// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+		"Add an Ephemeral Container next to an unchanged fractional extended resource limit in an init container",
+		func() *core.Pod {
+			p := makePod([]core.EphemeralContainer{{
+				EphemeralContainerCommon: core.EphemeralContainerCommon{
+					Name:                     "debugger",
+					Image:                    "busybox",
+					ImagePullPolicy:          "IfNotPresent",
+					TerminationMessagePolicy: "File",
+				},
+			}})
+			p.Spec.InitContainers = []core.Container{{
+				Name:                     "init",
+				Image:                    "image",
+				ImagePullPolicy:          "IfNotPresent",
+				TerminationMessagePolicy: "File",
+				Resources: core.ResourceRequirements{
+					Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+				},
+			}}
+			return p
+		}(),
+		func() *core.Pod {
+			p := makePod(nil)
+			p.Spec.InitContainers = []core.Container{{
+				Name:                     "init",
+				Image:                    "image",
+				ImagePullPolicy:          "IfNotPresent",
+				TerminationMessagePolicy: "File",
+				Resources: core.ResourceRequirements{
+					Limits: core.ResourceList{core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+				},
+			}}
+			return p
+		}(),
+		"must be an integer",
 	},
 	}
 
@@ -18000,7 +18219,6 @@ func TestValidateServiceCreate(t *testing.T) {
 		tweakSvc                   func(svc *core.Service) // given a basic valid service, each test case can customize it
 		numErrs                    int
 		legacyIPs                  bool
-		disableNewTrafficDist      bool
 		disableRelaxedServiceNames bool
 	}{{
 		name:     "default",
@@ -19274,20 +19492,6 @@ func TestValidateServiceCreate(t *testing.T) {
 			},
 			numErrs: 1,
 		}, {
-			name: "invalid: trafficDistribution field set to PreferSameZone without feature gate",
-			tweakSvc: func(s *core.Service) {
-				s.Spec.TrafficDistribution = ptr.To("PreferSameZone")
-			},
-			numErrs:               1,
-			disableNewTrafficDist: true,
-		}, {
-			name: "invalid: trafficDistribution field set to PreferSameNode without feature gate",
-			tweakSvc: func(s *core.Service) {
-				s.Spec.TrafficDistribution = ptr.To("PreferSameNode")
-			},
-			numErrs:               1,
-			disableNewTrafficDist: true,
-		}, {
 
 			name: "valid: service name begins with a digit feature gate enabled",
 			tweakSvc: func(s *core.Service) {
@@ -19306,21 +19510,14 @@ func TestValidateServiceCreate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.disableNewTrafficDist {
-				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.34"))
-			}
-
-			if tc.disableRelaxedServiceNames {
+			if tc.disableRelaxedServiceNames || tc.legacyIPs {
 				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.36"))
 				featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-					features.RelaxedServiceNameValidation: false,
+					features.RelaxedServiceNameValidation: !tc.disableRelaxedServiceNames,
+					features.StrictIPCIDRValidation:       !tc.legacyIPs,
 				})
 			}
 
-			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-				features.PreferSameTrafficDistribution: !tc.disableNewTrafficDist,
-				features.StrictIPCIDRValidation:        !tc.legacyIPs,
-			})
 			svc := makeValidService()
 			tc.tweakSvc(&svc)
 			errs := ValidateServiceCreate(&svc)
@@ -19716,33 +19913,6 @@ func TestValidateReplicationControllerUpdate(t *testing.T) {
 				field.Required(field.NewPath("spec.template"), ""),
 			},
 		},
-		"negative replicas": {
-			old: mkValidReplicationController(func(rc *core.ReplicationController) {}),
-			update: mkValidReplicationController(func(rc *core.ReplicationController) {
-				rc.Spec.Replicas = ptr.To[int32](-1)
-			}),
-			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.replicas"), nil, "").WithOrigin("minimum"),
-			},
-		},
-		"nil replicas": {
-			old: mkValidReplicationController(func(rc *core.ReplicationController) {}),
-			update: mkValidReplicationController(func(rc *core.ReplicationController) {
-				rc.Spec.Replicas = nil
-			}),
-			expectedErrs: field.ErrorList{
-				field.Required(field.NewPath("spec.replicas"), ""),
-			},
-		},
-		"negative minReadySeconds": {
-			old: mkValidReplicationController(func(rc *core.ReplicationController) {}),
-			update: mkValidReplicationController(func(rc *core.ReplicationController) {
-				rc.Spec.MinReadySeconds = -1
-			}),
-			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.minReadySeconds"), nil, "").WithOrigin("minimum"),
-			},
-		},
 	}
 	for k, tc := range errorCases {
 		t.Run(k, func(t *testing.T) {
@@ -19826,24 +19996,6 @@ func TestValidateReplicationController(t *testing.T) {
 			input: mkValidReplicationController(func(rc *core.ReplicationController) { rc.Spec.Template = nil }),
 			expectedErrs: field.ErrorList{
 				field.Required(field.NewPath("spec.template"), ""),
-			},
-		},
-		"negative replicas": {
-			input: mkValidReplicationController(func(rc *core.ReplicationController) { rc.Spec.Replicas = ptr.To[int32](-1) }),
-			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.replicas"), nil, "").WithOrigin("minimum"),
-			},
-		},
-		"negative minReadySeconds": {
-			input: mkValidReplicationController(func(rc *core.ReplicationController) { rc.Spec.MinReadySeconds = -1 }),
-			expectedErrs: field.ErrorList{
-				field.Invalid(field.NewPath("spec.minReadySeconds"), nil, "").WithOrigin("minimum"),
-			},
-		},
-		"nil replicas": {
-			input: mkValidReplicationController(func(rc *core.ReplicationController) { rc.Spec.Replicas = nil }),
-			expectedErrs: field.ErrorList{
-				field.Required(field.NewPath("spec.replicas"), ""),
 			},
 		},
 		"invalid label": {
@@ -20040,7 +20192,6 @@ func TestValidateNode(t *testing.T) {
 	}
 	for _, successCase := range successCases {
 		t.Run("", func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
 			if errs := ValidateNode(&successCase); len(errs) != 0 {
 				t.Errorf("expected success: %v", errs)
 			}
@@ -20068,6 +20219,7 @@ func TestValidateNode(t *testing.T) {
 	}
 	for name, legacyCase := range legacyValidationCases {
 		t.Run(name, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
 			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
 			if errs := ValidateNode(&legacyCase); len(errs) != 0 {
 				t.Errorf("expected success: %v", errs)
@@ -20294,8 +20446,6 @@ func TestValidateNode(t *testing.T) {
 	}
 	for k, v := range errorCases {
 		t.Run(k, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
-
 			errs := ValidateNode(&v)
 			if len(errs) == 0 {
 				t.Errorf("expected failure")
@@ -20654,6 +20804,40 @@ func TestValidateNodeUpdate(t *testing.T) {
 					core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
 					core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
 					core.ResourceName("example.com/a"):     resource.MustParse("4.5"),
+				},
+			},
+		}, false},
+		// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+		{core.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "unchanged-fractional-extended-capacity-and-allocatable",
+			},
+			Status: core.NodeStatus{
+				Capacity: core.ResourceList{
+					core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
+					core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
+					core.ResourceName("example.com/a"):     resource.MustParse("18446744073709551616m"),
+				},
+				Allocatable: core.ResourceList{
+					core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
+					core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
+					core.ResourceName("example.com/a"):     resource.MustParse("18446744073709551616m"),
+				},
+			},
+		}, core.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "unchanged-fractional-extended-capacity-and-allocatable",
+			},
+			Status: core.NodeStatus{
+				Capacity: core.ResourceList{
+					core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
+					core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
+					core.ResourceName("example.com/a"):     resource.MustParse("18446744073709551616m"),
+				},
+				Allocatable: core.ResourceList{
+					core.ResourceName(core.ResourceCPU):    resource.MustParse("10"),
+					core.ResourceName(core.ResourceMemory): resource.MustParse("10G"),
+					core.ResourceName("example.com/a"):     resource.MustParse("18446744073709551616m"),
 				},
 			},
 		}, false},
@@ -22047,7 +22231,6 @@ func TestValidateServiceUpdate(t *testing.T) {
 				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.36"))
 			}
 			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-				features.StrictIPCIDRValidation:       true,
 				features.RelaxedServiceNameValidation: !tc.disableRelaxedServiceNames,
 			})
 
@@ -22752,6 +22935,29 @@ func TestValidateLimitRange(t *testing.T) {
 			}},
 			"ratio 10 is greater than max/min = 4.000000",
 		},
+		// TODO(#141166): The true max/min is 2, so this must be accepted.
+		"maxLimitRequestRatio equal to max/min past int64": {
+			core.LimitRange{ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: core.LimitRangeSpec{
+				Limits: []core.LimitRangeItem{{
+					Type:                 core.LimitTypeContainer,
+					Max:                  getResources("", "18446744073709551616", "", ""),
+					Min:                  getResources("", "9223372036854775808", "", ""),
+					MaxLimitRequestRatio: getResources("", "2", "", ""),
+				}},
+			}},
+			"ratio 2 is greater than max/min = 1.000000",
+		},
+		"invalid spec maxLimitRequestRatio greater than max/min past int64": {
+			core.LimitRange{ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: core.LimitRangeSpec{
+				Limits: []core.LimitRangeItem{{
+					Type:                 core.LimitTypeContainer,
+					Max:                  getResources("", "18446744073709551616", "", ""),
+					Min:                  getResources("", "9223372036854775808", "", ""),
+					MaxLimitRequestRatio: getResources("", "3", "", ""),
+				}},
+			}},
+			"ratio 3 is greater than max/min",
+		},
 		"invalid non standard limit type": {
 			core.LimitRange{ObjectMeta: metav1.ObjectMeta{Name: "abc", Namespace: "foo"}, Spec: core.LimitRangeSpec{
 				Limits: []core.LimitRangeItem{{
@@ -22866,6 +23072,80 @@ func TestValidatePersistentVolumeClaimStatusUpdate(t *testing.T) {
 		},
 		AllocatedResources: core.ResourceList{
 			core.ResourceName(core.ResourceStorage): resource.MustParse("-10G"),
+		},
+	})
+
+	negativeCapacity := testVolumeClaimWithStatus("foo", "ns", core.PersistentVolumeClaimSpec{
+		AccessModes: []core.PersistentVolumeAccessMode{
+			core.ReadWriteOnce,
+			core.ReadOnlyMany,
+		},
+		Resources: core.VolumeResourceRequirements{
+			Requests: core.ResourceList{
+				core.ResourceName(core.ResourceStorage): resource.MustParse("10G"),
+			},
+		},
+	}, core.PersistentVolumeClaimStatus{
+		Phase: core.ClaimBound,
+		Capacity: core.ResourceList{
+			core.ResourceName(core.ResourceStorage): resource.MustParse("-9.5Gi"),
+		},
+	})
+
+	negativeCapacityConditionUpdate := testVolumeClaimWithStatus("foo", "ns", core.PersistentVolumeClaimSpec{
+		AccessModes: []core.PersistentVolumeAccessMode{
+			core.ReadWriteOnce,
+			core.ReadOnlyMany,
+		},
+		Resources: core.VolumeResourceRequirements{
+			Requests: core.ResourceList{
+				core.ResourceName(core.ResourceStorage): resource.MustParse("10G"),
+			},
+		},
+	}, core.PersistentVolumeClaimStatus{
+		Phase: core.ClaimBound,
+		Conditions: []core.PersistentVolumeClaimCondition{
+			{Type: core.PersistentVolumeClaimResizing, Status: core.ConditionTrue},
+		},
+		Capacity: core.ResourceList{
+			core.ResourceName(core.ResourceStorage): resource.MustParse("-9.5Gi"),
+		},
+	})
+
+	hugeNegativeCapacity := testVolumeClaimWithStatus("foo", "ns", core.PersistentVolumeClaimSpec{
+		AccessModes: []core.PersistentVolumeAccessMode{
+			core.ReadWriteOnce,
+			core.ReadOnlyMany,
+		},
+		Resources: core.VolumeResourceRequirements{
+			Requests: core.ResourceList{
+				core.ResourceName(core.ResourceStorage): resource.MustParse("10G"),
+			},
+		},
+	}, core.PersistentVolumeClaimStatus{
+		Phase: core.ClaimBound,
+		Capacity: core.ResourceList{
+			core.ResourceName(core.ResourceStorage): resource.MustParse("-1e30"),
+		},
+	})
+
+	hugeNegativeCapacityConditionUpdate := testVolumeClaimWithStatus("foo", "ns", core.PersistentVolumeClaimSpec{
+		AccessModes: []core.PersistentVolumeAccessMode{
+			core.ReadWriteOnce,
+			core.ReadOnlyMany,
+		},
+		Resources: core.VolumeResourceRequirements{
+			Requests: core.ResourceList{
+				core.ResourceName(core.ResourceStorage): resource.MustParse("10G"),
+			},
+		},
+	}, core.PersistentVolumeClaimStatus{
+		Phase: core.ClaimBound,
+		Conditions: []core.PersistentVolumeClaimCondition{
+			{Type: core.PersistentVolumeClaimResizing, Status: core.ConditionTrue},
+		},
+		Capacity: core.ResourceList{
+			core.ResourceName(core.ResourceStorage): resource.MustParse("-1e30"),
 		},
 	})
 
@@ -23060,6 +23340,28 @@ func TestValidatePersistentVolumeClaimStatusUpdate(t *testing.T) {
 			oldClaim:                   validClaim,
 			newClaim:                   invalidAllocatedResources,
 			enableRecoverFromExpansion: true,
+		},
+		"status-update-with-negative-capacity": {
+			isExpectedFailure: true,
+			oldClaim:          validClaim,
+			newClaim:          negativeCapacity,
+		},
+		// TODO(#141166): An unchanged stored capacity must pass a status update that does not change it. Expect no errors.
+		"condition-update-with-unchanged-negative-capacity": {
+			isExpectedFailure: true,
+			oldClaim:          negativeCapacity,
+			newClaim:          negativeCapacityConditionUpdate,
+		},
+		"status-update-with-negative-capacity-past-int64": {
+			isExpectedFailure: true,
+			oldClaim:          validClaim,
+			newClaim:          hugeNegativeCapacity,
+		},
+		// TODO(#141166): An unchanged stored capacity must pass a status update that does not change it. Expect no errors.
+		"condition-update-with-unchanged-negative-capacity-past-int64": {
+			isExpectedFailure: true,
+			oldClaim:          hugeNegativeCapacity,
+			newClaim:          hugeNegativeCapacityConditionUpdate,
 		},
 		"status-update-with-no-storage-update": {
 			isExpectedFailure:          true,
@@ -23835,20 +24137,25 @@ func TestValidateSecret(t *testing.T) {
 		secret core.Secret
 		valid  bool
 	}{
-		"valid":                                     {validSecret(), true},
-		"empty name":                                {emptyName, false},
-		"invalid name":                              {invalidName, false},
-		"empty namespace":                           {emptyNs, false},
-		"invalid namespace":                         {invalidNs, false},
-		"over max size":                             {overMaxSize, false},
-		"invalid key":                               {invalidKey, false},
-		"valid service-account-token secret":        {validServiceAccountTokenSecret(), true},
-		"empty service-account-token annotation":    {emptyTokenAnnotation, false},
-		"missing service-account-token annotation":  {missingTokenAnnotation, false},
+		"valid":             {validSecret(), true},
+		"empty name":        {emptyName, false},
+		"invalid name":      {invalidName, false},
+		"empty namespace":   {emptyNs, false},
+		"invalid namespace": {invalidNs, false},
+		"over max size":     {overMaxSize, false},
+		"invalid key":       {invalidKey, false},
+
+		"valid service-account-token secret": {validServiceAccountTokenSecret(), true},
+
+		"empty service-account-token annotation": {emptyTokenAnnotation, false},
+
+		"missing service-account-token annotation": {missingTokenAnnotation, false},
+
 		"missing service-account-token annotations": {missingTokenAnnotations, false},
-		"leading dot key":                           {leadingDotKey, true},
-		"dot key":                                   {dotKey, false},
-		"double dot key":                            {doubleDotKey, false},
+
+		"leading dot key": {leadingDotKey, true},
+		"dot key":         {dotKey, false},
+		"double dot key":  {doubleDotKey, false},
 	}
 
 	for name, tc := range tests {
@@ -24136,7 +24443,6 @@ func TestValidateEndpointsCreate(t *testing.T) {
 	}
 	for name, tc := range successCases {
 		t.Run(name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
 			errs := ValidateEndpointsCreate(&tc.endpoints)
 			if len(errs) != 0 {
 				t.Errorf("Expected no validation errors, got %v", errs)
@@ -24163,6 +24469,7 @@ func TestValidateEndpointsCreate(t *testing.T) {
 	}
 	for name, tc := range legacyValidationCases {
 		t.Run(name, func(t *testing.T) {
+			featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
 			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
 			errs := ValidateEndpointsCreate(&tc.endpoints)
 			if len(errs) != 0 {
@@ -24359,7 +24666,6 @@ func TestValidateEndpointsCreate(t *testing.T) {
 
 	for k, v := range errorCases {
 		t.Run(k, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, true)
 			errs := ValidateEndpointsCreate(&v.endpoints)
 			// TODO: set .RequireOriginWhenInvalid() once metadata is done
 			matcher := field.ErrorMatcher{}.ByType().ByField().ByOrigin()
@@ -26768,7 +27074,10 @@ func TestPodIPsValidation(t *testing.T) {
 
 	for i, testCase := range testCases {
 		t.Run(testCase.pod.Name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !testCase.legacyIPs)
+			if testCase.legacyIPs {
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
+				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
+			}
 			for j, oldTestCase := range testCases {
 				if oldTestCase.legacyIPs && !testCase.legacyIPs {
 					continue
@@ -26901,7 +27210,10 @@ func TestHostIPsValidation(t *testing.T) {
 
 	for i, testCase := range testCases {
 		t.Run(testCase.pod.Name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !testCase.legacyIPs)
+			if testCase.legacyIPs {
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
+				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
+			}
 			for j, oldTestCase := range testCases {
 				if oldTestCase.legacyIPs && !testCase.legacyIPs {
 					continue
@@ -28845,7 +29157,10 @@ func TestValidateLoadBalancerStatus(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, !tc.legacyIPs)
+			if tc.legacyIPs {
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, utilfeature.DefaultFeatureGate, version.MustParse("1.37"))
+				featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.StrictIPCIDRValidation, false)
+			}
 			oldStatus := core.LoadBalancerStatus{}
 			if tc.tweakOldLBStatus != nil {
 				tc.tweakOldLBStatus(&oldStatus)
@@ -31021,6 +31336,19 @@ func TestValidatePodResize(t *testing.T) {
 				return p
 			}(),
 		},
+		// TODO(#141166): An unchanged stored value must pass on update. Expect no error.
+		{
+			test: "cpu resize next to an unchanged fractional extended resource",
+			old: mkPod(
+				core.ResourceList{core.ResourceCPU: resource.MustParse("100m"), core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+				core.ResourceList{core.ResourceCPU: resource.MustParse("100m"), core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+			),
+			new: mkPod(
+				core.ResourceList{core.ResourceCPU: resource.MustParse("200m"), core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+				core.ResourceList{core.ResourceCPU: resource.MustParse("200m"), core.ResourceName("example.com/gpu"): resource.MustParse("18446744073709551616m")},
+			),
+			err: "must be an integer",
+		},
 	}
 
 	for _, test := range tests {
@@ -32940,6 +33268,59 @@ func TestValidatePodBinding(t *testing.T) {
 			} else {
 				if len(errs) != 0 {
 					t.Errorf("Expected no error but got %v", errs)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateBasicResource(t *testing.T) {
+	// Value() is not a reliable way to ask for the sign of a quantity: it overflows
+	// to a positive number for some negative values and falls back to zero for
+	// others. Every negative case below passes a "Value() < 0" check.
+	cases := []struct {
+		name     string
+		quantity string
+		wantErr  bool
+	}{
+		{name: "zero", quantity: "0"},
+		{name: "positive", quantity: "1Gi"},
+		{name: "positive, above MaxInt64", quantity: "1000E"},
+		{name: "positive, far above MaxInt64", quantity: "1e30"},
+		{name: "positive, Value() wraps negative", quantity: "9223372036854775808"},
+
+		{name: "negative", quantity: "-1Gi", wantErr: true},
+		{name: "negative, Value() overflows positive", quantity: "-9.5Gi", wantErr: true},
+		{name: "negative, Value() overflows positive with more digits", quantity: "-9.5000000001Gi", wantErr: true},
+		{name: "negative, Value() falls back to zero", quantity: "-1e30", wantErr: true},
+		{name: "negative, suffixed, Value() falls back to zero", quantity: "-100E", wantErr: true},
+		{name: "negative, at the int64 boundary", quantity: "-9223372036854775808", wantErr: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			q := resource.MustParse(tc.quantity)
+			errs := validateBasicResource(q, field.NewPath("resources").Key("storage"))
+
+			if tc.wantErr && len(errs) == 0 {
+				t.Errorf("%s: expected an error, got none (Value() reports %d)", tc.quantity, q.Value())
+			}
+			if !tc.wantErr && len(errs) != 0 {
+				t.Errorf("%s: expected no error, got %v", tc.quantity, errs)
+			}
+			// The quantity belongs in the error, not the overflowed integer. String()
+			// canonicalizes, so compare by value rather than by spelling.
+			if tc.wantErr && len(errs) == 1 {
+				reported, ok := errs[0].BadValue.(string)
+				if !ok {
+					t.Fatalf("%s: error reports %T, want the quantity as a string", tc.quantity, errs[0].BadValue)
+				}
+				got, err := resource.ParseQuantity(reported)
+				if err != nil {
+					t.Fatalf("%s: error reports %q, which is not a quantity: %v", tc.quantity, reported, err)
+				}
+				if got.Cmp(q) != 0 {
+					t.Errorf("%s: error reports %q, want a quantity equal to the one submitted", tc.quantity, reported)
 				}
 			}
 		})
