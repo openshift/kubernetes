@@ -14,7 +14,7 @@ require (
 	google.golang.org/grpc v1.85.0
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/streaming v0.38.0-beta.0
+	k8s.io/streaming v0.0.0
 )
 
 require (

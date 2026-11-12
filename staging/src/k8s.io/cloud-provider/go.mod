@@ -17,8 +17,8 @@ require (
 	k8s.io/apiserver v0.38.0-beta.0
 	k8s.io/client-go v0.38.0-beta.0
 	k8s.io/component-base v0.38.0-beta.0
-	k8s.io/component-helpers v0.38.0-alpha.3
-	k8s.io/controller-manager v0.32.1
+	k8s.io/component-helpers v0.0.0
+	k8s.io/controller-manager v0.0.0
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 )
@@ -49,7 +49,6 @@ require (
 	github.com/go-openapi/swag/pools v0.29.2 // indirect
 	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/cel-go v0.29.2 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 // indirect

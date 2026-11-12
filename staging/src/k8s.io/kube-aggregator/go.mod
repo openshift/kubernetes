@@ -21,7 +21,7 @@ require (
 	k8s.io/apimachinery v0.38.0-beta.0
 	k8s.io/apiserver v0.38.0-beta.0
 	k8s.io/client-go v0.38.0-beta.0
-	k8s.io/code-generator v0.38.0-beta.0
+	k8s.io/code-generator v0.0.0
 	k8s.io/component-base v0.38.0-beta.0
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kube-openapi v0.0.0-20261014044854-ca3452a79603
@@ -54,7 +54,6 @@ require (
 	github.com/go-openapi/swag/pools v0.29.2 // indirect
 	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/cel-go v0.29.2 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect

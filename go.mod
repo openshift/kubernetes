@@ -33,7 +33,6 @@ require (
 	github.com/go-openapi/jsonreference v1.0.2
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/cadvisor/lib v0.60.5
-	github.com/google/cel-go v0.29.2
 	github.com/google/gnostic-models v0.7.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -175,6 +174,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
+	github.com/google/cel-go v0.29.2 // indirect
 	github.com/google/nftables v0.3.0 // indirect
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 // indirect
