@@ -1764,6 +1764,8 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 
 			gomega.Expect(pod).To(HaveSandboxQuota("max"))
 			gomega.Expect(pod).To(HaveContainerQuota(ctnName, "max"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits(ctnName, ""))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests(ctnName, ""))
 		})
 
 		ginkgo.It("should disable for guaranteed pod with exclusive single CPU assigned", func(ctx context.Context) {
@@ -1783,6 +1785,8 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 
 			gomega.Expect(pod).To(HaveSandboxQuota("max"))
 			gomega.Expect(pod).To(HaveContainerQuota(ctnName, "max"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits(ctnName, "1"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests(ctnName, "1"))
 		})
 
 		ginkgo.It("should disable for guaranteed pod with exclusive four CPUs assigned", func(ctx context.Context) {
@@ -1802,6 +1806,8 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 
 			gomega.Expect(pod).To(HaveSandboxQuota("max"))
 			gomega.Expect(pod).To(HaveContainerQuota(ctnName, "max"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits(ctnName, "3"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests(ctnName, "3"))
 
 			gomega.Expect(pod).To(HaveContainerCPUsCount(ctnName, 3))
 			gomega.Expect(pod).To(HaveContainerCPUsASubsetOf(ctnName, onlineCPUs))
@@ -1825,6 +1831,8 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 
 			gomega.Expect(pod).To(HaveSandboxQuota("50000"))
 			gomega.Expect(pod).To(HaveContainerQuota(ctnName, "50000"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits(ctnName, "500m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests(ctnName, "500m"))
 		})
 
 		ginkgo.It("should enforce for burstable pod", func(ctx context.Context) {
@@ -1843,6 +1851,8 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 
 			gomega.Expect(pod).To(HaveSandboxQuota("50000"))
 			gomega.Expect(pod).To(HaveContainerQuota(ctnName, "50000"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits(ctnName, "500m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests(ctnName, "100m"))
 		})
 
 		ginkgo.It("should not enforce with multiple containers without exclusive CPUs", func(ctx context.Context) {
@@ -1867,6 +1877,10 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 			gomega.Expect(pod).To(HaveSandboxQuota("170000"))
 			gomega.Expect(pod).To(HaveContainerQuota("gu-container-non-int-values-1", "50000"))
 			gomega.Expect(pod).To(HaveContainerQuota("gu-container-non-int-values-2", "120000"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits("gu-container-non-int-values-1", "500m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests("gu-container-non-int-values-1", "100m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits("gu-container-non-int-values-2", "1200m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests("gu-container-non-int-values-2", "300m"))
 		})
 
 		ginkgo.It("should not enforce with multiple containers only in the container with exclusive CPUs", func(ctx context.Context) {
@@ -1891,6 +1905,10 @@ var _ = SIGDescribe("CPU Manager", ginkgo.Ordered, ginkgo.ContinueOnFailure, fra
 			gomega.Expect(pod).To(HaveSandboxQuota("max"))
 			gomega.Expect(pod).To(HaveContainerQuota("gu-container-non-int-values", "50000"))
 			gomega.Expect(pod).To(HaveContainerQuota("gu-container-int-values", "max"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits("gu-container-non-int-values", "500m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests("gu-container-non-int-values", "500m"))
+			gomega.Expect(pod).To(HaveContainerStatusCPULimits("gu-container-int-values", "1"))
+			gomega.Expect(pod).To(HaveContainerStatusCPURequests("gu-container-int-values", "1"))
 		})
 	})
 
@@ -2271,6 +2289,72 @@ var _ = SIGDescribe("CPU Manager Pod Level Resources", ginkgo.Ordered, ginkgo.Co
 			gomega.Expect(pod).ToNot(HaveContainerCPUsOverlapWith("gu-container", reservedCPUs))
 		})
 
+		ginkgo.It("should keep the pod-level CPU allocation restored from the checkpoint across kubelet restart", ginkgo.Label("pod-scope"), func(ctx context.Context) {
+			// Regression test for https://github.com/kubernetes/kubernetes/issues/140989
+			// After a kubelet restart the pod-level CPU allocation restored from the
+			// state checkpoint must be preserved during pod re-admission: the pod
+			// must not be rejected with an admission error ("not enough cpus
+			// available to satisfy request") and must keep exactly the same
+			// exclusive CPUs it had before the restart. Depending on the amount of
+			// allocatable CPUs, the old re-allocation bug manifested either as a
+			// pod admission error (no CPUs left in the shared pool) or as a
+			// silently changed pod CPU set leaking the originally assigned CPUs.
+			skipIfAllocatableCPUsLessThan(getLocalNode(ctx, f), 2)
+
+			updateKubeletConfigIfNeeded(ctx, f, configureCPUManagerInKubelet(oldCfg, &cpuManagerKubeletArguments{
+				policyName:                     string(cpumanager.PolicyStatic),
+				topologyManagerPolicy:          topologymanager.PolicyRestricted,
+				topologyManagerScope:           topologymanager.PodTopologyScope,
+				reservedSystemCPUs:             reservedCPUs,
+				enablePodLevelResources:        true,
+				enablePodLevelResourceManagers: true,
+			}))
+
+			pod := makeCPUManagerPod("gu-pod-level-restart", []ctnAttribute{
+				{
+					ctnName:    "gu-container",
+					cpuRequest: "2",
+					cpuLimit:   "2",
+				},
+			})
+			pod.Spec.Resources = &v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceCPU:    resource.MustParse("2"),
+					v1.ResourceMemory: resource.MustParse("100Mi"),
+				},
+				Limits: v1.ResourceList{
+					v1.ResourceCPU:    resource.MustParse("2"),
+					v1.ResourceMemory: resource.MustParse("100Mi"),
+				},
+			}
+			ginkgo.By("creating the test pod")
+			pod = createPodSync(ctx, pod)
+
+			ginkgo.By("verifying the pod is running with exclusively allocated CPUs")
+			gomega.Expect(pod).To(HavePodExclusiveCPUs(2))
+			cpusBeforeRestart, err := getContainerAllowedCPUs(pod, "gu-container", false)
+			framework.ExpectNoError(err, "cannot get CPUs for container gu-container before restart")
+			framework.Logf("CPUs before kubelet restart: %s", cpusBeforeRestart.String())
+
+			ginkgo.By("restarting the kubelet")
+			restartKubelet := mustStopKubelet(ctx, f)
+			restartKubelet(ctx)
+
+			ginkgo.By("verifying the pod is not rejected during re-admission and keeps running after kubelet restart")
+			gomega.Consistently(ctx, func(ctx context.Context) (v1.PodPhase, error) {
+				p, err := e2epod.NewPodClient(f).Get(ctx, pod.Name, metav1.GetOptions{})
+				if err != nil {
+					return "", err
+				}
+				return p.Status.Phase, nil
+			}).WithTimeout(30*time.Second).WithPolling(f.Timeouts.Poll).Should(gomega.Equal(v1.PodRunning), "pod should stay running after kubelet restart, not be rejected during re-admission")
+
+			ginkgo.By("verifying the container keeps exactly the same CPUs after restart")
+			pod, err = e2epod.NewPodClient(f).Get(ctx, pod.Name, metav1.GetOptions{})
+			framework.ExpectNoError(err, "failed to get pod after kubelet restart")
+			gomega.Expect(pod).To(HaveContainerCPUsEqualTo("gu-container", cpusBeforeRestart))
+		})
+
 		ginkgo.It("should allocate exclusive CPUs to a guaranteed pod with pod-level resources and non-guaranteed containers, PodLevelResourceManagers enabled", ginkgo.Label("pod-scope"), func(ctx context.Context) {
 			skipIfAllocatableCPUsLessThan(getLocalNode(ctx, f), 1)
 
@@ -2314,10 +2398,12 @@ var _ = SIGDescribe("CPU Manager Pod Level Resources", ginkgo.Ordered, ginkgo.Co
 			skipIfAllocatableCPUsLessThan(getLocalNode(ctx, f), 3)
 
 			updateKubeletConfigIfNeeded(ctx, f, configureCPUManagerInKubelet(oldCfg, &cpuManagerKubeletArguments{
-				policyName:                     string(cpumanager.PolicyStatic),
+				policyName: string(cpumanager.PolicyStatic),
+				// PolicyRestricted is required here to validate that pod-level CPU allocation
+				// restore works correctly under strict topology constraints.
 				topologyManagerPolicy:          topologymanager.PolicyRestricted,
 				topologyManagerScope:           topologymanager.PodTopologyScope,
-				reservedSystemCPUs:             cpuset.CPUSet{},
+				reservedSystemCPUs:             cpuset.New(0),
 				enablePodLevelResources:        true,
 				enablePodLevelResourceManagers: true,
 			}))
@@ -3398,6 +3484,44 @@ func HaveStatusReasonMatchingRegex(expr string) types.GomegaMatcher {
 		}
 		return re.MatchString(actual.Status.Reason), nil
 	}).WithTemplate("Pod {{.Actual.Namespace}}/{{.Actual.Name}} UID {{.Actual.UID}} reason {{.Actual.Status.Reason}} does not match regexp {{.Data}}", expr)
+}
+
+func HaveContainerStatusCPULimits(ctnName, expected string) types.GomegaMatcher {
+	md := &msgData{
+		Name:         ctnName,
+		ExpectedCPUs: expected,
+	}
+	return gcustom.MakeMatcher(func(actual *v1.Pod) (bool, error) {
+		if actual != nil {
+			for _, ctnStatus := range actual.Status.ContainerStatuses {
+				if ctnStatus.Name == ctnName {
+					if ctnStatus.Resources != nil && ctnStatus.Resources.Limits != nil {
+						md.CurrentCPUs = ctnStatus.Resources.Limits.Cpu().String()
+					}
+				}
+			}
+		}
+		return md.ExpectedCPUs == md.CurrentCPUs, nil
+	}).WithTemplate("Pod {{.Actual.Namespace}}/{{.Actual.Name}} UID {{.Actual.UID}} has container resources CPU Limits status <{{.Data.CurrentCPUs}}> not matching expected value <{{.Data.ExpectedCPUs}}> for container {{.Data.Name}}", md)
+}
+
+func HaveContainerStatusCPURequests(ctnName, expected string) types.GomegaMatcher {
+	md := &msgData{
+		Name:         ctnName,
+		ExpectedCPUs: expected,
+	}
+	return gcustom.MakeMatcher(func(actual *v1.Pod) (bool, error) {
+		if actual != nil {
+			for _, ctnStatus := range actual.Status.ContainerStatuses {
+				if ctnStatus.Name == ctnName {
+					if ctnStatus.Resources != nil && ctnStatus.Resources.Requests != nil {
+						md.CurrentCPUs = ctnStatus.Resources.Requests.Cpu().String()
+					}
+				}
+			}
+		}
+		return md.ExpectedCPUs == md.CurrentCPUs, nil
+	}).WithTemplate("Pod {{.Actual.Namespace}}/{{.Actual.Name}} UID {{.Actual.UID}} has container resources CPU Requests status <{{.Data.CurrentCPUs}}> not matching expected value <{{.Data.ExpectedCPUs}}> for container {{.Data.Name}}", md)
 }
 
 type msgData struct {

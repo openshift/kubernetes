@@ -41,6 +41,8 @@ func init() {
 			},
 			"metadata.generation": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+				{ErrorType: "FieldValueInvalid", Origin: "monotonic"},
+				{ErrorType: "FieldValueInvalid", Origin: "update"},
 			},
 			"metadata.managedFields[*].operation": {
 				{ErrorType: "FieldValueNotSupported"},
@@ -48,6 +50,9 @@ func init() {
 			},
 			"metadata.name": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-long-name"},
+			},
+			"metadata.namespace": {
+				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
 			"metadata.ownerReferences[*].apiVersion": {
 				{ErrorType: "FieldValueRequired"},
@@ -82,6 +87,9 @@ func init() {
 			"status.conditions[*]": {
 				{ErrorType: "FieldValueDuplicate"},
 			},
+			"status.conditions[*].message": {
+				{ErrorType: "FieldValueTooLong", Origin: "maxBytes"},
+			},
 			"status.conditions[*].observedGeneration": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
 			},
@@ -94,10 +102,12 @@ func init() {
 				{ErrorType: "FieldValueRequired"},
 			},
 			"status.conditions[*].type": {
+				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-label-key"},
 				{ErrorType: "FieldValueRequired"},
 			},
 			"status.observedGeneration": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+				{ErrorType: "FieldValueInvalid", Origin: "monotonic"},
 				{ErrorType: "FieldValueInvalid", Origin: "update"},
 			},
 			"status.requesters": {

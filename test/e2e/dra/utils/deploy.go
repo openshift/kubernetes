@@ -57,6 +57,7 @@ import (
 	watch "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/discovery/cached/memory"
+	"k8s.io/client-go/ktesting"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	cgoresource "k8s.io/client-go/kubernetes/typed/resource/v1"
@@ -78,7 +79,6 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/storage/drivers/proxy"
 	"k8s.io/kubernetes/test/e2e/storage/utils"
-	"k8s.io/kubernetes/test/utils/client-go/ktesting"
 	"k8s.io/kubernetes/test/utils/image"
 	"k8s.io/utils/clock"
 	"k8s.io/utils/ptr"
@@ -191,7 +191,7 @@ func (nodes *Nodes) init(tCtx ktesting.TContext, minNodes, maxNodes int) {
 		cancel(errors.New("test has completed"))
 		wg.Wait()
 	})
-	_, err = claimInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, err = claimInformer.AddEventHandlerWithOptions(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
 			claim := obj.(*resourceapi.ResourceClaim)
 			resourceClaimLogger.Info("New claim", "claim", format.Object(claim, 0))
@@ -210,7 +210,7 @@ func (nodes *Nodes) init(tCtx ktesting.TContext, minNodes, maxNodes int) {
 			claim := obj.(*resourceapi.ResourceClaim)
 			resourceClaimLogger.Info("Deleted claim", "claim", format.Object(claim, 0))
 		},
-	})
+	}, cache.HandlerOptions{Logger: &resourceClaimLogger})
 	tCtx.ExpectNoError(err, "AddEventHandler")
 	wg.Add(1)
 	go func() {
@@ -316,8 +316,10 @@ func NewDriverInstance(tCtx ktesting.TContext) *Driver {
 		callCounts: map[MethodInstance]int64{},
 		// By default, test with all gRPC APIs.
 		// TODO: should setting this be optional to test the actual helper defaults?
-		NodeV1:      true,
-		NodeV1beta1: true,
+		NodeV1:         true,
+		NodeV1beta1:    true,
+		HealthV1:       true,
+		HealthV1alpha1: true,
 		// By default, assume that the kubelet supports DRA and that
 		// the driver's removal causes ResourceSlice cleanup.
 		WithKubelet:                true,
@@ -418,6 +420,12 @@ type Driver struct {
 	NodeV1      bool
 	NodeV1beta1 bool
 
+	// HealthV1 and HealthV1alpha1 select which DRAResourceHealth gRPC API
+	// versions the plugin serves. Disabling one mimics drivers which only
+	// support the other version.
+	HealthV1       bool
+	HealthV1alpha1 bool
+
 	// Register the DRA test driver with the kubelet and expect DRA to work (= feature.DynamicResourceAllocation).
 	WithKubelet bool
 
@@ -482,7 +490,12 @@ func (d *Driver) SetUp(tCtx ktesting.TContext, kubeletRootDir string, nodes *Nod
 	tCtx.Logf("deploying driver %s on nodes %v", d.Name, nodes.NodeNames)
 	d.Nodes = make(map[string]KubeletPlugin)
 
-	tCtx = tCtx.WithCancel()
+	// The driver must keep running until TearDown explicitly cancels it via
+	// d.cleanup, regardless of whether tCtx itself gets cancelled earlier
+	// (e.g. because the sub-test that called SetUp has already ended while
+	// TearDown, registered as a cleanup callback, still needs the driver to
+	// be up).
+	tCtx = tCtx.WithoutCancel().WithCancel()
 	logger := klog.FromContext(tCtx)
 	logger = klog.LoggerWithValues(logger, "driverName", d.Name)
 	if d.InstanceSuffix != "" {
@@ -756,7 +769,11 @@ func (d *Driver) SetUp(tCtx ktesting.TContext, kubeletRootDir string, nodes *Nod
 		}
 
 		pluginOpts := []any{
-			app.Options{EnableHealthService: true},
+			app.Options{
+				EnableHealthService:   true,
+				DisableHealthV1:       !d.HealthV1,
+				DisableHealthV1alpha1: !d.HealthV1alpha1,
+			},
 			kubeletplugin.GRPCVerbosity(0),
 			kubeletplugin.GRPCInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 				return d.interceptor(nodename, ctx, req, info, handler)

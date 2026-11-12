@@ -29,9 +29,10 @@ import (
 	"golang.org/x/text/language"
 
 	v1 "k8s.io/api/autoscaling/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	apiextensionshelpers "k8s.io/apiextensions-apiserver/pkg/apihelpers"
 	apiextensionsinternal "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1conversion "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/validation"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 	openapiv2 "k8s.io/apiextensions-apiserver/pkg/controller/openapi/v2"
@@ -101,8 +102,6 @@ type Options struct {
 
 	// AllowNonStructural indicates swagger should be built for a schema that fits into the structural type but does not meet all structural invariants
 	AllowNonStructural bool
-
-	IncludeSelectableFields bool
 }
 
 func generateBuilder(crd *apiextensionsv1.CustomResourceDefinition, version string, opts Options) (*builder, error) {
@@ -114,7 +113,7 @@ func generateBuilder(crd *apiextensionsv1.CustomResourceDefinition, version stri
 
 	if s != nil && s.OpenAPIV3Schema != nil {
 		internalCRDSchema := &apiextensionsinternal.CustomResourceValidation{}
-		if err := apiextensionsv1.Convert_v1_CustomResourceValidation_To_apiextensions_CustomResourceValidation(s, internalCRDSchema, nil); err != nil {
+		if err := apiextensionsv1conversion.Convert_v1_CustomResourceValidation_To_apiextensions_CustomResourceValidation(s, internalCRDSchema, nil); err != nil {
 			return nil, fmt.Errorf("failed converting CRD validation to internal version: %v", err)
 		}
 		if !validation.SchemaHasInvalidTypes(internalCRDSchema.OpenAPIV3Schema) {
@@ -413,10 +412,8 @@ func (b *builder) buildKubeNative(crd *apiextensionsv1.CustomResourceDefinition,
 		},
 	})
 
-	if opts.IncludeSelectableFields {
-		if selectableFields := buildSelectableFields(crd, b.version); selectableFields != nil {
-			ret.AddExtension(endpoints.RouteMetaSelectableFields, selectableFields)
-		}
+	if selectableFields := buildSelectableFields(crd, b.version); selectableFields != nil {
+		ret.AddExtension(endpoints.RouteMetaSelectableFields, selectableFields)
 	}
 
 	return ret
@@ -520,10 +517,8 @@ func (b *builder) buildListSchema(crd *apiextensionsv1.CustomResourceDefinition,
 			"kind":    b.listKind,
 		},
 	})
-	if opts.IncludeSelectableFields {
-		if selectableFields := buildSelectableFields(crd, b.version); selectableFields != nil {
-			s.AddExtension(endpoints.RouteMetaSelectableFields, selectableFields)
-		}
+	if selectableFields := buildSelectableFields(crd, b.version); selectableFields != nil {
+		s.AddExtension(endpoints.RouteMetaSelectableFields, selectableFields)
 	}
 	return s
 }
@@ -552,7 +547,7 @@ func (b *builder) getOpenAPIConfig() *common.Config {
 				},
 			},
 		},
-		GetOperationIDAndTags: openapi.GetOperationIDAndTags,
+		GetOperationIDAndTagsFromRoute: openapi.GetOperationIDAndTagsFromRoute,
 		GetDefinitionName: func(name string) (string, spec.Extensions) {
 			buildDefinitions.Do(generateBuildDefinitionsFunc)
 			return namer.GetDefinitionName(name)
@@ -586,7 +581,7 @@ func (b *builder) getOpenAPIV3Config() *common.OpenAPIV3Config {
 				},
 			},
 		},
-		GetOperationIDAndTags: openapi.GetOperationIDAndTags,
+		GetOperationIDAndTagsFromRoute: openapi.GetOperationIDAndTagsFromRoute,
 		GetDefinitionName: func(name string) (string, spec.Extensions) {
 			buildDefinitions.Do(generateBuildDefinitionsFunc)
 			return namer.GetDefinitionName(name)

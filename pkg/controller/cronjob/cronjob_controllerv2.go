@@ -94,7 +94,8 @@ func NewControllerV2(ctx context.Context, jobInformer batchv1informers.JobInform
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.DefaultTypedControllerRateLimiter[string](),
 			workqueue.TypedRateLimitingQueueConfig[string]{
-				Name: "cronjob",
+				Logger: &logger,
+				Name:   "cronjob",
 			},
 		),
 		kubeClient:  kubeClient,
@@ -114,13 +115,13 @@ func NewControllerV2(ctx context.Context, jobInformer batchv1informers.JobInform
 		now: time.Now,
 	}
 
-	jobInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = jobInformer.Informer().AddEventHandlerWithOptions(cache.ResourceEventHandlerFuncs{
 		AddFunc:    jm.addJob,
 		UpdateFunc: jm.updateJob,
 		DeleteFunc: jm.deleteJob,
-	})
+	}, cache.HandlerOptions{Logger: &logger})
 
-	cronJobsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = cronJobsInformer.Informer().AddEventHandlerWithOptions(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			jm.enqueueController(obj)
 		},
@@ -130,7 +131,7 @@ func NewControllerV2(ctx context.Context, jobInformer batchv1informers.JobInform
 		DeleteFunc: func(obj interface{}) {
 			jm.enqueueController(obj)
 		},
-	})
+	}, cache.HandlerOptions{Logger: &logger})
 
 	err := jobInformer.Informer().AddIndexers(cache.Indexers{
 		jobControllerUIDIndex: func(obj interface{}) ([]string, error) {
@@ -155,7 +156,7 @@ func NewControllerV2(ctx context.Context, jobInformer batchv1informers.JobInform
 
 // Run starts the main goroutine responsible for watching and syncing jobs.
 func (jm *ControllerV2) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
+	defer utilruntime.HandleCrashWithContext(ctx)
 
 	// Start event processing pipeline.
 	jm.broadcaster.StartStructuredLogging(3)
@@ -252,7 +253,7 @@ func (jm *ControllerV2) sync(ctx context.Context, cronJobKey string) (*time.Dura
 	}
 
 	if requeueAfter != nil {
-		logger.V(4).Info("Re-queuing cronjob", "cronjob", klog.KObj(cronJob), "requeueAfter", requeueAfter)
+		logger.V(4).Info("Re-queuing cronjob", "cronjob", klog.KObj(cronJob), "requeueAfter", klog.SafePtr(requeueAfter))
 		return requeueAfter, nil
 	}
 	// this marks the key done, currently only happens when the cronjob is suspended or spec has invalid schedule format
@@ -588,7 +589,7 @@ func (jm *ControllerV2) syncCronJob(
 			Name:      getJobName(cronJob, *scheduledTime),
 			Namespace: cronJob.Namespace,
 		}}) || cronJob.Status.LastScheduleTime.Equal(&metav1.Time{Time: *scheduledTime}) {
-		logger.V(4).Info("Not starting job because the scheduled time is already processed", "cronjob", klog.KObj(cronJob), "schedule", scheduledTime)
+		logger.V(4).Info("Not starting job because the scheduled time is already processed", "cronjob", klog.KObj(cronJob), "schedule", klog.SafePtr(scheduledTime))
 		t := nextScheduleTimeDuration(cronJob, now, sched)
 		return t, updateStatus, nil
 	}

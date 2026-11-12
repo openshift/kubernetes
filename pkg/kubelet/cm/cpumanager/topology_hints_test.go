@@ -26,13 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
+	"k8s.io/ktesting"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
-	"k8s.io/kubernetes/test/utils/ktesting"
 	"k8s.io/utils/cpuset"
 )
 
@@ -252,7 +252,8 @@ func TestGetTopologyHints(t *testing.T) {
 
 		m := manager{
 			policy: &staticPolicy{
-				topology: topology,
+				topology:  topology,
+				numaNodes: topology.CPUDetails.NUMANodes().List(),
 			},
 			state: &mockState{
 				assignments:   tc.assignments,
@@ -304,7 +305,8 @@ func TestGetPodTopologyHints(t *testing.T) {
 
 		m := manager{
 			policy: &staticPolicy{
-				topology: topology,
+				topology:  topology,
+				numaNodes: topology.CPUDetails.NUMANodes().List(),
 			},
 			state: &mockState{
 				assignments:   tc.assignments,
@@ -372,34 +374,42 @@ func TestGetPodTopologyHintsWithPolicyOptions(t *testing.T) {
 				{
 					NUMANodeAffinity: m0001,
 					Preferred:        true,
+					Score:            90,
 				},
 				{
 					NUMANodeAffinity: m0011,
 					Preferred:        false,
+					Score:            92,
 				},
 				{
 					NUMANodeAffinity: m0101,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m1001,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m0111,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m1011,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m1101,
 					Preferred:        false,
+					Score:            96,
 				},
 				{
 					NUMANodeAffinity: m1111,
 					Preferred:        false,
+					Score:            96,
 				},
 			},
 		},
@@ -415,34 +425,42 @@ func TestGetPodTopologyHintsWithPolicyOptions(t *testing.T) {
 				{
 					NUMANodeAffinity: m0001,
 					Preferred:        true,
+					Score:            90,
 				},
 				{
 					NUMANodeAffinity: m0011,
 					Preferred:        true,
+					Score:            92,
 				},
 				{
 					NUMANodeAffinity: m0101,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m1001,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m0111,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m1011,
 					Preferred:        false,
+					Score:            95,
 				},
 				{
 					NUMANodeAffinity: m1101,
 					Preferred:        false,
+					Score:            96,
 				},
 				{
 					NUMANodeAffinity: m1111,
 					Preferred:        false,
+					Score:            96,
 				},
 			},
 		},
@@ -458,10 +476,12 @@ func TestGetPodTopologyHintsWithPolicyOptions(t *testing.T) {
 				{
 					NUMANodeAffinity: m0111,
 					Preferred:        true,
+					Score:            21,
 				},
 				{
 					NUMANodeAffinity: m1111,
 					Preferred:        true,
+					Score:            41,
 				},
 			},
 		},
@@ -486,8 +506,9 @@ func TestGetPodTopologyHintsWithPolicyOptions(t *testing.T) {
 			policyOpt, _ := NewStaticPolicyOptions(testCase.policyOptions)
 			m := manager{
 				policy: &staticPolicy{
-					topology: testCase.topology,
-					options:  policyOpt,
+					topology:  testCase.topology,
+					options:   policyOpt,
+					numaNodes: testCase.topology.CPUDetails.NUMANodes().List(),
 				},
 				state: &mockState{
 					assignments:   testCase.assignments,
@@ -546,10 +567,12 @@ func TestTopologyHintsPodLevelResources(t *testing.T) {
 				{
 					NUMANodeAffinity: firstSocketMask,
 					Preferred:        true,
+					Score:            50,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            66,
 				},
 			},
 			expectedContainerLevelHints: nil,
@@ -563,20 +586,24 @@ func TestTopologyHintsPodLevelResources(t *testing.T) {
 				{
 					NUMANodeAffinity: firstSocketMask,
 					Preferred:        true,
+					Score:            50,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            66,
 				},
 			},
 			expectedContainerLevelHints: []topologymanager.TopologyHint{
 				{
 					NUMANodeAffinity: firstSocketMask,
 					Preferred:        true,
+					Score:            50,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            66,
 				},
 			},
 		},
@@ -611,7 +638,8 @@ func TestTopologyHintsPodLevelResources(t *testing.T) {
 
 			m := manager{
 				policy: &staticPolicy{
-					topology: topology,
+					topology:  topology,
+					numaNodes: topology.CPUDetails.NUMANodes().List(),
 				},
 				state: &mockState{
 					assignments:   tc.assignments,
@@ -680,14 +708,17 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: firstSocketMask,
 					Preferred:        true,
+					Score:            33,
 				},
 				{
 					NUMANodeAffinity: secondSocketMask,
 					Preferred:        true,
+					Score:            1,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            16,
 				},
 			},
 		},
@@ -700,10 +731,12 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: secondSocketMask,
 					Preferred:        true,
+					Score:            1,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            16,
 				},
 			},
 		},
@@ -716,6 +749,7 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        true,
+					Score:            16,
 				},
 			},
 		},
@@ -735,6 +769,7 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            83,
 				},
 			},
 		},
@@ -754,15 +789,19 @@ func returnTestCases() []testCase {
 					testContainer1.Name: cpuset.New(0, 6),
 				},
 			},
+			// Nothing is in the default set, so the node is fully assigned and
+			// every mask scores 100 regardless of what this container holds.
 			defaultCPUSet: cpuset.New(),
 			expectedHints: []topologymanager.TopologyHint{
 				{
 					NUMANodeAffinity: firstSocketMask,
 					Preferred:        true,
+					Score:            100,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            100,
 				},
 			},
 		},
@@ -780,10 +819,12 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: secondSocketMask,
 					Preferred:        true,
+					Score:            100,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            100,
 				},
 			},
 		},
@@ -801,6 +842,7 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        true,
+					Score:            100,
 				},
 			},
 		},
@@ -846,10 +888,12 @@ func returnTestCases() []testCase {
 				{
 					NUMANodeAffinity: firstSocketMask,
 					Preferred:        true,
+					Score:            50,
 				},
 				{
 					NUMANodeAffinity: crossSocketMask,
 					Preferred:        false,
+					Score:            66,
 				},
 			},
 			podLevelResourcesEnabled:        true,

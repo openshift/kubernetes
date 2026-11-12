@@ -31,9 +31,6 @@ import (
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/quota/v1/generic"
 	"k8s.io/client-go/discovery"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/metadata"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/component-base/featuregate"
 	"k8s.io/controller-manager/controller"
 	csitrans "k8s.io/csi-translation-lib"
@@ -204,9 +201,6 @@ func newTaintEvictionControllerDescriptor() *ControllerDescriptor {
 	return &ControllerDescriptor{
 		name:        names.TaintEvictionController,
 		constructor: newTaintEvictionController,
-		requiredFeatureGates: []featuregate.Feature{
-			features.SeparateTaintEvictionController,
-		},
 	}
 }
 
@@ -246,6 +240,11 @@ func newPersistentVolumeBinderController(ctx context.Context, controllerContext 
 		return nil, fmt.Errorf("failed to probe volume plugins when starting persistentvolume controller: %w", err)
 	}
 
+	metricsPlugins, err := ProbePersistentVolumePlugins(logger, controllerContext.ComponentConfig.PersistentVolumeBinderController.VolumeConfiguration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to probe metrics volume plugins when starting persistentvolume controller: %w", err)
+	}
+
 	client, err := controllerContext.NewClient("persistent-volume-binder")
 	if err != nil {
 		return nil, err
@@ -255,6 +254,7 @@ func newPersistentVolumeBinderController(ctx context.Context, controllerContext 
 		KubeClient:                client,
 		SyncPeriod:                controllerContext.ComponentConfig.PersistentVolumeBinderController.PVClaimBinderSyncPeriod.Duration,
 		VolumePlugins:             plugins,
+		MetricsVolumePlugins:      metricsPlugins,
 		VolumeInformer:            controllerContext.InformerFactory.Core().V1().PersistentVolumes(),
 		ClaimInformer:             controllerContext.InformerFactory.Core().V1().PersistentVolumeClaims(),
 		ClassInformer:             controllerContext.InformerFactory.Storage().V1().StorageClasses(),
@@ -525,27 +525,15 @@ func newNamespaceController(ctx context.Context, controllerContext ControllerCon
 	// the namespace cleanup controller is very chatty.  It makes lots of discovery calls and then it makes lots of delete calls
 	// the ratelimiter negatively affects its speed.  Deleting 100 total items in a namespace (that's only a few of each resource
 	// including events), takes ~10 seconds by default.
-	nsKubeconfig, err := controllerContext.NewClientConfig("namespace-controller")
+	clientConnection := controllerContext.ComponentConfig.Generic.ClientConnection
+	nsClientBuilder := controllerContext.ClientBuilder.WithRateLimits(clientConnection.QPS*20, int(clientConnection.Burst)*100)
+
+	namespaceKubeClient, err := nsClientBuilder.Client("namespace-controller")
 	if err != nil {
 		return nil, err
 	}
 
-	nsKubeconfig.QPS *= 20
-	nsKubeconfig.Burst *= 100
-
-	namespaceKubeClient, err := clientset.NewForConfig(nsKubeconfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return newModifiedNamespaceController(ctx, controllerContext, controllerName, namespaceKubeClient, nsKubeconfig)
-}
-
-func newModifiedNamespaceController(
-	ctx context.Context, controllerContext ControllerContext, controllerName string,
-	namespaceKubeClient clientset.Interface, nsKubeconfig *restclient.Config,
-) (Controller, error) {
-	metadataClient, err := metadata.NewForConfig(nsKubeconfig)
+	metadataClient, err := nsClientBuilder.MetadataClient("namespace-controller")
 	if err != nil {
 		return nil, err
 	}
@@ -579,10 +567,9 @@ func newServiceAccountController(ctx context.Context, controllerContext Controll
 	if err != nil {
 		return nil, err
 	}
-	logger := klog.FromContext(ctx)
 
 	sac, err := serviceaccountcontroller.NewServiceAccountsController(
-		logger,
+		ctx,
 		controllerContext.InformerFactory.Core().V1().ServiceAccounts(),
 		controllerContext.InformerFactory.Core().V1().Namespaces(),
 		client,
@@ -654,15 +641,10 @@ func newGarbageCollectorController(ctx context.Context, controllerContext Contro
 		return nil, fmt.Errorf("failed to create the discovery client: %w", err)
 	}
 
-	config, err := controllerContext.NewClientConfig("generic-garbage-collector")
-	if err != nil {
-		return nil, err
-	}
-
 	// Increase garbage collector controller's throughput: each object deletion takes two API calls,
 	// so to get |config.QPS| deletion rate we need to allow 2x more requests for this controller.
-	config.QPS *= 2
-	metadataClient, err := metadata.NewForConfig(config)
+	clientConnection := controllerContext.ComponentConfig.Generic.ClientConnection
+	metadataClient, err := controllerContext.ClientBuilder.WithRateLimits(clientConnection.QPS*2, int(clientConnection.Burst)).MetadataClient("generic-garbage-collector")
 	if err != nil {
 		return nil, err
 	}
@@ -721,7 +703,7 @@ func newPersistentVolumeClaimProtectionController(ctx context.Context, controlle
 	}
 
 	pvcProtectionController, err := pvcprotection.NewPVCProtectionController(
-		klog.FromContext(ctx),
+		ctx,
 		controllerContext.InformerFactory.Core().V1().PersistentVolumeClaims(),
 		controllerContext.InformerFactory.Core().V1().Pods(),
 		client,
@@ -750,7 +732,7 @@ func newPersistentVolumeProtectionController(ctx context.Context, controllerCont
 	}
 
 	pvpc, err := pvprotection.NewPVProtectionController(
-		klog.FromContext(ctx),
+		ctx,
 		controllerContext.InformerFactory.Core().V1().PersistentVolumes(),
 		client,
 	)
@@ -779,7 +761,7 @@ func newVolumeAttributesClassProtectionController(ctx context.Context, controlle
 	}
 
 	vacProtectionController, err := vacprotection.NewVACProtectionController(
-		klog.FromContext(ctx),
+		ctx,
 		client,
 		controllerContext.InformerFactory.Core().V1().PersistentVolumeClaims(),
 		controllerContext.InformerFactory.Core().V1().PersistentVolumes(),

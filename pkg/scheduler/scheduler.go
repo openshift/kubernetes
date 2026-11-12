@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -28,36 +29,30 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	clientfeatures "k8s.io/client-go/features"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/informers/internalinterfaces"
 	clientset "k8s.io/client-go/kubernetes"
-	schedulinglisters "k8s.io/client-go/listers/scheduling/v1alpha3"
+	schedulinglisters "k8s.io/client-go/listers/scheduling/v1beta1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	resourceslicetracker "k8s.io/dynamic-resource-allocation/resourceslice/tracker"
 	"k8s.io/klog/v2"
-	configv1 "k8s.io/kube-scheduler/config/v1"
 	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/features"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/config"
-	"k8s.io/kubernetes/pkg/scheduler/apis/config/scheme"
 	apicache "k8s.io/kubernetes/pkg/scheduler/backend/api_cache"
 	apidispatcher "k8s.io/kubernetes/pkg/scheduler/backend/api_dispatcher"
 	internalcache "k8s.io/kubernetes/pkg/scheduler/backend/cache"
 	cachedebugger "k8s.io/kubernetes/pkg/scheduler/backend/cache/debugger"
 	internalqueue "k8s.io/kubernetes/pkg/scheduler/backend/queue"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	apicalls "k8s.io/kubernetes/pkg/scheduler/framework/api_calls"
 	"k8s.io/kubernetes/pkg/scheduler/framework/parallelize"
-	frameworkplugins "k8s.io/kubernetes/pkg/scheduler/framework/plugins"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/dynamicresources"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/gangscheduling"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/nodevolumelimits"
 	frameworkruntime "k8s.io/kubernetes/pkg/scheduler/framework/runtime"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/pkg/scheduler/profile"
-	"k8s.io/kubernetes/pkg/scheduler/util/assumecache"
 	"k8s.io/utils/clock"
 )
 
@@ -70,8 +65,6 @@ type Scheduler struct {
 	// It is expected that changes made via Cache will be observed
 	// by NodeLister and Algorithm.
 	Cache internalcache.Cache
-
-	Extenders []fwk.Extender
 
 	// NextEntity should be a function that blocks until the next entity (pod or pod group)
 	// is available. We don't use a channel for this, because scheduling
@@ -108,10 +101,6 @@ type Scheduler struct {
 
 	nodeInfoSnapshot *internalcache.Snapshot
 
-	percentageOfNodesToScore int32
-
-	nextStartNodeIndex int
-
 	// logger *must* be initialized when creating a Scheduler,
 	// otherwise logging functions will access a nil sink and
 	// panic.
@@ -123,12 +112,44 @@ type Scheduler struct {
 	nominatedNodeNameForExpectationEnabled              bool
 	genericWorkloadEnabled                              bool
 	inPlacePodVerticalScalingSchedulerPreemptionEnabled bool
+	podGroupHierarchyTracker                            *gangscheduling.HierarchyTracker
+
+	algorithm *SchedulingAlgorithm
+
+	podGroupAlgorithm *PodGroupSchedulingAlgorithm
 }
 
+// applyDefaultHandlers installs the default handlers. It must run after
+// initAlgorithm, whose result SchedulePod points at.
 func (sched *Scheduler) applyDefaultHandlers() {
-	sched.SchedulePod = sched.schedulePod
+	sched.SchedulePod = sched.algorithm.SchedulePod
 	sched.FailureHandler = sched.handleSchedulingFailure
 }
+
+// schedulerPodStep adapts Scheduler to the PodScheduler interface, bridging single-pod
+// evaluation and tentative snapshot reservations into PodGroupSchedulingAlgorithm.
+// This decouples gang scheduling orchestration from Scheduler's queue, binding, and error-handling mechanics.
+type schedulerPodStep struct {
+	sched *Scheduler
+}
+
+// SchedulePod delegates single-pod evaluation to Scheduler.SchedulePod rather than calling
+// the underlying algorithm directly, ensuring custom handlers or test hooks configured on
+// Scheduler are respected during pod group scheduling.
+func (s *schedulerPodStep) SchedulePod(ctx context.Context, schedFramework framework.Framework, state fwk.CycleState, podInfo *framework.QueuedPodInfo) (result ScheduleResult, err error) {
+	return s.sched.SchedulePod(ctx, schedFramework, state, podInfo)
+}
+
+// AssumeAndReserveInSnapshot delegates tentative snapshot reservation to SchedulingAlgorithm,
+// allowing subsequent group members to observe simulated node allocations and reserve plugins
+// without committing mutations to the live scheduler cache before group completion.
+func (s *schedulerPodStep) AssumeAndReserveInSnapshot(ctx context.Context, state fwk.CycleState,
+	schedFramework framework.Framework, podInfo *framework.QueuedPodInfo,
+	scheduleResult ScheduleResult) (*fwk.Status, func()) {
+	return s.sched.algorithm.AssumeAndReserveInSnapshot(ctx, state, schedFramework, podInfo, scheduleResult)
+}
+
+var _ PodScheduler = (*schedulerPodStep)(nil)
 
 type schedulerOptions struct {
 	clock                  clock.WithTicker
@@ -136,9 +157,11 @@ type schedulerOptions struct {
 	kubeConfig             *restclient.Config
 	// Overridden by profile level percentageOfNodesToScore if set in v1.
 	percentageOfNodesToScore          int32
+	percentageOfPlacementsToScore     int32
 	podInitialBackoffSeconds          int64
 	podMaxBackoffSeconds              int64
 	podMaxInUnschedulablePodsDuration time.Duration
+	maxBatchAge                       time.Duration
 	// Contains out-of-tree plugins to be merged with the in-tree registry.
 	frameworkOutOfTreeRegistry frameworkruntime.Registry
 	profiles                   []schedulerapi.KubeSchedulerProfile
@@ -146,7 +169,6 @@ type schedulerOptions struct {
 	frameworkCapturer          FrameworkCapturer
 	parallelism                int32
 	applyDefaultProfile        bool
-	nodeInfoSnapshot           *internalcache.Snapshot
 }
 
 // Option configures a Scheduler
@@ -208,11 +230,23 @@ func WithPercentageOfNodesToScore(percentageOfNodesToScore *int32) Option {
 	}
 }
 
-// WithFrameworkOutOfTreeRegistry sets the registry for out-of-tree plugins. Those plugins
-// will be appended to the default registry.
-func WithFrameworkOutOfTreeRegistry(registry frameworkruntime.Registry) Option {
+// WithPercentageOfPlacementsToScore sets percentageOfPlacementsToScore for Scheduler.
+// The default value of 0 will use an adaptive percentage.
+func WithPercentageOfPlacementsToScore(percentageOfPlacementsToScore *int32) Option {
 	return func(o *schedulerOptions) {
-		o.frameworkOutOfTreeRegistry = registry
+		if percentageOfPlacementsToScore != nil {
+			o.percentageOfPlacementsToScore = *percentageOfPlacementsToScore
+		}
+	}
+}
+
+// WithFrameworkOutOfTreeRegistry sets the registry for out-of-tree plugins. Those plugins
+// will be appended to the default registry. It clones the map so that later caller mutations
+// do not affect subsequent NewFrameworkMap calls.
+func WithFrameworkOutOfTreeRegistry(registry frameworkruntime.Registry) Option {
+	cloned := maps.Clone(registry)
+	return func(o *schedulerOptions) {
+		o.frameworkOutOfTreeRegistry = cloned
 	}
 }
 
@@ -234,6 +268,13 @@ func WithPodMaxBackoffSeconds(podMaxBackoffSeconds int64) Option {
 func WithPodMaxInUnschedulablePodsDuration(duration time.Duration) Option {
 	return func(o *schedulerOptions) {
 		o.podMaxInUnschedulablePodsDuration = duration
+	}
+}
+
+// WithMaxBatchAge sets maxBatchAge for OpportunisticBatching, the default value is 500ms.
+func WithMaxBatchAge(maxBatchAge time.Duration) Option {
+	return func(o *schedulerOptions) {
+		o.maxBatchAge = maxBatchAge
 	}
 }
 
@@ -261,19 +302,14 @@ func WithBuildFrameworkCapturer(fc FrameworkCapturer) Option {
 	}
 }
 
-// WithNodeInfoSnapshot sets the nodeInfoSnapshot for Scheduler.
-func WithNodeInfoSnapshot(snapshot *internalcache.Snapshot) Option {
-	return func(o *schedulerOptions) {
-		o.nodeInfoSnapshot = snapshot
-	}
-}
-
 var defaultSchedulerOptions = schedulerOptions{
 	clock:                             clock.RealClock{},
 	percentageOfNodesToScore:          schedulerapi.DefaultPercentageOfNodesToScore,
+	percentageOfPlacementsToScore:     schedulerapi.DefaultPercentageOfPlacementsToScore,
 	podInitialBackoffSeconds:          int64(internalqueue.DefaultPodInitialBackoffDuration.Seconds()),
 	podMaxBackoffSeconds:              int64(internalqueue.DefaultPodMaxBackoffDuration.Seconds()),
 	podMaxInUnschedulablePodsDuration: internalqueue.DefaultPodMaxInUnschedulablePodsDuration,
+	maxBatchAge:                       frameworkruntime.DefaultMaxBatchAge,
 	parallelism:                       int32(parallelize.DefaultParallelism),
 	// Ideally we would statically set the default profile here, but we can't because
 	// creating the default profile may require testing feature gates, which may get
@@ -298,98 +334,20 @@ func New(ctx context.Context,
 		opt(&options)
 	}
 
-	if options.applyDefaultProfile {
-		var versionedCfg configv1.KubeSchedulerConfiguration
-		scheme.Scheme.Default(&versionedCfg)
-		cfg := schedulerapi.KubeSchedulerConfiguration{}
-		if err := scheme.Scheme.Convert(&versionedCfg, &cfg, nil); err != nil {
-			return nil, err
-		}
-		options.profiles = cfg.Profiles
-	}
-
-	registry := frameworkplugins.NewInTreeRegistry()
-	if err := registry.Merge(options.frameworkOutOfTreeRegistry); err != nil {
-		return nil, err
-	}
-
 	metrics.Register()
-
-	extenders, err := buildExtenders(logger, options.extenders, options.profiles)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't build extenders: %w", err)
-	}
 
 	podLister := informerFactory.Core().V1().Pods().Lister()
 	nodeLister := informerFactory.Core().V1().Nodes().Lister()
 
-	snapshot := options.nodeInfoSnapshot
-	if snapshot == nil {
-		snapshot = internalcache.NewEmptySnapshot()
-	}
-	metricsRecorder := metrics.NewMetricsAsyncRecorder(1000, time.Second, stopEverything)
-	// waitingPods holds all the pods that are in the scheduler and waiting in the permit stage
-	waitingPods := frameworkruntime.NewWaitingPodsMap()
+	snapshot := internalcache.NewEmptySnapshot()
 
-	// podsInPreBind holds all the pods that are in the scheduler in the preBind phase
-	podsInPreBind := frameworkruntime.NewPodsInPreBindMap()
-
-	var resourceClaimCache *assumecache.AssumeCache
-	var resourceSliceTracker *resourceslicetracker.Tracker
-	var draManager fwk.SharedDRAManager
-	if feature.DefaultFeatureGate.Enabled(features.DynamicResourceAllocation) {
-		resourceClaimInformer := informerFactory.Resource().V1().ResourceClaims().Informer()
-		resourceClaimCache = assumecache.NewAssumeCache(logger, resourceClaimInformer, "ResourceClaim", "", nil)
-		resourceSliceTrackerOpts := resourceslicetracker.Options{
-			EnableDeviceTaintRules:   feature.DefaultFeatureGate.Enabled(features.DRADeviceTaintRules),
-			EnableConsumableCapacity: feature.DefaultFeatureGate.Enabled(features.DRAConsumableCapacity),
-			SliceInformer:            informerFactory.Resource().V1().ResourceSlices(),
-			KubeClient:               client,
-		}
-		// If device taint rules are disabled, the additional informers are not needed and
-		// the tracker turns into a simple wrapper around the slice informer.
-		if resourceSliceTrackerOpts.EnableDeviceTaintRules {
-			resourceSliceTrackerOpts.TaintInformer = informerFactory.Resource().V1().DeviceTaintRules()
-		}
-		resourceSliceTracker, err = resourceslicetracker.StartTracker(ctx, resourceSliceTrackerOpts)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't start resource slice tracker: %w", err)
-		}
-		draManager = dynamicresources.NewDRAManager(ctx, resourceClaimCache, resourceSliceTracker, informerFactory)
-	}
-	sharedCSIManager := nodevolumelimits.NewCSIManager(informerFactory.Storage().V1().CSINodes().Lister())
-
-	var apiDispatcher *apidispatcher.APIDispatcher
-	if feature.DefaultFeatureGate.Enabled(features.SchedulerAsyncAPICalls) {
-		apiDispatcher = apidispatcher.New(client, int(options.parallelism), apicalls.Relevances)
-	}
-
-	schedulerCache := internalcache.New(ctx, apiDispatcher, feature.DefaultFeatureGate.Enabled(features.GenericWorkload), feature.DefaultFeatureGate.Enabled(features.CompositePodGroup))
-
-	profiles, err := profile.NewMap(ctx, options.profiles, registry, recorderFactory,
-		frameworkruntime.WithComponentConfigVersion(options.componentConfigVersion),
-		frameworkruntime.WithClientSet(client),
-		frameworkruntime.WithKubeConfig(options.kubeConfig),
-		frameworkruntime.WithInformerFactory(informerFactory),
-		frameworkruntime.WithSharedDRAManager(draManager),
-		frameworkruntime.WithSnapshotSharedLister(snapshot),
-		frameworkruntime.WithMutableSnapshotLister(snapshot),
-		frameworkruntime.WithCaptureProfile(frameworkruntime.CaptureProfile(options.frameworkCapturer)),
-		frameworkruntime.WithParallelism(int(options.parallelism)),
-		frameworkruntime.WithExtenders(extenders),
-		frameworkruntime.WithMetricsRecorder(metricsRecorder),
-		frameworkruntime.WithWaitingPods(waitingPods),
-		frameworkruntime.WithPodsInPreBind(podsInPreBind),
-		frameworkruntime.WithAPIDispatcher(apiDispatcher),
-		frameworkruntime.WithSharedCSIManager(sharedCSIManager),
-		frameworkruntime.WithPodGroupManager(schedulerCache),
-	)
+	comps, err := newFrameworkComponents(ctx, client, informerFactory, options)
 	if err != nil {
-		return nil, fmt.Errorf("initializing profiles: %v", err)
+		return nil, err
 	}
-
-	if len(profiles) == 0 {
-		return nil, errors.New("at least one profile is required")
+	profiles, err := NewFrameworkMap(ctx, comps, recorderFactory, snapshot)
+	if err != nil {
+		return nil, err
 	}
 
 	preEnqueuePluginMap := make(map[string]map[string]fwk.PreEnqueuePlugin)
@@ -419,7 +377,7 @@ func New(ctx context.Context,
 	}
 
 	podQueue := internalqueue.NewSchedulingQueue(
-		profiles[options.profiles[0].SchedulerName].QueueSortFunc(),
+		profiles[comps.options.profiles[0].SchedulerName].QueueSortFunc(),
 		informerFactory,
 		internalqueue.WithClock(options.clock),
 		internalqueue.WithPodInitialBackoffDuration(time.Duration(options.podInitialBackoffSeconds)*time.Second),
@@ -429,13 +387,15 @@ func New(ctx context.Context,
 		internalqueue.WithPreEnqueuePluginMap(preEnqueuePluginMap),
 		internalqueue.WithQueueingHintMapPerProfile(queueingHintsPerProfile),
 		internalqueue.WithPluginMetricsSamplePercent(pluginMetricsSamplePercent),
-		internalqueue.WithMetricsRecorder(metricsRecorder),
-		internalqueue.WithAPIDispatcher(apiDispatcher),
+		internalqueue.WithMetricsRecorder(comps.metricsRecorder),
+		internalqueue.WithAPIDispatcher(comps.apiDispatcher),
 		internalqueue.WithPodSigners(podSigners),
 	)
 
+	schedulerCache := comps.GetCache()
+
 	var apiCache fwk.APICacher
-	if apiDispatcher != nil {
+	if comps.apiDispatcher != nil {
 		apiCache = apicache.New(podQueue, schedulerCache)
 	}
 
@@ -451,29 +411,34 @@ func New(ctx context.Context,
 
 	var compositePodGroupLister schedulinglisters.CompositePodGroupLister
 	if feature.DefaultFeatureGate.Enabled(features.CompositePodGroup) {
-		compositePodGroupLister = informerFactory.Scheduling().V1alpha3().CompositePodGroups().Lister()
+		compositePodGroupLister = informerFactory.Scheduling().V1beta1().CompositePodGroups().Lister()
 	}
 
 	sched := &Scheduler{
 		Cache:                                  schedulerCache,
 		client:                                 client,
 		nodeInfoSnapshot:                       snapshot,
-		percentageOfNodesToScore:               options.percentageOfNodesToScore,
-		Extenders:                              extenders,
 		StopEverything:                         stopEverything,
 		SchedulingQueue:                        podQueue,
 		Profiles:                               profiles,
 		logger:                                 logger,
-		APIDispatcher:                          apiDispatcher,
+		APIDispatcher:                          comps.apiDispatcher,
 		compositePodGroupLister:                compositePodGroupLister,
 		nominatedNodeNameForExpectationEnabled: feature.DefaultFeatureGate.Enabled(features.NominatedNodeNameForExpectation),
 		genericWorkloadEnabled:                 feature.DefaultFeatureGate.Enabled(features.GenericWorkload),
 		inPlacePodVerticalScalingSchedulerPreemptionEnabled: feature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScalingSchedulerPreemption),
+		podGroupHierarchyTracker:                            comps.podGroupHierarchyTracker,
+	}
+	if err = sched.initAlgorithms(
+		[]AlgorithmOption{WithAlgorithmPercentageOfNodesToScore(options.percentageOfNodesToScore)},
+		[]PodGroupAlgorithmOption{WithAlgorithmPercentageOfPlacementsToScore(options.percentageOfPlacementsToScore)},
+	); err != nil {
+		return nil, fmt.Errorf("initializing scheduling algorithm: %w", err)
 	}
 	sched.NextEntity = podQueue.Pop
 	sched.applyDefaultHandlers()
 
-	if err = addAllEventHandlers(sched, informerFactory, dynInformerFactory, resourceClaimCache, resourceSliceTracker, draManager, unionedGVKs(queueingHintsPerProfile)); err != nil {
+	if err = addAllEventHandlers(sched, informerFactory, dynInformerFactory, comps.resourceClaimCache, comps.resourceSliceTracker, comps.draManager, unionedGVKs(queueingHintsPerProfile)); err != nil {
 		return nil, fmt.Errorf("adding event handlers: %w", err)
 	}
 
@@ -662,17 +627,20 @@ func newPodInformer(cs clientset.Interface, resyncPeriod time.Duration, informer
 		InformerName:     informerName,
 	})
 
-	// Dropping `.metadata.managedFields` to improve memory usage.
-	// The Extract workflow (i.e. `ExtractPod`) should be unused.
-	trim := func(obj interface{}) (interface{}, error) {
-		if accessor, err := meta.Accessor(obj); err == nil {
-			if accessor.GetManagedFields() != nil {
-				accessor.SetManagedFields(nil)
+	// With ManagedFieldsOptOutClient, kube-scheduler's informer client drops managedFields instead.
+	if !clientfeatures.FeatureGates().Enabled(clientfeatures.ManagedFieldsOptOutClient) {
+		// Dropping `.metadata.managedFields` to improve memory usage.
+		// The Extract workflow (i.e. `ExtractPod`) should be unused.
+		trim := func(obj interface{}) (interface{}, error) {
+			if accessor, err := meta.Accessor(obj); err == nil {
+				if accessor.GetManagedFields() != nil {
+					accessor.SetManagedFields(nil)
+				}
 			}
+			return obj, nil
 		}
-		return obj, nil
+		_ = informer.SetTransform(trim)
 	}
-	informer.SetTransform(trim)
 	return informer
 }
 
@@ -681,4 +649,28 @@ func (sched *Scheduler) CurrentCycle() int64 {
 		return sched.SchedulingQueue.SchedulingCycle()
 	}
 	return 0
+}
+
+// initAlgorithm builds the scheduling algorithms from the Scheduler's fields
+// with default options. It has to run before any scheduling method, and before
+// applyDefaultHandlers, which hands SchedulePod the algorithm's method value.
+// A Scheduler assembled field by field in tests must call it.
+func (sched *Scheduler) initAlgorithm() error {
+	return sched.initAlgorithms(nil, nil)
+}
+
+// initAlgorithms builds both the single-pod and pod-group scheduling algorithms
+// from the Scheduler's fields.
+//
+// CurrentCycle is passed as a bound method value, so a SchedulingQueue installed
+// after this call is still picked up.
+func (sched *Scheduler) initAlgorithms(algOpts []AlgorithmOption, podGroupAlgOpts []PodGroupAlgorithmOption) error {
+	algorithm, err := NewSchedulingAlgorithm(sched.nodeInfoSnapshot, sched.Cache, append(algOpts, WithCurrentCycleProvider(sched.CurrentCycle))...)
+	if err != nil {
+		return err
+	}
+
+	sched.algorithm = algorithm
+	sched.podGroupAlgorithm = NewPodGroupAlgorithm(sched.nodeInfoSnapshot, &schedulerPodStep{sched: sched}, podGroupAlgOpts...)
+	return nil
 }

@@ -35,9 +35,10 @@ import (
 
 	kubeopenapispec "k8s.io/kube-openapi/pkg/validation/spec"
 
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsfuzzer "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/fuzzer"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1conversion "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
@@ -59,7 +60,7 @@ func TestRoundTrip(t *testing.T) {
 	if err := apiextensions.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
 	}
-	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
+	if err := apiextensionsv1conversion.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
 	}
 
@@ -586,6 +587,54 @@ func TestValidateCustomResource(t *testing.T) {
 			failingObjects: []failingObject{
 				{object: map[string]interface{}{"fieldX": []interface{}{"a", "b", "c"}}, expectErrs: []string{
 					`fieldX: Too many: 3: must have at most 2 items`,
+				}},
+			},
+		},
+		{name: "minProperties",
+			schema: apiextensions.JSONSchemaProps{
+				Type: "object",
+				Properties: map[string]apiextensions.JSONSchemaProps{
+					"fieldX": {
+						Type:          "object",
+						MinProperties: ptr.To[int64](1),
+					},
+				},
+			},
+			failingObjects: []failingObject{
+				{object: map[string]interface{}{"fieldX": map[string]interface{}{}}, expectErrs: []string{
+					`fieldX: Too few: 0: must have at least 1 item`,
+				}},
+			},
+		},
+		{name: "minItems",
+			schema: apiextensions.JSONSchemaProps{
+				Type: "object",
+				Properties: map[string]apiextensions.JSONSchemaProps{
+					"fieldX": {
+						Type:     "array",
+						MinItems: ptr.To[int64](2),
+					},
+				},
+			},
+			failingObjects: []failingObject{
+				{object: map[string]interface{}{"fieldX": []interface{}{"a"}}, expectErrs: []string{
+					`fieldX: Too few: 1: must have at least 2 items`,
+				}},
+			},
+		},
+		{name: "minLength",
+			schema: apiextensions.JSONSchemaProps{
+				Type: "object",
+				Properties: map[string]apiextensions.JSONSchemaProps{
+					"fieldX": {
+						Type:      "string",
+						MinLength: ptr.To[int64](3),
+					},
+				},
+			},
+			failingObjects: []failingObject{
+				{object: map[string]interface{}{"fieldX": "ab"}, expectErrs: []string{
+					`fieldX: Too short: must be at least 3 characters`,
 				}},
 			},
 		},

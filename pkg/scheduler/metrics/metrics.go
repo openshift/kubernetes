@@ -48,6 +48,7 @@ const (
 
 // ExtensionPoints is a list of possible values for the extension_point label.
 var ExtensionPoints = []string{
+	PreEnqueue,
 	PreFilter,
 	Filter,
 	PreFilterExtensionAddPod,
@@ -67,9 +68,11 @@ var ExtensionPoints = []string{
 	PlacementGenerate,
 	PlacementFeasible,
 	PodGroupPostFilter,
+	RankNodes,
 }
 
 const (
+	PreEnqueue                       = "PreEnqueue"
 	PreFilter                        = "PreFilter"
 	Filter                           = "Filter"
 	PreFilterExtensionAddPod         = "PreFilterExtensionAddPod"
@@ -91,6 +94,7 @@ const (
 	PlacementScore                   = "PlacementScore"
 	PlacementScoreExtensionNormalize = "PlacementScoreExtensionNormalize"
 	PodGroupPostFilter               = "PodGroupPostFilter"
+	RankNodes                        = "RankNodes"
 )
 
 const (
@@ -99,10 +103,11 @@ const (
 	QueueingHintResultError     = "Error"
 )
 
-// Entity label values used for queued_entities and queue_incoming_entities metrics.
+// Entity label values used for scheduling, queued_entities, queue_incoming_entities, and preemption metrics.
 const (
-	Pod      = "pod"
-	PodGroup = "podgroup"
+	Pod               = "pod"
+	PodGroup          = "podgroup"
+	CompositePodGroup = "compositepodgroup"
 )
 
 const (
@@ -116,20 +121,31 @@ const (
 	BatchAttemptHintNotUsed = "hint_not_used"
 )
 
+// Possible results of storing the scheduling results of a pod
+const (
+	StoreResultStored          = "stored"
+	StoreResultPodNotBatchable = "pod_not_batchable"
+	StoreResultEmptyList       = "empty_list"
+)
+
 // Possible batch cache flush reasons
 const (
-	BatchFlushPodFailed       = "pod_failed"
 	BatchFlushPodSkipped      = "pod_skipped"
 	BatchFlushPodNominated    = "pod_nominated"
 	BatchFlushNodeMissing     = "node_missing"
-	BatchFlushEmptyList       = "empty_list"
 	BatchFlushExpired         = "expired"
 	BatchFlushPodIncompatible = "pod_incompatible"
-	BatchFlushPodNotBatchable = "pod_not_batchable"
 	BatchFlushFilterError     = "filter_error"
 	BatchFlushPreScoreError   = "prescore_error"
 	BatchFlushRescoreError    = "rescore_error"
 	BatchFlushNormalizeError  = "normalize_error"
+)
+
+// Values of the "result" label on the PreQueueingHintEvaluations metric.
+const (
+	PreQueueingHintResultAllPods     = "all_pods"
+	PreQueueingHintResultNarrowed    = "narrowed"
+	PreQueueingHintResultPreQFnError = "prequeueing_hint_fn_error"
 )
 
 // DRADeviceBindingConditions status labels
@@ -154,6 +170,7 @@ var (
 	Goroutines                   *metrics.GaugeVec
 	BatchAttemptStats            *metrics.CounterVec
 	BatchCacheFlushed            *metrics.CounterVec
+	StoreScheduleResultsTotal    *metrics.CounterVec
 	BatchRescoreAttempts         *metrics.CounterVec
 	BatchRescoreDuration         *metrics.HistogramVec
 	GetNodeHintDuration          *metrics.HistogramVec
@@ -188,9 +205,9 @@ var (
 	// This is the same metric that also gets recorded in the kube-controller-manager.
 	ResourceClaimCreatesTotal = resourceclaimmetrics.ResourceClaimCreate
 
-	podGroupScheduleAttempts           *metrics.CounterVec
-	podGroupSchedulingLatency          *metrics.HistogramVec
-	PodGroupSchedulingAlgorithmLatency *metrics.Histogram
+	PodGroupScheduleAttempts           *metrics.CounterVec
+	PodGroupSchedulingLatency          *metrics.HistogramVec
+	PodGroupSchedulingAlgorithmLatency *metrics.HistogramVec
 
 	// The below are only available when the TopologyAwareWorkloadScheduling feature gate is enabled.
 	GeneratedPlacementsTotal    *metrics.CounterVec
@@ -202,7 +219,7 @@ var (
 	DRABindingConditionsPreBindDuration  *metrics.HistogramVec
 
 	WorkloadPreemptionAttempts    *metrics.CounterVec
-	WorkloadPreemptionVictims     *metrics.Histogram
+	WorkloadPreemptionVictims     *metrics.HistogramVec
 	PreemptionWorkloadDisruptions *metrics.HistogramVec
 	PreemptionEvaluationDuration  *metrics.HistogramVec
 	PreemptionExecutionDuration   *metrics.HistogramVec
@@ -237,8 +254,8 @@ func Register() {
 		}
 		if utilfeature.DefaultFeatureGate.Enabled(features.GenericWorkload) {
 			RegisterMetrics(
-				podGroupScheduleAttempts,
-				podGroupSchedulingLatency,
+				PodGroupScheduleAttempts,
+				PodGroupSchedulingLatency,
 				PodGroupSchedulingAlgorithmLatency,
 				WorkloadPreemptionAttempts,
 				WorkloadPreemptionVictims,
@@ -264,12 +281,15 @@ func Register() {
 	})
 }
 
+// InitMetrics replaces the package-level metric globals with fresh instances.
+// It is called once by Register(); tests should call Register() instead, since
+// re-initializing the globals orphans the metrics already registered by Register().
 func InitMetrics() {
 	scheduleAttempts = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "schedule_attempts_total",
-			Help:           "Number of attempts to schedule pods, by the result. 'unschedulable' means a pod could not be scheduled, while 'error' means an internal scheduler problem.",
+			Help:           "Number of attempts to schedule pods, by the result and scheduler profile. 'unschedulable' means a pod could not be scheduled, while 'error' means an internal scheduler problem.",
 			StabilityLevel: metrics.STABLE,
 		}, []string{"result", "profile"})
 
@@ -287,7 +307,7 @@ func InitMetrics() {
 		&metrics.HistogramOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "scheduling_attempt_duration_seconds",
-			Help:           "Scheduling attempt latency in seconds (scheduling algorithm + binding)",
+			Help:           "Scheduling attempt latency in seconds (scheduling algorithm + binding), by scheduler profile.",
 			Buckets:        metrics.ExponentialBuckets(0.001, 2, 15),
 			StabilityLevel: metrics.STABLE,
 		}, []string{"result", "profile"})
@@ -327,9 +347,9 @@ func InitMetrics() {
 		&metrics.GaugeOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "queued_entities",
-			Help:           "Number of queued scheduling entities ('pod' or 'podgroup'; 'pod' stands for individual pods that are not members of any podgroup) by the queue type. 'active' means number of entities in activeQ; 'backoff' means number of entities in backoffQ; 'unschedulable' means number of entities in unschedulableEntities that the scheduler attempted to schedule and failed; 'gated' is the number of unschedulable entities that the scheduler never attempted to schedule because they are gated.",
+			Help:           "Number of queued scheduling entities ('pod', 'podgroup', or 'compositepodgroup'; 'pod' stands for individual pods that are not members of any podgroup) by the queue type. 'active' means number of entities in activeQ; 'backoff' means number of entities in backoffQ; 'unschedulable' means number of entities in unschedulableEntities that the scheduler attempted to schedule and failed; 'gated' is the number of unschedulable entities that the scheduler never attempted to schedule because they are gated.",
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"queue", "type"})
+		}, []string{"queue", "entity"})
 	InFlightEvents = metrics.NewGaugeVec(
 		&metrics.GaugeOpts{
 			Subsystem:      SchedulerSubsystem,
@@ -348,21 +368,28 @@ func InitMetrics() {
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "batch_attempts_total",
-			Help:           "Counts of results when we attempt to use batching.",
+			Help:           "Counts of results when we attempt to use batching, by scheduler profile. 'no_hint' covers every pod that asked for a hint and got none, including pods that later fail to schedule. 'hint_used' and 'hint_not_used' are recorded only when a node is selected, and say whether it was the hinted one.",
 			StabilityLevel: metrics.ALPHA,
 		}, []string{"profile", "result"})
 	BatchCacheFlushed = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "batch_cache_flushed_total",
-			Help:           "Counts of cache flushes by reason.",
+			Help:           "Counts of batch cache flushes by reason and scheduler profile. A flush is counted when an existing batch state is dropped instead of providing a hint. 'pod_skipped' means the previous pod was handled by another profile or failed to schedule, 'pod_nominated' means the pod has a nominated node, 'pod_incompatible' means the pod's signature is missing or differs from the batch's, 'expired' means the state is older than the maximum batch age, 'node_missing' means a node needed to reuse the state is no longer in the snapshot, and 'filter_error', 'prescore_error', 'rescore_error' and 'normalize_error' mean that phase failed while rescoring.",
 			StabilityLevel: metrics.ALPHA,
 		}, []string{"profile", "reason"})
+	StoreScheduleResultsTotal = metrics.NewCounterVec(
+		&metrics.CounterOpts{
+			Subsystem:      SchedulerSubsystem,
+			Name:           "store_schedule_results_total",
+			Help:           "Counts of the outcomes of storing scheduling results for batching, by scheduler profile. 'stored' means the pod seeded a batch, 'pod_not_batchable' means the pod has no signature, and 'empty_list' means no other feasible nodes were left to cache. Pods that used the hinted node store nothing.",
+			StabilityLevel: metrics.ALPHA,
+		}, []string{"profile", "result"})
 	BatchRescoreAttempts = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "batch_rescore_attempts_total",
-			Help:           "Counts of rescore attempts during opportunistic batching.",
+			Help:           "Counts of rescore attempts during opportunistic batching, by scheduler profile.",
 			StabilityLevel: metrics.ALPHA,
 		}, []string{"profile"})
 
@@ -398,7 +425,7 @@ func InitMetrics() {
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "pre_queueing_hint_evaluations_total",
-			Help:           "Number of PreQueueingHint evaluations, labeled by plugin and result (all_pods or narrowed).",
+			Help:           "Number of PreQueueingHint evaluations by plugin and result (narrowed, all_pods, or prequeueing_hint_fn_error).",
 			StabilityLevel: metrics.ALPHA,
 		},
 		[]string{"plugin", "result"})
@@ -407,7 +434,7 @@ func InitMetrics() {
 		&metrics.HistogramOpts{
 			Subsystem: SchedulerSubsystem,
 			Name:      "framework_extension_point_duration_seconds",
-			Help:      "Latency for running all plugins of a specific extension point.",
+			Help:      "Latency for running all plugins of a specific extension point, by scheduler profile.",
 			// Start with 0.1ms with the last bucket being [~200ms, Inf)
 			Buckets:        metrics.ExponentialBuckets(0.0001, 2, 12),
 			StabilityLevel: metrics.STABLE,
@@ -450,9 +477,9 @@ func InitMetrics() {
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "queue_incoming_entities_total",
-			Help:           "Number of scheduling entities added to scheduling queues by event, queue type, and entity type. Entity types are either 'pod' (for individual pods that are not members of any podgroup) or 'podgroup'.",
+			Help:           "Number of scheduling entities added to scheduling queues by event, queue type, and entity type. Entity types are 'pod' (for individual pods that are not members of any podgroup), 'podgroup', or 'compositepodgroup'.",
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"queue", "event", "type"})
+		}, []string{"queue", "event", "entity"})
 
 	PermitWaitDuration = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
@@ -476,7 +503,7 @@ func InitMetrics() {
 		&metrics.GaugeOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "unschedulable_pods",
-			Help:           "The number of unschedulable pods broken down by plugin name. A pod will increment the gauge for all plugins that caused it to not schedule and so this metric have meaning only when broken down by plugin.",
+			Help:           "The number of unschedulable pods broken down by plugin name and scheduler profile. A pod will increment the gauge for all plugins that caused it to not schedule and so this metric has meaning only when broken down by plugin.",
 			StabilityLevel: metrics.BETA,
 		}, []string{"plugin", "profile"})
 
@@ -484,7 +511,7 @@ func InitMetrics() {
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "plugin_evaluation_total",
-			Help:           "Number of attempts to schedule pods by each plugin and the extension point (available only in PreFilter, Filter, PreScore, and Score).",
+			Help:           "Number of attempts to schedule pods by each plugin and the extension point (available only in PreFilter, Filter, PreScore, and Score), by scheduler profile.",
 			StabilityLevel: metrics.BETA,
 		}, []string{"plugin", "extension_point", "profile"})
 
@@ -541,7 +568,7 @@ func InitMetrics() {
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "dra_bindingconditions_allocations_total",
-			Help:           "Number of allocations using devices with BindingConditions, counted per driver per scheduling attempt",
+			Help:           "Number of allocations using devices with BindingConditions, counted per driver per scheduling attempt, by scheduler profile.",
 			StabilityLevel: metrics.ALPHA,
 		},
 		[]string{"profile", "driver", "status"},
@@ -551,7 +578,7 @@ func InitMetrics() {
 		&metrics.HistogramOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "dra_bindingconditions_wait_duration_seconds",
-			Help:           "Time in seconds spent waiting for BindingConditions to be satisfied during PreBind.",
+			Help:           "Time in seconds spent waiting for BindingConditions to be satisfied during PreBind, by scheduler profile.",
 			Buckets:        metrics.ExponentialBuckets(0.1, 2, 14),
 			StabilityLevel: metrics.ALPHA,
 		},
@@ -562,7 +589,7 @@ func InitMetrics() {
 		&metrics.HistogramOpts{
 			Subsystem: SchedulerSubsystem,
 			Name:      "get_node_hint_duration_seconds",
-			Help:      "Latency for getting a node hint.",
+			Help:      "Latency for getting a node hint, by scheduler profile.",
 			// Start with 0.01ms with the last bucket being [~20ms, Inf)
 			Buckets:        metrics.ExponentialBuckets(0.00001, 2, 12),
 			StabilityLevel: metrics.ALPHA,
@@ -573,7 +600,7 @@ func InitMetrics() {
 		&metrics.HistogramOpts{
 			Subsystem: SchedulerSubsystem,
 			Name:      "store_schedule_results_duration_seconds",
-			Help:      "Latency for storing scheduling results.",
+			Help:      "Latency for storing scheduling results for opportunistic batching, by scheduler profile.",
 			// Start with 0.01ms with the last bucket being [~20ms, Inf)
 			Buckets:        metrics.ExponentialBuckets(0.00001, 2, 12),
 			StabilityLevel: metrics.ALPHA,
@@ -584,64 +611,64 @@ func InitMetrics() {
 		&metrics.HistogramOpts{
 			Subsystem: SchedulerSubsystem,
 			Name:      "batch_rescore_duration_seconds",
-			Help:      "Latency for rescoring a node during opportunistic batching.",
+			Help:      "Latency for rescoring a node during opportunistic batching, by scheduler profile.",
 			// Start with 0.01ms with the last bucket being [~20ms, Inf)
 			Buckets:        metrics.ExponentialBuckets(0.00001, 2, 12),
 			StabilityLevel: metrics.ALPHA,
 		},
 		[]string{"profile"})
 
-	// The below (podGroupScheduleAttempts, podGroupSchedulingLatency and PodGroupSchedulingAlgorithmLatency) are only available when the GenericWorkload feature gate is enabled.
-	podGroupScheduleAttempts = metrics.NewCounterVec(
+	// The below (PodGroupScheduleAttempts, PodGroupSchedulingLatency and PodGroupSchedulingAlgorithmLatency) are only available when the GenericWorkload feature gate is enabled.
+	PodGroupScheduleAttempts = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "podgroup_schedule_attempts_total",
-			Help:           "Number of attempts to schedule pod group, by the result. 'unschedulable' means a pod group could not be scheduled, while 'error' means an internal scheduler problem.",
+			Help:           "Number of attempts to schedule pod group, by the result, scheduler profile and entity type ('podgroup' or 'compositepodgroup'). 'unschedulable' means a pod group could not be scheduled, while 'error' means an internal scheduler problem.",
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"result", "profile"})
-	podGroupSchedulingLatency = metrics.NewHistogramVec(
+		}, []string{"result", "profile", "entity"})
+	PodGroupSchedulingLatency = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "podgroup_scheduling_attempt_duration_seconds",
-			Help:           "Pod group scheduling attempt latency in seconds",
+			Help:           "Pod group scheduling attempt latency in seconds, by result, scheduler profile and entity type ('podgroup' or 'compositepodgroup').",
 			Buckets:        metrics.ExponentialBuckets(0.001, 2, 15),
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"result", "profile"})
-	PodGroupSchedulingAlgorithmLatency = metrics.NewHistogram(
+		}, []string{"result", "profile", "entity"})
+	PodGroupSchedulingAlgorithmLatency = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "podgroup_scheduling_algorithm_duration_seconds",
-			Help:           "Pod group scheduling algorithm latency in seconds",
+			Help:           "Pod group scheduling algorithm latency in seconds, by scheduler profile and entity type ('podgroup' or 'compositepodgroup').",
 			Buckets:        metrics.ExponentialBuckets(0.001, 2, 15),
 			StabilityLevel: metrics.ALPHA,
-		})
+		}, []string{"profile", "entity"})
 
 	// Workload preemption
 	WorkloadPreemptionAttempts = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "workload_preemption_attempts_total",
-			Help:           "Total preemption attempts initiated by workload (including pod groups) in the cluster till now.",
+			Help:           "Total preemption attempts initiated by workload (either pod groups or composite pod groups) in the cluster till now.",
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"result"})
-	WorkloadPreemptionVictims = metrics.NewHistogram(
+		}, []string{"preemptor", "result"})
+	WorkloadPreemptionVictims = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
 			Subsystem: SchedulerSubsystem,
 			Name:      "workload_preemption_victims",
-			Help:      "Number of pod preemption victims caused by workload preemption.",
-			// Start with 1 with the last bucket being [1024, Inf)
-			Buckets:        metrics.ExponentialBuckets(1, 2, 11),
-			StabilityLevel: metrics.ALPHA,
-		})
-	PreemptionWorkloadDisruptions = metrics.NewHistogramVec(
-		&metrics.HistogramOpts{
-			Subsystem: SchedulerSubsystem,
-			Name:      "preemption_workload_disruptions",
-			Help:      "Number of workload preemption units being preempted. A single preemption unit can be all pods in a pod group (in case of DisruptionMode=all), or a single pod (in case of DisruptionMode=single).",
+			Help:      "Number of pod preemption victims caused by workload preemption (either pod groups or composite pod groups).",
 			// Start with 1 with the last bucket being [1024, Inf)
 			Buckets:        metrics.ExponentialBuckets(1, 2, 11),
 			StabilityLevel: metrics.ALPHA,
 		}, []string{"preemptor"})
+	PreemptionWorkloadDisruptions = metrics.NewHistogramVec(
+		&metrics.HistogramOpts{
+			Subsystem: SchedulerSubsystem,
+			Name:      "preemption_workload_disruptions",
+			Help:      "Number of preemption units evicted by a single workload preemption (either pod groups or composite pod groups), by victim type. A unit is either all pods of a pod group or composite pod group hierarchy with DisruptionMode=all (victim is the type of its topmost group with DisruptionMode=all), or a single pod evicted on its own (victim=pod), which covers pods outside of any group and pods of groups with DisruptionMode=single.",
+			// Start with 1 with the last bucket being [1024, Inf)
+			Buckets:        metrics.ExponentialBuckets(1, 2, 11),
+			StabilityLevel: metrics.ALPHA,
+		}, []string{"preemptor", "victim"})
 	PreemptionEvaluationDuration = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
 			Subsystem: SchedulerSubsystem,
@@ -674,24 +701,24 @@ func InitMetrics() {
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "generated_placements_total",
-			Help:           "Number of candidate placements generated when scheduling pod groups.",
+			Help:           "Number of candidate placements generated when scheduling pod groups, by scheduler profile and entity type. For pod groups nested in a composite pod group, placements are generated and counted once per evaluated parent placement.",
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"profile"})
+		}, []string{"profile", "entity"})
 	PlacementEvaluations = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "placement_evaluations_total",
-			Help:           "Number of candidate placements evaluated when scheduling pod groups, by result. 'feasible' means the pod group fit into the placement, while 'infeasible' means it did not.",
+			Help:           "Number of candidate placements evaluated when scheduling pod groups, by result, scheduler profile, and entity type. 'feasible' means the pod group fit into the placement, while 'infeasible' means it did not. For composite pod groups, nested evaluations of child groups are also counted separately under their own entity type.",
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"result", "profile"})
+		}, []string{"result", "profile", "entity"})
 	PlacementEvaluationDuration = metrics.NewHistogramVec(
 		&metrics.HistogramOpts{
 			Subsystem:      SchedulerSubsystem,
 			Name:           "placement_evaluation_duration_seconds",
-			Help:           "Latency in seconds of evaluating a single candidate placement when scheduling pod groups, by result. 'feasible' means the pod group fit into the placement, while 'infeasible' means it did not.",
+			Help:           "Latency in seconds of evaluating a single candidate placement when scheduling pod groups, by result, scheduler profile, and entity type. For composite pod groups, this covers scheduling the whole subtree on the placement, including nested placement evaluations of child groups, which are also recorded separately under their own entity type. 'feasible' means the pod group fit into the placement, while 'infeasible' means it did not.",
 			Buckets:        metrics.ExponentialBuckets(0.001, 2, 15),
 			StabilityLevel: metrics.ALPHA,
-		}, []string{"result", "profile"})
+		}, []string{"result", "profile", "entity"})
 
 	metricsList = []metrics.Registerable{
 		scheduleAttempts,
@@ -716,6 +743,7 @@ func InitMetrics() {
 		PluginEvaluationTotal,
 		BatchAttemptStats,
 		BatchCacheFlushed,
+		StoreScheduleResultsTotal,
 		BatchRescoreAttempts,
 		BatchRescoreDuration,
 		GetNodeHintDuration,
@@ -769,24 +797,24 @@ func PendingPodGroupPods() metrics.GaugeMetric {
 	return pendingPods.With(metrics.Labels{"queue": "pending"})
 }
 
-// ActiveEntities returns the queued entities metric with the queue label set to "active" and type label set to "Pod" or "PodGroup".
+// ActiveEntities returns the queued entities metric with the queue label set to "active" and entity label set to "pod", "podgroup", or "compositepodgroup".
 func ActiveEntities(entityType string) metrics.GaugeMetric {
-	return QueuedEntities.With(metrics.Labels{"queue": "active", "type": entityType})
+	return QueuedEntities.With(metrics.Labels{"queue": "active", "entity": entityType})
 }
 
-// BackoffEntities returns the queued entities metric with the queue label set to "backoff" and type label set to "Pod" or "PodGroup".
+// BackoffEntities returns the queued entities metric with the queue label set to "backoff" and entity label set to "pod", "podgroup", or "compositepodgroup".
 func BackoffEntities(entityType string) metrics.GaugeMetric {
-	return QueuedEntities.With(metrics.Labels{"queue": "backoff", "type": entityType})
+	return QueuedEntities.With(metrics.Labels{"queue": "backoff", "entity": entityType})
 }
 
-// UnschedulableEntities returns the queued entities metric with the queue label set to "unschedulable" and type label set to "Pod" or "PodGroup".
+// UnschedulableEntities returns the queued entities metric with the queue label set to "unschedulable" and entity label set to "pod", "podgroup", or "compositepodgroup".
 func UnschedulableEntities(entityType string) metrics.GaugeMetric {
-	return QueuedEntities.With(metrics.Labels{"queue": "unschedulable", "type": entityType})
+	return QueuedEntities.With(metrics.Labels{"queue": "unschedulable", "entity": entityType})
 }
 
-// GatedEntities returns the queued entities metric with the queue label set to "gated" and type label set to "Pod" or "PodGroup".
+// GatedEntities returns the queued entities metric with the queue label set to "gated" and entity label set to "pod", "podgroup", or "compositepodgroup".
 func GatedEntities(entityType string) metrics.GaugeMetric {
-	return QueuedEntities.With(metrics.Labels{"queue": "gated", "type": entityType})
+	return QueuedEntities.With(metrics.Labels{"queue": "gated", "entity": entityType})
 }
 
 // SinceInSeconds gets the time since the specified start in seconds.

@@ -31,7 +31,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
+	"sigs.k8s.io/structured-merge-diff/v7/fieldpath"
 
 	batchapiv1beta1 "k8s.io/api/batch/v1beta1"
 	certificatesapiv1beta1 "k8s.io/api/certificates/v1beta1"
@@ -542,7 +542,7 @@ func TestGenericStorageProviders(t *testing.T) {
 		}
 
 		// special case: we identify full core and generic core
-		if kt.Kind() == reflect.Ptr && kt.Elem().PkgPath() == reflect.TypeOf(corerest.Config{}).PkgPath() {
+		if kt.Kind() == reflect.Pointer && kt.Elem().PkgPath() == reflect.TypeOf(corerest.Config{}).PkgPath() {
 			kt = reflect.TypeOf(&corerest.GenericConfig{})
 		}
 

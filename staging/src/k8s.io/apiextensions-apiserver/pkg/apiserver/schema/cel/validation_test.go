@@ -34,18 +34,16 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	"k8s.io/utils/ptr"
 
+	apiextensions "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	apiextensionsinternal "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsconversion "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel/model"
-	apiextensionsfeatures "k8s.io/apiextensions-apiserver/pkg/features"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	celconfig "k8s.io/apiserver/pkg/apis/cel"
 	"k8s.io/apiserver/pkg/cel/common"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/apiserver/pkg/warning"
-	featuregatetesting "k8s.io/component-base/featuregate/testing"
 )
 
 // TestValidationExpressions tests CEL integration with custom resource values and OpenAPIv3.
@@ -3221,7 +3219,7 @@ func TestMessageExpression(t *testing.T) {
 			costBudget:              50,
 			expectedLogErr:          "messageExpression evaluation failed due to: index out of bounds: 4",
 			expectedValidationErr:   "message not messageExpression",
-			expectedRemainingBudget: 47,
+			expectedRemainingBudget: 48,
 		},
 		{
 			name:                    "runtime cost preserved if messageExpression fails during evaluation (no message set)",
@@ -3229,7 +3227,7 @@ func TestMessageExpression(t *testing.T) {
 			costBudget:              50,
 			expectedLogErr:          "messageExpression evaluation failed due to: index out of bounds: 4",
 			expectedValidationErr:   "failed rule",
-			expectedRemainingBudget: 47,
+			expectedRemainingBudget: 48,
 		},
 		{
 			name:                    "per-call limit exceeded during messageExpression execution",
@@ -3852,7 +3850,7 @@ func mustSchema(source string) *schema.Structural {
 		panic(err)
 	}
 	convertedProps := &apiextensionsinternal.JSONSchemaProps{}
-	if err := apiextensions.Convert_v1_JSONSchemaProps_To_apiextensions_JSONSchemaProps(props, convertedProps, nil); err != nil {
+	if err := apiextensionsconversion.Convert_v1_JSONSchemaProps_To_apiextensions_JSONSchemaProps(props, convertedProps, nil); err != nil {
 		panic(err)
 	}
 
@@ -4482,7 +4480,6 @@ func TestRatcheting(t *testing.T) {
 
 // Runs transition rule cases with OptionalOldSelf set to true on the schema
 func TestOptionalOldSelf(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, apiextensionsfeatures.CRDValidationRatcheting, true)
 
 	tests := []struct {
 		name   string
@@ -4636,7 +4633,6 @@ func TestOptionalOldSelf(t *testing.T) {
 // Shows that type(oldSelf) == null_type works for all supported OpenAPI types
 // both when oldSelf is null and when it is not null
 func TestOptionalOldSelfCheckForNull(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, apiextensionsfeatures.CRDValidationRatcheting, true)
 
 	tests := []struct {
 		name   string
@@ -4777,7 +4773,6 @@ func TestOptionalOldSelfCheckForNull(t *testing.T) {
 
 // Show that we cant just use oldSelf as if it was unwrapped
 func TestOptionalOldSelfIsOptionalType(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, apiextensionsfeatures.CRDValidationRatcheting, true)
 
 	cases := []struct {
 		name   string

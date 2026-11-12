@@ -17,6 +17,7 @@ limitations under the License.
 package podgroup
 
 import (
+	"fmt"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -28,8 +29,8 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
+	schedulerutils "k8s.io/kubernetes/test/integration/scheduler"
 	stepsframework "k8s.io/kubernetes/test/integration/scheduler/podgroup/stepsframework"
-	testutils "k8s.io/kubernetes/test/integration/util"
 )
 
 const hostnameKey = "kubernetes.io/hostname"
@@ -74,7 +75,7 @@ func TestPodGroupSchedulingWithPodAntiAffinity(t *testing.T) {
 
 	workload := st.MakeWorkload().Name("workload").
 		PodGroupTemplate(st.MakePodGroupTemplate().Name("t").MinCount(2).Obj()).Obj()
-	podGroup := st.MakePodGroup().Name("pg").WorkloadRef("t", "workload").Priority(200).MinCount(2).Obj()
+	podGroup := st.MakePodGroup().Name("pg").WorkloadRef("workload", "t").Priority(200).MinCount(2).Obj()
 
 	tests := []struct {
 		name  string
@@ -136,10 +137,8 @@ func TestPodGroupSchedulingWithPodAntiAffinity(t *testing.T) {
 				},
 				{
 					Name: "Verify PodGroup condition is set to Unschedulable",
-					WaitForPodGroupCondition: &stepsframework.PodGroupConditionCheck{
-						PodGroupName:    "pg",
-						ConditionStatus: metav1.ConditionFalse,
-						Reason:          schedulingapi.PodGroupReasonUnschedulable,
+					WaitForGroupsUnschedulable: &stepsframework.Groups{
+						PodGroups: []string{"pg"},
 					},
 				},
 			},
@@ -147,31 +146,35 @@ func TestPodGroupSchedulingWithPodAntiAffinity(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-				features.GenericWorkload: true,
+		for _, cpgEnabled := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s (CPG enabled: %v)", tt.name, cpgEnabled), func(t *testing.T) {
+				featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+					features.GenericWorkload:                 true,
+					features.TopologyAwareWorkloadScheduling: cpgEnabled,
+					features.CompositePodGroup:               cpgEnabled,
+				})
+
+				testCtx := schedulerutils.InitTestSchedulerWithNS(t, "podgroup-anti-affinity",
+					// disable backoff
+					scheduler.WithPodMaxBackoffSeconds(0),
+					scheduler.WithPodInitialBackoffSeconds(0))
+				ns := testCtx.NS.Name
+
+				commonSteps := []stepsframework.Step{
+					{
+						Name:        "Create Nodes",
+						CreateNodes: tt.nodes,
+					},
+					{
+						Name:            "Create workloads",
+						CreateWorkloads: []*schedulingapi.Workload{workload},
+					},
+				}
+
+				if err := stepsframework.RunSteps(testCtx, t, ns, append(commonSteps, tt.steps...)); err != nil {
+					t.Fatal(err)
+				}
 			})
-
-			testCtx := testutils.InitTestSchedulerWithNS(t, "podgroup-anti-affinity",
-				// disable backoff
-				scheduler.WithPodMaxBackoffSeconds(0),
-				scheduler.WithPodInitialBackoffSeconds(0))
-			ns := testCtx.NS.Name
-
-			commonSteps := []stepsframework.Step{
-				{
-					Name:        "Create Nodes",
-					CreateNodes: tt.nodes,
-				},
-				{
-					Name:            "Create workloads",
-					CreateWorkloads: []*schedulingapi.Workload{workload},
-				},
-			}
-
-			if err := stepsframework.RunSteps(testCtx, t, ns, append(commonSteps, tt.steps...)); err != nil {
-				t.Fatal(err)
-			}
-		})
+		}
 	}
 }

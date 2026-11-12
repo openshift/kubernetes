@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"sigs.k8s.io/structured-merge-diff/v7/fieldpath"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -42,7 +44,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/client"
-	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 )
 
 // nodeStrategy implements behavior for nodes
@@ -107,10 +108,6 @@ func dropDisabledFields(node *api.Node, oldNode *api.Node) {
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.RecursiveReadOnlyMounts) && !utilfeature.DefaultFeatureGate.Enabled(features.UserNamespacesSupport) {
 		node.Status.RuntimeHandlers = nil
-	}
-
-	if !utilfeature.DefaultFeatureGate.Enabled(features.SupplementalGroupsPolicy) && !supplementalGroupsPolicyInUse(oldNode) {
-		node.Status.Features = nil
 	}
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.NodeDeclaredFeatures) && !nodeDeclaredFeaturesInUse(oldNode) {
@@ -328,14 +325,6 @@ func nodeWarnings(obj runtime.Object) []string {
 	}
 
 	return warnings
-}
-
-// supplementalGroupsPolicyInUse returns true if the node.status has NodeFeature
-func supplementalGroupsPolicyInUse(node *api.Node) bool {
-	if node == nil {
-		return false
-	}
-	return node.Status.Features != nil
 }
 
 // nodeDeclaredFeaturesInUse returns true if the node.status has DeclaredFeatures

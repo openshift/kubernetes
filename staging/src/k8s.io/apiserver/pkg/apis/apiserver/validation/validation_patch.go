@@ -17,7 +17,7 @@ limitations under the License.
 package validation
 
 import (
-	celgo "github.com/google/cel-go/cel"
+	celgo "cel.dev/cel-go/cel"
 	authenticationcel "k8s.io/apiserver/pkg/authentication/cel"
 )
 

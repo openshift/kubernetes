@@ -26,7 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"sigs.k8s.io/structured-merge-diff/v6/typed"
+	"sigs.k8s.io/structured-merge-diff/v7/typed"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/managedfields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/watchlist"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 )
 
@@ -61,6 +62,7 @@ func getArbitraryResource(s schema.GroupVersionResource, name, namespace string)
 }
 
 func TestWatchCallNonNamespace(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	testResource := schema.GroupVersionResource{Group: "", Version: "test_version", Resource: "test_kind"}
 	testObj := getArbitraryResource(testResource, "test_name", "test_namespace")
 	accessor, err := meta.Accessor(testObj)
@@ -70,7 +72,7 @@ func TestWatchCallNonNamespace(t *testing.T) {
 	ns := accessor.GetNamespace()
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	watch, err := o.Watch(testResource, ns)
 	if err != nil {
 		t.Fatalf("test resource watch failed in %s: %v ", ns, err)
@@ -86,6 +88,7 @@ func TestWatchCallNonNamespace(t *testing.T) {
 }
 
 func TestWatchCallAllNamespace(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	testResource := schema.GroupVersionResource{Group: "", Version: "test_version", Resource: "test_kind"}
 	testObj := getArbitraryResource(testResource, "test_name", "test_namespace")
 	accessor, err := meta.Accessor(testObj)
@@ -95,7 +98,7 @@ func TestWatchCallAllNamespace(t *testing.T) {
 	ns := accessor.GetNamespace()
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	w, err := o.Watch(testResource, "test_namespace")
 	if err != nil {
 		t.Fatalf("test resource watch failed in test_namespace: %v", err)
@@ -137,6 +140,7 @@ func TestWatchCallAllNamespace(t *testing.T) {
 }
 
 func TestWatchCallMultipleInvocation(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	cases := []struct {
 		name string
 		op   watch.EventType
@@ -188,7 +192,7 @@ func TestWatchCallMultipleInvocation(t *testing.T) {
 	codecs := serializer.NewCodecFactory(scheme)
 	testResource := schema.GroupVersionResource{Group: "", Version: "test_version", Resource: "test_kind"}
 
-	o := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	watchNamespaces := []string{
 		"",
 		"",
@@ -239,6 +243,7 @@ func TestWatchCallMultipleInvocation(t *testing.T) {
 }
 
 func TestWatchAddAfterStop(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	testResource := schema.GroupVersionResource{Group: "", Version: "test_version", Resource: "test_kind"}
 	testObj := getArbitraryResource(testResource, "test_name", "test_namespace")
 	accessor, err := meta.Accessor(testObj)
@@ -249,7 +254,7 @@ func TestWatchAddAfterStop(t *testing.T) {
 	ns := accessor.GetNamespace()
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	watch, err := o.Watch(testResource, ns)
 	if err != nil {
 		t.Errorf("watch creation failed: %v", err)
@@ -270,11 +275,12 @@ func TestWatchAddAfterStop(t *testing.T) {
 }
 
 func TestPatchWithMissingObject(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	nodesResource := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}
 
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	reaction := ObjectReaction(o)
 	action := NewRootPatchSubresourceAction(nodesResource, "node-1", types.StrategicMergePatchType, []byte(`{}`))
 	handled, node, err := reaction(action)
@@ -284,11 +290,12 @@ func TestPatchWithMissingObject(t *testing.T) {
 }
 
 func TestApplyCreate(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	cmResource := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configMaps"}
 	scheme := runtime.NewScheme()
 	scheme.AddKnownTypes(cmResource.GroupVersion(), &v1.ConfigMap{})
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewFieldManagedObjectTracker(scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
+	o := NewFieldManagedObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
 
 	reaction := ObjectReaction(o)
 	patch := []byte(`{"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "cm-1"}, "data": {"k": "v"}}`)
@@ -304,11 +311,12 @@ func TestApplyCreate(t *testing.T) {
 }
 
 func TestApplyNoMeta(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	cmResource := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configMaps"}
 	scheme := runtime.NewScheme()
 	scheme.AddKnownTypes(cmResource.GroupVersion(), &v1.ConfigMap{})
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewFieldManagedObjectTracker(scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
+	o := NewFieldManagedObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
 
 	reaction := ObjectReaction(o)
 	patch := []byte(`{"apiVersion": "v1", "kind": "ConfigMap", "data": {"k": "v"}}`)
@@ -325,11 +333,12 @@ func TestApplyNoMeta(t *testing.T) {
 }
 
 func TestApplyUpdateMultipleFieldManagers(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	cmResource := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configMaps"}
 	scheme := runtime.NewScheme()
 	scheme.AddKnownTypes(cmResource.GroupVersion(), &v1.ConfigMap{})
 	codecs := serializer.NewCodecFactory(scheme)
-	o := NewFieldManagedObjectTracker(scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
+	o := NewFieldManagedObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
 
 	reaction := ObjectReaction(o)
 	action := NewCreateAction(cmResource, "default", &v1.ConfigMap{
@@ -436,6 +445,7 @@ func TestApplyUpdateMultipleFieldManagers(t *testing.T) {
 }
 
 func TestGetWithExactMatch(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
 
@@ -449,7 +459,7 @@ func TestGetWithExactMatch(t *testing.T) {
 
 	var err error
 	// Object with empty namespace
-	o := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	nodeResource := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "node"}
 	node, gvr := constructObject(nodeResource, "node", "")
 
@@ -466,7 +476,7 @@ func TestGetWithExactMatch(t *testing.T) {
 	assert.EqualError(t, err, errNotFound.Error())
 
 	// Object with non-empty namespace
-	o = NewObjectTracker(scheme, codecs.UniversalDecoder())
+	o = NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 	podResource := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pod"}
 	pod, gvr := constructObject(podResource, "pod", "default")
 	assert.NoError(t, o.Add(pod))
@@ -666,12 +676,13 @@ var configMapTypedSchema = typed.YAMLObject(`types:
 `)
 
 func TestManagedFieldsObjectTrackerReloadsScheme(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	cmResource := schema.GroupVersionResource{Version: "v1", Resource: "configmaps"}
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
 
 	// Create tracker without registered ConfigMap type
-	tracker := NewFieldManagedObjectTracker(scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
+	tracker := NewFieldManagedObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder(), configMapTypeConverter(scheme))
 
 	cm := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -688,13 +699,14 @@ func TestManagedFieldsObjectTrackerReloadsScheme(t *testing.T) {
 }
 
 func TestManagedFielsdObjectTrackerWithUnstructured(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	cmResource := schema.GroupVersionResource{Version: "v1", Resource: "configmaps"}
 	cmGVK := schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"}
 	scheme := runtime.NewScheme()
 	scheme.AddKnownTypeWithName(cmGVK, &unstructured.Unstructured{})
 	codecs := serializer.NewCodecFactory(scheme)
 
-	tracker := NewFieldManagedObjectTracker(scheme, codecs.UniversalDecoder(), managedfields.NewDeducedTypeConverter())
+	tracker := NewFieldManagedObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder(), managedfields.NewDeducedTypeConverter())
 
 	cm := &unstructured.Unstructured{}
 	cm.SetAPIVersion("v1")
@@ -743,12 +755,216 @@ func TestManagedFielsdObjectTrackerWithUnstructured(t *testing.T) {
 }
 
 func TestDoesClientSupportWatchListSemantics(t *testing.T) {
+	logger, _ := ktesting.NewTestContext(t)
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
 
-	target := NewObjectTracker(scheme, codecs.UniversalDecoder())
+	target := NewObjectTrackerWithLogger(logger, scheme, codecs.UniversalDecoder())
 
 	if !watchlist.DoesClientNotSupportWatchListSemantics(target) {
 		t.Fatalf("ObjectTracker should NOT support WatchList semantics")
 	}
+}
+
+func newConfigMapTracker(t *testing.T) ObjectTracker {
+	logger, _ := ktesting.NewTestContext(t)
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1.AddToScheme(scheme))
+	return NewObjectTrackerWithLogger(logger, scheme, serializer.NewCodecFactory(scheme).UniversalDecoder())
+}
+
+var configMapGVR = v1.SchemeGroupVersion.WithResource("configmaps")
+
+func configMap(namespace, name string) *v1.ConfigMap {
+	return &v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+}
+
+func listResourceVersion(t *testing.T, tracker ObjectTracker) string {
+	list, err := tracker.List(configMapGVR, v1.SchemeGroupVersion.WithKind("ConfigMap"), "")
+	require.NoError(t, err)
+	listMeta, err := meta.ListAccessor(list)
+	require.NoError(t, err)
+	return listMeta.GetResourceVersion()
+}
+
+// drainEvents returns what has been sent to the watch so far, formatted as "<type> <namespace>/<name>".
+func drainEvents(t *testing.T, w watch.Interface) []string {
+	var events []string
+	for {
+		select {
+		case event, ok := <-w.ResultChan():
+			if !ok {
+				return events
+			}
+			accessor, err := meta.Accessor(event.Object)
+			require.NoError(t, err)
+			events = append(events, fmt.Sprintf("%s %s/%s", event.Type, accessor.GetNamespace(), accessor.GetName()))
+		default:
+			return events
+		}
+	}
+}
+
+func TestDeleteBumpsResourceVersion(t *testing.T) {
+	tracker := newConfigMapTracker(t)
+	require.NoError(t, tracker.Add(configMap("ns", "one")))
+	before := listResourceVersion(t, tracker)
+	require.NoError(t, tracker.Delete(configMapGVR, "ns", "one"))
+	after := listResourceVersion(t, tracker)
+	require.NotEqual(t, before, after, "deleting an object must change the ResourceVersion of the list")
+
+	// Deleting something that doesn't exist is not a change.
+	require.Error(t, tracker.Delete(configMapGVR, "ns", "one"))
+	require.Equal(t, after, listResourceVersion(t, tracker))
+}
+
+// TestWatchReplaysDeletions covers a deletion which happens after List and before Watch.
+func TestWatchReplaysDeletions(t *testing.T) {
+	// The list returns ResourceVersion 4 for the three objects below.
+	setup := func(t *testing.T) ObjectTracker {
+		tracker := newConfigMapTracker(t)
+		require.NoError(t, tracker.Add(configMap("a", "one")))
+		require.NoError(t, tracker.Add(configMap("a", "two")))
+		require.NoError(t, tracker.Add(configMap("b", "three")))
+		require.Equal(t, "4", listResourceVersion(t, tracker))
+		return tracker
+	}
+
+	for name, tc := range map[string]struct {
+		mutate         func(t *testing.T, tracker ObjectTracker)
+		namespace      string
+		options        []metav1.ListOptions
+		expectedEvents []string
+	}{
+		"deleted-in-all-namespaces": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "b", "three"))
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+			},
+			options:        []metav1.ListOptions{{ResourceVersion: "4"}},
+			expectedEvents: []string{"DELETED b/three", "DELETED a/one"},
+		},
+		"deleted-in-one-namespace": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "b", "three"))
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+			},
+			namespace:      "a",
+			options:        []metav1.ListOptions{{ResourceVersion: "4"}},
+			expectedEvents: []string{"DELETED a/one"},
+		},
+		"deleted-and-created-again": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+				require.NoError(t, tracker.Create(configMapGVR, configMap("a", "one"), "a"))
+			},
+			options:        []metav1.ListOptions{{ResourceVersion: "4"}},
+			expectedEvents: []string{"DELETED a/one", "ADDED a/one"},
+		},
+		"deleted-before-resource-version": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+			},
+			// This is what List returns now.
+			options:        []metav1.ListOptions{{ResourceVersion: "5"}},
+			expectedEvents: nil,
+		},
+		"most-recent-with-unset-resource-version": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+			},
+			options:        []metav1.ListOptions{{}},
+			expectedEvents: []string{"ADDED a/two", "ADDED b/three"},
+		},
+		"most-recent-with-zero-resource-version": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+			},
+			options:        []metav1.ListOptions{{ResourceVersion: "0"}},
+			expectedEvents: []string{"ADDED a/two", "ADDED b/three"},
+		},
+		"without-options": {
+			mutate: func(t *testing.T, tracker ObjectTracker) {
+				require.NoError(t, tracker.Delete(configMapGVR, "a", "one"))
+			},
+			expectedEvents: nil,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tracker := setup(t)
+			tc.mutate(t, tracker)
+			w, err := tracker.Watch(configMapGVR, tc.namespace, tc.options...)
+			require.NoError(t, err)
+			defer w.Stop()
+			require.Equal(t, tc.expectedEvents, drainEvents(t, w))
+		})
+	}
+}
+
+// TestWatchExpired covers a Watch that starts at a ResourceVersion for which not all
+// deletions are known anymore.
+func TestWatchExpired(t *testing.T) {
+	tracker := newConfigMapTracker(t)
+	for i := 0; i <= maxTrackedDeletions; i++ {
+		require.NoError(t, tracker.Add(configMap("ns", fmt.Sprintf("cm%d", i))))
+	}
+	listRV, err := strconv.ParseInt(listResourceVersion(t, tracker), 10, 64)
+	require.NoError(t, err)
+	for i := 0; i <= maxTrackedDeletions; i++ {
+		require.NoError(t, tracker.Delete(configMapGVR, "ns", fmt.Sprintf("cm%d", i)))
+	}
+
+	// The first deletion got dropped, so a watch which has seen
+	// nothing after the list may have missed it.
+	w, err := tracker.Watch(configMapGVR, "", metav1.ListOptions{ResourceVersion: strconv.FormatInt(listRV, 10)})
+	require.NoError(t, err)
+	event, ok := <-w.ResultChan()
+	require.True(t, ok, "expected an error event")
+	require.Equal(t, watch.Error, event.Type)
+	require.True(t, errors.IsResourceExpired(errors.FromObject(event.Object)), "expected an expired error, got: %v", event.Object)
+	_, ok = <-w.ResultChan()
+	require.False(t, ok, "expected the watch to be closed after the error")
+
+	// All deletions after the first one are still known.
+	w, err = tracker.Watch(configMapGVR, "", metav1.ListOptions{ResourceVersion: strconv.FormatInt(listRV+1, 10)})
+	require.NoError(t, err)
+	defer w.Stop()
+	require.Len(t, drainEvents(t, w), maxTrackedDeletions)
+
+	// Not asking for history works.
+	w, err = tracker.Watch(configMapGVR, "", metav1.ListOptions{})
+	require.NoError(t, err)
+	defer w.Stop()
+	require.Empty(t, drainEvents(t, w))
+}
+
+// TestWatchTooManyChanges covers a Watch that would have to send more events
+// than the new watch can buffer.
+func TestWatchTooManyChanges(t *testing.T) {
+	tracker := newConfigMapTracker(t)
+	for i := 0; i < maxTrackedDeletions; i++ {
+		require.NoError(t, tracker.Add(configMap("ns", fmt.Sprintf("cm%d", i))))
+	}
+	listRV, err := strconv.ParseInt(listResourceVersion(t, tracker), 10, 64)
+	require.NoError(t, err)
+	for i := 0; i < maxTrackedDeletions; i++ {
+		require.NoError(t, tracker.Delete(configMapGVR, "ns", fmt.Sprintf("cm%d", i)))
+	}
+	require.NoError(t, tracker.Add(configMap("ns", "another")))
+
+	// All deletions are still known, but together with the new object
+	// they are one event too many.
+	w, err := tracker.Watch(configMapGVR, "", metav1.ListOptions{ResourceVersion: strconv.FormatInt(listRV, 10)})
+	require.NoError(t, err)
+	defer w.Stop()
+	event := <-w.ResultChan()
+	require.Equal(t, watch.Error, event.Type)
+	require.True(t, errors.IsResourceExpired(errors.FromObject(event.Object)), "expected an expired error, got: %v", event.Object)
+
+	w, err = tracker.Watch(configMapGVR, "", metav1.ListOptions{ResourceVersion: strconv.FormatInt(listRV+1, 10)})
+	require.NoError(t, err)
+	defer w.Stop()
+	events := drainEvents(t, w)
+	require.Len(t, events, maxTrackedDeletions)
+	require.Equal(t, "ADDED ns/another", events[len(events)-1])
 }

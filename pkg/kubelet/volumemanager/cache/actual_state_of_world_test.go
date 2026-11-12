@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/kubernetes/pkg/kubelet/allocation/state"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetesting "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util"
@@ -45,7 +46,7 @@ var emptyVolumeName = v1.UniqueVolumeName("")
 func Test_MarkVolumeAsAttached_Positive_NewVolume(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
@@ -93,7 +94,7 @@ func Test_MarkVolumeAsAttached_Positive_NewVolume(t *testing.T) {
 func Test_MarkVolumeAsAttached_SuppliedVolumeName_Positive_NewVolume(t *testing.T) {
 	// Arrange
 	volumePluginMgr, _ := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
@@ -138,7 +139,7 @@ func Test_MarkVolumeAsAttached_Positive_ExistingVolume(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
 	devicePath := "fake/device/path"
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
@@ -187,7 +188,7 @@ func Test_MarkVolumeAsAttached_Positive_ExistingVolume(t *testing.T) {
 func Test_AddPodToVolume_Positive_ExistingVolumeNewNode(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	devicePath := "fake/device/path"
 
 	pod := &v1.Pod{
@@ -260,7 +261,7 @@ func Test_AddPodToVolume_Positive_ExistingVolumeNewNode(t *testing.T) {
 func Test_AddPodToVolume_Positive_ExistingVolumeExistingNode(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	devicePath := "fake/device/path"
 
 	pod := &v1.Pod{
@@ -340,7 +341,7 @@ func Test_AddPodToVolume_Positive_ExistingVolumeExistingNode(t *testing.T) {
 func Test_AddTwoPodsToVolume_Positive(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	devicePath := "fake/device/path"
 
 	pod1 := &v1.Pod{
@@ -574,7 +575,7 @@ func TestActualStateOfWorld_FoundDuringReconstruction(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-			asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+			asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 			devicePath := "fake/device/path"
 
 			pod1 := getTestPod("pod1", "pod1uid", "volume-name-1", "fake-device1")
@@ -639,7 +640,7 @@ func Test_MarkVolumeAsDetached_Negative_PodInVolume(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestVolumePluginMgr(t)
 	devicePath := "fake/device/path"
-	asw := NewActualStateOfWorld("mynode", volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode", volumePluginMgr, nil)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
@@ -701,6 +702,49 @@ func Test_MarkVolumeAsDetached_Negative_PodInVolume(t *testing.T) {
 	verifyPodExistsInVolumeAsw(t, podName, generatedVolumeName, "fake/device/path" /* expectedDevicePath */, asw)
 }
 
+// Calls MarkVolumeAsAttached() once to add volume
+// Calls MarkVolumeAttachability() to set the volume as non-attachable
+// Verifies volume still exists in ASW via GetAttachedVolume()
+// Verifies PluginIsAttachable is updated to false
+func TestMarkVolumeAttachability(t *testing.T) {
+	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
+	asw := NewActualStateOfWorld("mynode", volumePluginMgr, nil)
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "pod1", UID: "pod1uid"},
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{{
+				Name: "volume-name",
+				VolumeSource: v1.VolumeSource{
+					GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
+						PDName: "fake-device1",
+					},
+				},
+			}},
+		},
+	}
+	volumeSpec := &volume.Spec{Volume: &pod.Spec.Volumes[0]}
+	volumeName, err := util.GetUniqueVolumeNameFromSpec(plugin, volumeSpec)
+	if err != nil {
+		t.Fatalf("GetUniqueVolumeNameFromSpec failed: %v", err)
+	}
+
+	logger, _ := ktesting.NewTestContext(t)
+	if err := asw.MarkVolumeAsAttached(logger, volumeName, volumeSpec, "", "fake/device/path"); err != nil {
+		t.Fatalf("MarkVolumeAsAttached failed: %v", err)
+	}
+
+	asw.MarkVolumeAttachability(volumeName, false)
+
+	attachedVolume, found := asw.GetAttachedVolume(volumeName)
+	if !found {
+		t.Fatalf("Expected volume %q to remain in ASW", volumeName)
+	}
+	if attachedVolume.PluginIsAttachable {
+		t.Fatalf("Expected volume %q to be non-attachable", volumeName)
+	}
+}
+
 func getTestPod(podName, podUID, outerVolumeName, pdName string) *v1.Pod {
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -728,7 +772,7 @@ func getTestPod(podName, podUID, outerVolumeName, pdName string) *v1.Pod {
 func Test_AddPodToVolume_Negative_VolumeDoesntExist(t *testing.T) {
 	// Arrange
 	volumePluginMgr, _ := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -821,7 +865,7 @@ func Test_AddPodToVolume_Negative_VolumeDoesntExist(t *testing.T) {
 func Test_MarkDeviceAsMounted_Positive_NewVolume(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
@@ -873,7 +917,7 @@ func Test_AddPodToVolume_Positive_SELinux(t *testing.T) {
 	// Arrange
 	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.SELinuxMountReadWriteOncePod, true)
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	devicePath := "fake/device/path"
 
 	pod := &v1.Pod{
@@ -950,7 +994,7 @@ func Test_MarkDeviceAsMounted_Positive_SELinux(t *testing.T) {
 	// Arrange
 	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.SELinuxMountReadWriteOncePod, true)
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
@@ -998,7 +1042,7 @@ func Test_MarkDeviceAsMounted_Positive_SELinux(t *testing.T) {
 func TestUncertainVolumeMounts(t *testing.T) {
 	// Arrange
 	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
-	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr)
+	asw := NewActualStateOfWorld("mynode" /* nodeName */, volumePluginMgr, nil)
 	devicePath := "fake/device/path"
 
 	pod1 := &v1.Pod{
@@ -1371,4 +1415,124 @@ func verifyVolumeAttachability(t *testing.T, volumeToCheck v1.UniqueVolumeName, 
 			t.Errorf("ASW reports %s as attachable, when %s was expected", volumeToCheck, expected)
 		}
 	}
+}
+
+func TestActualStateOfWorld_ActuatedVolumes(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.DynamicNodeLocalEphemeralVolumes, true)
+	logger, _ := ktesting.NewTestContext(t)
+	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
+	actuatedState := state.NewStateMemory(logger, nil, nil)
+	asw := NewActualStateOfWorld("mynode", volumePluginMgr, actuatedState)
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pod1",
+			UID:  "pod1uid",
+		},
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
+				{
+					Name: "cm-vol",
+					VolumeSource: v1.VolumeSource{
+						ConfigMap: &v1.ConfigMapVolumeSource{
+							LocalObjectReference: v1.LocalObjectReference{Name: "my-cm"},
+						},
+					},
+				},
+			},
+		},
+	}
+	volumeSpec := &volume.Spec{Volume: &pod.Spec.Volumes[0]}
+	generatedVolumeName, err := util.GetUniqueVolumeNameFromSpec(plugin, volumeSpec)
+	require.NoError(t, err)
+	require.NoError(t, asw.MarkVolumeAsAttached(logger, emptyVolumeName, volumeSpec, "", "fake/device/path"))
+
+	podName := util.GetUniquePodName(pod)
+	mounter, err := plugin.NewMounter(volumeSpec, pod)
+	require.NoError(t, err)
+
+	// Uncertain mount should not record volume in actuatedState.
+	markOpts := operationexecutor.MarkVolumeOpts{
+		PodName:          podName,
+		PodUID:           pod.UID,
+		VolumeName:       generatedVolumeName,
+		Mounter:          mounter,
+		VolumeSpec:       volumeSpec,
+		VolumeMountState: operationexecutor.VolumeMountUncertain,
+	}
+	require.NoError(t, asw.MarkVolumeMountAsUncertain(markOpts))
+	_, ok := actuatedState.GetPodVolumes(pod.UID)
+	require.False(t, ok)
+
+	// Mounted volume should be recorded in actuatedState.
+	markOpts.VolumeMountState = operationexecutor.VolumeMounted
+	require.NoError(t, asw.MarkVolumeAsMounted(markOpts))
+	actuatedVols, ok := actuatedState.GetPodVolumes(pod.UID)
+	require.True(t, ok)
+	require.Equal(t, []v1.Volume{pod.Spec.Volumes[0]}, actuatedVols)
+
+	// Unmounting volume should remove it from actuatedState.
+	require.NoError(t, asw.MarkVolumeAsUnmounted(podName, generatedVolumeName))
+	_, ok = actuatedState.GetPodVolumes(pod.UID)
+	require.False(t, ok)
+}
+
+func TestActualStateOfWorld_ActuatedVolumes_MemoryBackedOnlyWhenDynamicVolumesDisabled(t *testing.T) {
+	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.DynamicNodeLocalEphemeralVolumes, false)
+	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.InPlacePodVerticalScalingMemoryBackedVolumes, true)
+	logger, _ := ktesting.NewTestContext(t)
+	volumePluginMgr, plugin := volumetesting.GetTestKubeletVolumePluginMgr(t)
+	actuatedState := state.NewStateMemory(logger, nil, nil)
+	asw := NewActualStateOfWorld("mynode", volumePluginMgr, actuatedState)
+
+	limit := resource.MustParse("64Mi")
+	cmVol := v1.Volume{
+		Name: "cm-vol",
+		VolumeSource: v1.VolumeSource{
+			ConfigMap: &v1.ConfigMapVolumeSource{
+				LocalObjectReference: v1.LocalObjectReference{Name: "my-cm"},
+			},
+		},
+	}
+	memVol := v1.Volume{
+		Name: "mem-vol",
+		VolumeSource: v1.VolumeSource{
+			EmptyDir: &v1.EmptyDirVolumeSource{
+				Medium:    v1.StorageMediumMemory,
+				SizeLimit: &limit,
+			},
+		},
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pod1",
+			UID:  "pod1uid",
+		},
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{cmVol, memVol},
+		},
+	}
+	podName := util.GetUniquePodName(pod)
+
+	for i := range pod.Spec.Volumes {
+		volSpec := &volume.Spec{Volume: &pod.Spec.Volumes[i]}
+		genName, err := util.GetUniqueVolumeNameFromSpec(plugin, volSpec)
+		require.NoError(t, err)
+		require.NoError(t, asw.MarkVolumeAsAttached(logger, emptyVolumeName, volSpec, "", "fake/device/path"))
+		mounter, err := plugin.NewMounter(volSpec, pod)
+		require.NoError(t, err)
+		require.NoError(t, asw.MarkVolumeAsMounted(operationexecutor.MarkVolumeOpts{
+			PodName:          podName,
+			PodUID:           pod.UID,
+			VolumeName:       genName,
+			Mounter:          mounter,
+			VolumeSpec:       volSpec,
+			VolumeMountState: operationexecutor.VolumeMounted,
+		}))
+	}
+
+	// Only the memory-backed emptyDir volume should be recorded when DynamicNodeLocalEphemeralVolumes is disabled.
+	actuatedVols, ok := actuatedState.GetPodVolumes(pod.UID)
+	require.True(t, ok)
+	require.Equal(t, []v1.Volume{memVol}, actuatedVols)
 }

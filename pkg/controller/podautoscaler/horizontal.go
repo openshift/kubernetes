@@ -49,13 +49,13 @@ import (
 	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	consistencyutil "k8s.io/client-go/util/consistency"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/controller"
 	metricsclient "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/monitor"
-	consistencyutil "k8s.io/kubernetes/pkg/controller/util/consistency"
 	"k8s.io/kubernetes/pkg/controller/util/selectors"
 	"k8s.io/kubernetes/pkg/features"
 )
@@ -150,6 +150,7 @@ func NewHorizontalController(
 	cpuInitializationPeriod,
 	delayOfInitialReadinessStatus time.Duration,
 ) *HorizontalController {
+	logger := klog.FromContext(ctx)
 	broadcaster := record.NewBroadcaster(record.WithContext(ctx))
 	broadcaster.StartStructuredLogging(3)
 	broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: evtNamespacer.Events("")})
@@ -174,7 +175,8 @@ func NewHorizontalController(
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			NewDefaultHPARateLimiter(resyncPeriod),
 			workqueue.TypedRateLimitingQueueConfig[string]{
-				Name: "horizontalpodautoscaler",
+				Logger: &logger,
+				Name:   "horizontalpodautoscaler",
 			},
 		),
 		mapper:              mapper,
@@ -193,13 +195,13 @@ func NewHorizontalController(
 		hpaController.selectorTracker = newBiMultimapSelectorTracker()
 	}
 
-	hpaInformer.Informer().AddEventHandlerWithResyncPeriod(
+	_, _ = hpaInformer.Informer().AddEventHandlerWithOptions(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    hpaController.enqueueHPA,
 			UpdateFunc: hpaController.updateHPA,
 			DeleteFunc: hpaController.deleteHPA,
 		},
-		resyncPeriod,
+		cache.HandlerOptions{Logger: &logger, ResyncPeriod: &resyncPeriod},
 	)
 	hpaController.hpaLister = hpaInformer.Lister()
 	hpaController.hpaListerSynced = hpaInformer.Informer().HasSynced
@@ -222,7 +224,7 @@ func NewHorizontalController(
 
 // Run begins watching and syncing.
 func (a *HorizontalController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
+	defer utilruntime.HandleCrashWithContext(ctx)
 
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting HPA controller")
@@ -622,7 +624,7 @@ func (a *HorizontalController) computeStatusForObjectMetric(specReplicas, status
 		}
 		metricStatus.Object.Current.AverageValue = resource.NewMilliQuantity(usageProposal, resource.DecimalSI)
 		*status = metricStatus
-		return replicaCountProposal, timestampProposal, fmt.Sprintf("external metric %s(%+v)", metricSpec.Object.Metric.Name, metricSpec.Object.Metric.Selector), autoscalingv2.HorizontalPodAutoscalerCondition{}, nil
+		return replicaCountProposal, timestampProposal, fmt.Sprintf("%s metric %s", metricSpec.Object.DescribedObject.Kind, metricSpec.Object.Metric.Name), autoscalingv2.HorizontalPodAutoscalerCondition{}, nil
 	}
 	errMsg := "invalid object metric source: neither a value target nor an average value target was set"
 	err = errors.New(errMsg)
@@ -1452,7 +1454,7 @@ func calculateScaleUpLimitWithScalingRules(currentReplicas int32, scaleUpEvents,
 			proposed = periodStartReplicas + policy.Value
 		} else if policy.Type == autoscalingv2.PercentScalingPolicy {
 			// the proposal has to be rounded up because the proposed change might not increase the replica count causing the target to never scale up
-			proposed = int32(math.Ceil(float64(periodStartReplicas) * (1 + float64(policy.Value)/100)))
+			proposed = ceilToInt32(float64(periodStartReplicas) * (1 + float64(policy.Value)/100))
 		}
 		result = selectPolicyFn(result, proposed)
 	}

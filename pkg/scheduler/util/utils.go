@@ -20,12 +20,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1"
-	schedulingv1alpha3 "k8s.io/api/scheduling/v1alpha3"
 	schedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +41,8 @@ import (
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 )
 
+var maxPodStartTime = metav1.NewTime(time.Unix(0, math.MaxInt64).UTC())
+
 // GetPodFullName returns a name that uniquely identifies a pod.
 func GetPodFullName(pod *v1.Pod) string {
 	// Use underscore as the delimiter because it is not allowed in pod name
@@ -48,14 +50,16 @@ func GetPodFullName(pod *v1.Pod) string {
 	return pod.Name + "_" + pod.Namespace
 }
 
-// GetPodStartTime returns start time of the given pod or current timestamp
+// GetPodStartTime returns start time of the given pod or a stable maximum timestamp
 // if it hasn't started yet.
 func GetPodStartTime(pod *v1.Pod) *metav1.Time {
 	if pod.Status.StartTime != nil {
 		return pod.Status.StartTime
 	}
 	// Assumed pods and bound pods that haven't started don't have a StartTime yet.
-	return &metav1.Time{Time: time.Now()}
+	// Treat them as newer than started pods without generating a timestamp during
+	// sorting, which would break sort's strict weak ordering.
+	return &maxPodStartTime
 }
 
 // GetEarliestPodStartTime returns the earliest start time of all pods that
@@ -192,6 +196,45 @@ func PatchPodGroupStatus(ctx context.Context, cs kubernetes.Interface, name stri
 	return retry.OnError(retry.DefaultBackoff, RetriableWithConflict, patchFn)
 }
 
+// PatchCompositePodGroupStatus calculates the delta bytes change from <old.Status> to <newStatus>,
+// and then submits a request to API server to patch the CompositePodGroup status changes.
+func PatchCompositePodGroupStatus(ctx context.Context, cs kubernetes.Interface, name string,
+	namespace string, oldStatus *schedulingv1beta1.CompositePodGroupStatus,
+	newStatus *schedulingv1beta1.CompositePodGroupStatus) error {
+	if newStatus == nil {
+		return nil
+	}
+
+	if oldStatus == nil {
+		oldStatus = &schedulingv1beta1.CompositePodGroupStatus{}
+	}
+
+	oldData, err := json.Marshal(schedulingv1beta1.CompositePodGroup{Status: *oldStatus})
+	if err != nil {
+		return err
+	}
+
+	newData, err := json.Marshal(schedulingv1beta1.CompositePodGroup{Status: *newStatus})
+	if err != nil {
+		return err
+	}
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, &schedulingv1beta1.CompositePodGroup{})
+	if err != nil {
+		return fmt.Errorf("failed to create merge patch for composite podgroup %q/%q: %w", namespace, name, err)
+	}
+
+	if string(patchBytes) == "{}" {
+		return nil
+	}
+
+	patchFn := func() error {
+		_, err := cs.SchedulingV1beta1().CompositePodGroups(namespace).Patch(ctx, name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{}, "status")
+		return err
+	}
+
+	return retry.OnError(retry.DefaultBackoff, RetriableWithConflict, patchFn)
+}
+
 // DeletePod deletes the given <pod> from API server
 func DeletePod(ctx context.Context, cs kubernetes.Interface, pod *v1.Pod) error {
 	return cs.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
@@ -273,25 +316,11 @@ func GetHostPorts(pod *v1.Pod) []v1.ContainerPort {
 	return ports
 }
 
-// PodGroupPriority returns priority of a given pod group.
-func PodGroupPriority(pg *schedulingv1beta1.PodGroup) int32 {
-	if pg.Spec.Priority != nil {
-		return *pg.Spec.Priority
+// PodPreemptionPolicy returns the PreemptionPolicy set in the pod, or the default policy
+// (PreemptLowerPriority) if not set.
+func PodPreemptionPolicy(pod *v1.Pod) v1.PreemptionPolicy {
+	if pod != nil && pod.Spec.PreemptionPolicy != nil {
+		return *pod.Spec.PreemptionPolicy
 	}
-	// When priority of a pod group is nil, it means it was created at a time
-	// that there was no global default priority class and the priority class
-	// name of the pod group was empty. So, we resolve to the static default priority.
-	return 0
-}
-
-// CompositePodGroupPriority returns priority of a given composite pod group.
-func CompositePodGroupPriority(cpg *schedulingv1alpha3.CompositePodGroup) int32 {
-	if cpg.Spec.Priority != nil {
-		return *cpg.Spec.Priority
-	}
-	// When priority of a composite pod group is nil, it means it was created
-	// at a time that there was no global default priority class and the priority
-	// class name of the composite pod group was empty. So, we resolve to the
-	// static default priority.
-	return 0
+	return v1.PreemptLowerPriority
 }

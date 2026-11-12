@@ -26,7 +26,6 @@ import (
 	fmt "fmt"
 
 	resourcev1alpha3 "k8s.io/api/resource/v1alpha3"
-	equality "k8s.io/apimachinery/pkg/api/equality"
 	operation "k8s.io/apimachinery/pkg/api/operation"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	safe "k8s.io/apimachinery/pkg/api/safe"
@@ -150,7 +149,7 @@ func Validate_DeviceTaintRule(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -172,7 +171,7 @@ func Validate_DeviceTaintRule(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -194,7 +193,7 @@ func Validate_DeviceTaintRule(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -227,7 +226,7 @@ func Validate_DeviceTaintRuleSpec(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -258,13 +257,13 @@ func Validate_DeviceTaintRuleStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkAlpha().MarkShortCircuit(); len(e) != 0 {
+			if e := validate.OptionalSlice(ctx, op, fldPath, obj, oldObj).MarkBeta().MarkShortCircuit(); len(e) != 0 {
 				earlyReturn = true
 			}
 			if earlyReturn {
@@ -272,7 +271,7 @@ func Validate_DeviceTaintRuleStatus(
 			}
 			// lists with map semantics require unique keys
 			if e := validate.ValSliceUnique(ctx, op, fldPath, obj, oldObj,
-				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkAlpha(); len(e) != 0 {
+				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkBeta(); len(e) != 0 {
 				errs = append(errs, e...)
 			}
 			// iterate the list and call the type's validation function
@@ -749,7 +748,7 @@ func Validate_PoolStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -795,7 +794,7 @@ func Validate_PoolStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -836,7 +835,7 @@ func Validate_ResourcePoolStatusRequest(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -858,7 +857,7 @@ func Validate_ResourcePoolStatusRequest(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -889,7 +888,7 @@ func Validate_ResourcePoolStatusRequest(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1033,7 +1032,10 @@ func Validate_ResourcePoolStatusRequestSpec(
 			}
 			// call field-attached validations
 			earlyReturn := false
-			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "DRAPartitionableDevicesType", false, validate.ForbiddenPointer).MarkShortCircuit(); len(e) != 0 {
+			if e := validate.IfOption(ctx, op, fldPath, obj, oldObj, "DRAPartitionableDevicesType", false,
+				func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *string) field.ErrorList {
+					return validate.ForbiddenPointer(ctx, op, fldPath, obj, oldObj)
+				}).MarkShortCircuit(); len(e) != 0 {
 				errs = append(errs, e...)
 				earlyReturn = true
 			}
@@ -1106,7 +1108,7 @@ func Validate_ResourcePoolStatusRequestStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1142,7 +1144,7 @@ func Validate_ResourcePoolStatusRequestStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1160,7 +1162,7 @@ func Validate_ResourcePoolStatusRequestStatus(
 			}
 			// lists with map semantics require unique keys
 			if e := validate.ValSliceUnique(ctx, op, fldPath, obj, oldObj,
-				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkAlpha(); len(e) != 0 {
+				func(a *v1.Condition, b *v1.Condition) bool { return a.Type == b.Type }).MarkBeta(); len(e) != 0 {
 				errs = append(errs, e...)
 			}
 			// iterate the list and call the type's validation function
@@ -1222,7 +1224,7 @@ func Validate_ShareableCapacityStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1251,7 +1253,7 @@ func Validate_ShareableCapacityStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1280,7 +1282,7 @@ func Validate_ShareableCapacityStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -1382,7 +1384,7 @@ func Validate_ShareableSummaryStatus(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}

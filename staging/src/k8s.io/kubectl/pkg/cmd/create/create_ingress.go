@@ -56,7 +56,7 @@ var (
 
 	// The validation Regex is the concatenation of hostPathSvc validation regex
 	// and the TLS validation regex
-	ruleRegex = regexHostPathSvc + regexTLS
+	ruleRegex = regexHostPathSvc + regexTLS + "$"
 
 	ingressLong = templates.LongDesc(i18n.T(`
 	Create an ingress with the specified name.`))
@@ -226,13 +226,17 @@ func (o *CreateIngressOptions) Validate() error {
 	}
 
 	for _, annotation := range o.Annotations {
-		if an := strings.SplitN(annotation, "=", 2); len(an) != 2 {
+		an := strings.SplitN(annotation, "=", 2)
+		if len(an) != 2 || an[0] == "" || an[1] == "" {
 			return fmt.Errorf("annotation %s is invalid and should be in format key=[value]", annotation)
 		}
 	}
 
-	if len(o.DefaultBackend) > 0 && len(strings.Split(o.DefaultBackend, ":")) != 2 {
-		return fmt.Errorf("default-backend should be in format servicename:serviceport")
+	if len(o.DefaultBackend) > 0 {
+		backend := strings.Split(o.DefaultBackend, ":")
+		if len(backend) != 2 || backend[0] == "" || backend[1] == "" {
+			return fmt.Errorf("default-backend should be in format servicename:serviceport")
+		}
 	}
 
 	return nil

@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
+	apiextensionsscheme "k8s.io/apiextensions-api/pkg/client/clientset/clientset/scheme"
 	pluginvalidatingadmissionpolicy "k8s.io/apiserver/pkg/admission/plugin/policy/validating"
 	"k8s.io/apiserver/pkg/cel/openapi/resolver"
 	k8sscheme "k8s.io/client-go/kubernetes/scheme"
@@ -58,6 +58,7 @@ func newValidatingAdmissionPolicyStatusController(ctx context.Context, controlle
 	}
 
 	c, err := validatingadmissionpolicystatus.NewController(
+		ctx,
 		controllerContext.InformerFactory.Admissionregistration().V1().ValidatingAdmissionPolicies(),
 		client.AdmissionregistrationV1().ValidatingAdmissionPolicies(),
 		typeChecker,

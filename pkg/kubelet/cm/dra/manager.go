@@ -17,6 +17,7 @@ limitations under the License.
 package dra
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -789,8 +790,8 @@ func (m *Manager) unprepareResources(ctx context.Context, podUID types.UID, name
 // PodMightNeedToUnprepareResources returns true if the pod might need to
 // unprepare resources
 func (m *Manager) PodMightNeedToUnprepareResources(uid types.UID) bool {
-	m.cache.Lock()
-	defer m.cache.Unlock()
+	m.cache.RLock()
+	defer m.cache.RUnlock()
 	return m.cache.hasPodReference(uid)
 }
 
@@ -1006,6 +1007,14 @@ func (m *Manager) UpdateAllocatedResourcesStatus(logger klog.Logger, pod *v1.Pod
 				finalStatuses = append(finalStatuses, *rs)
 			}
 		}
+		for i := range finalStatuses {
+			slices.SortFunc(finalStatuses[i].Resources, func(a, b v1.ResourceHealth) int {
+				return cmp.Compare(a.ResourceID, b.ResourceID)
+			})
+		}
+		slices.SortFunc(finalStatuses, func(a, b v1.ResourceStatus) int {
+			return cmp.Compare(a.Name, b.Name)
+		})
 		containerStatus.AllocatedResourcesStatus = finalStatuses
 	}
 }

@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Its types reference ../types; validators must call the canonical (registered) copy.
+// Its types reference ../types; neither copy is nearer, so validators must call
+// the canonical (registered) one.  Compare ../othertree/consumer.
 // +k8s:validation-gen=TypesWithField=TypeMeta
 // +k8s:validation-gen-scheme-registry=k8s.io/code-generator/cmd/validation-gen/testscheme.Scheme
 

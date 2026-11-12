@@ -25,7 +25,6 @@ import (
 	context "context"
 	fmt "fmt"
 
-	equality "k8s.io/apimachinery/pkg/api/equality"
 	operation "k8s.io/apimachinery/pkg/api/operation"
 	safe "k8s.io/apimachinery/pkg/api/safe"
 	validate "k8s.io/apimachinery/pkg/api/validate"
@@ -71,7 +70,7 @@ func Validate_Struct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -92,7 +91,7 @@ func Validate_Struct(
 					return // do not proceed
 				}
 			}()
-			func() { // cohort = "{"key1": "b"}"
+			func() { // cohort = "{"key1": "b"}.stringField"
 				earlyReturn := false
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *Item) bool { return item.Key1 == "b" }, validate.DirectEqual,

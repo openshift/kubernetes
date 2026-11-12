@@ -30,16 +30,24 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	resourcehelper "k8s.io/component-helpers/resource"
 	"k8s.io/component-helpers/scheduling/corev1/nodeaffinity"
+	draapi "k8s.io/dynamic-resource-allocation/api"
 	"k8s.io/dynamic-resource-allocation/resourceclaim"
 	"k8s.io/klog/v2"
 	fwk "k8s.io/kube-scheduler/framework"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/names"
 	schedutil "k8s.io/kubernetes/pkg/scheduler/util"
 )
 
-// ExtractPodNodeAllocatableResourceClaimStatus returns the pod nodeAllocatable claim status stored in state
+// ExtractPodNodeAllocatableResourceClaimStatus returns a copy of the node-allocatable
+// claim status stored in state for the given node.
+//
+// A copy is required because assume() assigns the result onto the cached pod.
+// Sharing the cycle-state slice would make later in-place updates (replacing the
+// extended-resource placeholder claim name) silently mutate the scheduler cache
+// and would make the DeepEqual check in patchNodeAllocatableResourceClaimStatus a no-op.
 func ExtractPodNodeAllocatableResourceClaimStatus(logger klog.Logger, state fwk.CycleState, nodeName string) []v1.NodeAllocatableResourceClaimStatus {
 	s, err := state.Read(names.DynamicResources)
 	if err != nil {
@@ -54,10 +62,21 @@ func ExtractPodNodeAllocatableResourceClaimStatus(logger klog.Logger, state fwk.
 	}
 
 	if nodeAlloc, exists := draState.nodeAllocations[nodeName]; exists {
-		return nodeAlloc.nodeAllocatableResourceClaimStatuses
+		return cloneNodeAllocatableResourceClaimStatuses(nodeAlloc.nodeAllocatableResourceClaimStatuses)
 	}
 
 	return nil
+}
+
+func cloneNodeAllocatableResourceClaimStatuses(in []v1.NodeAllocatableResourceClaimStatus) []v1.NodeAllocatableResourceClaimStatus {
+	if in == nil {
+		return nil
+	}
+	out := make([]v1.NodeAllocatableResourceClaimStatus, len(in))
+	for i := range in {
+		in[i].DeepCopyInto(&out[i])
+	}
+	return out
 }
 
 // calculateAndCheckNodeAllocatableResources calculates the total node-allocatable resources (e.g., CPU, memory)
@@ -113,7 +132,7 @@ func (pl *DynamicResources) calculateAndCheckNodeAllocatableResources(ctx contex
 	return nodeAllocatableClaimStatus, nil
 }
 
-func getDeviceFromManager(draManager fwk.SharedDRAManager, result *resourceapi.DeviceRequestAllocationResult) (*resourceapi.Device, error) {
+func getDeviceFromManager(draManager fwk.SharedDRAManager, result *resourceapi.DeviceRequestAllocationResult) (*draapi.Device, error) {
 	slices, err := draManager.ResourceSlices().ListWithDeviceTaintRules()
 	if err != nil {
 		return nil, fmt.Errorf("listing resource slices: %w", err)
@@ -121,7 +140,7 @@ func getDeviceFromManager(draManager fwk.SharedDRAManager, result *resourceapi.D
 	return getDeviceFromSlices(slices, result, nil)
 }
 
-func filterSlicesForNode(draManager fwk.SharedDRAManager, node *v1.Node) ([]*resourceapi.ResourceSlice, error) {
+func filterSlicesForNode(draManager fwk.SharedDRAManager, node *v1.Node) ([]*draapi.ResourceSlice, error) {
 	slices, err := draManager.ResourceSlices().ListWithDeviceTaintRules()
 	if err != nil {
 		return nil, fmt.Errorf("listing resource slices: %w", err)
@@ -130,11 +149,11 @@ func filterSlicesForNode(draManager fwk.SharedDRAManager, node *v1.Node) ([]*res
 	if node == nil {
 		return slices, nil
 	}
-	var nodeSlices []*resourceapi.ResourceSlice
+	var nodeSlices []*draapi.ResourceSlice
 	for _, slice := range slices {
 		if slice.Spec.NodeName != nil && *slice.Spec.NodeName == node.Name {
 			nodeSlices = append(nodeSlices, slice)
-		} else if slice.Spec.AllNodes != nil && *slice.Spec.AllNodes {
+		} else if slice.Spec.AllNodes {
 			nodeSlices = append(nodeSlices, slice)
 		} else if slice.Spec.NodeSelector != nil {
 			selector, err := nodeaffinity.NewNodeSelector(slice.Spec.NodeSelector)
@@ -148,7 +167,7 @@ func filterSlicesForNode(draManager fwk.SharedDRAManager, node *v1.Node) ([]*res
 	return nodeSlices, nil
 }
 
-func deviceMatchesNode(device *resourceapi.Device, node *v1.Node) bool {
+func deviceMatchesNode(device *draapi.Device, node *v1.Node) bool {
 	if node == nil {
 		return true
 	}
@@ -167,11 +186,14 @@ func deviceMatchesNode(device *resourceapi.Device, node *v1.Node) bool {
 	return false
 }
 
-func getDeviceFromSlices(slices []*resourceapi.ResourceSlice, result *resourceapi.DeviceRequestAllocationResult, node *v1.Node) (*resourceapi.Device, error) {
+func getDeviceFromSlices(slices []*draapi.ResourceSlice, result *resourceapi.DeviceRequestAllocationResult, node *v1.Node) (*draapi.Device, error) {
+	// We could convert to a unique strings here and then avoid the string
+	// comparisons below, but it's unclear whether that would be a performance benefit:
+	// making strings unique is not cheap.
 	for _, slice := range slices {
-		if slice.Spec.Driver == result.Driver && slice.Spec.Pool.Name == result.Pool {
+		if slice.Spec.Driver.String() == result.Driver && slice.Spec.Pool.Name.String() == result.Pool {
 			for i := range slice.Spec.Devices {
-				if slice.Spec.Devices[i].Name == result.Device {
+				if slice.Spec.Devices[i].Name.String() == result.Device {
 					device := &slice.Spec.Devices[i]
 					if slice.Spec.PerDeviceNodeSelection != nil && *slice.Spec.PerDeviceNodeSelection {
 						if !deviceMatchesNode(device, node) {
@@ -199,7 +221,10 @@ func addDeviceMapping(
 		if result.ConsumedCapacity == nil {
 			return fmt.Errorf("claim %s/%s, device %s: ConsumedCapacity is nil, but Capacity key '%s' is set in NodeAllocatableResources for resource %s", key.Namespace, key.Name, result.Device, capacityKey, resourceName)
 		}
-		if consumed, exists := result.ConsumedCapacity[capacityKey]; exists {
+		if consumed, exists := draapi.LookupByQualifiedName(result.ConsumedCapacity, capacityKey, result.Driver); exists {
+			if consumed.Sign() < 0 {
+				return fmt.Errorf("claim %s/%s, device %s: ConsumedCapacity for capacity key '%s' must not be negative, got %s", key.Namespace, key.Name, result.Device, capacityKey, consumed.String())
+			}
 			// If !exists - the capacityKey is not in ConsumedCapacity, this mapping is not relevant for this allocation
 			consumedQuantity := consumed.DeepCopy()
 			quantityOne := resource.MustParse("1")
@@ -208,6 +233,9 @@ func addDeviceMapping(
 				qDec := consumedQuantity.AsDec()
 				qDec.Mul(qDec, multiplier.AsDec())
 				consumedQuantity = *resource.NewDecimalQuantity(*qDec, consumedQuantity.Format)
+			}
+			if consumedQuantity.Sign() < 0 {
+				return fmt.Errorf("claim %s/%s, device %s: computed node-allocatable footprint for resource %s must not be negative, got %s", key.Namespace, key.Name, result.Device, resourceName, consumedQuantity.String())
 			}
 			current := totalResources[resourceName]
 			current.Add(consumedQuantity)
@@ -263,11 +291,10 @@ func addDeviceOverhead(
 
 // buildNodeAllocatableDRAInfo processes the node allocatable resource allocations for a pod.
 // It translates the allocated devices and quantities from DRA claims into a list of v1.NodeAllocatableResourceClaimStatus.
-func (pl *DynamicResources) buildNodeAllocatableDRAInfo(pod *v1.Pod, nodeAllocatableClaimAllocations map[v1.ObjectReference]*resourceapi.AllocationResult, claimNametoUID map[string]types.UID, slices []*resourceapi.ResourceSlice, node *v1.Node) ([]v1.NodeAllocatableResourceClaimStatus, error) {
+func (pl *DynamicResources) buildNodeAllocatableDRAInfo(pod *v1.Pod, nodeAllocatableClaimAllocations map[v1.ObjectReference]*resourceapi.AllocationResult, claimNametoUID map[string]types.UID, slices []*draapi.ResourceSlice, node *v1.Node) ([]v1.NodeAllocatableResourceClaimStatus, error) {
 	if len(nodeAllocatableClaimAllocations) == 0 {
 		return []v1.NodeAllocatableResourceClaimStatus{}, nil
 	}
-
 	claimToStatus := make(map[types.UID]v1.NodeAllocatableResourceClaimStatus)
 
 	for key, alloc := range nodeAllocatableClaimAllocations {
@@ -324,14 +351,12 @@ func (pl *DynamicResources) buildNodeAllocatableDRAInfo(pod *v1.Pod, nodeAllocat
 		}
 	}
 
-	for _, containers := range [][]v1.Container{pod.Spec.InitContainers, pod.Spec.Containers} {
-		for _, container := range containers {
-			for _, podClaim := range container.Resources.Claims {
-				if claimUID, ok := claimNametoUID[podClaim.Name]; ok {
-					if nodeAllocatableClaimStatus, ok := claimToStatus[claimUID]; ok {
-						nodeAllocatableClaimStatus.Containers = append(nodeAllocatableClaimStatus.Containers, container.Name)
-						claimToStatus[claimUID] = nodeAllocatableClaimStatus
-					}
+	for container := range podutil.ContainerIter(&pod.Spec, podutil.InitContainers|podutil.Containers) {
+		for _, podClaim := range container.Resources.Claims {
+			if claimUID, ok := claimNametoUID[podClaim.Name]; ok {
+				if nodeAllocatableClaimStatus, ok := claimToStatus[claimUID]; ok {
+					nodeAllocatableClaimStatus.Containers = append(nodeAllocatableClaimStatus.Containers, container.Name)
+					claimToStatus[claimUID] = nodeAllocatableClaimStatus
 				}
 			}
 		}
@@ -472,7 +497,7 @@ func (pl *DynamicResources) validatePodLevelResourcesCoverDRA(pod *v1.Pod) *fwk.
 }
 
 // getPodNodeAllocatableResourceFootprint determines the total nodeAllocatable resource demand of a pod.
-func (pl *DynamicResources) getPodNodeAllocatableResourceFootprint(logger klog.Logger, pod *v1.Pod, allocations map[types.UID]*resourceapi.AllocationResult, nodeAllocatableClaims []*resourceapi.ResourceClaim, slices []*resourceapi.ResourceSlice, node *v1.Node) (*framework.Resource, []v1.NodeAllocatableResourceClaimStatus, *fwk.Status) {
+func (pl *DynamicResources) getPodNodeAllocatableResourceFootprint(logger klog.Logger, pod *v1.Pod, allocations map[types.UID]*resourceapi.AllocationResult, nodeAllocatableClaims []*resourceapi.ResourceClaim, slices []*draapi.ResourceSlice, node *v1.Node) (*framework.Resource, []v1.NodeAllocatableResourceClaimStatus, *fwk.Status) {
 	nodeAllocatableDRAAllocations := make(map[v1.ObjectReference]*resourceapi.AllocationResult)
 	// Add pre-allocated claims
 	for _, claim := range nodeAllocatableClaims {
@@ -607,7 +632,27 @@ func (pl *DynamicResources) nodeFitsResources(nodeInfo fwk.NodeInfo, podRequest 
 	return nil
 }
 
-func (pl *DynamicResources) patchNodeAllocatableResourceClaimStatus(ctx context.Context, pod *v1.Pod, nodeAllocatableClaimStatus []v1.NodeAllocatableResourceClaimStatus) *fwk.Status {
+// replaceSpecialClaimNameInStatus rewrites the in-memory placeholder claim name
+// specialClaimInMemName ("<extended-resources>") in the given node-allocatable
+// statuses to the actual name of the extended-resource ResourceClaim created in
+// the API server during PreBind.
+//
+// It is a no-op when there is no extended-resource claim (extendedClaim == nil)
+// or the claim has not yet been created in the API server (its name is still a
+// special claim name). Statuses that do not carry the placeholder name are left
+// untouched. The statuses slice is mutated in place.
+func replaceSpecialClaimNameInStatus(extendedClaim *resourceapi.ResourceClaim, statuses []v1.NodeAllocatableResourceClaimStatus) {
+	if extendedClaim == nil || isSpecialClaimName(extendedClaim.Name) {
+		return
+	}
+	for i := range statuses {
+		if statuses[i].ResourceClaimName == specialClaimInMemName {
+			statuses[i].ResourceClaimName = extendedClaim.Name
+		}
+	}
+}
+
+func (pl *DynamicResources) patchNodeAllocatableResourceClaimStatus(ctx context.Context, pod *v1.Pod, nodeAllocatableClaimStatus []v1.NodeAllocatableResourceClaimStatus, extendedClaim *resourceapi.ResourceClaim) *fwk.Status {
 
 	if len(nodeAllocatableClaimStatus) == 0 {
 		return nil
@@ -623,6 +668,15 @@ func (pl *DynamicResources) patchNodeAllocatableResourceClaimStatus(ctx context.
 		logger.V(5).Info("NodeAllocatableResourceClaimStatuses difference: assumed pod status does not match calculated status", "pod", klog.KObj(pod))
 		return statusError(logger, errors.New("assumed pod status does not match calculated status to be patched"))
 	}
+
+	// After bindClaim, the in-memory placeholder "<extended-resources>" must be
+	// replaced with the real claim name before the status is persisted. This
+	// must run after the DeepEqual check: assume() copied the Filter-time
+	// status (still using the placeholder) onto the cached pod, so comparing
+	// after the rename would fail even when the assumed and calculated
+	// allocations match.
+	replaceSpecialClaimNameInStatus(extendedClaim, nodeAllocatableClaimStatus)
+
 	baseStatus.NodeAllocatableResourceClaimStatuses = nil
 
 	targetStatus := pod.Status.DeepCopy()

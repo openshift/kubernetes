@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/testing"
+	"k8s.io/klog/v2"
 )
 
 // MetadataClient assists in creating fake objects for use when testing, since metadata.Getter
@@ -58,7 +59,7 @@ func NewSimpleMetadataClient(scheme *runtime.Scheme, objects ...runtime.Object) 
 	}
 
 	codecs := serializer.NewCodecFactory(scheme)
-	o := testing.NewObjectTracker(scheme, codecs.UniversalDeserializer())
+	o := testing.NewObjectTrackerWithLogger(klog.TODO() /* We need some way for the caller to pass a logger - see also NewSimpleDynamicClientWithCustomListKinds. */, scheme, codecs.UniversalDeserializer())
 	for _, obj := range objects {
 		if err := o.Add(obj); err != nil {
 			panic(err)
@@ -259,6 +260,45 @@ func (c *metadataResourceClient) Delete(ctx context.Context, name string, opts m
 	}
 
 	return err
+}
+
+// DeleteWithResult records the object deletion and processes it via the reactor, returning status or object.
+func (c *metadataResourceClient) DeleteWithResult(ctx context.Context, name string, opts metav1.DeleteOptions, subresources ...string) (metav1.APIResult, error) {
+	var uncastRet runtime.Object
+	var err error
+	switch {
+	case len(c.namespace) == 0 && len(subresources) == 0:
+		uncastRet, err = c.client.Fake.
+			Invokes(testing.NewRootDeleteActionWithOptions(c.resource, name, opts), &metav1.Status{Status: "metadata delete fail"})
+
+	case len(c.namespace) == 0 && len(subresources) > 0:
+		uncastRet, err = c.client.Fake.
+			Invokes(testing.NewRootDeleteSubresourceActionWithOptions(c.resource, strings.Join(subresources, "/"), name, opts), &metav1.Status{Status: "metadata delete fail"})
+
+	case len(c.namespace) > 0 && len(subresources) == 0:
+		uncastRet, err = c.client.Fake.
+			Invokes(testing.NewDeleteActionWithOptions(c.resource, c.namespace, name, opts), &metav1.Status{Status: "metadata delete fail"})
+
+	case len(c.namespace) > 0 && len(subresources) > 0:
+		uncastRet, err = c.client.Fake.
+			Invokes(testing.NewDeleteSubresourceActionWithOptions(c.resource, strings.Join(subresources, "/"), c.namespace, name, opts), &metav1.Status{Status: "metadata delete fail"})
+	}
+
+	if err != nil {
+		fakeResult := testing.FakeAPIResult{Err: err}
+		if statusErr, ok := err.(interface{ Status() metav1.Status }); ok {
+			fakeResult.Code = int(statusErr.Status().Code)
+		}
+		return fakeResult, err
+	}
+	if uncastRet == nil {
+		return testing.FakeAPIResult{}, nil
+	}
+	fakeResult := testing.FakeAPIResult{Obj: uncastRet, Code: 200}
+	if status, ok := uncastRet.(*metav1.Status); ok {
+		fakeResult.Code = int(status.Code)
+	}
+	return fakeResult, nil
 }
 
 // DeleteCollection records the object collection deletion and processes it via the reactor.

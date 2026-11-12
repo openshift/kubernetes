@@ -27,7 +27,7 @@ import (
 // BackoffError should be used whenever an error needs to specify a particular backoff duration
 // to the Kubelet.
 type BackoffError struct {
-	error
+	error       error
 	backoffTime time.Time
 }
 
@@ -36,6 +36,13 @@ func NewBackoffError(err error, backoffTime time.Time) *BackoffError {
 		error:       err,
 		backoffTime: backoffTime,
 	}
+}
+
+func (b *BackoffError) Error() string {
+	return b.error.Error()
+}
+func (b *BackoffError) Unwrap() error {
+	return b.error
 }
 
 // BackoffTime returns the expected expiration time of the backoff.
@@ -71,10 +78,34 @@ func MinBackoffExpiration(err error) (time.Time, bool) {
 	}
 }
 
+// IsBackoffError returns true if err is non-nil and consists only of backoff errors.
+// Aggregates are backoff errors only if every contained error is a backoff error.
+func IsBackoffError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if ae, ok := errors.AsType[utilerrors.Aggregate](err); ok {
+		for _, e := range ae.Errors() {
+			if !IsBackoffError(e) {
+				return false
+			}
+		}
+		return len(ae.Errors()) > 0
+	}
+	_, isBackoffErr := errors.AsType[*BackoffError](err)
+	return isBackoffErr ||
+		errors.Is(err, ErrCrashLoopBackOff) ||
+		errors.Is(err, ErrImagePullBackOff)
+}
+
 // TODO(random-liu): We need to better organize runtime errors for introspection.
 
-// ErrCrashLoopBackOff returned when a container Terminated and Kubelet is backing off the restart.
-var ErrCrashLoopBackOff = errors.New("CrashLoopBackOff")
+var (
+	// ErrCrashLoopBackOff returned when a container Terminated and Kubelet is backing off the restart.
+	ErrCrashLoopBackOff = errors.New("CrashLoopBackOff")
+	// ErrImagePullBackOff returned when a container image pull failed and Kubelet is backing off the pull.
+	ErrImagePullBackOff = errors.New("ImagePullBackOff")
+)
 
 var (
 	// ErrContainerNotFound returned when a container in the given pod with the
