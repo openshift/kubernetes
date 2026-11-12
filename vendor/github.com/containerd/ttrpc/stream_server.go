@@ -17,6 +17,6 @@
 package ttrpc
 
 type StreamServer interface {
-	SendMsg(m any) error
-	RecvMsg(m any) error
+	SendMsg(m interface{}) error
+	RecvMsg(m interface{}) error
 }

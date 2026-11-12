@@ -256,14 +256,15 @@ func (nm *NondeterministicModel) ToModel() Model {
 		return len(uniqueNextStates) > 0, uniqueNextStates
 	}
 	var hashState func(state interface{}) uint64
-	if nm.Hash != nil {
+	hash := nm.Hash
+	if hash != nil {
 		// using XOR for order-independent combination of the
 		// individual hashes, because state is a set
 		hashState = func(state interface{}) uint64 {
 			states := state.([]interface{})
 			var h uint64
 			for _, s := range states {
-				h ^= nm.Hash(s)
+				h ^= hash(s)
 			}
 			return h
 		}
