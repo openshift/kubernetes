@@ -51,6 +51,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/quota/v1/evaluator/core"
+	"k8s.io/kubernetes/test/e2e/apimachinery/quotadiagnostics"
 	apimachineryutils "k8s.io/kubernetes/test/e2e/common/apimachinery"
 	"k8s.io/kubernetes/test/e2e/feature"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -680,6 +681,11 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		})
 		framework.ExpectNoError(err)
 		err = updateResourceQuotaUntilUsageAppears(ctx, f.ClientSet, f.Namespace.Name, quotaName, v1.ResourceName(countResourceName))
+		// The deferred CRD cleanup and the namespace teardown remove the custom resource
+		// definition and this temporary quota before any artifact gathering runs, which
+		// leaves a bare timeout behind. Capture a bounded snapshot of that state while it
+		// still exists; the original failure is returned unchanged.
+		err = quotadiagnostics.RecordUsageFailure(ctx, f, testcrd, quotaName, v1.ResourceName(countResourceName), err)
 		framework.ExpectNoError(err)
 		err = f.ClientSet.CoreV1().ResourceQuotas(f.Namespace.Name).Delete(ctx, quotaName, metav1.DeleteOptions{})
 		framework.ExpectNoError(err)

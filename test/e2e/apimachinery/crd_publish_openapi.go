@@ -34,6 +34,13 @@ import (
 	openapiutil "k8s.io/kube-openapi/pkg/util"
 	"k8s.io/utils/ptr"
 
+	// This internal API is allowed here only under the import-boss prefix
+	// "k8s.io/kubernetes/test/e2e/apimachinery", see
+	// staging/src/k8s.io/apiextensions-apiserver/pkg/apis/.import-restrictions. Adding a
+	// test file to this package makes import-boss rename it to
+	// "... ((tests:apimachinery))", which stops matching that prefix and fails
+	// hack/verify-import-boss.sh. Put unit tests in a sub-package instead, the way
+	// test/e2e/apimachinery/quotadiagnostics does.
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
