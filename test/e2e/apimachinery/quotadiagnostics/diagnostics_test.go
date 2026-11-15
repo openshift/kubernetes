@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apimachinery
+package quotadiagnostics
 
 import (
 	"context"
@@ -137,14 +137,14 @@ func newQuotaDiagFixture() *quotaDiagFixture {
 	}
 }
 
-func (f *quotaDiagFixture) diagnostics() customResourceQuotaDiagnostics {
-	return customResourceQuotaDiagnostics{
+func (f *quotaDiagFixture) diagnostics() collector {
+	return collector{
 		logf:           f.log.logf,
 		crds:           f.crds,
 		quotas:         f.quotas,
 		apiResources:   f.apiResources,
-		budget:         customResourceQuotaDiagnosticsBudget,
-		requestTimeout: customResourceQuotaDiagnosticsRequestTimeout,
+		budget:         defaultBudget,
+		requestTimeout: defaultRequestTimeout,
 	}
 }
 
@@ -152,8 +152,8 @@ func (f *quotaDiagFixture) requestCounts() (int, int, int) {
 	return len(f.crds.requests), len(f.quotas.requests), len(f.apiResources.requests)
 }
 
-func quotaDiagTarget() customResourceQuotaDiagnosticsTarget {
-	return newCustomResourceQuotaDiagnosticsTarget(quotaDiagTestCRD(), quotaDiagNamespace, quotaDiagQuotaName, quotaDiagResourceName)
+func quotaDiagTarget() diagnosticsTarget {
+	return newDiagnosticsTarget(quotaDiagTestCRD(), quotaDiagNamespace, quotaDiagQuotaName, quotaDiagResourceName)
 }
 
 // quotaDiagTestCRD plants quotaDiagSentinel in every field that must stay out of the
@@ -310,10 +310,10 @@ func TestRecordFailurePreservesCauseAndSurvivesCanceledContext(t *testing.T) {
 		// The deadline is set between start and end, so this closed window fails both a
 		// shorter and a longer per request bound, and fails if a request were handed the
 		// whole budget instead.
-		if lower := start.Add(customResourceQuotaDiagnosticsRequestTimeout); request.deadline.Before(lower) {
+		if lower := start.Add(defaultRequestTimeout); request.deadline.Before(lower) {
 			t.Errorf("request %q deadline %s is before the per request bound %s", request.name, request.deadline, lower)
 		}
-		if upper := end.Add(customResourceQuotaDiagnosticsRequestTimeout); request.deadline.After(upper) {
+		if upper := end.Add(defaultRequestTimeout); request.deadline.After(upper) {
 			t.Errorf("request %q deadline %s is past the per request bound %s", request.name, request.deadline, upper)
 		}
 	}
@@ -364,7 +364,7 @@ var errTestQuotaUsage = errors.New("timed out waiting for quota usage")
 // and none of the object content that must never be logged.
 func TestCollectLogsScopedState(t *testing.T) {
 	fixture := newQuotaDiagFixture()
-	ctx, cancel := context.WithTimeout(context.Background(), customResourceQuotaDiagnosticsBudget)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultBudget)
 	defer cancel()
 
 	fixture.diagnostics().collect(ctx, quotaDiagTarget())
@@ -389,9 +389,9 @@ func TestCollectLogsScopedState(t *testing.T) {
 	quotaDiagAssertRequestCounts(t, fixture, 1, 1, 1)
 
 	for _, line := range fixture.log.lines {
-		if !strings.HasPrefix(line, customResourceQuotaDiagnosticsPrefix) {
+		if !strings.HasPrefix(line, logPrefix) {
 			t.Errorf("every diagnostic line must start with %q so the snapshot can be grepped, got %q",
-				customResourceQuotaDiagnosticsPrefix, line)
+				logPrefix, line)
 		}
 	}
 	if groupVersion := fixture.apiResources.requests[0].name; groupVersion != quotaDiagGV {
@@ -409,7 +409,7 @@ func TestCollectReportsMissingResources(t *testing.T) {
 		schema.GroupResource{Resource: "resourcequotas"}, quotaDiagQuotaName)
 	fixture.apiResources.resources = quotaDiagTestAPIResources()
 
-	ctx, cancel := context.WithTimeout(context.Background(), customResourceQuotaDiagnosticsBudget)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultBudget)
 	defer cancel()
 	fixture.diagnostics().collect(ctx, quotaDiagTarget())
 
@@ -429,7 +429,7 @@ func TestCollectReportsRequestErrors(t *testing.T) {
 	fixture.quotas.err = errors.New("quota boom")
 	fixture.apiResources.err = errors.New("discovery boom")
 
-	ctx, cancel := context.WithTimeout(context.Background(), customResourceQuotaDiagnosticsBudget)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultBudget)
 	defer cancel()
 	fixture.diagnostics().collect(ctx, quotaDiagTarget())
 
@@ -531,7 +531,7 @@ func TestCollectDiscoveryVisibility(t *testing.T) {
 			fixture := newQuotaDiagFixture()
 			fixture.apiResources.resources = quotaDiagTestAPIResources(testCase.resources...)
 
-			ctx, cancel := context.WithTimeout(context.Background(), customResourceQuotaDiagnosticsBudget)
+			ctx, cancel := context.WithTimeout(context.Background(), defaultBudget)
 			defer cancel()
 			fixture.diagnostics().logGroupVersionDiscovery(ctx, testCase.groupVersion, quotaDiagPlural)
 
@@ -544,8 +544,8 @@ func TestCollectDiscoveryVisibility(t *testing.T) {
 }
 
 func TestNewCustomResourceQuotaDiagnosticsTarget(t *testing.T) {
-	got := newCustomResourceQuotaDiagnosticsTarget(quotaDiagTestCRD(), quotaDiagNamespace, quotaDiagQuotaName, quotaDiagResourceName)
-	want := customResourceQuotaDiagnosticsTarget{
+	got := newDiagnosticsTarget(quotaDiagTestCRD(), quotaDiagNamespace, quotaDiagQuotaName, quotaDiagResourceName)
+	want := diagnosticsTarget{
 		crdName:        quotaDiagCRDName,
 		groupVersion:   quotaDiagGV,
 		resourcePlural: quotaDiagPlural,

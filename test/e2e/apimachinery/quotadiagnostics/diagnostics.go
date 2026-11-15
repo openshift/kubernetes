@@ -14,7 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apimachinery
+// Package quotadiagnostics captures a bounded snapshot of the state behind a failed
+// wait for custom resource usage in the ResourceQuota lifecycle test. That test fails
+// the moment the wait times out, and the deferred CRD cleanup plus the namespace
+// teardown then delete the CustomResourceDefinition and the temporary quota before any
+// artifact gathering runs, so by the time anyone looks the evidence is gone.
+//
+// These helpers live in a sub-package on purpose: do not move them back into
+// test/e2e/apimachinery, and do not add test files to that package.
+// test/e2e/apimachinery imports the internal apiextensions API, which
+// staging/src/k8s.io/apiextensions-apiserver/pkg/apis/.import-restrictions allows only
+// under the prefix "k8s.io/kubernetes/test/e2e/apimachinery". import-boss renames any
+// package that has test files to "<path> ((tests:<name>))", and that renamed path no
+// longer matches the allowed prefix, so the pre-existing internal import would start
+// failing hack/verify-import-boss.sh.
+package quotadiagnostics
 
 import (
 	"context"
@@ -32,33 +46,26 @@ import (
 	"k8s.io/kubernetes/test/utils/crd"
 )
 
-// The custom resource ResourceQuota lifecycle test waits for the resourcequota
-// controller to report usage for a freshly created custom resource. When that wait
-// times out the test fails immediately, the deferred CRD cleanup deletes the
-// CustomResourceDefinition and the framework deletes the namespace together with the
-// temporary quota. Everything that would explain the timeout is therefore gone before
-// any artifact gathering runs. The helpers below capture an explicitly scoped snapshot
-// of that state while it still exists.
 const (
-	// customResourceQuotaDiagnosticsSteps is the number of serial requests a collection
+	// stepCount is the number of serial requests a collection
 	// issues. The budget is derived from it so that every step can still spend its full
 	// per request timeout.
-	customResourceQuotaDiagnosticsSteps = 3
-	// customResourceQuotaDiagnosticsRequestTimeout bounds every individual diagnostic
+	stepCount = 3
+	// defaultRequestTimeout bounds every individual diagnostic
 	// request.
-	customResourceQuotaDiagnosticsRequestTimeout = 10 * time.Second
-	// customResourceQuotaDiagnosticsBudget bounds the total wall clock time spent on
+	defaultRequestTimeout = 10 * time.Second
+	// defaultBudget bounds the total wall clock time spent on
 	// diagnostics so a slow API server cannot extend the test run.
-	customResourceQuotaDiagnosticsBudget = customResourceQuotaDiagnosticsSteps * customResourceQuotaDiagnosticsRequestTimeout
-	// customResourceQuotaDiagnosticsPrefix prefixes every diagnostic line so the whole
+	defaultBudget = stepCount * defaultRequestTimeout
+	// logPrefix prefixes every diagnostic line so the whole
 	// snapshot can be grepped out of a CI log.
-	customResourceQuotaDiagnosticsPrefix = "resourcequota diagnostics:"
+	logPrefix = "resourcequota diagnostics:"
 )
 
-// customResourceQuotaDiagnosticsConditions are the only CustomResourceDefinition
+// reportedConditions are the only CustomResourceDefinition
 // conditions reported. They decide whether the custom resource is servable and
 // discoverable, which is exactly what the resourcequota controller depends on.
-var customResourceQuotaDiagnosticsConditions = []apiextensionsv1.CustomResourceDefinitionConditionType{
+var reportedConditions = []apiextensionsv1.CustomResourceDefinitionConditionType{
 	apiextensionsv1.NamesAccepted,
 	apiextensionsv1.Established,
 }
@@ -99,9 +106,9 @@ func (g restAPIResourceGetter) GetAPIResources(ctx context.Context, groupVersion
 	return resources, nil
 }
 
-// customResourceQuotaDiagnosticsTarget names the exact objects that may be read. The
+// diagnosticsTarget names the exact objects that may be read. The
 // diagnostics never list or dump anything beyond these.
-type customResourceQuotaDiagnosticsTarget struct {
+type diagnosticsTarget struct {
 	crdName        string
 	groupVersion   string
 	resourcePlural string
@@ -110,10 +117,10 @@ type customResourceQuotaDiagnosticsTarget struct {
 	resourceName   v1.ResourceName
 }
 
-// newCustomResourceQuotaDiagnosticsTarget derives the read targets from the custom
+// newDiagnosticsTarget derives the read targets from the custom
 // resource definition the test created.
-func newCustomResourceQuotaDiagnosticsTarget(definition *apiextensionsv1.CustomResourceDefinition, quotaNamespace, quotaName string, resourceName v1.ResourceName) customResourceQuotaDiagnosticsTarget {
-	return customResourceQuotaDiagnosticsTarget{
+func newDiagnosticsTarget(definition *apiextensionsv1.CustomResourceDefinition, quotaNamespace, quotaName string, resourceName v1.ResourceName) diagnosticsTarget {
+	return diagnosticsTarget{
 		crdName:        definition.Name,
 		groupVersion:   firstServedCustomResourceVersion(definition),
 		resourcePlural: definition.Spec.Names.Plural,
@@ -123,10 +130,10 @@ func newCustomResourceQuotaDiagnosticsTarget(definition *apiextensionsv1.CustomR
 	}
 }
 
-// customResourceQuotaDiagnostics collects a bounded, read-only snapshot explaining why
-// the resourcequota controller never reported usage for a custom resource. All fields
-// are required; recordCustomResourceQuotaUsageFailure builds the production value.
-type customResourceQuotaDiagnostics struct {
+// collector gathers a bounded, read-only snapshot explaining why the resourcequota
+// controller never reported usage for a custom resource. All fields are required;
+// RecordUsageFailure builds the production value.
+type collector struct {
 	logf           func(format string, args ...interface{})
 	crds           customResourceDefinitionGetter
 	quotas         resourceQuotaGetter
@@ -137,13 +144,13 @@ type customResourceQuotaDiagnostics struct {
 
 // log emits one diagnostic line. Every line carries the shared prefix so the snapshot
 // can be grepped out of a CI log as a unit.
-func (d customResourceQuotaDiagnostics) log(format string, args ...interface{}) {
-	d.logf("%s %s", customResourceQuotaDiagnosticsPrefix, fmt.Sprintf(format, args...))
+func (d collector) log(format string, args ...interface{}) {
+	d.logf("%s %s", logPrefix, fmt.Sprintf(format, args...))
 }
 
 // recordFailure returns cause unchanged so the caller reports the original failure.
 // Nothing is collected when cause is nil, which keeps the diagnostics failure only.
-func (d customResourceQuotaDiagnostics) recordFailure(ctx context.Context, target customResourceQuotaDiagnosticsTarget, cause error) error {
+func (d collector) recordFailure(ctx context.Context, target diagnosticsTarget, cause error) error {
 	if cause == nil {
 		return nil
 	}
@@ -163,7 +170,7 @@ func (d customResourceQuotaDiagnostics) recordFailure(ctx context.Context, targe
 
 // collect runs the diagnostic steps serially, in a fixed order, within the budget that
 // ctx carries. It is best effort: every failure is logged instead of returned.
-func (d customResourceQuotaDiagnostics) collect(ctx context.Context, target customResourceQuotaDiagnosticsTarget) {
+func (d collector) collect(ctx context.Context, target diagnosticsTarget) {
 	d.logCustomResourceDefinition(ctx, target.crdName)
 	d.logResourceQuota(ctx, target.quotaNamespace, target.quotaName, target.resourceName)
 	d.logGroupVersionDiscovery(ctx, target.groupVersion, target.resourcePlural)
@@ -172,7 +179,7 @@ func (d customResourceQuotaDiagnostics) collect(ctx context.Context, target cust
 // requestContext derives a per-request context from the remaining budget. ok is false
 // when the budget is already spent, so collection stops instead of issuing more
 // requests.
-func (d customResourceQuotaDiagnostics) requestContext(ctx context.Context, what string) (context.Context, context.CancelFunc, bool) {
+func (d collector) requestContext(ctx context.Context, what string) (context.Context, context.CancelFunc, bool) {
 	if err := ctx.Err(); err != nil {
 		d.log("skipping %s, diagnostics budget is spent: %v", what, err)
 		return ctx, func() {}, false
@@ -184,7 +191,7 @@ func (d customResourceQuotaDiagnostics) requestContext(ctx context.Context, what
 
 // logCustomResourceDefinition reports the identity of the custom resource and the two
 // conditions that decide whether it can be served and discovered at all.
-func (d customResourceQuotaDiagnostics) logCustomResourceDefinition(ctx context.Context, name string) {
+func (d collector) logCustomResourceDefinition(ctx context.Context, name string) {
 	what := fmt.Sprintf("CustomResourceDefinition %q", name)
 	requestCtx, cancel, ok := d.requestContext(ctx, what)
 	if !ok {
@@ -208,7 +215,7 @@ func (d customResourceQuotaDiagnostics) logCustomResourceDefinition(ctx context.
 // logResourceQuota reports the temporary quota the test keeps updating: the hard limits
 // it asked for, the status the controller wrote back, and the metadata needed to tell
 // how far the update loop got before the deadline.
-func (d customResourceQuotaDiagnostics) logResourceQuota(ctx context.Context, namespace, name string, resourceName v1.ResourceName) {
+func (d collector) logResourceQuota(ctx context.Context, namespace, name string, resourceName v1.ResourceName) {
 	what := fmt.Sprintf("ResourceQuota %s/%s", namespace, name)
 	requestCtx, cancel, ok := d.requestContext(ctx, what)
 	if !ok {
@@ -233,7 +240,7 @@ func (d customResourceQuotaDiagnostics) logResourceQuota(ctx context.Context, na
 
 // logGroupVersionDiscovery reports whether the custom resource is visible in discovery,
 // which is how the resourcequota controller learns that the resource exists.
-func (d customResourceQuotaDiagnostics) logGroupVersionDiscovery(ctx context.Context, groupVersion, plural string) {
+func (d collector) logGroupVersionDiscovery(ctx context.Context, groupVersion, plural string) {
 	if groupVersion == "" {
 		d.log("skipping discovery, the CustomResourceDefinition has no served version")
 		return
@@ -261,19 +268,19 @@ func (d customResourceQuotaDiagnostics) logGroupVersionDiscovery(ctx context.Con
 	d.log("%s does not list %q (%d resources served)", what, plural, len(resources.APIResources))
 }
 
-// recordCustomResourceQuotaUsageFailure captures diagnostics for a failed wait on the
-// temporary quota and returns cause unchanged, so the test still reports the original
-// failure and keeps its own timeouts and assertions. It does nothing when cause is nil.
-func recordCustomResourceQuotaUsageFailure(ctx context.Context, f *framework.Framework, testcrd *crd.TestCrd, quotaName string, resourceName v1.ResourceName, cause error) error {
-	diagnostics := customResourceQuotaDiagnostics{
+// RecordUsageFailure captures diagnostics for a failed wait on the temporary quota and
+// returns cause unchanged, so the test still reports the original failure and keeps its
+// own timeouts and assertions. It does nothing when cause is nil.
+func RecordUsageFailure(ctx context.Context, f *framework.Framework, testcrd *crd.TestCrd, quotaName string, resourceName v1.ResourceName, cause error) error {
+	diagnostics := collector{
 		logf:           framework.Logf,
 		crds:           testcrd.APIExtensionClient.ApiextensionsV1().CustomResourceDefinitions(),
 		quotas:         f.ClientSet.CoreV1().ResourceQuotas(f.Namespace.Name),
 		apiResources:   restAPIResourceGetter{client: f.ClientSet.Discovery().RESTClient()},
-		budget:         customResourceQuotaDiagnosticsBudget,
-		requestTimeout: customResourceQuotaDiagnosticsRequestTimeout,
+		budget:         defaultBudget,
+		requestTimeout: defaultRequestTimeout,
 	}
-	target := newCustomResourceQuotaDiagnosticsTarget(testcrd.Crd, f.Namespace.Name, quotaName, resourceName)
+	target := newDiagnosticsTarget(testcrd.Crd, f.Namespace.Name, quotaName, resourceName)
 
 	return diagnostics.recordFailure(ctx, target, cause)
 }
@@ -308,10 +315,10 @@ func formatCustomResourceDefinitionVersions(versions []apiextensionsv1.CustomRes
 }
 
 // formatCustomResourceDefinitionConditions renders only the conditions listed in
-// customResourceQuotaDiagnosticsConditions, reporting the ones that are absent as such.
+// reportedConditions, reporting the ones that are absent as such.
 func formatCustomResourceDefinitionConditions(conditions []apiextensionsv1.CustomResourceDefinitionCondition) string {
-	parts := make([]string, 0, len(customResourceQuotaDiagnosticsConditions))
-	for _, wanted := range customResourceQuotaDiagnosticsConditions {
+	parts := make([]string, 0, len(reportedConditions))
+	for _, wanted := range reportedConditions {
 		part := fmt.Sprintf("%s=<absent>", wanted)
 		for _, condition := range conditions {
 			if condition.Type == wanted {

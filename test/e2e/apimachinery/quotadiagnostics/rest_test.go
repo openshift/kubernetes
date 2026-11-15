@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apimachinery
+package quotadiagnostics
 
 import (
 	"context"
@@ -81,7 +81,7 @@ func newQuotaDiagRecordingServer(t *testing.T, handle http.HandlerFunc) (*httpte
 }
 
 // newQuotaDiagRESTGetter hands back the production adapter, wired the way
-// recordCustomResourceQuotaUsageFailure wires it: clientset.Discovery().RESTClient().
+// RecordUsageFailure wires it: clientset.Discovery().RESTClient().
 func newQuotaDiagRESTGetter(t *testing.T, handle http.HandlerFunc) (restAPIResourceGetter, func() []string) {
 	t.Helper()
 	server, requestedPaths := newQuotaDiagRecordingServer(t, handle)
@@ -196,14 +196,14 @@ func TestLogGroupVersionDiscoveryOverREST(t *testing.T) {
 	getter, requestedPaths := newQuotaDiagRESTGetter(t,
 		quotaDiagServeJSON(http.StatusOK, quotaDiagDiscoveryBody(t, quotaDiagThingResource()), nil))
 	recorder := &quotaDiagLog{}
-	diagnostics := customResourceQuotaDiagnostics{
+	diagnostics := collector{
 		logf:           recorder.logf,
 		apiResources:   getter,
-		budget:         customResourceQuotaDiagnosticsBudget,
-		requestTimeout: customResourceQuotaDiagnosticsRequestTimeout,
+		budget:         defaultBudget,
+		requestTimeout: defaultRequestTimeout,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), customResourceQuotaDiagnosticsBudget)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultBudget)
 	defer cancel()
 	diagnostics.logGroupVersionDiscovery(ctx, quotaDiagGV, quotaDiagPlural)
 
@@ -338,7 +338,7 @@ func TestLogGroupVersionDiscoveryStaysInsideItsBounds(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			getter, _ := newQuotaDiagRESTGetter(t, quotaDiagServeBlocked())
 			recorder := &quotaDiagLog{}
-			diagnostics := customResourceQuotaDiagnostics{
+			diagnostics := collector{
 				logf:           recorder.logf,
 				apiResources:   getter,
 				budget:         testCase.budget,
@@ -358,12 +358,12 @@ func TestLogGroupVersionDiscoveryStaysInsideItsBounds(t *testing.T) {
 	}
 }
 
-// TestRecordCustomResourceQuotaUsageFailureWiring exercises the function the e2e
+// TestRecordUsageFailureWiring exercises the function the e2e
 // callsite calls, with real typed clients pointed at a local server. It proves the
 // wrapper reads the three intended objects, in order, and returns the original failure.
 // It logs through framework.Logf, so the production diagnostic lines appear on stdout
 // unattributed to any test; the assertions below are on the requests, not on that text.
-func TestRecordCustomResourceQuotaUsageFailureWiring(t *testing.T) {
+func TestRecordUsageFailureWiring(t *testing.T) {
 	const (
 		crdPath       = "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/" + quotaDiagCRDName
 		quotaPath     = "/api/v1/namespaces/" + quotaDiagNamespace + "/resourcequotas/" + quotaDiagQuotaName
@@ -404,7 +404,7 @@ func TestRecordCustomResourceQuotaUsageFailureWiring(t *testing.T) {
 	testcrd := &crd.TestCrd{APIExtensionClient: apiExtensionClients, Crd: quotaDiagTestCRD()}
 
 	// A successful wait must not touch the API server at all.
-	if got := recordCustomResourceQuotaUsageFailure(context.Background(), f, testcrd, quotaDiagQuotaName, quotaDiagResourceName, nil); got != nil {
+	if got := RecordUsageFailure(context.Background(), f, testcrd, quotaDiagQuotaName, quotaDiagResourceName, nil); got != nil {
 		t.Fatalf("expected nil for a successful wait, got %v", got)
 	}
 	if requested := requestedPaths(); len(requested) != 0 {
@@ -415,7 +415,7 @@ func TestRecordCustomResourceQuotaUsageFailureWiring(t *testing.T) {
 	// even though the caller's context is already done.
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if got := recordCustomResourceQuotaUsageFailure(ctx, f, testcrd, quotaDiagQuotaName, quotaDiagResourceName, errTestQuotaUsage); got != errTestQuotaUsage {
+	if got := RecordUsageFailure(ctx, f, testcrd, quotaDiagQuotaName, quotaDiagResourceName, errTestQuotaUsage); got != errTestQuotaUsage {
 		t.Fatalf("expected the original cause to be returned unchanged, got %v", got)
 	}
 	if want := []string{crdPath, quotaPath, discoveryPath}; !slices.Equal(requestedPaths(), want) {
