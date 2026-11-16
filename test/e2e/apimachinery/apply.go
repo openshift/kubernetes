@@ -21,6 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
+	"time"
+	"unicode"
+	"unicode/utf8"
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -648,6 +653,9 @@ var _ = SIGDescribe("ServerSideApply", func() {
 
 		defer func() {
 			err = fixtures.DeleteV1CustomResourceDefinition(noxuDefinition, apiExtensionClient)
+			if err != nil {
+				logCRDDeletionDiagnostic(apiExtensionClient, noxuDefinition.Name)
+			}
 			framework.ExpectNoError(err, "deleting CustomResourceDefinition")
 		}()
 
@@ -910,6 +918,9 @@ spec:
 
 		defer func() {
 			err = fixtures.DeleteV1CustomResourceDefinition(crd, apiExtensionClient)
+			if err != nil {
+				logCRDDeletionDiagnostic(apiExtensionClient, crd.Name)
+			}
 			framework.ExpectNoError(err, "deleting CustomResourceDefinition")
 		}()
 
@@ -1178,4 +1189,90 @@ func verifyList(b []byte, expectedList []interface{}) {
 	if !reflect.DeepEqual(listString, expectedList) {
 		framework.Failf("Expected list %s, got %s", expectedList, listString)
 	}
+}
+
+const (
+	// crdDeletionDiagnosticTimeout bounds the single GET issued to describe a
+	// CustomResourceDefinition whose deletion failed. It is only a cap on the
+	// diagnostic itself and does not extend any deletion or cleanup timeout.
+	crdDeletionDiagnosticTimeout = 15 * time.Second
+
+	// crdDeletionDiagnosticMaxBytes caps the diagnostic. Finalizer and
+	// condition counts, condition reasons and API error text have no length
+	// limit of their own, so the message is capped here instead.
+	crdDeletionDiagnosticMaxBytes = 4096
+
+	// crdDeletionDiagnosticTruncated marks a diagnostic cut to fit the cap.
+	crdDeletionDiagnosticTruncated = "[truncated]"
+)
+
+// logCRDDeletionDiagnostic logs the observed state of the named
+// CustomResourceDefinition. It is only called after the deletion helper has
+// already returned an error, and it neither retries the deletion nor changes
+// the outcome of the spec.
+//
+// The diagnostic runs on its own short-lived context rather than the spec
+// context, because the spec context may already be expired or cancelled by the
+// time deferred cleanup runs.
+func logCRDDeletionDiagnostic(client apiextensionclientset.Interface, name string) {
+	ctx, cancel := context.WithTimeout(context.Background(), crdDeletionDiagnosticTimeout)
+	defer cancel()
+
+	framework.Logf("%s", crdDeletionDiagnostic(ctx, client, name))
+}
+
+// crdDeletionDiagnostic returns one line describing what the API reports about
+// the named CustomResourceDefinition right now.
+//
+// fixtures.DeleteV1CustomResourceDefinition returns the error from the delete
+// request, or an error or timeout from polling discovery until the definition
+// stops being served. None of those identify the definition nor report its
+// state, so a failed cleanup is otherwise undiagnosable from the test output.
+//
+// The result describes only what was observed, never why the deletion failed.
+// Only object metadata and status conditions are reported: never the schema,
+// the spec, or the contents of any custom resource.
+func crdDeletionDiagnostic(ctx context.Context, client apiextensionclientset.Interface, name string) string {
+	crd, err := client.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+	switch {
+	case apierrors.IsNotFound(err):
+		return boundDiagnostic(fmt.Sprintf("CustomResourceDefinition %s is not present in the API after its deletion failed", name))
+	case err != nil:
+		return boundDiagnostic(fmt.Sprintf("CustomResourceDefinition %s state is unavailable after its deletion failed: %v", name, err))
+	}
+
+	conditions := make([]string, 0, len(crd.Status.Conditions))
+	for _, condition := range crd.Status.Conditions {
+		conditions = append(conditions, fmt.Sprintf("%s=%s(reason=%s)", condition.Type, condition.Status, condition.Reason))
+	}
+	return boundDiagnostic(fmt.Sprintf("CustomResourceDefinition %s is present in the API after its deletion failed: deletionTimestamp=%v finalizers=%v conditions=[%s]",
+		name, crd.DeletionTimestamp, crd.Finalizers, strings.Join(conditions, ", ")))
+}
+
+// boundDiagnostic makes a diagnostic safe to emit as a single log line: control
+// characters are escaped so nothing can inject newlines into the test log, and
+// the result is cut to crdDeletionDiagnosticMaxBytes. Truncation keeps the
+// leading text, so the definition name and its first state fields survive.
+func boundDiagnostic(diagnostic string) string {
+	var escaped strings.Builder
+	for _, r := range diagnostic {
+		if unicode.IsControl(r) {
+			// QuoteRune renders control characters as \n, \t, \x7f and such,
+			// wrapped in single quotes that are not wanted here.
+			escaped.WriteString(strings.Trim(strconv.QuoteRune(r), "'"))
+			continue
+		}
+		escaped.WriteRune(r)
+	}
+
+	bounded := escaped.String()
+	if len(bounded) <= crdDeletionDiagnosticMaxBytes {
+		return bounded
+	}
+
+	cut := crdDeletionDiagnosticMaxBytes - len(crdDeletionDiagnosticTruncated)
+	for cut > 0 && !utf8.RuneStart(bounded[cut]) {
+		cut--
+	}
+	return bounded[:cut] + crdDeletionDiagnosticTruncated
 }
