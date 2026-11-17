@@ -1,29 +1,20 @@
-//go:build !windows && !solaris && !darwin && !js
+//go:build !windows && !solaris && !darwin
 
 package dbus
 
 import (
-	"errors"
 	"net"
 	"os"
 )
 
-var defaultSystemBusPaths = []string{
-	"/var/run/dbus/system_bus_socket",
-	"/run/dbus/system_bus_socket",
-}
+const defaultSystemBusAddress = "unix:path=/var/run/dbus/system_bus_socket"
 
-func getSystemBusPlatformAddress() (string, error) {
+func getSystemBusPlatformAddress() string {
 	address := os.Getenv("DBUS_SYSTEM_BUS_ADDRESS")
 	if address != "" {
-		return address, nil
+		return address
 	}
-	for _, path := range defaultSystemBusPaths {
-		if _, err := os.Stat(path); err == nil {
-			return "unix:path=" + path, nil
-		}
-	}
-	return "", errors.New("system bus not found")
+	return defaultSystemBusAddress
 }
 
 // DialUnix establishes a new private connection to the message bus specified by UnixConn.
