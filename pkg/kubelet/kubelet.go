@@ -2815,6 +2815,15 @@ func (kl *Kubelet) HandlePodUpdates(pods []*v1.Pod) {
 		oldPod, _ := kl.podManager.GetPodByUID(pod.UID)
 		kl.podManager.UpdatePod(pod)
 
+		if utilfeature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling) {
+			// Skip pods that haven't been allocated yet to avoid counting them against
+			// node capacity before they've been admitted.
+			if !kl.allocationManager.HasPodAllocatedResources(pod.UID) {
+				klog.V(4).InfoS("Skipping pod update for non-allocated pod", "pod", klog.KObj(pod), "podUID", pod.UID)
+				continue
+			}
+		}
+
 		pod, mirrorPod, wasMirror := kl.podManager.GetPodAndMirrorPod(pod)
 		if wasMirror {
 			if pod == nil {
@@ -3033,6 +3042,13 @@ func (kl *Kubelet) HandlePodReconcile(pods []*v1.Pod) {
 				// If cpu or memory requests shrank, then retry the pending resizes.
 				retryPendingResizes = newRequest.Memory().Cmp(*oldRequest.Memory()) < 0 ||
 					newRequest.Cpu().Cmp(*oldRequest.Cpu()) < 0
+			}
+
+			// Skip further reconciliation for pods that haven't been allocated yet.
+			// We still updated podManager above to keep status in sync with the API server.
+			if !kl.allocationManager.HasPodAllocatedResources(pod.UID) {
+				klog.V(4).InfoS("Skipping pod reconcile operations for non-allocated pod", "pod", klog.KObj(pod), "podUID", pod.UID)
+				continue
 			}
 		}
 
