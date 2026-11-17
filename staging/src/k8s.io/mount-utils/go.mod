@@ -9,7 +9,7 @@ require (
 	github.com/opencontainers/runc v1.1.13
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
-	golang.org/x/sys v0.25.0
+	golang.org/x/sys v0.30.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
 )
@@ -28,4 +28,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace k8s.io/mount-utils => ../mount-utils
+replace (
+	golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.4
+	k8s.io/mount-utils => ../mount-utils
+)
