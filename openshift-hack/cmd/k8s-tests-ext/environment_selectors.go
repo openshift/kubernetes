@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
-	"k8s.io/kubernetes/pkg/features"
 )
 
 // addEnvironmentSelectors adds the environmentSelector field to appropriate specs to facilitate including or excluding
@@ -28,13 +27,6 @@ func addEnvironmentSelectors(specs et.ExtensionTestSpecs) {
 	specs.SelectAny([]et.SelectFunction{ // Since these must use "NameContainsAll" they cannot be included in filterByNetwork
 		et.NameContainsAll("NetworkPolicy", "named port"),
 	}).Exclude(et.NetworkEquals("OVNKubernetes")).AddLabel("[Skipped:Network/OVNKubernetes]")
-
-	// DynamicResourceAllocation is only enabled in Technology Preview clusters as of 1.34 rebase,
-	// see https://issues.redhat.com/browse/OCPBUGS-61381 for context
-	specs.Select(et.NameContains("[FeatureGate:DynamicResourceAllocation]")).
-		Exclude(et.FeatureGateDisabled(string(features.DynamicResourceAllocation)))
-	specs.Select(et.NameContains("[sig-node] [DRA]")).
-		Exclude(et.FeatureGateDisabled(string(features.DynamicResourceAllocation)))
 }
 
 // filterByPlatform is a helper function to do, simple, "NameContains" filtering on tests by platform
