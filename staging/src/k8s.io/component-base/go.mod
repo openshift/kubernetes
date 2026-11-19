@@ -87,6 +87,8 @@ require (
 replace (
 	github.com/google/cadvisor => github.com/openshift/google-cadvisor v0.46.0-openshift-4.13
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.4.1-0.20221214150008-e73634cb3870
+	// These are the last version of the libraries that support go 1.19, which we use in our CI
+	github.com/rogpeppe/go-internal => github.com/rogpeppe/go-internal v1.14.1
 	golang.org/x/crypto => golang.org/x/crypto v0.24.0
 	golang.org/x/mod => golang.org/x/mod v0.20.0
 	golang.org/x/tools => golang.org/x/tools v0.24.1
