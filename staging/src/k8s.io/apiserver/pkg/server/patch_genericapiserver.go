@@ -236,7 +236,7 @@ func WithNonReadyRequestLogging(handler http.Handler, hasBeenReadySignal lifecyc
 		// ignore connections to local IP. Those clients better know what they are doing.
 		if pth := "/" + strings.TrimLeft(r.URL.Path, "/"); pth != "/readyz" && pth != "/healthz" && pth != "/livez" {
 			if isLocal(r) {
-				if !isKubeApiserverLoopBack(r) {
+				if !isKnownLoopbackClient(r, knownOperatorLoopbackClients) {
 					audit.AddAuditAnnotation(r.Context(), "openshift.io/unready", fmt.Sprintf("loopback=true,%v,readyz=false", r.URL.Host))
 					klog.V(2).Infof("Loopback request to %q (user agent %q) before server is ready. This client probably does not watch /readyz and might get inconsistent answers.", r.URL.Path, r.UserAgent())
 				}
@@ -268,8 +268,34 @@ func isLocal(req *http.Request) bool {
 	return false
 }
 
-func isKubeApiserverLoopBack(req *http.Request) bool {
-	return strings.HasPrefix(req.UserAgent(), "kube-apiserver/")
+// knownOperatorLoopbackClients maps the operator binary name to the user agent
+// suffixes that are used by known clients connection over loopback.
+// Full user agent is <binary>/<version> (<os>/<arch>) kubernetes/<commit>/<suffix>
+var knownOperatorLoopbackClients = map[string][]string{
+	"cluster-kube-apiserver-operator":          {"cert-syncer", "cert-regeneration"},
+	"cluster-kube-controller-manager-operator": {"cert-syncer", "cert-recovery"},
+	"cluster-kube-scheduler-operator":          {"cert-syncer", "cert-recovery"},
+}
+
+// isKnownLoopbackClient returns true for clients that are known to talk to the
+// local kube-apiserver before it is ready and do not need to be logged.
+// operatorClients maps an operator binary name to its allowed user agent suffixes.
+func isKnownLoopbackClient(req *http.Request, operatorClients map[string][]string) bool {
+	ua := req.UserAgent()
+	if strings.HasPrefix(ua, "kube-apiserver/") {
+		return true
+	}
+	for binary, suffixes := range operatorClients {
+		if !strings.HasPrefix(ua, binary+"/") {
+			continue
+		}
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(ua, "/"+suffix) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type nullEventSink struct{}
