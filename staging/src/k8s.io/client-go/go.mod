@@ -50,6 +50,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.3.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -60,6 +61,9 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230317131656-c62d9de5a460
+	// These are the last version of the libraries that support go 1.20, which we use in our CI
+	github.com/rogpeppe/go-internal => github.com/rogpeppe/go-internal v1.14.1
+	golang.org/x/mod => golang.org/x/mod v0.20.0
 	golang.org/x/net => github.com/openshift-priv/golang-net v0.0.0-20240328074913-6c33ef4f7dac
 	golang.org/x/tools => golang.org/x/tools v0.24.0
 	k8s.io/api => ../api
