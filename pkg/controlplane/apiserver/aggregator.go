@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions/apiextensions/v1"
@@ -195,6 +196,22 @@ func CreateAggregatorServer(aggregatorConfig aggregatorapiserver.CompletedConfig
 	if err != nil {
 		return nil, err
 	}
+
+	// temporary hook to prove the pre-ready request window exists on 1.35.
+	// This hook is registered on the aggregator's GenericAPIServer so its readyz check
+	// blocks the aggregator's /readyz endpoint.
+	//
+	// This simulates the readiness delay that storage-readiness causes on 1.36, which
+	// propagates through apiservice-wait-for-first-sync to block the aggregator's HasBeenReady.
+	// A hook on the kube-apiserver level does NOT work because its readyz check is on
+	// the kube-apiserver's mux, which is shadowed by the aggregator's /readyz handler.
+	aggregatorServer.GenericAPIServer.AddPostStartHookOrDie("prove-pre-ready-window", func(hookContext genericapiserver.PostStartHookContext) error {
+		select {
+		case <-time.After(60 * time.Second):
+		case <-hookContext.Done():
+		}
+		return nil
+	})
 
 	err = aggregatorServer.GenericAPIServer.AddBootSequenceHealthChecks(
 		makeAPIServiceAvailableHealthCheck(
