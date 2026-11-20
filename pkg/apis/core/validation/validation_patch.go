@@ -43,7 +43,12 @@ var (
 	}
 )
 
-func openShiftValidateSecretUpdateIsTypeMutationAllowed(newSecret, oldSecret *core.Secret) bool {
+// OpenShiftValidateSecretUpdateIsTypeMutationAllowed reports whether the update from
+// oldSecret to newSecret is one of the whitelisted secret type mutations. It is
+// consumed by ValidateSecretUpdate and by the secret REST strategy, which must also
+// keep declarative validation (beta-enforced Secret.Type immutability since 1.38)
+// from rejecting the same update.
+func OpenShiftValidateSecretUpdateIsTypeMutationAllowed(newSecret, oldSecret *core.Secret) bool {
 	// initially, this check was stricter.
 	// however, due to the platform's long history (spanning several years)
 	// and the complexity of ensuring that resources were consistently created with only one type,
