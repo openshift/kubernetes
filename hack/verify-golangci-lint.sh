@@ -46,6 +46,11 @@ source "${KUBE_ROOT}/hack/lib/util.sh"
 kube::golang::setup_env
 export GOBIN="${KUBE_OUTPUT_BIN}"
 
+# golangci-lint maintains its own build cache, by default under
+# os.UserCacheDir(). That location is not writable in OCP CI.
+export GOLANGCI_LINT_CACHE="${KUBE_OUTPUT}/golangci-lint-cache"
+mkdir -p "${GOLANGCI_LINT_CACHE}"
+
 kube::util::require-jq
 
 invocation=(./hack/verify-golangci-lint.sh "$@")
@@ -127,7 +132,7 @@ kube::util::ensure-temp-dir
 # is not recommended, but for Kubernetes we prefer it because it avoids the need for
 # pre-built binaries for different platforms, gives more insights on dependencies, and allows custom plugins.
 echo "installing golangci-lint, logcheck kube-api-linter and sorted plugins from hack/tools/golangci-lint into ${GOBIN}"
-GOTOOLCHAIN="$(kube::golang::hack_tools_gotoolchain)" go -C "${KUBE_ROOT}/hack/tools/golangci-lint" build -o "${GOBIN}/golangci-lint" .
+GOTOOLCHAIN="$(kube::golang::hack_tools_gotoolchain)" go -C "${KUBE_ROOT}/hack/tools/golangci-lint" build -mod=readonly -o "${GOBIN}/golangci-lint" .
 
 # Verify that the given config is valid (if one is provided). "golangci-lint run" does not
 # do that, which makes it easy to miss mistakes while editing the configuration.
