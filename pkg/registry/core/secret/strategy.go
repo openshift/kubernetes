@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/operation"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,6 +91,23 @@ func (strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) fie
 	newSecret := obj.(*api.Secret)
 	oldSecret := old.(*api.Secret)
 	return validation.ValidateSecretUpdate(newSecret, oldSecret)
+}
+
+// Since 1.38, Secret.Type immutability is independently enforced by declarative validation.
+// When the whitelisted mutation applies, declarative validation is given an old object whose
+// type already matches the new one, so the declarative immutability check sees no change
+// (and no hand-written/declarative mismatch is reported).
+func (s strategy) ValidateDeclaratively(ctx context.Context, obj, oldObj runtime.Object, validationErrs field.ErrorList, opType operation.Type, config rest.DeclarativeValidationConfig) field.ErrorList {
+	if opType == operation.Update {
+		if newSecret, ok := obj.(*api.Secret); ok {
+			if oldSecret, ok := oldObj.(*api.Secret); ok && validation.OpenShiftValidateSecretUpdateIsTypeMutationAllowed(newSecret, oldSecret) {
+				oldSecretWithType := *oldSecret
+				oldSecretWithType.Type = newSecret.Type
+				oldObj = &oldSecretWithType
+			}
+		}
+	}
+	return s.DeclarativeValidation.ValidateDeclaratively(ctx, obj, oldObj, validationErrs, opType, config)
 }
 
 // WarningsOnUpdate returns warnings for the given update.

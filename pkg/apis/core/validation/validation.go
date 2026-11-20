@@ -8191,7 +8191,7 @@ func ValidateSecretUpdate(newSecret, oldSecret *core.Secret) field.ErrorList {
 	// TODO: this is a short term fix, we can drop this patch once we
 	// migrate all of the affected secret objects to to intended type,
 	// see https://issues.redhat.com/browse/API-1800
-	if !openShiftValidateSecretUpdateIsTypeMutationAllowed(newSecret, oldSecret) {
+	if !OpenShiftValidateSecretUpdateIsTypeMutationAllowed(newSecret, oldSecret) {
 		allErrs = append(allErrs, ValidateImmutableField(newSecret.Type, oldSecret.Type, field.NewPath("type")).WithOrigin("immutable").MarkCoveredByDeclarative()...)
 	}
 	if oldSecret.Immutable != nil && *oldSecret.Immutable {
