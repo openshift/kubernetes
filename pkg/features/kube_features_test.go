@@ -74,11 +74,6 @@ func TestAllRegisteredFeaturesExpected(t *testing.T) {
 }
 func TestEnsureAlphaGatesAreNotSwitchedOnByDefault(t *testing.T) {
 	checkAlphaGates := func(feature featuregate.Feature, spec featuregate.FeatureSpec) {
-		// FIXME(dims): remove this check when WindowsHostNetwork is fixed up or removed
-		// entirely. Please do NOT add more entries here.
-		if feature == "WindowsHostNetwork" {
-			return
-		}
 		// OpenShift-specific
 		if feature == "NodeLogQuery" {
 			return

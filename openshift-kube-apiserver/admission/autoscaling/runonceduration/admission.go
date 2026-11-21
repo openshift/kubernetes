@@ -13,7 +13,6 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/utils/integer"
 
 	"github.com/openshift/library-go/pkg/config/helpers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
@@ -142,7 +141,7 @@ func int64MinP(a, b *int64) *int64 {
 	case b == nil:
 		return a
 	default:
-		c := integer.Int64Min(*a, *b)
+		c := min(*a, *b)
 		return &c
 	}
 }

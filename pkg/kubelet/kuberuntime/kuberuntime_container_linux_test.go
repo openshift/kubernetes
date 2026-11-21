@@ -39,13 +39,13 @@ import (
 	"k8s.io/component-base/featuregate"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/ktesting"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
 	"k8s.io/kubernetes/pkg/features"
 	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/test/utils/ktesting"
 	"k8s.io/utils/cpuset"
 	"k8s.io/utils/ptr"
 )
@@ -403,6 +403,7 @@ func TestCalculateLinuxResources(t *testing.T) {
 		expected             *runtimeapi.LinuxContainerResources
 		cgroupVersion        CgroupVersion
 		singleProcessOOMKill bool
+		hasExclusiveCPUs     bool
 	}{
 		{
 			name:   "Request128MBLimit256MB",
@@ -524,11 +525,26 @@ func TestCalculateLinuxResources(t *testing.T) {
 			},
 			cgroupVersion: cgroupV2,
 		},
+		{
+			name:   "RequestExclusiveCPU",
+			cpuReq: generateResourceQuantity("2"),
+			cpuLim: generateResourceQuantity("2"),
+			memLim: generateResourceQuantity("0"),
+			expected: &runtimeapi.LinuxContainerResources{
+				CpuPeriod:          100000,
+				CpuQuota:           -1,
+				CpuShares:          2048,
+				MemoryLimitInBytes: 0,
+				Unified:            map[string]string{"memory.oom.group": "1"},
+			},
+			cgroupVersion:    cgroupV2,
+			hasExclusiveCPUs: true,
+		},
 	}
 	for _, test := range tests {
 		setCgroupVersionDuringTest(test.cgroupVersion)
 		m.singleProcessOOMKill = ptr.To(test.singleProcessOOMKill)
-		linuxContainerResources := m.calculateLinuxResources(test.cpuReq, test.cpuLim, test.memLim, false)
+		linuxContainerResources := m.calculateLinuxResources(test.cpuReq, test.cpuLim, test.memLim, test.hasExclusiveCPUs)
 		assert.Equal(t, test.expected, linuxContainerResources)
 	}
 }

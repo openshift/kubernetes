@@ -42,7 +42,7 @@ kube::test::find_go_packages() {
 
     # Get a list of all packages which have test files, but filter out ones
     # that we don't want to run by default (i.e. are not unit-tests).
-    go list -find \
+    go list -mod=readonly -find \
         -f '{{if or (gt (len .TestGoFiles) 0) (gt (len .XTestGoFiles) 0)}}{{.ImportPath}}{{end}}' \
         "${workspace_module_patterns[@]}" \
         | grep -vE \

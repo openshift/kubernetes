@@ -39,6 +39,7 @@ import (
 	cmdutil "k8s.io/kubernetes/cmd/kubeadm/app/cmd/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/componentconfigs"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/kubernetes/cmd/kubeadm/app/images"
 	"k8s.io/kubernetes/cmd/kubeadm/app/phases/upgrade"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/errors"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/output"
@@ -101,7 +102,7 @@ func runPlan(flagSet *pflag.FlagSet, flags *planFlags, args []string, printer ou
 	// Start with the basics, verify that the cluster is healthy, build a client and a versionGetter. Never dry-run when planning.
 	klog.V(1).Infoln("[upgrade/plan] verifying health of cluster")
 	klog.V(1).Infoln("[upgrade/plan] retrieving configuration from cluster")
-	client, versionGetter, initCfg, upgradeCfg, err := enforceRequirements(flagSet, flags.applyPlanFlags, args, false, false, printer)
+	client, versionGetter, initCfg, upgradeCfg, err := enforceRequirements(flagSet, flags.applyPlanFlags, args, printer)
 	if err != nil {
 		return err
 	}
@@ -120,7 +121,7 @@ func runPlan(flagSet *pflag.FlagSet, flags *planFlags, args []string, printer ou
 		return cmdutil.TypeMismatchErr("allowExperimentalUpgrades", "bool")
 	}
 
-	availUpgrades, err := upgrade.GetAvailableUpgrades(versionGetter, *allowExperimentalUpgrades, *allowRCUpgrades, printer)
+	availUpgrades, err := upgrade.GetAvailableUpgrades(versionGetter, *allowExperimentalUpgrades, *allowRCUpgrades, images.GetDNSImageTag(&initCfg.ClusterConfiguration), printer)
 	if err != nil {
 		return errors.Wrap(err, "[upgrade/versions] FATAL")
 	}

@@ -90,6 +90,18 @@ func (c *retryClient) Delete(ctx context.Context, key string, out runtime.Object
 	})
 }
 
+// DeleteOnce executes a single conditional delete attempt for key against origState.Rev.
+// On a revision conflict, it returns a ResourceVersionConflicts StorageError carrying the current storage revision.
+// Retrying retriable write errors here is safe: they are side-effect-free and each attempt
+// remains conditional on origState.Rev, so revision-conflict retries are still left to
+// storage.ConditionalDelete. The cacher's deleteUsingCache path reaches this method directly,
+// without the Delete wrapper above, so a passthrough would lose transient-error smoothing there.
+func (c *retryClient) DeleteOnce(ctx context.Context, key string, origState *storage.ObjState, out runtime.Object) error {
+	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
+		return c.delegate.DeleteOnce(ctx, key, origState, out)
+	})
+}
+
 // Watch begins watching the specified key. Events are decoded into API objects,
 // and any items selected by 'p' are sent down to returned watch.Interface.
 // resourceVersion may be used to specify what version to begin watching,
@@ -168,6 +180,22 @@ func (c *retryClient) GuaranteedUpdate(ctx context.Context, key string, destinat
 	preconditions *storage.Preconditions, tryUpdate storage.UpdateFunc, cachedExistingObject runtime.Object) error {
 	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
 		return c.delegate.GuaranteedUpdate(ctx, key, destination, ignoreNotFound, preconditions, tryUpdate, cachedExistingObject)
+	})
+}
+
+// UpdateOnce executes a single conditional update attempt for key against origState.Rev.
+// On a revision conflict, it returns a ResourceVersionConflicts StorageError carrying the current storage revision
+// (along with the refreshed state if it was already read during a no-op write check).
+// As with DeleteOnce, retrying side-effect-free write errors here is safe and preserves the
+// single-attempt contract, which exists to leave revision-conflict retries to storage.GuaranteedUpdate.
+func (c *retryClient) UpdateOnce(ctx context.Context, key string, origState *storage.ObjState, obj runtime.Object, ttl uint64, destination runtime.Object, ignoreNotFound bool) (*storage.ObjState, error) {
+	var (
+		state *storage.ObjState
+		err   error
+	)
+	return state, OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
+		state, err = c.delegate.UpdateOnce(ctx, key, origState, obj, ttl, destination, ignoreNotFound)
+		return err
 	})
 }
 

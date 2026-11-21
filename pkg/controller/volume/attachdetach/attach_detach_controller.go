@@ -132,7 +132,10 @@ func NewAttachDetachController(
 		nodesSynced: nodeInformer.Informer().HasSynced,
 		pvcQueue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.DefaultTypedControllerRateLimiter[string](),
-			workqueue.TypedRateLimitingQueueConfig[string]{Name: "pvcs"},
+			workqueue.TypedRateLimitingQueueConfig[string]{
+				Logger: new(klog.FromContext(ctx)),
+				Name:   "pvcs",
+			},
 		),
 	}
 
@@ -332,7 +335,7 @@ type attachDetachController struct {
 }
 
 func (adc *attachDetachController) Run(ctx context.Context) {
-	defer runtime.HandleCrash()
+	defer runtime.HandleCrashWithContext(ctx)
 
 	// Start events processing pipeline.
 	adc.broadcaster.StartStructuredLogging(3)
@@ -599,7 +602,13 @@ func (adc *attachDetachController) nodeDelete(logger klog.Logger, obj interface{
 		logger.Info("Error removing node from desired-state-of-world", "node", klog.KObj(node), "err", err)
 	}
 
-	adc.processVolumesInUse(logger, nodeName, node.Status.VolumesInUse)
+	// When a node is deleted, we clear MountedByNode immediately to allow
+	// detach to proceed without waiting for force-detach.
+	// Node deletion typically means the underlying node is gone, there is no point to wait.
+	// If the node is deleted by accident, it is still acceptable because
+	// detach is still gated by pod deletion (typically by PodGC controller),
+	// and once pods are deleted, kubelet cannot clean up anyway (CNI/CSI pods are likely deleted together).
+	adc.processVolumesInUse(logger, nodeName, nil)
 }
 
 func (adc *attachDetachController) enqueuePVC(obj interface{}) {
@@ -738,7 +747,7 @@ func (adc *attachDetachController) processVolumeAttachments(logger klog.Logger) 
 		}
 
 		if plugin == nil {
-			plugin, err = adc.volumePluginMgr.FindAttachablePluginBySpec(volumeSpec)
+			plugin, err = volumeutil.FindDetachablePluginBySpec(volumeSpec, &adc.volumePluginMgr)
 			if err != nil || plugin == nil {
 				// Currently VA objects are created for CSI volumes only. nil plugin is unexpected, generate a warning
 				logger.Info("Skipping processing the volume on node, no attacher interface found", "node", klog.KRef("", string(nodeName)), "PV", klog.KRef("", *pvName), "err", err)

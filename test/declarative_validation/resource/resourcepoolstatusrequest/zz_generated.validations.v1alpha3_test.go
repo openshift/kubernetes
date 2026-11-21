@@ -41,10 +41,15 @@ func init() {
 			},
 			"metadata.generation": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+				{ErrorType: "FieldValueInvalid", Origin: "monotonic"},
+				{ErrorType: "FieldValueInvalid", Origin: "update"},
 			},
 			"metadata.managedFields[*].operation": {
 				{ErrorType: "FieldValueNotSupported"},
 				{ErrorType: "FieldValueRequired"},
+			},
+			"metadata.namespace": {
+				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
 			"metadata.ownerReferences[*].apiVersion": {
 				{ErrorType: "FieldValueRequired"},
@@ -67,6 +72,7 @@ func init() {
 			"spec.defaultPartitionTypeAttribute": {
 				{ErrorType: "FieldValueForbidden"},
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-fully-qualified-name"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-fully-qualified-name"},
 			},
 			"spec.driver": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-long-name-caseless"},
@@ -79,12 +85,16 @@ func init() {
 			},
 			"spec.poolName": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-pool-name"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-pool-name"},
 			},
 			"status.conditions": {
 				{ErrorType: "FieldValueTooMany", Origin: "maxItems"},
 			},
 			"status.conditions[*]": {
 				{ErrorType: "FieldValueDuplicate"},
+			},
+			"status.conditions[*].message": {
+				{ErrorType: "FieldValueTooLong", Origin: "maxBytes"},
 			},
 			"status.conditions[*].observedGeneration": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
@@ -98,6 +108,7 @@ func init() {
 				{ErrorType: "FieldValueRequired"},
 			},
 			"status.conditions[*].type": {
+				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-label-key"},
 				{ErrorType: "FieldValueRequired"},
 			},
 			"status.poolCount": {
@@ -147,6 +158,7 @@ func init() {
 			"status.pools[*].poolName": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-resource-pool-name"},
 				{ErrorType: "FieldValueRequired"},
+				{ErrorType: "FieldValueTooLong", Origin: "format=k8s-resource-pool-name"},
 			},
 			"status.pools[*].resourceSliceCount": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},

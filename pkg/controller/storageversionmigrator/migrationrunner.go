@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
+	applyconfigurationapiextensionsv1 "k8s.io/apiextensions-api/pkg/client/applyconfiguration/apiextensions/v1"
+	apiextensionsclient "k8s.io/apiextensions-api/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	applyconfigurationapiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/client/applyconfiguration/apiextensions/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -78,7 +78,10 @@ func NewCustomResourceController(
 		crdClient:  crdClient,
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.DefaultTypedControllerRateLimiter[metav1.GroupResource](),
-			workqueue.TypedRateLimitingQueueConfig[metav1.GroupResource]{Name: ResourceVersionControllerName},
+			workqueue.TypedRateLimitingQueueConfig[metav1.GroupResource]{
+				Logger: new(klog.FromContext(ctx)),
+				Name:   ResourceVersionControllerName,
+			},
 		),
 	}
 
@@ -134,7 +137,7 @@ func (crc *MigrationRunnerController) enqueue(svm *svmv1.StorageVersionMigration
 }
 
 func (crc *MigrationRunnerController) Run(ctx context.Context) {
-	defer utilruntime.HandleCrash()
+	defer utilruntime.HandleCrashWithContext(ctx)
 
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting", "controller", MigrationRunnerControllerName)
@@ -362,8 +365,12 @@ func (crc *MigrationRunnerController) finishCRDMigration(ctx context.Context, cr
 			return err
 		}
 		migratingCond := apihelpers.FindCRDCondition(crd, apiextensionsv1.StorageMigrating)
+		// A failed migration may have left objects in an older version, so
+		// only a successful one may drop old versions from storedVersions.
+		// Otherwise those versions could be removed from the CRD and the
+		// remaining objects would become unreadable.
 		var canUpdateStoredVersions bool
-		if migratingCond != nil && migratingCond.ObservedGeneration == crd.Generation {
+		if success && migratingCond != nil && migratingCond.ObservedGeneration == crd.Generation {
 			canUpdateStoredVersions = true
 		}
 

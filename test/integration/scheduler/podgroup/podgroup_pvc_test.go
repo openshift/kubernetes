@@ -23,7 +23,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	schedulingapi "k8s.io/api/scheduling/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
@@ -32,8 +31,8 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
+	schedulerutils "k8s.io/kubernetes/test/integration/scheduler"
 	stepsframework "k8s.io/kubernetes/test/integration/scheduler/podgroup/stepsframework"
-	testutils "k8s.io/kubernetes/test/integration/util"
 )
 
 // createBoundRWOPPVC creates a HostPath PV and a PVC bound to it, both with the
@@ -41,7 +40,7 @@ import (
 func createBoundRWOPPVC(cs kubernetes.Interface, ns, name string) error {
 	storage := v1.VolumeResourceRequirements{Requests: v1.ResourceList{v1.ResourceStorage: resource.MustParse("1Mi")}}
 	volType := v1.HostPathDirectoryOrCreate
-	pv, err := testutils.CreatePV(cs, st.MakePersistentVolume().
+	pv, err := schedulerutils.CreatePV(cs, st.MakePersistentVolume().
 		Name(fmt.Sprintf("pv-%s-%s", ns, name)).
 		AccessModes([]v1.PersistentVolumeAccessMode{v1.ReadWriteOncePod}).
 		Capacity(storage.Requests).
@@ -50,7 +49,7 @@ func createBoundRWOPPVC(cs kubernetes.Interface, ns, name string) error {
 	if err != nil {
 		return fmt.Errorf("cannot create pv: %w", err)
 	}
-	_, err = testutils.CreatePVC(cs, st.MakePersistentVolumeClaim().
+	_, err = schedulerutils.CreatePVC(cs, st.MakePersistentVolumeClaim().
 		Name(name).
 		Namespace(ns).
 		// Annotation and volume name required for PVC to be considered bound.
@@ -88,7 +87,7 @@ func TestPodGroupSchedulingWithReadWriteOncePodPVC(t *testing.T) {
 
 	workload := st.MakeWorkload().Name("workload").
 		PodGroupTemplate(st.MakePodGroupTemplate().Name("t").MinCount(2).Obj()).Obj()
-	podGroup := st.MakePodGroup().Name("pg").WorkloadRef("t", "workload").Priority(200).MinCount(2).Obj()
+	podGroup := st.MakePodGroup().Name("pg").WorkloadRef("workload", "t").Priority(200).MinCount(2).Obj()
 
 	tests := []struct {
 		name string
@@ -107,10 +106,8 @@ func TestPodGroupSchedulingWithReadWriteOncePodPVC(t *testing.T) {
 				},
 				{
 					Name: "Verify PodGroup condition is set to Unschedulable",
-					WaitForPodGroupCondition: &stepsframework.PodGroupConditionCheck{
-						PodGroupName:    "pg",
-						ConditionStatus: metav1.ConditionFalse,
-						Reason:          schedulingapi.PodGroupReasonUnschedulable,
+					WaitForGroupsUnschedulable: &stepsframework.Groups{
+						PodGroups: []string{"pg"},
 					},
 				},
 			},
@@ -128,58 +125,62 @@ func TestPodGroupSchedulingWithReadWriteOncePodPVC(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-				features.GenericWorkload: true,
-			})
+		for _, cpgEnabled := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s (CPG enabled: %v)", tt.name, cpgEnabled), func(t *testing.T) {
+				featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
+					features.GenericWorkload:                 true,
+					features.TopologyAwareWorkloadScheduling: cpgEnabled,
+					features.CompositePodGroup:               cpgEnabled,
+				})
 
-			testCtx := testutils.InitTestSchedulerWithNS(t, "podgroup-pvc",
-				// disable backoff
-				scheduler.WithPodMaxBackoffSeconds(0),
-				scheduler.WithPodInitialBackoffSeconds(0))
-			ns := testCtx.NS.Name
+				testCtx := schedulerutils.InitTestSchedulerWithNS(t, "podgroup-pvc",
+					// disable backoff
+					scheduler.WithPodMaxBackoffSeconds(0),
+					scheduler.WithPodInitialBackoffSeconds(0))
+				ns := testCtx.NS.Name
 
-			for _, pvcName := range sets.List(sets.New("pvc-1", tt.secondPodPVC)) {
-				if err := createBoundRWOPPVC(testCtx.ClientSet, ns, pvcName); err != nil {
+				for _, pvcName := range sets.List(sets.New("pvc-1", tt.secondPodPVC)) {
+					if err := createBoundRWOPPVC(testCtx.ClientSet, ns, pvcName); err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				// firstPod is assumed first (created and enqueued before the second
+				// pod) and takes pvc-1.
+				firstPod := st.MakePod().Name("pvc-pod-1").
+					Req(podRequest).Container("image").
+					PVC("pvc-1").
+					PodGroupName("pg").Priority(200).Obj()
+				// secondPod is assumed second; whether its PVC conflicts with the
+				// first pod's depends on the test case.
+				secondPod := st.MakePod().Name("pvc-pod-2").
+					Req(podRequest).Container("image").
+					PVC(tt.secondPodPVC).
+					PodGroupName("pg").Priority(200).Obj()
+
+				commonSteps := []stepsframework.Step{
+					{
+						Name:        "Create Nodes",
+						CreateNodes: []*v1.Node{st.MakeNode().Name("node-1").Capacity(nodeCapacity).Obj()},
+					},
+					{
+						Name:            "Create workloads",
+						CreateWorkloads: []*schedulingapi.Workload{workload},
+					},
+					{
+						Name:           "Create the PodGroup object",
+						CreatePodGroup: podGroup,
+					},
+					{
+						Name:              "Create both pods belonging to the group",
+						CreatePodsInOrder: []*v1.Pod{firstPod, secondPod},
+					},
+				}
+
+				if err := stepsframework.RunSteps(testCtx, t, ns, append(commonSteps, tt.steps...)); err != nil {
 					t.Fatal(err)
 				}
-			}
-
-			// firstPod is assumed first (created and enqueued before the second
-			// pod) and takes pvc-1.
-			firstPod := st.MakePod().Name("pvc-pod-1").
-				Req(podRequest).Container("image").
-				PVC("pvc-1").
-				PodGroupName("pg").Priority(200).Obj()
-			// secondPod is assumed second; whether its PVC conflicts with the
-			// first pod's depends on the test case.
-			secondPod := st.MakePod().Name("pvc-pod-2").
-				Req(podRequest).Container("image").
-				PVC(tt.secondPodPVC).
-				PodGroupName("pg").Priority(200).Obj()
-
-			commonSteps := []stepsframework.Step{
-				{
-					Name:        "Create Nodes",
-					CreateNodes: []*v1.Node{st.MakeNode().Name("node-1").Capacity(nodeCapacity).Obj()},
-				},
-				{
-					Name:            "Create workloads",
-					CreateWorkloads: []*schedulingapi.Workload{workload},
-				},
-				{
-					Name:           "Create the PodGroup object",
-					CreatePodGroup: podGroup,
-				},
-				{
-					Name:              "Create both pods belonging to the group",
-					CreatePodsInOrder: []*v1.Pod{firstPod, secondPod},
-				},
-			}
-
-			if err := stepsframework.RunSteps(testCtx, t, ns, append(commonSteps, tt.steps...)); err != nil {
-				t.Fatal(err)
-			}
-		})
+			})
+		}
 	}
 }

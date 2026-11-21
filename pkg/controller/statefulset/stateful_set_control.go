@@ -537,6 +537,51 @@ func (ssc *defaultStatefulSetControl) processCondemned(ctx context.Context, set 
 	return true, ssc.podControl.DeleteStatefulPod(set, condemned[i])
 }
 
+// processCondemnedPods fixes retention-policy claims and processes Pods
+// whose ordinals are outside the desired replica range.
+func (ssc *defaultStatefulSetControl) processCondemnedPods(
+	ctx context.Context,
+	set *apps.StatefulSet,
+	updateSet *apps.StatefulSet,
+	firstUnavailablePod *v1.Pod,
+	monotonic bool,
+	condemned []*v1.Pod,
+	now time.Time,
+) (bool, error) {
+	fixPodClaim := func(i int) (bool, error) {
+		matchPolicy, err := ssc.podControl.ClaimsMatchRetentionPolicy(ctx, updateSet, condemned[i])
+		if err != nil {
+			return true, err
+		}
+
+		if !matchPolicy {
+			if err := ssc.podControl.UpdatePodClaimForRetentionPolicy(ctx, updateSet, condemned[i]); err != nil {
+				return true, err
+			}
+		}
+
+		return false, nil
+	}
+
+	if shouldExit, err := runForAll(condemned, fixPodClaim, monotonic); shouldExit || err != nil {
+		return shouldExit, err
+	}
+
+	processCondemnedFn := func(i int) (bool, error) {
+		return ssc.processCondemned(
+			ctx,
+			set,
+			firstUnavailablePod,
+			monotonic,
+			condemned,
+			i,
+			now,
+		)
+	}
+
+	return runForAll(condemned, processCondemnedFn, monotonic)
+}
+
 func runForAll(pods []*v1.Pod, fn func(i int) (bool, error), monotonic bool) (bool, error) {
 	if monotonic {
 		for i := range pods {
@@ -683,7 +728,31 @@ func (ssc *defaultStatefulSetControl) updateStatefulSet(ctx context.Context, set
 		}
 	}
 
-	// First, process each living replica. Exit if we run into an error or something blocking in monotonic mode.
+	// Parallel Pod management does not require ordered processing. Process
+	// condemned Pods first so scale down can release resources before the
+	// controller attempts to create missing Pods in the desired ordinal range.
+
+	processCondemnedPodsFn := func() (bool, error) {
+		return ssc.processCondemnedPods(
+			ctx,
+			set,
+			updateSet,
+			firstUnavailablePod,
+			monotonic,
+			condemned,
+			now,
+		)
+	}
+
+	if !monotonic {
+		if shouldExit, err := processCondemnedPodsFn(); shouldExit || err != nil {
+			updateStatus(&status, set.Spec.MinReadySeconds, currentRevision, updateRevision, now, replicas, condemned)
+			return &status, err
+		}
+	}
+
+	// Process each living replica. Exit if we run into an error or something
+	// blocking in monotonic mode.
 	processReplicaFn := func(i int) (bool, error) {
 		return ssc.processReplica(ctx, set, updateSet, monotonic, replicas, i, now)
 	}
@@ -692,34 +761,16 @@ func (ssc *defaultStatefulSetControl) updateStatefulSet(ctx context.Context, set
 		return &status, err
 	}
 
-	// Fix pod claims for condemned pods, if necessary.
-	fixPodClaim := func(i int) (bool, error) {
-		if matchPolicy, err := ssc.podControl.ClaimsMatchRetentionPolicy(ctx, updateSet, condemned[i]); err != nil {
-			return true, err
-		} else if !matchPolicy {
-			if err := ssc.podControl.UpdatePodClaimForRetentionPolicy(ctx, updateSet, condemned[i]); err != nil {
-				return true, err
-			}
+	// Preserve the existing processing order for OrderedReady StatefulSets.
+	if monotonic {
+		// We will wait for all predecessors to be Running and Available prior to attempting a deletion.
+		// We will terminate Pods in a monotonically decreasing order.
+		// Note that we do not resurrect Pods in this interval. Also note that scaling will take precedence over
+		// updates.
+		if shouldExit, err := processCondemnedPodsFn(); shouldExit || err != nil {
+			updateStatus(&status, set.Spec.MinReadySeconds, currentRevision, updateRevision, now, replicas, condemned)
+			return &status, err
 		}
-		return false, nil
-	}
-	if shouldExit, err := runForAll(condemned, fixPodClaim, monotonic); shouldExit || err != nil {
-		updateStatus(&status, set.Spec.MinReadySeconds, currentRevision, updateRevision, now, replicas, condemned)
-		return &status, err
-	}
-
-	// At this point, in monotonic mode all of the current Replicas are Running, Ready and Available,
-	// and we can consider termination.
-	// We will wait for all predecessors to be Running and Available prior to attempting a deletion.
-	// We will terminate Pods in a monotonically decreasing order.
-	// Note that we do not resurrect Pods in this interval. Also note that scaling will take precedence over
-	// updates.
-	processCondemnedFn := func(i int) (bool, error) {
-		return ssc.processCondemned(ctx, set, firstUnavailablePod, monotonic, condemned, i, now)
-	}
-	if shouldExit, err := runForAll(condemned, processCondemnedFn, monotonic); shouldExit || err != nil {
-		updateStatus(&status, set.Spec.MinReadySeconds, currentRevision, updateRevision, now, replicas, condemned)
-		return &status, err
 	}
 
 	updateStatus(&status, set.Spec.MinReadySeconds, currentRevision, updateRevision, now, replicas, condemned)
@@ -830,33 +881,40 @@ func updateStatefulSetAfterInvariantEstablished(ctx context.Context, ssc *defaul
 		// if the feature was enabled and then later disabled, MaxUnavailable may have a value
 		// more than 1. Ignore the passed in value and Use maxUnavailable as 1 to enforce
 		// expected behavior when feature gate is not enabled.
+		// Percent MaxUnavailable is scaled from the update range (Replicas - Partition), not
+		// from all replicas — matching the partition-scoped budget below.
 		var err error
-		maxUnavailable, err = getStatefulSetMaxUnavailable(set.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable, replicaCount)
+		maxUnavailable, err = getStatefulSetMaxUnavailable(set.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable, max(0, replicaCount-updateMin))
 		if err != nil {
 			return &status, err
 		}
 	}
 
-	// Collect all targets in the range between getStartOrdinal(set) and getEndOrdinal(set).
-	// Count any targets in that range  that are unavailable. Select the (MaxUnavailable - Unavailable)
-	// Pods, in order with respect to their ordinal for termination.
-	// Delete those pods and count the successful deletions.
-	// Update the status with the correct number of deletions.
+	// Walk all replicas for UnavailableReplicas (whole StatefulSet). Only pods in the
+	// update range (ordinals >= partition / updateMin) consume the maxUnavailable budget
+	// (KEP-961); pods below the partition are not rolling-update candidates. Then select
+	// up to (maxUnavailable - unavailable) pods in that range for termination, high ordinal first.
 	unavailablePods := 0
+	unavailablePodsTotal := 0
 	// For Parallel pod management, additionally count old and unavailable, within the maxUnavailable limit.
 	unavailablePodsNeedingUpdate := 0
 	for target := len(replicas) - 1; target >= 0; target-- {
 		pod := replicas[target]
-		if isUnavailable(pod, set.Spec.MinReadySeconds, now) {
-			unavailablePods++
-			if set.Spec.PodManagementPolicy == apps.ParallelPodManagement &&
-				getPodRevision(pod) != updateRevision.Name &&
-				!isTerminating(pod) {
-				unavailablePodsNeedingUpdate++
-			}
+		if !isUnavailable(pod, set.Spec.MinReadySeconds, now) {
+			continue
+		}
+		unavailablePodsTotal++
+		if target < updateMin {
+			continue
+		}
+		unavailablePods++
+		if set.Spec.PodManagementPolicy == apps.ParallelPodManagement &&
+			getPodRevision(pod) != updateRevision.Name &&
+			!isTerminating(pod) {
+			unavailablePodsNeedingUpdate++
 		}
 	}
-	metrics.UnavailableReplicas.WithLabelValues(set.Namespace, set.Name, podManagementPolicy).Set(float64(unavailablePods))
+	metrics.UnavailableReplicas.WithLabelValues(set.Namespace, set.Name, podManagementPolicy).Set(float64(unavailablePodsTotal))
 
 	// short circuit only when we're above the maxUnavailable budget and for
 	// Parallel pod management there is no chance to make progress
@@ -950,7 +1008,8 @@ func (ssc *defaultStatefulSetControl) updateStatefulSetStatus(
 		var err error
 		maxUnavailable := 1
 		if set.Spec.UpdateStrategy.RollingUpdate != nil {
-			maxUnavailable, err = getStatefulSetMaxUnavailable(set.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable, replicaCount)
+			updateMin := int(*set.Spec.UpdateStrategy.RollingUpdate.Partition)
+			maxUnavailable, err = getStatefulSetMaxUnavailable(set.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable, max(0, replicaCount-updateMin))
 			if err != nil {
 				return err
 			}

@@ -24,14 +24,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/cel-go/cel"
+	"cel.dev/cel-go/cel"
 
+	apiextensionsv1beta1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsfuzzer "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/fuzzer"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1beta1conversion "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
 	celschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
-	apiextensionsfeatures "k8s.io/apiextensions-apiserver/pkg/features"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,8 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apiserver/pkg/cel/environment"
 	"k8s.io/apiserver/pkg/cel/library"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 )
 
@@ -4542,7 +4540,6 @@ func TestValidateCustomResourceDefinition(t *testing.T) {
 }
 
 func TestSelectableFields(t *testing.T) {
-	featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, apiextensionsfeatures.CustomResourceFieldSelectors, true)
 	singleVersionList := []apiextensions.CustomResourceDefinitionVersion{
 		{
 			Name:    "version",
@@ -11364,7 +11361,7 @@ func TestSchemaHasDefaults(t *testing.T) {
 		f.Fill(schema)
 
 		v1beta1Schema := &apiextensionsv1beta1.JSONSchemaProps{}
-		if err := apiextensionsv1beta1.Convert_apiextensions_JSONSchemaProps_To_v1beta1_JSONSchemaProps(schema, v1beta1Schema, nil); err != nil {
+		if err := apiextensionsv1beta1conversion.Convert_apiextensions_JSONSchemaProps_To_v1beta1_JSONSchemaProps(schema, v1beta1Schema, nil); err != nil {
 			t.Fatal(err)
 		}
 
@@ -11788,11 +11785,11 @@ func TestCostInfo(t *testing.T) {
 			if tt.expectedMaxCardinality == nil && curCostInfo.MaxCardinality == nil {
 				// unbounded cardinality case, test ran correctly
 			} else if tt.expectedMaxCardinality == nil && curCostInfo.MaxCardinality != nil {
-				t.Errorf("expected unbounded cardinality (got %d)", curCostInfo.MaxCardinality)
+				t.Errorf("expected unbounded cardinality (got %d)", *curCostInfo.MaxCardinality)
 			} else if tt.expectedMaxCardinality != nil && curCostInfo.MaxCardinality == nil {
-				t.Errorf("expected bounded cardinality of %d but got unbounded cardinality", tt.expectedMaxCardinality)
+				t.Errorf("expected bounded cardinality of %d but got unbounded cardinality", *tt.expectedMaxCardinality)
 			} else if *tt.expectedMaxCardinality != *curCostInfo.MaxCardinality {
-				t.Errorf("wrong cardinality (expected %d, got %d)", *tt.expectedMaxCardinality, curCostInfo.MaxCardinality)
+				t.Errorf("wrong cardinality (expected %d, got %d)", *tt.expectedMaxCardinality, *curCostInfo.MaxCardinality)
 			}
 		})
 	}

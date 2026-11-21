@@ -33,7 +33,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	resourceapi "k8s.io/api/resource/v1"
-	resourcev1beta1 "k8s.io/api/resource/v1beta1"
 	resourcev1beta2 "k8s.io/api/resource/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -41,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/ktesting"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/component-base/featuregate"
 	"k8s.io/component-base/metrics/testutil"
@@ -52,33 +52,19 @@ import (
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/integration/util"
-	"k8s.io/kubernetes/test/utils/client-go/ktesting"
 	"k8s.io/utils/ptr"
 )
 
 // testPod creates a pod with a resource claim reference and then checks
-// whether that field is or isn't getting dropped.
-func testPod(tCtx ktesting.TContext, draEnabled bool) {
+// whether that field is stored in pod spec.
+func testPod(tCtx ktesting.TContext) {
 	tCtx.Parallel()
 	namespace := createTestNamespace(tCtx, nil)
 	podWithClaimName := podWithClaimName.DeepCopy()
 	podWithClaimName.Namespace = namespace
 	pod, err := tCtx.Client().CoreV1().Pods(namespace).Create(tCtx, podWithClaimName, metav1.CreateOptions{FieldValidation: "Strict"})
 	tCtx.ExpectNoError(err, "create pod")
-	if draEnabled {
-		assert.NotEmpty(tCtx, pod.Spec.ResourceClaims, "should store resource claims in pod spec")
-	} else {
-		assert.Empty(tCtx, pod.Spec.ResourceClaims, "should drop resource claims from pod spec")
-	}
-}
-
-// testAPIDisabled checks that the resource.k8s.io API is disabled.
-func testAPIDisabled(tCtx ktesting.TContext) {
-	tCtx.Parallel()
-	_, err := tCtx.Client().ResourceV1().ResourceClaims(claim.Namespace).Create(tCtx, claim, metav1.CreateOptions{FieldValidation: "Strict"})
-	if !apierrors.IsNotFound(err) {
-		tCtx.Fatalf("expected 'resource not found' error, got %v", err)
-	}
+	assert.NotEmpty(tCtx, pod.Spec.ResourceClaims, "should store resource claims in pod spec")
 }
 
 // testConvert creates a claim using a one API version and reads it with another.
@@ -113,14 +99,6 @@ func testResourceSliceFieldSelectors(tCtx ktesting.TContext) {
 			poolNameField: resourceapi.ResourceSliceSelectorPoolName,
 			list: func(tCtx ktesting.TContext, options metav1.ListOptions) (runtime.Object, error) {
 				return tCtx.Client().ResourceV1().ResourceSlices().List(tCtx, options)
-			},
-		},
-		"v1beta1": {
-			driverField:   resourcev1beta1.ResourceSliceSelectorDriver,
-			nodeNameField: resourcev1beta1.ResourceSliceSelectorNodeName,
-			poolNameField: resourcev1beta1.ResourceSliceSelectorPoolName,
-			list: func(tCtx ktesting.TContext, options metav1.ListOptions) (runtime.Object, error) {
-				return tCtx.Client().ResourceV1beta1().ResourceSlices().List(tCtx, options)
 			},
 		},
 		"v1beta2": {
@@ -564,7 +542,12 @@ func testPublishResourceSlices(tCtx ktesting.TContext, haveLatestAPI bool, disab
 
 		controller, err := resourceslice.StartController(tCtx, opts)
 		tCtx.ExpectNoError(err, "start controller")
-		tCtx.Cleanup(controller.Stop)
+		// The controller must be stopped before tCtx gets canceled at the
+		// end of the (sub-)test, otherwise in-flight requests get aborted
+		// with a "context canceled" error which the ErrorHandler above
+		// treats as unexpected. Callers must "defer controller.Stop()"
+		// themselves instead of relying on tCtx.Cleanup, whose callbacks
+		// only run *after* automatic cancellation.
 
 		numSlices := 0
 		for _, pool := range resources.Pools {
@@ -583,6 +566,7 @@ func testPublishResourceSlices(tCtx ktesting.TContext, haveLatestAPI bool, disab
 
 	runSubTest(tCtx, "create", func(tCtx ktesting.TContext) {
 		controller, getStats, expectedStats := setup(tCtx, resources)
+		defer controller.Stop()
 		tCtx.Eventually(getStats).WithTimeout(syncDelay + 5*time.Second).Should(gomega.Equal(expectedStats))
 		expectSlices(tCtx, expectedSliceSpecs)
 		tCtx.Consistently(getStats).WithTimeout(quiesencePeriod).Should(gomega.Equal(expectedStats))
@@ -613,7 +597,8 @@ func testPublishResourceSlices(tCtx ktesting.TContext, haveLatestAPI bool, disab
 	}
 
 	runSubTest(tCtx, "recreate-after-delete", func(tCtx ktesting.TContext) {
-		_, getStats, expectedStats := setup(tCtx, resources)
+		controller, getStats, expectedStats := setup(tCtx, resources)
+		defer controller.Stop()
 		tCtx.Eventually(getStats).WithTimeout(syncDelay + 5*time.Second).Should(gomega.Equal(expectedStats))
 		expectSlices(tCtx, expectedSliceSpecs)
 		tCtx.Consistently(getStats).WithTimeout(quiesencePeriod).Should(gomega.Equal(expectedStats))
@@ -631,7 +616,8 @@ func testPublishResourceSlices(tCtx ktesting.TContext, haveLatestAPI bool, disab
 	})
 
 	runSubTest(tCtx, "fix-after-update", func(tCtx ktesting.TContext) {
-		_, getStats, expectedStats := setup(tCtx, resources)
+		controller, getStats, expectedStats := setup(tCtx, resources)
+		defer controller.Stop()
 		tCtx.Eventually(getStats).WithTimeout(syncDelay + 5*time.Second).Should(gomega.Equal(expectedStats))
 		expectSlices(tCtx, expectedSliceSpecs)
 		tCtx.Consistently(getStats).WithTimeout(quiesencePeriod).Should(gomega.Equal(expectedStats))
@@ -690,7 +676,8 @@ func testPublishResourceSlices(tCtx ktesting.TContext, haveLatestAPI bool, disab
 		}
 		slice, err := tCtx.Client().ResourceV1().ResourceSlices().Create(tCtx, slice, metav1.CreateOptions{})
 		tCtx.ExpectNoError(err, "create slice")
-		_, getStats, expectedStats := setup(tCtx, resources)
+		controller, getStats, expectedStats := setup(tCtx, resources)
+		defer controller.Stop()
 		expectedStats.NumCreates = 0
 		expectedStats.NumUpdates = 1
 		tCtx.Eventually(getStats).WithTimeout(syncDelay + 5*time.Second).Should(gomega.Equal(expectedStats))
@@ -755,7 +742,6 @@ func testControllerManagerMetrics(tCtx ktesting.TContext) {
 	// Start the controller (this will run in background and stop when tCtx is cancelled)
 	var wg sync.WaitGroup
 	tCtx.Cleanup(func() {
-		tCtx.Cancel("test is done")
 		wg.Wait()
 	})
 	wg.Go(runResourceClaimController)

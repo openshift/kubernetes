@@ -16,11 +16,13 @@ limitations under the License.
 
 // Package podcertificaterequest provides Registry interface and its RESTStorage
 // implementation for storing PodCertificateRequest objects.
-package podcertificaterequest // import "k8s.io/kubernetes/pkg/registry/certificates/podcertificaterequest"
+package podcertificaterequest
 
 import (
 	"context"
 	"fmt"
+
+	"sigs.k8s.io/structured-merge-diff/v7/fieldpath"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +38,6 @@ import (
 	certvalidation "k8s.io/kubernetes/pkg/apis/certificates/validation"
 	"k8s.io/kubernetes/pkg/certauthorization"
 	"k8s.io/utils/clock"
-	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 )
 
 // strategy implements behavior for PodCertificateRequests.
@@ -62,6 +63,7 @@ func (s *Strategy) NamespaceScoped() bool {
 
 func (s *Strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	req := obj.(*certificates.PodCertificateRequest)
+	req.Generation = 1
 	req.Status = certificates.PodCertificateRequestStatus{}
 }
 
@@ -83,6 +85,7 @@ func (s *Strategy) AllowCreateOnUpdate(ctx context.Context) bool {
 func (s *Strategy) PrepareForUpdate(ctx context.Context, new, old runtime.Object) {
 	newReq := new.(*certificates.PodCertificateRequest)
 	oldReq := old.(*certificates.PodCertificateRequest)
+	// spec is immutable, no generation update makes sense
 	newReq.Status = oldReq.Status
 }
 

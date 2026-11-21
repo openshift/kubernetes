@@ -41,10 +41,15 @@ func init() {
 			},
 			"metadata.generation": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
+				{ErrorType: "FieldValueInvalid", Origin: "monotonic"},
+				{ErrorType: "FieldValueInvalid", Origin: "update"},
 			},
 			"metadata.managedFields[*].operation": {
 				{ErrorType: "FieldValueNotSupported"},
 				{ErrorType: "FieldValueRequired"},
+			},
+			"metadata.namespace": {
+				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
 			"metadata.ownerReferences[*].apiVersion": {
 				{ErrorType: "FieldValueRequired"},
@@ -71,13 +76,11 @@ func init() {
 				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 			},
 			"spec.preemptionPolicy": {
-				{ErrorType: "FieldValueForbidden"},
 				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 				{ErrorType: "FieldValueNotSupported"},
 			},
 			"spec.priority": {
 				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
-				{ErrorType: "FieldValueInvalid", Origin: "maximum"},
 			},
 			"spec.priorityClassName": {
 				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-long-name"},
@@ -94,7 +97,6 @@ func init() {
 				{ErrorType: "FieldValueRequired"},
 			},
 			"spec.schedulingPolicy": {
-				{ErrorType: "FieldValueInvalid", Origin: "immutable"},
 				{ErrorType: "FieldValueInvalid", Origin: "union"},
 			},
 			"spec.schedulingPolicy.basic": {
@@ -122,6 +124,9 @@ func init() {
 			"status.conditions[*]": {
 				{ErrorType: "FieldValueDuplicate"},
 			},
+			"status.conditions[*].message": {
+				{ErrorType: "FieldValueTooLong", Origin: "maxBytes"},
+			},
 			"status.conditions[*].observedGeneration": {
 				{ErrorType: "FieldValueInvalid", Origin: "minimum"},
 			},
@@ -134,6 +139,7 @@ func init() {
 				{ErrorType: "FieldValueRequired"},
 			},
 			"status.conditions[*].type": {
+				{ErrorType: "FieldValueInvalid", Origin: "format=k8s-label-key"},
 				{ErrorType: "FieldValueRequired"},
 			},
 		},

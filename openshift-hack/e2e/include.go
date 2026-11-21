@@ -30,8 +30,8 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/windows"
 
 	// reconfigure framework
+	_ "k8s.io/ktesting/format"
 	_ "k8s.io/kubernetes/test/e2e/framework/debug/init"
 	_ "k8s.io/kubernetes/test/e2e/framework/metrics/init"
 	_ "k8s.io/kubernetes/test/e2e/framework/node/init"
-	_ "k8s.io/kubernetes/test/utils/ktesting/format"
 )

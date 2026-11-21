@@ -315,7 +315,10 @@ func (c *csiDriverClient) NodeExpandVolume(ctx context.Context, opts csiResizeOp
 		return opts.newSize, errors.New("missing volume path")
 	}
 
-	if opts.newSize.Value() < 0 {
+	// Use Sign rather than Value to test for a negative size. Value can overflow
+	// an int64, and on overflow it does not preserve the sign, so a negative
+	// quantity such as "-9.5Gi" reports a positive Value and slips past the check.
+	if opts.newSize.Sign() < 0 {
 		return opts.newSize, errors.New("size can not be less than 0")
 	}
 
@@ -733,6 +736,8 @@ func (c *csiDriverClient) NodeGetStorageHealth(ctx context.Context, secrets map[
 	return mapStorageBackendHealth(resp.GetBackendHealth())
 }
 
+const maxVolumeHealthConditions = 16
+
 func mapVolumeHealthConditions(vh *csipbv1.VolumeHealth) []api.VolumeHealthCondition {
 	if vh == nil {
 		return nil
@@ -741,7 +746,12 @@ func mapVolumeHealthConditions(vh *csipbv1.VolumeHealth) []api.VolumeHealthCondi
 	if len(entries) == 0 {
 		return nil
 	}
-	out := make([]api.VolumeHealthCondition, 0, len(entries))
+	out := make([]api.VolumeHealthCondition, 0, min(len(entries), maxVolumeHealthConditions))
+	type conditionKey struct {
+		status api.VolumeHealthStatusType
+		reason string
+	}
+	seen := make(map[conditionKey]struct{}, len(entries))
 	for _, entry := range entries {
 		if entry == nil {
 			continue
@@ -750,11 +760,19 @@ func mapVolumeHealthConditions(vh *csipbv1.VolumeHealth) []api.VolumeHealthCondi
 		if !ok {
 			continue
 		}
+		key := conditionKey{status: status, reason: entry.GetReason()}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
 		out = append(out, api.VolumeHealthCondition{
 			Status:  status,
 			Reason:  entry.GetReason(),
 			Message: entry.GetMessage(),
 		})
+		if len(out) == maxVolumeHealthConditions {
+			break
+		}
 	}
 	return out
 }

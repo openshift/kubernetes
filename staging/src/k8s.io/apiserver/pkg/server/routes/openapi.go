@@ -25,6 +25,7 @@ import (
 	"k8s.io/apiserver/pkg/server/mux"
 	builder2 "k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/builder3"
+	"k8s.io/kube-openapi/pkg/cached"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/handler"
@@ -39,8 +40,17 @@ type OpenAPI struct {
 	V3Config *common.OpenAPIV3Config
 }
 
-// Install adds the SwaggerUI webservice to the given mux.
-func (oa OpenAPI) InstallV2(c *restful.Container, mux *mux.PathRecorderMux) (*handler.OpenAPIService, *spec.Swagger) {
+// InstallV2 adds the /openapi/v2 endpoint to the given mux without building
+// the spec. The returned source builds it on its first Get, which is the first
+// request to the endpoint unless a caller gets it earlier. The result is kept,
+// including an error: the build depends only on the registered routes and the
+// config, so a broken spec is reported once and the endpoint then serves 503.
+func (oa OpenAPI) InstallV2(c *restful.Container, mux *mux.PathRecorderMux) (*handler.OpenAPIService, cached.Value[*spec.Swagger]) {
+	// The builder fills in defaults on the config it is given. Servers in a
+	// delegation chain share one config, and with lazy building their builds
+	// are no longer sequential, so each build works on its own copy.
+	config := *oa.Config
+
 	// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints
 	// with a CRD. This loop removes all CRQ,RBR, SCC paths
 	// from the OpenAPI spec such that they don't conflict with the CRD
@@ -53,28 +63,30 @@ func (oa OpenAPI) InstallV2(c *restful.Container, mux *mux.PathRecorderMux) (*ha
 		"/apis/authorization.openshift.io/v1/watch/namespaces/{namespace}/rolebindingrestrictions",
 		"/apis/authorization.openshift.io/v1/watch/rolebindingrestrictions")
 
-	spec, err := builder2.BuildOpenAPISpecFromRoutes(restfuladapter.AdaptWebServices(c.RegisteredWebServices()), oa.Config)
-	if err != nil {
-		klog.Fatalf("Failed to build open api spec for root: %v", err)
-	}
-
-	// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints
-	// with a CRD. This loop removes all CRQ,RBR, SCC paths
-	// from the OpenAPI spec such that they don't conflict with the CRD
-	// apiextensions-apiserver spec during merging.
-	for pth := range spec.Paths.Paths {
-		if strings.HasPrefix(pth, "/apis/quota.openshift.io/v1/clusterresourcequotas") ||
-			strings.Contains(pth, "rolebindingrestrictions") ||
-			strings.HasPrefix(pth, "/apis/security.openshift.io/v1/securitycontextconstraints") {
-			delete(spec.Paths.Paths, pth)
+	source := cached.Once(cached.Func(func() (*spec.Swagger, string, error) {
+		spec, err := builder2.BuildOpenAPISpecFromRoutes(restfuladapter.AdaptWebServices(c.RegisteredWebServices()), &config)
+		if err != nil {
+			klog.Errorf("Failed to build OpenAPI v2 spec: %v", err)
+			return nil, "", err
 		}
-	}
-
-	spec.Definitions = handler.PruneDefaults(spec.Definitions)
-	openAPIVersionedService := handler.NewOpenAPIService(spec)
+		// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints
+		// with a CRD. This loop removes all CRQ,RBR, SCC paths
+		// from the OpenAPI spec such that they don't conflict with the CRD
+		// apiextensions-apiserver spec during merging.
+		for pth := range spec.Paths.Paths {
+			if strings.HasPrefix(pth, "/apis/quota.openshift.io/v1/clusterresourcequotas") ||
+				strings.Contains(pth, "rolebindingrestrictions") ||
+				strings.HasPrefix(pth, "/apis/security.openshift.io/v1/securitycontextconstraints") {
+				delete(spec.Paths.Paths, pth)
+			}
+		}
+		spec.Definitions = handler.PruneDefaults(spec.Definitions)
+		return spec, "openapi-v2-static", nil
+	}))
+	openAPIVersionedService := handler.NewOpenAPIServiceLazy(source)
 	openAPIVersionedService.RegisterOpenAPIVersionedService("/openapi/v2", mux)
 
-	return openAPIVersionedService, spec
+	return openAPIVersionedService, source
 }
 
 // InstallV3 adds the static group/versions defined in the RegisteredWebServices to the OpenAPI v3 spec.

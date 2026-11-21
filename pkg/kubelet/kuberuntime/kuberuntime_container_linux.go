@@ -187,9 +187,9 @@ func (m *kubeGenericRuntimeManager) generateLinuxContainerResources(ctx context.
 
 	// If pod has exclusive cpu and the container in question has integer cpu requests
 	// the cfs quota will not be enforced
-	disableCPUQuota := utilfeature.DefaultFeatureGate.Enabled(kubefeatures.DisableCPUQuotaWithExclusiveCPUs) && m.containerManager.ContainerHasExclusiveCPUs(logger, pod, container)
-	logger.V(5).Info("Enforcing CFS quota", "pod", klog.KObj(pod), "unlimited", disableCPUQuota)
-	lcr := m.calculateLinuxResources(cpuRequest, cpuLimit, memoryLimit, disableCPUQuota)
+	hasExclusiveCPUs := m.containerManager.ContainerHasExclusiveCPUs(logger, pod, container)
+	logger.V(5).Info("Enforcing CFS quota", "pod", klog.KObj(pod), "unlimited", hasExclusiveCPUs)
+	lcr := m.calculateLinuxResources(cpuRequest, cpuLimit, memoryLimit, hasExclusiveCPUs)
 
 	lcr.OomScoreAdj = int64(qos.GetContainerOOMScoreAdjust(pod, container,
 		int64(m.machineInfo.MemoryCapacity)))
@@ -305,7 +305,7 @@ func (m *kubeGenericRuntimeManager) configureContainerSwapResources(ctx context.
 func (m *kubeGenericRuntimeManager) GetContainerSwapBehavior(pod *v1.Pod, container *v1.Container) types.SwapBehavior {
 	c := types.SwapBehavior(m.memorySwapBehavior)
 	if c == types.LimitedSwap {
-		if !utilfeature.DefaultFeatureGate.Enabled(kubefeatures.NodeSwap) || !m.getSwapControllerAvailable() {
+		if !m.getSwapControllerAvailable() {
 			return types.NoSwap
 		}
 
@@ -352,7 +352,7 @@ func (m *kubeGenericRuntimeManager) generateUpdatePodSandboxResourcesRequest(san
 }
 
 // calculateLinuxResources will create the linuxContainerResources type based on the provided CPU and memory resource requests, limits
-func (m *kubeGenericRuntimeManager) calculateLinuxResources(cpuRequest, cpuLimit, memoryLimit *resource.Quantity, disableCPUQuota bool) *runtimeapi.LinuxContainerResources {
+func (m *kubeGenericRuntimeManager) calculateLinuxResources(cpuRequest, cpuLimit, memoryLimit *resource.Quantity, hasExclusiveCPUs bool) *runtimeapi.LinuxContainerResources {
 	resources := runtimeapi.LinuxContainerResources{}
 	var cpuShares int64
 
@@ -384,7 +384,8 @@ func (m *kubeGenericRuntimeManager) calculateLinuxResources(cpuRequest, cpuLimit
 		}
 		cpuQuota := cm.MilliCPUToQuota(cpuLimit.MilliValue(), cpuPeriod)
 		resources.CpuQuota = cpuQuota
-		if disableCPUQuota {
+		// If pod has exclusive cpu the sandbox will not have cfs quota enforced
+		if hasExclusiveCPUs {
 			resources.CpuQuota = int64(-1)
 		}
 		resources.CpuPeriod = cpuPeriod
