@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
@@ -60,6 +61,80 @@ func waitForPersistentVolumeClaimDeleted(ctx context.Context, c clientset.Interf
 	return fmt.Errorf("PersistentVolumeClaim %s is not removed from the system within %v", pvcName, timeout)
 }
 
+// pvcProtectionPodRef pairs a pod with the role it plays in the PVC protection
+// specs. The role is the part the framework's namespace dump cannot supply:
+// that dump lists every pod in the namespace, but nothing in it says which pod
+// holds the claim and which one was expected to stay unschedulable.
+type pvcProtectionPodRef struct {
+	role string
+	pod  *v1.Pod
+}
+
+// logPVCProtectionFailureState records the claim and pod state that explains a
+// PVC protection failure.
+//
+// The specs delete the claim in their own AfterEach, which Ginkgo runs before
+// the framework's namespace dump, so the claim state that distinguishes "the
+// protection finalizer was dropped" from "the pod was scheduled anyway" never
+// reaches the CI artifacts. Call this before deleting anything.
+//
+// Every retrieval error is logged and then ignored: this runs on a path that is
+// already failing and must not replace the original assertion failure.
+func logPVCProtectionFailureState(ctx context.Context, c clientset.Interface, ns, pvcName string, pods ...pvcProtectionPodRef) {
+	framework.Logf("PVC protection diagnostics for namespace %q:", ns)
+	logPVCProtectionClaimState(ctx, c, ns, pvcName)
+	for _, ref := range pods {
+		logPVCProtectionPodState(ctx, c, ns, ref)
+	}
+}
+
+func logPVCProtectionClaimState(ctx context.Context, c clientset.Interface, ns, pvcName string) {
+	claim, err := c.CoreV1().PersistentVolumeClaims(ns).Get(ctx, pvcName, metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("  claim %q: %s", pvcName, pvcProtectionRetrievalError(err))
+		return
+	}
+	framework.Logf("  claim %q: uid=%s resourceVersion=%s phase=%s deletionTimestamp=%v finalizers=%v",
+		claim.Name, claim.UID, claim.ResourceVersion, claim.Status.Phase,
+		claim.DeletionTimestamp, claim.Finalizers)
+}
+
+func logPVCProtectionPodState(ctx context.Context, c clientset.Interface, ns string, ref pvcProtectionPodRef) {
+	if ref.pod == nil {
+		framework.Logf("  %s pod: not created", ref.role)
+		return
+	}
+	pod, err := c.CoreV1().Pods(ns).Get(ctx, ref.pod.Name, metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("  %s pod %q: %s", ref.role, ref.pod.Name, pvcProtectionRetrievalError(err))
+		return
+	}
+	framework.Logf("  %s pod %q: uid=%s node=%q phase=%s %s",
+		ref.role, pod.Name, pod.UID, pod.Spec.NodeName, pod.Status.Phase,
+		pvcProtectionPodScheduled(pod))
+}
+
+// pvcProtectionRetrievalError describes why an object could not be reported on.
+// An object that is simply gone is a diagnostic result in its own right, so it
+// is not reported as a failure of the diagnostics.
+func pvcProtectionRetrievalError(err error) string {
+	if apierrors.IsNotFound(err) {
+		return "already deleted"
+	}
+	return fmt.Sprintf("unable to retrieve: %v", err)
+}
+
+// pvcProtectionPodScheduled renders the PodScheduled condition of pod, which is
+// the condition that says whether the scheduler accepted or rejected the pod
+// and why. pod must not be nil.
+func pvcProtectionPodScheduled(pod *v1.Pod) string {
+	_, cond := podutil.GetPodCondition(&pod.Status, v1.PodScheduled)
+	if cond == nil {
+		return "PodScheduled=<absent>"
+	}
+	return fmt.Sprintf("PodScheduled=%s reason=%q message=%q", cond.Status, cond.Reason, cond.Message)
+}
+
 var _ = utils.SIGDescribe("PVC Protection", func() {
 	var (
 		client                  clientset.Interface
@@ -68,6 +143,10 @@ var _ = utils.SIGDescribe("PVC Protection", func() {
 		pvc                     *v1.PersistentVolumeClaim
 		pvcCreatedAndNotDeleted bool
 		pod                     *v1.Pod
+		// unschedulablePod is the second pod of the Unschedulable spec. It is
+		// kept here so that AfterEach can report on it even when the spec fails
+		// before it can be deleted.
+		unschedulablePod *v1.Pod
 	)
 
 	f := framework.NewDefaultFramework("pvc-protection")
@@ -75,6 +154,11 @@ var _ = utils.SIGDescribe("PVC Protection", func() {
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		client = f.ClientSet
 		nameSpace = f.Namespace.Name
+		// Both pods belong to the namespace of a single spec. Clear them so
+		// that a BeforeEach failure cannot make the diagnostics below report on
+		// pods from the previous, already destroyed namespace.
+		pod = nil
+		unschedulablePod = nil
 		framework.ExpectNoError(e2enode.WaitForAllNodesSchedulable(ctx, client, f.Timeouts.NodeSchedulable))
 
 		ginkgo.By("Creating a PVC")
@@ -109,6 +193,18 @@ var _ = utils.SIGDescribe("PVC Protection", func() {
 	})
 
 	ginkgo.AfterEach(func(ctx context.Context) {
+		// Capture the claim and pod state before the claim is deleted below:
+		// afterwards neither this AfterEach nor the framework's namespace dump
+		// can still observe it.
+		if pvcCreatedAndNotDeleted && ginkgo.CurrentSpecReport().Failed() {
+			pods := []pvcProtectionPodRef{{role: "claim holder", pod: pod}}
+			// Only the Unschedulable spec creates a second pod; reporting it as
+			// missing in the other specs would read like a failure signal.
+			if unschedulablePod != nil {
+				pods = append(pods, pvcProtectionPodRef{role: "unschedulable", pod: unschedulablePod})
+			}
+			logPVCProtectionFailureState(ctx, client, nameSpace, pvc.Name, pods...)
+		}
 		if pvcCreatedAndNotDeleted {
 			e2epv.DeletePersistentVolumeClaim(ctx, client, pvc.Name, nameSpace)
 		}
@@ -157,6 +253,10 @@ var _ = utils.SIGDescribe("PVC Protection", func() {
 
 		ginkgo.By("Creating second Pod whose scheduling fails because it uses a PVC that is being deleted")
 		secondPod, err2 := e2epod.CreateUnschedulablePod(ctx, client, nameSpace, nil, []*v1.PersistentVolumeClaim{pvc}, f.NamespacePodSecurityLevel, "")
+		// Record the pod before asserting: it is returned even when the wait
+		// for Unschedulable fails, and that is exactly the case AfterEach needs
+		// to report on.
+		unschedulablePod = secondPod
 		framework.ExpectNoError(err2, "While creating second pod that uses a PVC that is being deleted and that is Unschedulable")
 
 		ginkgo.By("Deleting the second pod that uses the PVC that is being deleted")
