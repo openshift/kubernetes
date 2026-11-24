@@ -51,6 +51,9 @@ func TestWithAuditInitGeneratesValidUUIDv4(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generated audit ID %q is not a valid UUID: %v", auditIDGot, err)
 	}
+	if parsed.String() != auditIDGot {
+		t.Errorf("generated audit ID %q is not in canonical UUID form", auditIDGot)
+	}
 	if parsed.Version() != 4 {
 		t.Errorf("expected UUID version 4, got %d", parsed.Version())
 	}
@@ -61,6 +64,13 @@ func TestWithAuditInitGeneratesValidUUIDv4(t *testing.T) {
 	echoed := w.Header().Get("Audit-ID")
 	if echoed != auditIDGot {
 		t.Errorf("Audit-ID response header %q doesn't match context value %q", echoed, auditIDGot)
+	}
+}
+
+func BenchmarkNewAuditID(b *testing.B) {
+	b.ReportAllocs()
+	for b.Loop() {
+		newAuditID()
 	}
 }
 

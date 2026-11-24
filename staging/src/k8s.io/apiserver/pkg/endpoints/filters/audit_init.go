@@ -28,21 +28,16 @@ import (
 	"github.com/google/uuid"
 )
 
-// nonCryptoRandReader is an io.Reader backed by math/rand/v2 for generating
-// audit IDs without going through crypto/rand (which is expensive in FIPS mode).
-type nonCryptoRandReader struct{}
-
-func (nonCryptoRandReader) Read(b []byte) (int, error) {
-	for i := 0; i+8 <= len(b); i += 8 {
-		binary.NativeEndian.PutUint64(b[i:], rand.Uint64())
-	}
-	// handle trailing bytes
-	if tail := len(b) % 8; tail > 0 {
-		var buf [8]byte
-		binary.NativeEndian.PutUint64(buf[:], rand.Uint64())
-		copy(b[len(b)-tail:], buf[:tail])
-	}
-	return len(b), nil
+func newAuditID() string {
+	// Audit IDs are only for correlation. Avoid competing with TLS for
+	// cryptographic randomness, especially in OpenSSL-backed FIPS builds.
+	var id uuid.UUID
+	binary.LittleEndian.PutUint64(id[:8], rand.Uint64())
+	binary.LittleEndian.PutUint64(id[8:], rand.Uint64())
+	// Preserve the UUIDv4 version and RFC variant bits expected by consumers.
+	id[6] = (id[6] & 0x0f) | 0x40
+	id[8] = (id[8] & 0x3f) | 0x80
+	return id.String()
 }
 
 // WithAuditInit initializes the audit context and attaches the Audit-ID associated with a request.
@@ -50,12 +45,7 @@ func (nonCryptoRandReader) Read(b []byte) (int, error) {
 // a. If the caller does not specify a value for Audit-ID in the request header, we generate a new audit ID
 // b. We echo the Audit-ID value to the caller via the response Header 'Audit-ID'.
 func WithAuditInit(handler http.Handler) http.Handler {
-	// Audit IDs are correlation tokens, not security-sensitive. Use non-crypto
-	// randomness to avoid expensive FIPS-mode crypto/rand on every request.
-	reader := nonCryptoRandReader{}
-	return withAuditInit(handler, func() string {
-		return uuid.Must(uuid.NewRandomFromReader(reader)).String()
-	})
+	return withAuditInit(handler, newAuditID)
 }
 
 func withAuditInit(handler http.Handler, newAuditIDFunc func() string) http.Handler {
