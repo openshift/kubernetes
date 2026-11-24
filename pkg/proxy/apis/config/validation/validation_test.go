@@ -28,6 +28,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/version"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	componentbaseconfig "k8s.io/component-base/config"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
@@ -962,10 +963,11 @@ func TestValidateDualStackCIDRStrings(t *testing.T) {
 func TestValidateV1Alpha1FieldPaths(t *testing.T) {
 	negativeDuration := metav1.Duration{Duration: -time.Second}
 	for _, tc := range []struct {
-		name           string
-		mutate         func(*kubeproxyconfigv1alpha1.KubeProxyConfiguration)
-		expectedFields []string
-		linuxOnly      bool
+		name             string
+		emulationVersion string
+		mutate           func(*kubeproxyconfigv1alpha1.KubeProxyConfiguration)
+		expectedFields   []string
+		linuxOnly        bool
 	}{
 		{
 			name: "addresses and iptables",
@@ -1012,9 +1014,10 @@ func TestValidateV1Alpha1FieldPaths(t *testing.T) {
 			linuxOnly:      true,
 		},
 		{
-			name: "other top level fields",
+			name:             "other top level fields",
+			emulationVersion: "1.38",
 			mutate: func(config *kubeproxyconfigv1alpha1.KubeProxyConfiguration) {
-				config.FeatureGates = map[string]bool{"UnknownFeature": true}
+				config.FeatureGates = map[string]bool{"StrictIPCIDRValidation": false}
 				config.ClientConnection.Burst = -1
 				config.ConfigSyncPeriod = negativeDuration
 				config.Mode = "invalid"
@@ -1059,6 +1062,11 @@ func TestValidateV1Alpha1FieldPaths(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.linuxOnly && runtime.GOOS == "windows" {
 				t.Skip("Proxy mode is not supported on Windows")
+			}
+			if tc.emulationVersion != "" {
+				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(
+					t, utilfeature.DefaultFeatureGate, version.MustParse(tc.emulationVersion),
+				)
 			}
 			config := &kubeproxyconfigv1alpha1.KubeProxyConfiguration{}
 			scheme.Scheme.Default(config)
