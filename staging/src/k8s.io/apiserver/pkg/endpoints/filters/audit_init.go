@@ -17,6 +17,8 @@ limitations under the License.
 package filters
 
 import (
+	"encoding/binary"
+	"math/rand/v2"
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -26,14 +28,24 @@ import (
 	"github.com/google/uuid"
 )
 
+func newAuditID() string {
+	// Audit IDs are only for correlation. Avoid competing with TLS for
+	// cryptographic randomness, especially in OpenSSL-backed FIPS builds.
+	var id uuid.UUID
+	binary.LittleEndian.PutUint64(id[:8], rand.Uint64())
+	binary.LittleEndian.PutUint64(id[8:], rand.Uint64())
+	// Preserve the UUIDv4 version and RFC variant bits expected by consumers.
+	id[6] = (id[6] & 0x0f) | 0x40
+	id[8] = (id[8] & 0x3f) | 0x80
+	return id.String()
+}
+
 // WithAuditInit initializes the audit context and attaches the Audit-ID associated with a request.
 //
 // a. If the caller does not specify a value for Audit-ID in the request header, we generate a new audit ID
 // b. We echo the Audit-ID value to the caller via the response Header 'Audit-ID'.
 func WithAuditInit(handler http.Handler) http.Handler {
-	return withAuditInit(handler, func() string {
-		return uuid.New().String()
-	})
+	return withAuditInit(handler, newAuditID)
 }
 
 func withAuditInit(handler http.Handler, newAuditIDFunc func() string) http.Handler {
