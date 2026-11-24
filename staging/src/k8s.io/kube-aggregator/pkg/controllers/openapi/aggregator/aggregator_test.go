@@ -616,7 +616,7 @@ func TestOpenAPIRequestMetrics(t *testing.T) {
 	if err := testutil.GatherAndCompare(legacyregistry.DefaultGatherer, strings.NewReader(`
 # HELP apiserver_request_total [STABLE] Counter of apiserver requests broken out for each verb, dry run value, group, version, resource, scope, component, and HTTP response code.
 # TYPE apiserver_request_total counter
-apiserver_request_total{code="200",component="",dry_run="",group="",resource="",scope="",subresource="openapi/v2",verb="GET",version=""} 1
+apiserver_request_total{code="200",component="",dry_run="",group="",resource="",scope="",subresource="openapi/v2",system_client="",verb="GET",version=""} 1
 `), "apiserver_request_total"); err != nil {
 		t.Fatal(err)
 	}
