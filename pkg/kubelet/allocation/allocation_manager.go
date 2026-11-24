@@ -116,6 +116,9 @@ type Manager interface {
 
 	// RetryPendingResizes retries all pending resizes.
 	RetryPendingResizes(trigger string)
+
+	// HasPodAllocatedResources returns whether a pod has been allocated resources.
+	HasPodAllocatedResources(podUID types.UID) bool
 }
 
 type manager struct {
@@ -488,6 +491,12 @@ func updatePodFromAllocation(pod *v1.Pod, allocated state.PodResourceInfo) (*v1.
 	return pod, updated
 }
 
+// HasPodAllocatedResources returns whether a pod has been allocated resources.
+func (m *manager) HasPodAllocatedResources(podUID types.UID) bool {
+	_, allocated := m.allocated.GetPodResourceInfo(podUID)
+	return allocated
+}
+
 // SetAllocatedResources checkpoints the resources allocated to a pod's containers
 func (m *manager) SetAllocatedResources(pod *v1.Pod) error {
 	return m.allocated.SetPodResourceInfo(pod.UID, allocationFromPod(pod))
@@ -754,9 +763,14 @@ func (m *manager) getAllocatedPods(activePods []*v1.Pod) []*v1.Pod {
 		return activePods
 	}
 
-	allocatedPods := make([]*v1.Pod, len(activePods))
-	for i, pod := range activePods {
-		allocatedPods[i], _ = m.UpdatePodFromAllocation(pod)
+	allocatedPods := make([]*v1.Pod, 0, len(activePods))
+	for _, pod := range activePods {
+		// Filter out pods that don't yet have an allocation, which will filter pods that
+		// are potentially going to be denied at admission.
+		if m.HasPodAllocatedResources(pod.UID) {
+			allocatedPod, _ := m.UpdatePodFromAllocation(pod)
+			allocatedPods = append(allocatedPods, allocatedPod)
+		}
 	}
 	return allocatedPods
 }
