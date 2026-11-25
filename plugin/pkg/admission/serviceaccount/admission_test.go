@@ -188,6 +188,7 @@ func TestAssignsDefaultServiceAccountAndBoundTokenWithNoSecretTokens(t *testing.
 					{ServiceAccountToken: &api.ServiceAccountTokenProjection{ExpirationSeconds: ptr.To[int64](3607), Path: "token"}},
 					{ClusterTrustBundle: &api.ClusterTrustBundleProjection{SignerName: new("kubernetes.io/kube-apiserver-serving"), LabelSelector: &metav1.LabelSelector{}, Path: "ca.crt"}},
 					{DownwardAPI: &api.DownwardAPIProjection{Items: []api.DownwardAPIVolumeFile{{Path: "namespace", FieldRef: &api.ObjectFieldSelector{APIVersion: "v1", FieldPath: "metadata.namespace"}}}}},
+					{ConfigMap: &api.ConfigMapProjection{LocalObjectReference: api.LocalObjectReference{Name: "openshift-service-ca.crt"}, Items: []api.KeyToPath{{Key: "service-ca.crt", Path: "service-ca.crt"}}}},
 				},
 				DefaultMode: ptr.To[int32](0644),
 			},
