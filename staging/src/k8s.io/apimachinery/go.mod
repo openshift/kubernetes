@@ -18,7 +18,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.38.0
+	golang.org/x/net v0.49.0
 	golang.org/x/time v0.9.0
 	gopkg.in/evanphx/json-patch.v4 v4.12.0
 	gopkg.in/inf.v0 v0.9.1
@@ -47,9 +47,12 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
+replace (
+	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
+	golang.org/x/net => github.com/openshift-sustaining/net v0.50.0-sec.4
+)
