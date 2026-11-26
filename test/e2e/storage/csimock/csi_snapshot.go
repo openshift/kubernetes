@@ -270,6 +270,23 @@ var _ = utils.SIGDescribe("CSI Mock volume snapshot", func() {
 
 				_, snapshot := storageframework.CreateSnapshot(ctx, sDriver, m.config, storageframework.DynamicSnapshotDelete, pvc.Name, pvc.Namespace, f.Timeouts, parameters)
 				framework.ExpectNoError(err, "failed to create snapshot")
+
+				// The readiness wait inside GetSnapshotContentFromSnapshot below is where
+				// this test times out when the injected CreateSnapshot errors are not
+				// retried through. Record the sanitized state of the snapshot objects and
+				// of the CSI mock pods while they still exist. Registering this after the
+				// m.cleanup node above makes it run before that node, and it is read-only
+				// and best effort, so it neither owns nor changes any cleanup.
+				driverNamespace := ""
+				if m.config.DriverNamespace != nil {
+					driverNamespace = m.config.DriverNamespace.Name
+				}
+				ginkgo.DeferCleanup(func(ctx context.Context) {
+					logCSISnapshotFailureDiagnosticsIfFailed(ctx, ginkgo.CurrentSpecReport().Failed(),
+						m.config.Framework.DynamicClient, m.cs, snapshot.GetNamespace(), snapshot.GetName(), driverNamespace,
+						csiSnapshotDiagnosticReadTimeout, csiSnapshotDiagnosticBudget)
+				})
+
 				snapshotcontent := utils.GetSnapshotContentFromSnapshot(ctx, m.config.Framework.DynamicClient, snapshot, f.Timeouts.SnapshotCreate)
 				if annotations, ok = snapshotcontent.Object["metadata"].(map[string]interface{})["annotations"]; !ok {
 					framework.Failf("Unable to get volume snapshot content annotations")
