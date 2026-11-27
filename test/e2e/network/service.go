@@ -4398,8 +4398,18 @@ func execAffinityTestForSessionAffinityTimeout(ctx context.Context, f *framework
 	// try several times to avoid the probability that we hit the same pod twice
 	hosts := sets.NewString()
 	cmd := fmt.Sprintf(`curl -q -s --connect-timeout 2 http://%s/`, net.JoinHostPort(svcIP, strconv.Itoa(servicePort)))
+
+	// Diagnostics only; see service_affinity_timeout_diagnostics.go. Every
+	// iteration below runs the same command, so the kubectl builder's own log
+	// lines cannot be told apart; this labels them with an ordinal and a phase.
+	// Registered here, after the fixture cleanups above, so Ginkgo's
+	// first-in-last-out DeferCleanup ordering reports before those are torn down.
+	probes := startAffinityTimeoutDiagnostics(cs, ns, serviceName)
+
 	for i := 0; i < 10; i++ {
+		probes.probeStarted(i)
 		hostname, err := e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
+		probes.probeFinished(i, hostname, err)
 		if err == nil {
 			hosts.Insert(hostname)
 			if hosts.Len() > 1 {
