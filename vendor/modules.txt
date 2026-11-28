@@ -1325,17 +1325,25 @@ gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
+# k8s.io/api v0.0.0 => ./staging/src/k8s.io/api
+## explicit; go 1.27.0
 # k8s.io/api v0.38.0-beta.0 => ./staging/src/k8s.io/api
 ## explicit; go 1.27.0
 # k8s.io/apiextensions-api v0.38.0-beta.0 => ./staging/src/k8s.io/apiextensions-api
 ## explicit; go 1.27.0
 # k8s.io/apiextensions-apiserver v0.38.0-beta.0 => ./staging/src/k8s.io/apiextensions-apiserver
 ## explicit; go 1.27.0
+# k8s.io/apimachinery v0.0.0 => ./staging/src/k8s.io/apimachinery
+## explicit; go 1.27.0
 # k8s.io/apimachinery v0.38.0-beta.0 => ./staging/src/k8s.io/apimachinery
+## explicit; go 1.27.0
+# k8s.io/apiserver v0.0.0 => ./staging/src/k8s.io/apiserver
 ## explicit; go 1.27.0
 # k8s.io/apiserver v0.38.0-beta.0 => ./staging/src/k8s.io/apiserver
 ## explicit; go 1.27.0
 # k8s.io/cli-runtime v0.0.0 => ./staging/src/k8s.io/cli-runtime
+## explicit; go 1.27.0
+# k8s.io/client-go v0.0.0 => ./staging/src/k8s.io/client-go
 ## explicit; go 1.27.0
 # k8s.io/client-go v0.38.0-beta.0 => ./staging/src/k8s.io/client-go
 ## explicit; go 1.27.0
@@ -1343,11 +1351,19 @@ gopkg.in/yaml.v2
 ## explicit; go 1.27.0
 # k8s.io/cluster-bootstrap v0.0.0 => ./staging/src/k8s.io/cluster-bootstrap
 ## explicit; go 1.27.0
+# k8s.io/code-generator v0.0.0 => ./staging/src/k8s.io/code-generator
+## explicit; go 1.27.0
 # k8s.io/code-generator v0.38.0-beta.0 => ./staging/src/k8s.io/code-generator
+## explicit; go 1.27.0
+# k8s.io/component-base v0.0.0 => ./staging/src/k8s.io/component-base
 ## explicit; go 1.27.0
 # k8s.io/component-base v0.38.0-beta.0 => ./staging/src/k8s.io/component-base
 ## explicit; go 1.27.0
+# k8s.io/component-helpers v0.0.0 => ./staging/src/k8s.io/component-helpers
+## explicit; go 1.27.0
 # k8s.io/component-helpers v0.38.0-alpha.3 => ./staging/src/k8s.io/component-helpers
+## explicit; go 1.27.0
+# k8s.io/controller-manager v0.0.0 => ./staging/src/k8s.io/controller-manager
 ## explicit; go 1.27.0
 # k8s.io/controller-manager v0.32.1 => ./staging/src/k8s.io/controller-manager
 ## explicit; go 1.27.0
@@ -1358,6 +1374,8 @@ gopkg.in/yaml.v2
 # k8s.io/cri-streaming v0.0.0 => ./staging/src/k8s.io/cri-streaming
 ## explicit; go 1.27.0
 # k8s.io/csi-translation-lib v0.0.0 => ./staging/src/k8s.io/csi-translation-lib
+## explicit; go 1.27.0
+# k8s.io/dynamic-resource-allocation v0.0.0 => ./staging/src/k8s.io/dynamic-resource-allocation
 ## explicit; go 1.27.0
 # k8s.io/dynamic-resource-allocation v0.38.0-alpha.3 => ./staging/src/k8s.io/dynamic-resource-allocation
 ## explicit; go 1.27.0
@@ -1443,6 +1461,8 @@ k8s.io/kube-openapi/pkg/validation/validate
 # k8s.io/pod-security-admission v0.0.0 => ./staging/src/k8s.io/pod-security-admission
 ## explicit; go 1.27.0
 # k8s.io/sample-apiserver v0.0.0 => ./staging/src/k8s.io/sample-apiserver
+## explicit; go 1.27.0
+# k8s.io/streaming v0.0.0 => ./staging/src/k8s.io/streaming
 ## explicit; go 1.27.0
 # k8s.io/streaming v0.38.0-beta.0 => ./staging/src/k8s.io/streaming
 ## explicit; go 1.27.0
