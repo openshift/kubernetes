@@ -66,10 +66,10 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	metricsutil "k8s.io/component-base/metrics/testutil"
 	"k8s.io/controller-manager/pkg/informerfactory"
+	"k8s.io/ktesting"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	c "k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/garbagecollector/metrics"
-	"k8s.io/kubernetes/test/utils/ktesting"
 )
 
 type testRESTMapper struct {
@@ -230,7 +230,7 @@ func setupGC(t *testing.T, config *restclient.Config) garbageCollector {
 		t.Fatal(err)
 	}
 	stop := make(chan struct{})
-	sharedInformers.Start(stop)
+	sharedInformers.StartWithContext(ctx)
 	return garbageCollector{gc, stop}
 }
 
@@ -541,12 +541,12 @@ func TestProcessEvent(t *testing.T) {
 
 		dependencyGraphBuilder := &GraphBuilder{
 			informersStarted: alwaysStarted,
-			graphChanges:     workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[*event]()),
+			graphChanges:     workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[*event]()), //nolint:logcheck // Intentionally testing old API here.
 			uidToNode: &concurrentUIDToNode{
 				uidToNodeLock: sync.RWMutex{},
 				uidToNode:     make(map[types.UID]*node),
 			},
-			attemptToDelete:  workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[*node]()),
+			attemptToDelete:  workqueue.NewTypedRateLimitingQueue(workqueue.DefaultTypedControllerRateLimiter[*node]()), //nolint:logcheck // Intentionally testing old API here.
 			absentOwnerCache: NewReferenceCache(2),
 		}
 		for i := 0; i < len(scenario.events); i++ {
@@ -1039,10 +1039,9 @@ func TestGarbageCollectorSync(t *testing.T) {
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
 
 	var wg sync.WaitGroup
-	defer wg.Wait()
 
 	tCtx := ktesting.Init(t)
-	defer tCtx.Cancel("test has completed")
+	tCtx.Cleanup(wg.Wait)
 	logger := tCtx.Logger()
 
 	alwaysStarted := make(chan struct{})

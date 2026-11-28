@@ -53,6 +53,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	featuregatetesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/component-base/metrics/testutil"
+	"k8s.io/ktesting"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/history"
@@ -517,6 +518,80 @@ func RecreatesSucceededPodWithDeleteFailure(t *testing.T, set *apps.StatefulSet,
 	recreatesPod(t, set, invariants, v1.PodSucceeded, true)
 }
 
+func TestParallelScaleDownProcessesCondemnedPodsBeforeMissingReplicas(t *testing.T) {
+	set := burst(newStatefulSet(2))
+	client := fake.NewSimpleClientset(set)
+	om, _, ssc := setupController(client)
+
+	// Pod 0 is inside the desired range. Pod 1 is missing, while Pod 2
+	// is outside the desired range and should therefore be condemned.
+	for _, ordinal := range []int{0, 2} {
+		pod := newStatefulSetPod(set, ordinal)
+		pod.Status.Phase = v1.PodRunning
+		pod.Status.Conditions = []v1.PodCondition{
+			{
+				Type:   v1.PodReady,
+				Status: v1.ConditionTrue,
+			},
+		}
+		fakeResourceVersion(pod)
+
+		if err := om.podsIndexer.Add(pod); err != nil {
+			t.Fatalf("failed to add pod %s to indexer: %v", pod.Name, err)
+		}
+	}
+
+	// Simulate ResourceQuota preventing creation of missing Pod 1.
+	createErr := errors.New("exceeded quota")
+	om.SetCreateStatefulPodError(createErr, 1)
+
+	selector, err := metav1.LabelSelectorAsSelector(set.Spec.Selector)
+	if err != nil {
+		t.Fatalf("failed to create selector: %v", err)
+	}
+
+	pods, err := om.podsLister.Pods(set.Namespace).List(selector)
+	if err != nil {
+		t.Fatalf("failed to list pods: %v", err)
+	}
+
+	_, err = ssc.UpdateStatefulSet(
+		context.TODO(),
+		set,
+		pods,
+		time.Now(),
+	)
+	if err == nil || !strings.Contains(err.Error(), createErr.Error()) {
+		t.Fatalf("expected create error %v, got %v", createErr, err)
+	}
+
+	if got, want := om.deletePodTracker.requests, 1; got != want {
+		t.Fatalf(
+			"expected condemned pod to be deleted before replica creation failed: "+
+				"got %d delete requests, want %d",
+			got,
+			want,
+		)
+	}
+
+	if got, want := om.createPodTracker.requests, 1; got != want {
+		t.Fatalf(
+			"got %d create requests, want %d",
+			got,
+			want,
+		)
+	}
+
+	pods, err = om.podsLister.Pods(set.Namespace).List(selector)
+	if err != nil {
+		t.Fatalf("failed to list pods after update: %v", err)
+	}
+
+	if pod := findPodByOrdinal(pods, 2); pod != nil {
+		t.Fatalf("condemned pod %s was not deleted", pod.Name)
+	}
+}
+
 func CreatePodFailure(t *testing.T, set *apps.StatefulSet, invariants invariantFunc) {
 	client := fake.NewSimpleClientset(set)
 	om, _, ssc := setupController(client)
@@ -865,7 +940,7 @@ func TestStatefulSetControl_getSetRevisions(t *testing.T) {
 			set2.Status.CurrentRevision = rev0.Name
 			set2.Status.CollisionCount = new(int32)
 			rev2 := newRevisionOrDie(set2, 3)
-			tests := []struct {
+			type testcase struct {
 				name            string
 				existing        []*apps.ControllerRevision
 				set             *apps.StatefulSet
@@ -873,7 +948,8 @@ func TestStatefulSetControl_getSetRevisions(t *testing.T) {
 				expectedCurrent *apps.ControllerRevision
 				expectedUpdate  *apps.ControllerRevision
 				err             bool
-			}{
+			}
+			tests := []testcase{
 				{
 					name:            "creates initial revision",
 					existing:        nil,
@@ -911,18 +987,19 @@ func TestStatefulSetControl_getSetRevisions(t *testing.T) {
 					err:             false,
 				},
 			}
-			for _, test := range tests {
+			run := func(tCtx ktesting.TContext, test testcase) {
 				client := fake.NewSimpleClientset()
 				informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
 				spc := NewStatefulPodControlFromManager(newFakeObjectManager(informerFactory), &noopRecorder{})
 				ssu := newFakeStatefulSetStatusUpdater(informerFactory.Apps().V1().StatefulSets())
 				ssc := defaultStatefulSetControl{spc, ssu, history.NewFakeHistory(informerFactory.Apps().V1().ControllerRevisions()), lru.New(maxRevisionEqualityCacheEntries)}
 
-				stop := make(chan struct{})
-				defer close(stop)
-				informerFactory.Start(stop)
+				informerFactory.StartWithContext(tCtx)
+				tCtx.Cleanup(func() {
+					informerFactory.Shutdown()
+				})
 				cache.WaitForCacheSync(
-					stop,
+					tCtx.Done(),
 					informerFactory.Apps().V1().StatefulSets().Informer().HasSynced,
 					informerFactory.Core().V1().Pods().Informer().HasSynced,
 					informerFactory.Apps().V1().ControllerRevisions().Informer().HasSynced,
@@ -933,34 +1010,37 @@ func TestStatefulSetControl_getSetRevisions(t *testing.T) {
 				}
 				revisions, err := ssc.ListRevisions(test.set)
 				if err != nil {
-					t.Fatal(err)
+					tCtx.Fatal(err)
 				}
 				current, update, _, err := ssc.getStatefulSetRevisions(test.set, revisions)
 				if err != nil {
-					t.Fatalf("error getting statefulset revisions:%v", err)
+					tCtx.Fatalf("error getting statefulset revisions:%v", err)
 				}
 				revisions, err = ssc.ListRevisions(test.set)
 				if err != nil {
-					t.Fatal(err)
+					tCtx.Fatal(err)
 				}
 				if len(revisions) != test.expectedCount {
-					t.Errorf("%s: want %d revisions got %d", test.name, test.expectedCount, len(revisions))
+					tCtx.Errorf("want %d revisions got %d", test.expectedCount, len(revisions))
 				}
 				if test.err {
-					t.Errorf("%s: expected error", test.name)
+					tCtx.Errorf("expected error")
 				}
 				if !test.err && !history.EqualRevision(current, test.expectedCurrent) {
-					t.Errorf("%s: for current want %v got %v", test.name, test.expectedCurrent, current)
+					tCtx.Errorf("for current want %v got %v", test.expectedCurrent, current)
 				}
 				if !test.err && !history.EqualRevision(update, test.expectedUpdate) {
-					t.Errorf("%s: for update want %v got %v", test.name, test.expectedUpdate, update)
+					tCtx.Errorf("for update want %v got %v", test.expectedUpdate, update)
 				}
 				if !test.err && test.expectedCurrent != nil && current != nil && test.expectedCurrent.Revision != current.Revision {
-					t.Errorf("%s: for current revision want %d got %d", test.name, test.expectedCurrent.Revision, current.Revision)
+					tCtx.Errorf("for current revision want %d got %d", test.expectedCurrent.Revision, current.Revision)
 				}
 				if !test.err && test.expectedUpdate != nil && update != nil && test.expectedUpdate.Revision != update.Revision {
-					t.Errorf("%s: for update revision want %d got %d", test.name, test.expectedUpdate.Revision, update.Revision)
+					tCtx.Errorf("for update revision want %d got %d", test.expectedUpdate.Revision, update.Revision)
 				}
+			}
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) { run(ktesting.Init(t), test) })
 			}
 		})
 }
@@ -1199,8 +1279,8 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableInOrderedModeVerifyInv
 		{[]int{5, 3}},
 		{[]int{4, 3}},
 		{[]int{5, 4, 3}},
-		{[]int{2}}, // note this is an ordinal greater than partition(3)
-		{[]int{1}}, // note this is an ordinal greater than partition(3)
+		{[]int{2}}, // ordinal below partition(3): must not consume the update budget
+		{[]int{1}}, // ordinal below partition(3): must not consume the update budget
 	}
 	for _, tc := range testCases {
 		featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.MaxUnavailableStatefulSet, true)
@@ -1208,6 +1288,7 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableInOrderedModeVerifyInv
 		t.Run(fmt.Sprintf("terminating pod at ordinal %d", tc.ordinalOfPodToTerminate), func(t *testing.T) {
 			status := apps.StatefulSetStatus{Replicas: int32(totalPods)}
 			updateRevision := &apps.ControllerRevision{}
+			partition := int(*set.Spec.UpdateStrategy.RollingUpdate.Partition)
 
 			for i := 0; i < len(tc.ordinalOfPodToTerminate); i++ {
 				// Ensure at least one pod is unavailable before trying to update
@@ -1244,12 +1325,16 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableInOrderedModeVerifyInv
 
 			sort.Sort(ascendingOrdinal(pods))
 
-			expecteddPodsToBeDeleted := maxUnavailable.IntValue() - len(tc.ordinalOfPodToTerminate)
-			if expecteddPodsToBeDeleted < 0 {
-				expecteddPodsToBeDeleted = 0
+			// Only unavailable pods in the update range (>= partition) consume maxUnavailable.
+			unavailableInUpdateRange := 0
+			for _, ordinal := range tc.ordinalOfPodToTerminate {
+				if ordinal >= partition {
+					unavailableInUpdateRange++
+				}
 			}
+			expectedPodsToBeDeleted := max(0, maxUnavailable.IntValue()-unavailableInUpdateRange)
 
-			expectedPodsAfterUpdate := int(totalPods) - expecteddPodsToBeDeleted
+			expectedPodsAfterUpdate := int(totalPods) - expectedPodsToBeDeleted
 
 			if len(pods) != expectedPodsAfterUpdate {
 				t.Errorf("Expected pods %v, got pods %v", expectedPodsAfterUpdate, len(pods))
@@ -1510,7 +1595,7 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableAndUnavailableStalePod
 			expectedRemainingOrdinals: []int{0, 1, 3, 4},
 		},
 		{
-			name:                "Parallel/5 replicas partition=2: unavailable pod below partition (#1) consumes budget, no update",
+			name:                "Parallel/5 replicas partition=2: unavailable pod below partition (#1) does not consume budget, update proceeds",
 			podManagementPolicy: apps.ParallelPodManagement,
 			replicas:            5,
 			partition:           2,
@@ -1520,7 +1605,8 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableAndUnavailableStalePod
 				_, err := spc.setPodReadyCondition(set, ordinal, false, now)
 				return err
 			},
-			expectedRemainingOrdinals: []int{0, 1, 2, 3, 4},
+			// Budget ignores pod #1 (below partition); phase 2 deletes highest update-range pod (#4).
+			expectedRemainingOrdinals: []int{0, 1, 2, 3},
 		},
 		{
 			name:                "OrderedReady/5 replicas partition=2: unavailable pod in update range (#4) blocks update",
@@ -1549,7 +1635,7 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableAndUnavailableStalePod
 			expectedRemainingOrdinals: []int{0, 1, 2},
 		},
 		{
-			name:                "Parallel/5 replicas partition=3 maxUnavailable=2: pod below partition (#1) + pod in range (#4) unavailable, one pod deleted",
+			name:                "Parallel/5 replicas partition=3 maxUnavailable=2: pod below partition (#1) + pod in range (#4) unavailable, below-partition ignored for budget",
 			podManagementPolicy: apps.ParallelPodManagement,
 			replicas:            5,
 			partition:           3,
@@ -1559,7 +1645,8 @@ func TestStatefulSetControlRollingUpdateWithMaxUnavailableAndUnavailableStalePod
 				_, err := spc.setPodReadyCondition(set, ordinal, false, now)
 				return err
 			},
-			expectedRemainingOrdinals: []int{0, 1, 2, 3},
+			// Only #4 counts toward budget (1); phase 1 deletes #4, remaining budget 1 deletes #3.
+			expectedRemainingOrdinals: []int{0, 1, 2},
 		},
 		{
 			name:                "Parallel/4 replicas maxUnavailable=2: lower-ordinal unavailable pods get deleted, higher-ordinal good pods must stay",
@@ -4540,6 +4627,7 @@ func TestStatefulSetMetrics(t *testing.T) {
 	tests := []struct {
 		name                             string
 		totalPods                        int32
+		partition                        int32
 		maxUnavailable                   *intstr.IntOrString
 		updateStrategy                   apps.StatefulSetUpdateStrategyType
 		podManagementPolicy              apps.PodManagementPolicyType
@@ -4555,6 +4643,19 @@ func TestStatefulSetMetrics(t *testing.T) {
 			podManagementPolicy:              apps.OrderedReadyPodManagement,
 			unavailablePodCount:              1,
 			expectedMaxUnavailableValue:      2,
+			expectedUnavailableReplicasValue: 1,
+		},
+		{
+			// unavailablePodCount makes ordinals [0, count) unavailable; with partition=2 that
+			// is only below the update range. Budget ignores them, but the metric must still report 1.
+			name:                             "partition nonzero: unavailable below partition still counted in UnavailableReplicas",
+			totalPods:                        5,
+			partition:                        2,
+			maxUnavailable:                   &intstr.IntOrString{Type: intstr.Int, IntVal: 1},
+			updateStrategy:                   apps.RollingUpdateStatefulSetStrategyType,
+			podManagementPolicy:              apps.OrderedReadyPodManagement,
+			unavailablePodCount:              1,
+			expectedMaxUnavailableValue:      1,
 			expectedUnavailableReplicasValue: 1,
 		},
 		{
@@ -4676,7 +4777,7 @@ func TestStatefulSetMetrics(t *testing.T) {
 			// Create StatefulSet
 			set := newStatefulSet(test.totalPods)
 			if test.updateStrategy == apps.RollingUpdateStatefulSetStrategyType {
-				var partition int32 = 0
+				partition := test.partition
 				set.Spec.UpdateStrategy = apps.StatefulSetUpdateStrategy{
 					Type: apps.RollingUpdateStatefulSetStrategyType,
 					RollingUpdate: &apps.RollingUpdateStatefulSetStrategy{

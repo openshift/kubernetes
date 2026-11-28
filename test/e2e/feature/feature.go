@@ -130,10 +130,6 @@ var (
 	// their dependency on specific feature gates and the corresponding API groups.
 	DynamicResourceAllocation = framework.WithFeature(framework.ValidFeatures.Add("DynamicResourceAllocation"))
 
-	// Owner: sig-storage
-	// EmptyDirVolumeMode is used for tests that require the EmptyDirVolumeMode feature gate.
-	EmptyDirVolumeMode = framework.WithFeature(framework.ValidFeatures.Add("EmptyDirVolumeMode"))
-
 	// Owner: sig-node
 	// EnvFiles is used for testing the EnvFiles feature (file-based environment variables).
 	EnvFiles = framework.WithFeature(framework.ValidFeatures.Add("EnvFiles"))
@@ -307,10 +303,6 @@ var (
 	// Node Problem Detect e2e tests in tree.
 	NodeProblemDetector = framework.WithFeature(framework.ValidFeatures.Add("NodeProblemDetector"))
 
-	// Owner: sig-node
-	// Tests aiming to verify oom_score functionality
-	OOMScoreAdj = framework.WithFeature(framework.ValidFeatures.Add("OOMScoreAdj"))
-
 	// Owner: sig-network
 	// Marks a single test that tests cluster DNS performance with many services.
 	PerformanceDNS = framework.WithFeature(framework.ValidFeatures.Add("PerformanceDNS"))
@@ -387,10 +379,6 @@ var (
 	// Marks tests of the asynchronous preemption (KEP-4832) that require the `SchedulerAsyncPreemption` feature gate.
 	SchedulerAsyncPreemption = framework.WithFeature(framework.ValidFeatures.Add("SchedulerAsyncPreemption"))
 
-	// Owner: sig-node
-	// TODO: document the feature (when to use this feature for a test)
-	SeccompDefault = framework.WithFeature(framework.ValidFeatures.Add("SeccompDefault"))
-
 	// Owner: sig-storage
 	// KEP: https://kep.k8s.io/3314
 	// Tests marked with this feature require:
@@ -417,10 +405,6 @@ var (
 	// TODO: document the feature (when to use this feature for a test)
 	StorageVersionAPI = framework.WithFeature(framework.ValidFeatures.Add("StorageVersionAPI"))
 
-	// Owner: sig-node
-	// SupplementalGroupsPolicy is used for testing the SupplementalGroupsPolicy feature.
-	SupplementalGroupsPolicy = framework.WithFeature(framework.ValidFeatures.Add("SupplementalGroupsPolicy"))
-
 	// The Swap feature tests must run on nodes with the swap memory allocated and kubelet swap enabled. KEP-2400 (Node Swap Support)
 	Swap = framework.WithFeature(framework.ValidFeatures.Add("NodeSwap"))
 
@@ -445,11 +429,15 @@ var (
 	VolumeAttributesClass = framework.WithFeature(framework.ValidFeatures.Add("VolumeAttributesClass"))
 
 	// Owner: sig-storage
-	// Volume group snapshot tests
-	VolumeGroupSnapshotDataSource = framework.WithFeature(framework.ValidFeatures.Add("volumegroupsnapshot"))
+	// Volume group snapshot tests. Tests with this feature require a cluster
+	// with volume group snapshot support, i.e. with the external
+	// snapshot-controller deployed and the VolumeGroupSnapshot CRDs installed.
+	VolumeGroupSnapshotDataSource = framework.WithFeature(framework.ValidFeatures.Add("VolumeGroupSnapshotDataSource"))
 
 	// Owner: sig-storage
-	// TODO: document the feature (when to use this feature for a test)
+	// Volume snapshot tests. Tests with this feature require a cluster
+	// with volume snapshot support, i.e. with the external snapshot-controller
+	// deployed and the VolumeSnapshot CRDs installed.
 	VolumeSnapshotDataSource = framework.WithFeature(framework.ValidFeatures.Add("VolumeSnapshotDataSource"))
 
 	// Owner: sig-storage

@@ -23,6 +23,8 @@ import (
 	"net/url"
 	"strconv"
 
+	"sigs.k8s.io/structured-merge-diff/v7/fieldpath"
+
 	v1 "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -45,7 +47,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
 	netutil "k8s.io/utils/net"
-	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 )
 
 type PodStorage interface {
@@ -95,17 +96,6 @@ func NewREST(
 
 		TableConvertor: printerstorage.TableConvertor{TableGenerator: printers.NewTableGenerator().With(printersinternal.AddHandlers)},
 	}
-	options := &generic.StoreOptions{
-		RESTOptions: optsGetter,
-		AttrFunc:    svcreg.GetAttrs,
-	}
-	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, nil, err
-	}
-
-	statusStore := *store
-	statusStore.UpdateStrategy = svcreg.StatusStrategy
-	statusStore.ResetFieldsStrategy = svcreg.StatusStrategy
 
 	var primaryIPFamily api.IPFamily = serviceIPFamily
 	var secondaryIPFamily api.IPFamily = "" // sentinel value
@@ -121,7 +111,20 @@ func NewREST(
 		pods:              pods,
 		proxyTransport:    proxyTransport,
 	}
-	store.Decorator = genericStore.defaultOnRead
+
+	options := &generic.StoreOptions{
+		RESTOptions:     optsGetter,
+		AttrFunc:        svcreg.GetAttrs,
+		DecodeDecorator: genericStore.defaultOnRead, // plumb the decorator down into storage
+	}
+	if err := store.CompleteWithOptions(options); err != nil {
+		return nil, nil, nil, err
+	}
+
+	statusStore := *store
+	statusStore.UpdateStrategy = svcreg.StatusStrategy
+	statusStore.ResetFieldsStrategy = svcreg.StatusStrategy
+
 	store.AfterDelete = genericStore.afterDelete
 	store.BeginCreate = genericStore.beginCreate
 	store.BeginUpdate = genericStore.beginUpdate
@@ -328,9 +331,7 @@ func (r *REST) defaultOnReadIPFamilies(service *api.Service) {
 func (r *REST) afterDelete(obj runtime.Object, options *metav1.DeleteOptions) {
 	svc := obj.(*api.Service)
 
-	// Normally this defaulting is done automatically, but the hook (Decorator)
-	// is called at the end of this process, and we want the fully-formed
-	// object.
+	// Make sure the object has all fields we expect to be defaulted.
 	r.defaultOnReadService(svc)
 
 	// Only perform the cleanup if this is a non-dryrun deletion
@@ -373,8 +374,7 @@ func (r *REST) beginUpdate(ctx context.Context, obj, oldObj runtime.Object, opti
 	oldSvc := oldObj.(*api.Service)
 
 	// Make sure the existing object has all fields we expect to be defaulted.
-	// This might not be true if the saved object predates these fields (the
-	// Decorator hook is not called on 'old' in the update path.
+	// This might not be true if the saved object predates these fields.
 	r.defaultOnReadService(oldSvc)
 
 	// Fix up allocated values that the client may have not specified (for

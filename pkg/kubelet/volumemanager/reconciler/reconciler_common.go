@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/allocation/state"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/cache"
 	"k8s.io/kubernetes/pkg/util/goroutinemap/exponentialbackoff"
 	volumepkg "k8s.io/kubernetes/pkg/volume"
@@ -50,7 +51,7 @@ type Reconciler interface {
 	// If attach/detach management is enabled, the manager will also check if
 	// volumes that should be attached are attached and volumes that should
 	// be detached are detached and trigger attach/detach operations as needed.
-	Run(ctx context.Context, stopCh <-chan struct{})
+	Run(ctx context.Context)
 
 	// StatesHasBeenSynced returns true only after syncStates process starts to sync
 	// states at least once after kubelet starts
@@ -101,7 +102,11 @@ func NewReconciler(
 	mounter mount.Interface,
 	hostutil hostutil.HostUtils,
 	volumePluginMgr *volumepkg.VolumePluginMgr,
-	kubeletPodsDir string) Reconciler {
+	kubeletPodsDir string,
+	actuatedState state.State) Reconciler {
+	if actuatedState == nil {
+		actuatedState = state.NewNoopStateCheckpoint()
+	}
 	return &reconciler{
 		kubeClient:                      kubeClient,
 		controllerAttachDetachEnabled:   controllerAttachDetachEnabled,
@@ -117,6 +122,7 @@ func NewReconciler(
 		skippedDuringReconstruction:     map[v1.UniqueVolumeName]*globalVolumeInfo{},
 		volumePluginMgr:                 volumePluginMgr,
 		kubeletPodsDir:                  kubeletPodsDir,
+		actuatedState:                   actuatedState,
 		timeOfLastSync:                  time.Time{},
 		volumesFailedReconstruction:     make([]podVolume, 0),
 		volumesNeedUpdateFromNodeStatus: make([]v1.UniqueVolumeName, 0),
@@ -138,6 +144,7 @@ type reconciler struct {
 	volumePluginMgr               *volumepkg.VolumePluginMgr
 	skippedDuringReconstruction   map[v1.UniqueVolumeName]*globalVolumeInfo
 	kubeletPodsDir                string
+	actuatedState                 state.State
 	// lock protects timeOfLastSync for updating and checking
 	timeOfLastSyncLock              sync.Mutex
 	timeOfLastSync                  time.Time

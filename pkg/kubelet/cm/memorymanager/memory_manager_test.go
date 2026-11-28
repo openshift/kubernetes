@@ -35,12 +35,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/ktesting"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/cm/containermap"
 	"k8s.io/kubernetes/pkg/kubelet/cm/memorymanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
-	"k8s.io/kubernetes/test/utils/ktesting"
 )
 
 const (
@@ -116,7 +116,7 @@ func (p *mockPolicy) GetPodTopologyHints(klog.Logger, state.State, *v1.Pod, life
 	return nil
 }
 
-func (p *mockPolicy) AllocatePod(_ klog.Logger, s state.State, pod *v1.Pod, _ lifecycle.Operation) error {
+func (p *mockPolicy) AllocatePod(_ klog.Logger, _ state.State, _ *v1.Pod, _ lifecycle.Operation) error {
 	return p.err
 }
 
@@ -125,11 +125,15 @@ func (p *mockPolicy) GetAllocatableMemory(state.State) []state.Block {
 	return []state.Block{}
 }
 
+func (p *mockPolicy) CanAllocateExclusively() bool {
+	return false
+}
+
 type mockRuntimeService struct {
 	err error
 }
 
-func (rt mockRuntimeService) UpdateContainerResources(_ context.Context, id string, resources *runtimeapi.ContainerResources) error {
+func (rt mockRuntimeService) UpdateContainerResources(_ context.Context, _ string, _ *runtimeapi.ContainerResources) error {
 	return rt.err
 }
 
@@ -138,7 +142,7 @@ type mockPodStatusProvider struct {
 	found     bool
 }
 
-func (psp mockPodStatusProvider) GetPodStatus(uid types.UID) (v1.PodStatus, bool) {
+func (psp mockPodStatusProvider) GetPodStatus(_ types.UID) (v1.PodStatus, bool) {
 	return psp.podStatus, psp.found
 }
 
@@ -2145,28 +2149,34 @@ func TestGetTopologyHints(t *testing.T) {
 					{
 						NUMANodeAffinity: newNUMAAffinity(0),
 						Preferred:        true,
+						Score:            1,
 					},
 					{
 						NUMANodeAffinity: newNUMAAffinity(1),
 						Preferred:        true,
+						Score:            1,
 					},
 					{
 						NUMANodeAffinity: newNUMAAffinity(0, 1),
 						Preferred:        false,
+						Score:            1,
 					},
 				},
 				string(hugepages1Gi): {
 					{
 						NUMANodeAffinity: newNUMAAffinity(0),
 						Preferred:        true,
+						Score:            1,
 					},
 					{
 						NUMANodeAffinity: newNUMAAffinity(1),
 						Preferred:        true,
+						Score:            1,
 					},
 					{
 						NUMANodeAffinity: newNUMAAffinity(0, 1),
 						Preferred:        false,
+						Score:            1,
 					},
 				},
 			},

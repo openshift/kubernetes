@@ -26,8 +26,9 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/structured-merge-diff/v7/fieldpath"
+
 	netutils "k8s.io/utils/net"
-	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 
 	apiv1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -908,7 +909,7 @@ func applyMatchLabelKeysAndMismatchLabelKeys(term *api.PodAffinityTerm, label ma
 }
 
 func mutatePodAffinity(pod *api.Pod) {
-	if !utilfeature.DefaultFeatureGate.Enabled(features.MatchLabelKeysInPodAffinity) || pod.Spec.Affinity == nil {
+	if pod.Spec.Affinity == nil {
 		return
 	}
 	if affinity := pod.Spec.Affinity.PodAffinity; affinity != nil {

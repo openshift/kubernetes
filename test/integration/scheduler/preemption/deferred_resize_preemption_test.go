@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler"
 	configtesting "k8s.io/kubernetes/pkg/scheduler/apis/config/testing"
 	st "k8s.io/kubernetes/pkg/scheduler/testing"
+	"k8s.io/kubernetes/test/integration/scheduler/preemption/asyncframework"
 	testutils "k8s.io/kubernetes/test/integration/util"
 	"k8s.io/utils/ptr"
 )
@@ -41,13 +42,12 @@ import (
 func TestDeferredResizePodPreemption(t *testing.T) {
 	// Setup API server with feature gates enabled
 	featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-		features.InPlacePodVerticalScaling:                    true,
 		features.InPlacePodVerticalScalingSchedulerPreemption: true,
 	})
 
 	cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 		Profiles: []configv1.KubeSchedulerProfile{{
-			SchedulerName: ptr.To(v1.DefaultSchedulerName),
+			SchedulerName: new(v1.DefaultSchedulerName),
 		}},
 	})
 
@@ -67,7 +67,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			existingPods: []*v1.Pod{
 				initPausePod(&testutils.PausePodConfig{
 					Name:     "victim-1",
-					Priority: &lowPriority,
+					Priority: &asyncframework.LowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
 						v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -76,7 +76,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			},
 			preemptorConfig: &testutils.PausePodConfig{
 				Name:     "preemptor-pod",
-				Priority: &highPriority,
+				Priority: &asyncframework.HighPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
 					v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -91,7 +91,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			existingPods: []*v1.Pod{
 				initPausePod(&testutils.PausePodConfig{
 					Name:     "victim-1",
-					Priority: &lowPriority,
+					Priority: &asyncframework.LowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
 						v1.ResourceMemory: *resource.NewQuantity(50, resource.DecimalSI)},
@@ -99,7 +99,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 				}),
 				initPausePod(&testutils.PausePodConfig{
 					Name:     "victim-2",
-					Priority: &lowPriority,
+					Priority: &asyncframework.LowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
 						v1.ResourceMemory: *resource.NewQuantity(50, resource.DecimalSI)},
@@ -108,7 +108,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			},
 			preemptorConfig: &testutils.PausePodConfig{
 				Name:     "preemptor-pod",
-				Priority: &highPriority,
+				Priority: &asyncframework.HighPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
 					v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -123,7 +123,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			existingPods: []*v1.Pod{
 				initPausePod(&testutils.PausePodConfig{
 					Name:     "victim-1",
-					Priority: &lowPriority,
+					Priority: &asyncframework.LowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
 						v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -132,8 +132,8 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			},
 			preemptorConfig: &testutils.PausePodConfig{
 				Name:             "preemptor-pod",
-				Priority:         &highPriority,
-				PreemptionPolicy: ptr.To(v1.PreemptNever),
+				Priority:         &asyncframework.HighPriority,
+				PreemptionPolicy: new(v1.PreemptNever),
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
 					v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -148,7 +148,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			existingPods:    nil, // fits immediately
 			preemptorConfig: &testutils.PausePodConfig{
 				Name:     "preemptor-pod",
-				Priority: &highPriority,
+				Priority: &asyncframework.HighPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
 					v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -166,7 +166,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			existingPods: []*v1.Pod{
 				initPausePod(&testutils.PausePodConfig{
 					Name:     "victim-1",
-					Priority: &lowPriority,
+					Priority: &asyncframework.LowPriority,
 					Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 						v1.ResourceCPU:    *resource.NewMilliQuantity(200, resource.DecimalSI),
 						v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -175,7 +175,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 			},
 			preemptorConfig: &testutils.PausePodConfig{
 				Name:     "preemptor-pod",
-				Priority: &highPriority,
+				Priority: &asyncframework.HighPriority,
 				Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 					v1.ResourceCPU:    *resource.NewMilliQuantity(300, resource.DecimalSI),
 					v1.ResourceMemory: *resource.NewQuantity(100, resource.DecimalSI)},
@@ -304,7 +304,7 @@ func TestDeferredResizePodPreemption(t *testing.T) {
 
 			// Verify the pod remains parked in the scheduler queue
 			queue := testCtx.Scheduler.SchedulingQueue
-			_, found := queue.GetPod(preemptorPod.Name, preemptorPod.Namespace, nil)
+			_, found := queue.GetPod(testCtx.Ctx, preemptorPod.Name, preemptorPod.Namespace, nil)
 			if !found {
 				t.Errorf("Expected preemptor pod to be found in scheduling queue")
 			}
@@ -359,7 +359,7 @@ func setUpPreemptionTestWithContext(t *testing.T, testCtx *testutils.TestContext
 	other := initPausePod(&testutils.PausePodConfig{
 		Name:     fmt.Sprintf("other-pod-%d", idx),
 		NodeName: nodeName1,
-		Priority: &highPriority,
+		Priority: &asyncframework.HighPriority,
 		Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 			v1.ResourceCPU: resource.MustParse(otherPodCPURequest)},
 		},
@@ -374,7 +374,7 @@ func setUpPreemptionTestWithContext(t *testing.T, testCtx *testutils.TestContext
 	irrelevant := initPausePod(&testutils.PausePodConfig{
 		Name:     fmt.Sprintf("irrelevant-pod-%d", idx),
 		NodeName: nodeName2,
-		Priority: &highPriority,
+		Priority: &asyncframework.HighPriority,
 		Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 			v1.ResourceCPU: *resource.NewMilliQuantity(200, resource.DecimalSI)},
 		},
@@ -389,7 +389,7 @@ func setUpPreemptionTestWithContext(t *testing.T, testCtx *testutils.TestContext
 	pod := initPausePod(&testutils.PausePodConfig{
 		Name:     fmt.Sprintf("deferred-pod-%d", idx),
 		NodeName: nodeName1,
-		Priority: &lowPriority,
+		Priority: &asyncframework.LowPriority,
 		Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 			v1.ResourceCPU: resource.MustParse(deferredPodCPURequest)},
 		},
@@ -450,13 +450,12 @@ func setUpPreemptionTestWithContext(t *testing.T, testCtx *testutils.TestContext
 
 func TestDeferredResizeQueueingHints(t *testing.T) {
 	featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-		features.InPlacePodVerticalScaling:                    true,
 		features.InPlacePodVerticalScalingSchedulerPreemption: true,
 	})
 
 	cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 		Profiles: []configv1.KubeSchedulerProfile{{
-			SchedulerName: ptr.To(v1.DefaultSchedulerName),
+			SchedulerName: new(v1.DefaultSchedulerName),
 		}},
 	})
 
@@ -582,7 +581,7 @@ func TestDeferredResizeQueueingHints(t *testing.T) {
 			cs := testCtx.ClientSet
 			queue := testCtx.Scheduler.SchedulingQueue
 
-			queuedPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+			queuedPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 			if !found {
 				t.Fatalf("Pod not found in queue")
 			}
@@ -593,8 +592,8 @@ func TestDeferredResizeQueueingHints(t *testing.T) {
 			}
 
 			if tc.expectIncrement {
-				err := wait.PollUntilContextTimeout(testCtx.Ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (bool, error) {
-					qPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+				err := wait.PollUntilContextTimeout(testCtx.Ctx, 50*time.Millisecond, 5*time.Second, false, func(ctx context.Context) (bool, error) {
+					qPod, found := queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 					return found && qPod.Attempts > initialAttempts, nil
 				})
 				if err != nil {
@@ -602,7 +601,7 @@ func TestDeferredResizeQueueingHints(t *testing.T) {
 				}
 			} else {
 				time.Sleep(300 * time.Millisecond)
-				qPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+				qPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 				if found && qPod.Attempts > initialAttempts {
 					t.Fatalf("Expected attempts not to increment, but went from %d to %d", initialAttempts, qPod.Attempts)
 				}
@@ -615,13 +614,12 @@ func TestDeferredResizeQueueingHints(t *testing.T) {
 
 func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 	featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-		features.InPlacePodVerticalScaling:                    true,
 		features.InPlacePodVerticalScalingSchedulerPreemption: true,
 	})
 
 	cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 		Profiles: []configv1.KubeSchedulerProfile{{
-			SchedulerName: ptr.To(v1.DefaultSchedulerName),
+			SchedulerName: new(v1.DefaultSchedulerName),
 		}},
 	})
 
@@ -640,7 +638,7 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 		cs := testCtx.ClientSet
 		queue := testCtx.Scheduler.SchedulingQueue
 
-		queuedPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+		queuedPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 		if !found {
 			t.Fatalf("Expected pod to be in queue initially")
 		}
@@ -661,7 +659,7 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 
 		// Verify pod attempts do not increment (QHint skipped)
 		time.Sleep(300 * time.Millisecond)
-		qPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+		qPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 		if !found || qPod.Attempts > initialAttempts {
 			t.Fatalf("Expected attempts not to increment, but went from %d to %d (or pod was lost)", initialAttempts, qPod.Attempts)
 		}
@@ -675,7 +673,7 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 		cs := testCtx.ClientSet
 		queue := testCtx.Scheduler.SchedulingQueue
 
-		queuedPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+		queuedPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 		if !found {
 			t.Fatalf("Expected pod to still be in queue")
 		}
@@ -693,8 +691,8 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 		}
 
 		// Verify pod is retried (attempts incremented)
-		err = wait.PollUntilContextTimeout(testCtx.Ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (bool, error) {
-			qPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+		err = wait.PollUntilContextTimeout(testCtx.Ctx, 50*time.Millisecond, 5*time.Second, false, func(ctx context.Context) (bool, error) {
+			qPod, found := queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			return found && qPod.Attempts > initialAttempts, nil
 		})
 		if err != nil {
@@ -710,7 +708,7 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 		cs := testCtx.ClientSet
 		queue := testCtx.Scheduler.SchedulingQueue
 
-		queuedPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+		queuedPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 		if !found {
 			t.Fatalf("Expected pod to be in queue initially")
 		}
@@ -730,7 +728,7 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 		}
 
 		time.Sleep(300 * time.Millisecond)
-		qPod, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+		qPod, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil)
 		if !found || qPod.Attempts > initialAttempts {
 			t.Fatalf("Expected attempts not to increment and pod to remain in queue for irrelevant node update")
 		}
@@ -742,13 +740,12 @@ func TestDeferredResizeNodePreemptionPolicy(t *testing.T) {
 func TestDeferredResizeQueueingHandlers(t *testing.T) {
 	t.Run("AddPod handler enqueues existing deferred pod on scheduler startup", func(t *testing.T) {
 		featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-			features.InPlacePodVerticalScaling:                    true,
 			features.InPlacePodVerticalScalingSchedulerPreemption: true,
 		})
 
 		cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 			Profiles: []configv1.KubeSchedulerProfile{{
-				SchedulerName: ptr.To(v1.DefaultSchedulerName),
+				SchedulerName: new(v1.DefaultSchedulerName),
 			}},
 		})
 
@@ -770,7 +767,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		pod := initPausePod(&testutils.PausePodConfig{
 			Name:     "deferred-pod",
 			NodeName: "node1",
-			Priority: &lowPriority,
+			Priority: &asyncframework.LowPriority,
 			Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 				v1.ResourceCPU: *resource.NewMilliQuantity(100, resource.DecimalSI)},
 			},
@@ -820,7 +817,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		queue := testCtx.Scheduler.SchedulingQueue
 		var found bool
 		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
-			_, found = queue.GetPod(pod.Name, pod.Namespace, nil)
+			_, found = queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			return found, nil
 		})
 		if err != nil || !found {
@@ -832,13 +829,12 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 
 	t.Run("UpdatePod handler enqueues pod when it transitions to deferred resize", func(t *testing.T) {
 		featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-			features.InPlacePodVerticalScaling:                    true,
 			features.InPlacePodVerticalScalingSchedulerPreemption: true,
 		})
 
 		cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 			Profiles: []configv1.KubeSchedulerProfile{{
-				SchedulerName: ptr.To(v1.DefaultSchedulerName),
+				SchedulerName: new(v1.DefaultSchedulerName),
 			}},
 		})
 
@@ -867,7 +863,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		pod := initPausePod(&testutils.PausePodConfig{
 			Name:     "deferred-pod",
 			NodeName: "node1",
-			Priority: &lowPriority,
+			Priority: &asyncframework.LowPriority,
 			Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 				v1.ResourceCPU: *resource.NewMilliQuantity(100, resource.DecimalSI)},
 			},
@@ -892,7 +888,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 
 		// Verify the pod is NOT in the scheduling queue
 		time.Sleep(300 * time.Millisecond)
-		if _, found := queue.GetPod(pod.Name, pod.Namespace, nil); found {
+		if _, found := queue.GetPod(testCtx.Ctx, pod.Name, pod.Namespace, nil); found {
 			t.Fatalf("Expected pod to not be in scheduling queue initially")
 		}
 
@@ -927,7 +923,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		// Verify the pod was enqueued automatically by the UpdatePod event handler!
 		var found bool
 		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
-			_, found = queue.GetPod(pod.Name, pod.Namespace, nil)
+			_, found = queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			return found, nil
 		})
 		if err != nil || !found {
@@ -939,13 +935,12 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 
 	t.Run("UpdatePod handler removes pod from queue when deferred condition is cleared", func(t *testing.T) {
 		featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-			features.InPlacePodVerticalScaling:                    true,
 			features.InPlacePodVerticalScalingSchedulerPreemption: true,
 		})
 
 		cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 			Profiles: []configv1.KubeSchedulerProfile{{
-				SchedulerName: ptr.To(v1.DefaultSchedulerName),
+				SchedulerName: new(v1.DefaultSchedulerName),
 			}},
 		})
 
@@ -971,7 +966,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		pod := initPausePod(&testutils.PausePodConfig{
 			Name:     "deferred-pod",
 			NodeName: "node1",
-			Priority: &lowPriority,
+			Priority: &asyncframework.LowPriority,
 			Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 				v1.ResourceCPU: *resource.NewMilliQuantity(100, resource.DecimalSI)},
 			},
@@ -1000,7 +995,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		}
 
 		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
-			_, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+			_, found := queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			return found, nil
 		})
 		if err != nil {
@@ -1022,7 +1017,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		}
 
 		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
-			_, found := queue.GetPod(pod.Name, pod.Namespace, nil)
+			_, found := queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			return !found, nil
 		})
 		if err != nil {
@@ -1034,13 +1029,12 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 
 	t.Run("DeletePod handler removes pod from both cache and scheduling queue when deleted", func(t *testing.T) {
 		featuregatetesting.SetFeatureGatesDuringTest(t, utilfeature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
-			features.InPlacePodVerticalScaling:                    true,
 			features.InPlacePodVerticalScalingSchedulerPreemption: true,
 		})
 
 		cfg := configtesting.V1ToInternalWithDefaults(t, configv1.KubeSchedulerConfiguration{
 			Profiles: []configv1.KubeSchedulerProfile{{
-				SchedulerName: ptr.To(v1.DefaultSchedulerName),
+				SchedulerName: new(v1.DefaultSchedulerName),
 			}},
 		})
 
@@ -1069,7 +1063,7 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		pod := initPausePod(&testutils.PausePodConfig{
 			Name:     "deferred-pod-del",
 			NodeName: "node1",
-			Priority: &lowPriority,
+			Priority: &asyncframework.LowPriority,
 			Resources: &v1.ResourceRequirements{Requests: v1.ResourceList{
 				v1.ResourceCPU: *resource.NewMilliQuantity(100, resource.DecimalSI)},
 			},
@@ -1111,8 +1105,8 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		}
 
 		// Wait for pod to be enqueued and in cache
-		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 5*time.Second, true, func(context.Context) (bool, error) {
-			_, foundInQueue := queue.GetPod(pod.Name, pod.Namespace, nil)
+		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+			_, foundInQueue := queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			_, errCache := cache.GetPod(pod)
 			return foundInQueue && errCache == nil, nil
 		})
@@ -1126,8 +1120,8 @@ func TestDeferredResizeQueueingHandlers(t *testing.T) {
 		}
 
 		// Verify the pod is removed from both queue and cache by DeletePod event handler
-		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 5*time.Second, true, func(context.Context) (bool, error) {
-			_, foundInQueue := queue.GetPod(pod.Name, pod.Namespace, nil)
+		err = wait.PollUntilContextTimeout(testCtx.Ctx, 100*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+			_, foundInQueue := queue.GetPod(ctx, pod.Name, pod.Namespace, nil)
 			_, errCache := cache.GetPod(pod)
 			return !foundInQueue && errCache != nil, nil
 		})

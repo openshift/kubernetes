@@ -8,11 +8,10 @@ reviewers:
   - cblecker
   - dchen1107
   - justaugustus
+  - jpbetz
   - liggitt
-  - mikedanese
   - pohly
   - SataQiu
-  - smarterclayton
   - sttts
   - thockin
   - wojtek-t
@@ -23,12 +22,11 @@ approvers:
   - deads2k
   - dims # for local-up-cluster related files
   - enj # for sig-auth related stuff like cert testdata
+  - jpbetz
   - liggitt
-  - mikedanese
   - pohly # for logging and linting
   - pwittrock
   - SataQiu
-  - smarterclayton
   - soltysh # for sig-cli related stuff
   - sttts
   - thockin

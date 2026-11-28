@@ -162,9 +162,20 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 						meta.MkCondition(meta.TweakType("")),
 					},
 					ExpectedErrs: field.ErrorList{
-						field.Required(field.NewPath("status", "conditions").Index(0).Child("type"), "").MarkAlpha(),
-						// handwritten validation doesn't support empty type and uses .[0] notation
-						field.NotSupported(field.NewPath("status", "conditions").Child("[0]", "type"), "", []string{"Issued", "Denied", "Failed"}).MarkFromImperative(),
+						field.Required(field.NewPath("status", "conditions").Index(0).Child("type"), "").MarkBeta(),
+						// handwritten validation doesn't support empty type
+						field.NotSupported(field.NewPath("status", "conditions").Index(0).Child("type"), "", []string{"Issued", "Denied", "Failed"}).MarkFromImperative(),
+					},
+				},
+				{
+					Name: "invalid type",
+					Conditions: []metav1.Condition{
+						meta.MkCondition(meta.TweakType("-InvalidType")),
+					},
+					ExpectedErrs: field.ErrorList{
+						field.Invalid(field.NewPath("status", "conditions").Index(0).Child("type"), "-InvalidType", "").WithOrigin("format=k8s-label-key").MarkAlpha(),
+						// handwritten validation rejects any type outside the known set
+						field.NotSupported(field.NewPath("status", "conditions").Index(0).Child("type"), "-InvalidType", []string{"Issued", "Denied", "Failed"}).MarkFromImperative(),
 					},
 				},
 				{
@@ -174,9 +185,9 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 						meta.MkCondition(meta.TweakType(string(certificates.PodCertificateRequestConditionTypeDenied))),
 					},
 					ExpectedErrs: field.ErrorList{
-						field.Duplicate(field.NewPath("status", "conditions").Index(1), map[string]interface{}{"type": certificates.PodCertificateRequestConditionTypeDenied, "status": "True", "reason": "Foo", "message": "Bar"}).MarkAlpha(),
-						// handwritten validation doesn't allow multiple known conditions and uses .[1] notation
-						field.Invalid(field.NewPath("status", "conditions").Child("[1]", "type"), certificates.PodCertificateRequestConditionTypeDenied, `There may be at most one condition with type "Issued", "Denied", or "Failed"`).MarkFromImperative(),
+						field.Duplicate(field.NewPath("status", "conditions").Index(1), map[string]interface{}{"type": certificates.PodCertificateRequestConditionTypeDenied, "status": "True", "reason": "Foo", "message": "Bar"}).MarkBeta(),
+						// handwritten validation doesn't allow multiple known conditions
+						field.Invalid(field.NewPath("status", "conditions").Index(1).Child("type"), certificates.PodCertificateRequestConditionTypeDenied, `There may be at most one condition with type "Issued", "Denied", or "Failed"`).MarkFromImperative(),
 					},
 				},
 				{
@@ -192,7 +203,7 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 							field.NewPath("status", "conditions").Index(0).Child("observedGeneration"),
 							int64(-1),
 							"",
-						).WithOrigin("minimum").MarkAlpha(),
+						).WithOrigin("minimum").MarkBeta(),
 					},
 				},
 				{
@@ -214,7 +225,7 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 						),
 					},
 					ExpectedErrs: field.ErrorList{
-						field.Required(field.NewPath("status", "conditions").Index(0).Child("lastTransitionTime"), "").MarkAlpha(),
+						field.Required(field.NewPath("status", "conditions").Index(0).Child("lastTransitionTime"), "").MarkBeta(),
 					},
 				},
 				{
@@ -226,7 +237,7 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 						),
 					},
 					ExpectedErrs: field.ErrorList{
-						field.Required(field.NewPath("status", "conditions").Index(0).Child("reason"), "").MarkAlpha(),
+						field.Required(field.NewPath("status", "conditions").Index(0).Child("reason"), "").MarkBeta(),
 					},
 				},
 				{
@@ -260,9 +271,9 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 						),
 					},
 					ExpectedErrs: field.ErrorList{
-						field.Required(field.NewPath("status", "conditions").Index(0).Child("status"), "").MarkAlpha(),
+						field.Required(field.NewPath("status", "conditions").Index(0).Child("status"), "").MarkBeta(),
 						// handwritten validation requires "True"
-						field.NotSupported(field.NewPath("status", "conditions").Child("[0]", "status"), "", []string{"True"}).MarkFromImperative(),
+						field.NotSupported(field.NewPath("status", "conditions").Index(0).Child("status"), "", []string{"True"}).MarkFromImperative(),
 					},
 				},
 				{
@@ -278,9 +289,21 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 							field.NewPath("status", "conditions").Index(0).Child("status"),
 							metav1.ConditionStatus("Invalid"),
 							[]string{"False", "True", "Unknown"},
-						).MarkAlpha(),
+						).MarkBeta(),
 						// handwritten validation requires "True"
-						field.NotSupported(field.NewPath("status", "conditions").Child("[0]", "status"), "Invalid", []string{"True"}).MarkFromImperative(),
+						field.NotSupported(field.NewPath("status", "conditions").Index(0).Child("status"), "Invalid", []string{"True"}).MarkFromImperative(),
+					},
+				},
+				{
+					Name: "invalid message",
+					Conditions: []metav1.Condition{
+						meta.MkCondition(
+							meta.TweakType(string(certificates.PodCertificateRequestConditionTypeDenied)),
+							meta.TweakMessage(strings.Repeat("a", 32769)),
+						),
+					},
+					ExpectedErrs: field.ErrorList{
+						field.TooLong(field.NewPath("status", "conditions").Index(0).Child("message"), "", 32769).WithOrigin("maxBytes").MarkAlpha(),
 					},
 				},
 				{
@@ -293,7 +316,7 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 					},
 					ExpectedErrs: field.ErrorList{
 						// handwritten validation requires "True"
-						field.NotSupported(field.NewPath("status", "conditions").Child("[0]", "status"), "Unknown", []string{"True"}).MarkFromImperative(),
+						field.NotSupported(field.NewPath("status", "conditions").Index(0).Child("status"), "Unknown", []string{"True"}).MarkFromImperative(),
 					},
 				},
 				{
@@ -306,7 +329,7 @@ func TestDeclarativeValidateStatusUpdate(t *testing.T) {
 					},
 					ExpectedErrs: field.ErrorList{
 						// handwritten validation requires "True"
-						field.NotSupported(field.NewPath("status", "conditions").Child("[0]", "status"), "False", []string{"True"}).MarkFromImperative(),
+						field.NotSupported(field.NewPath("status", "conditions").Index(0).Child("status"), "False", []string{"True"}).MarkFromImperative(),
 					},
 				},
 			}

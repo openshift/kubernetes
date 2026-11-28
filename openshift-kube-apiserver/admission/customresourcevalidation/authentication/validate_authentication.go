@@ -20,7 +20,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/lru"
 
-	"github.com/google/cel-go/checker"
+	"cel.dev/cel-go/checker"
 
 	configv1 "github.com/openshift/api/config/v1"
 	apiservervalidation "k8s.io/apiserver/pkg/apis/apiserver/validation"

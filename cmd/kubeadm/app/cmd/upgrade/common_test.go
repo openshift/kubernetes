@@ -50,17 +50,18 @@ func TestEnforceRequirements(t *testing.T) {
 	tcases := []struct {
 		name               string
 		newK8sVersion      string
-		dryRun             bool
 		flags              applyPlanFlags
 		expectedErr        string
 		expectedErrNonRoot string
 	}{
 		{
+			// The root check runs first. A root user passes it and then fails to fetch the
+			// cluster config, which is needed for the CoreDNS migration check.
 			name: "Fail pre-flight check",
 			flags: applyPlanFlags{
 				kubeConfigPath: fullPath,
 			},
-			expectedErr:        "preflight checks failed",
+			expectedErr:        "[upgrade/init config] FATAL",
 			expectedErrNonRoot: "preflight checks failed",
 		},
 		{
@@ -81,7 +82,7 @@ func TestEnforceRequirements(t *testing.T) {
 	}
 	for _, tt := range tcases {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, _, _, err := enforceRequirements(&pflag.FlagSet{}, &tt.flags, nil, tt.dryRun, false, &output.TextPrinter{})
+			_, _, _, _, err := enforceRequirements(&pflag.FlagSet{}, &tt.flags, nil, &output.TextPrinter{})
 			if err == nil && len(tt.expectedErr) != 0 {
 				t.Error("Expected error, but got success")
 			}

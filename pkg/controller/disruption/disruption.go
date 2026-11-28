@@ -19,6 +19,7 @@ package disruption
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"slices"
 	"sync"
 	"time"
@@ -183,6 +184,7 @@ func NewDisruptionControllerInternal(ctx context.Context,
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.DefaultTypedControllerRateLimiter[string](),
 			workqueue.TypedRateLimitingQueueConfig[string]{
+				Logger: &logger,
 				DelayingQueue: workqueue.NewTypedDelayingQueueWithConfig(workqueue.TypedDelayingQueueConfig[string]{
 					Logger: &logger,
 					Clock:  clock,
@@ -198,6 +200,7 @@ func NewDisruptionControllerInternal(ctx context.Context,
 		stalePodDisruptionQueue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.DefaultTypedControllerRateLimiter[string](),
 			workqueue.TypedRateLimitingQueueConfig[string]{
+				Logger: &logger,
 				DelayingQueue: workqueue.NewTypedDelayingQueueWithConfig(workqueue.TypedDelayingQueueConfig[string]{
 					Logger: &logger,
 					Clock:  clock,
@@ -212,7 +215,7 @@ func NewDisruptionControllerInternal(ctx context.Context,
 
 	dc.getUpdater = func() updater { return dc.writePdbStatus }
 
-	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = podInformer.Informer().AddEventHandlerWithOptions(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			dc.addPod(logger, obj)
 		},
@@ -222,11 +225,11 @@ func NewDisruptionControllerInternal(ctx context.Context,
 		DeleteFunc: func(obj interface{}) {
 			dc.deletePod(logger, obj)
 		},
-	})
+	}, cache.HandlerOptions{Logger: &logger})
 	dc.podLister = podInformer.Lister()
 	dc.podListerSynced = podInformer.Informer().HasSynced
 
-	pdbInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = pdbInformer.Informer().AddEventHandlerWithOptions(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			dc.addDB(logger, obj)
 		},
@@ -236,7 +239,7 @@ func NewDisruptionControllerInternal(ctx context.Context,
 		DeleteFunc: func(obj interface{}) {
 			dc.removeDB(logger, obj)
 		},
-	})
+	}, cache.HandlerOptions{Logger: &logger})
 	dc.pdbLister = pdbInformer.Lister()
 	dc.pdbListerSynced = pdbInformer.Informer().HasSynced
 
@@ -445,7 +448,7 @@ func verifyGroupKind(controllerRef *metav1.OwnerReference, expectedKind string, 
 }
 
 func (dc *DisruptionController) Run(ctx context.Context, workers int) {
-	defer utilruntime.HandleCrash()
+	defer utilruntime.HandleCrashWithContext(ctx)
 
 	logger := klog.FromContext(ctx)
 	// Start events processing pipeline.
@@ -519,10 +522,12 @@ func (dc *DisruptionController) removeDB(logger klog.Logger, obj interface{}) {
 func (dc *DisruptionController) addPod(logger klog.Logger, obj interface{}) {
 	pod := obj.(*v1.Pod)
 	logger.V(4).Info("AddPod called on pod", "pod", klog.KObj(pod))
-	pdb := dc.getPdbForPod(logger, pod)
-	if pdb == nil {
-		logger.V(4).Info("No matching PDB for pod", "pod", klog.KObj(pod))
-	} else {
+	pdbs := dc.getPdbsForPod(logger, pod)
+	dc.warnMultiplePodDisruptionBudgets(logger, pod, pdbs)
+	if len(pdbs) == 0 {
+		logger.V(4).Info("No matching PDBs for pod", "pod", klog.KObj(pod))
+	}
+	for _, pdb := range pdbs {
 		logger.V(4).Info("addPod -> PDB", "pod", klog.KObj(pod), "podDisruptionBudget", klog.KObj(pdb))
 		dc.enqueuePdb(logger, pdb)
 	}
@@ -531,18 +536,43 @@ func (dc *DisruptionController) addPod(logger klog.Logger, obj interface{}) {
 	}
 }
 
-func (dc *DisruptionController) updatePod(logger klog.Logger, _, cur interface{}) {
-	pod := cur.(*v1.Pod)
-	logger.V(4).Info("UpdatePod called on pod", "pod", klog.KObj(pod))
-	pdb := dc.getPdbForPod(logger, pod)
-	if pdb == nil {
-		logger.V(4).Info("No matching PDB for pod", "pod", klog.KObj(pod))
-	} else {
-		logger.V(4).Info("updatePod -> PDB", "pod", klog.KObj(pod), "podDisruptionBudget", klog.KObj(pdb))
+func (dc *DisruptionController) updatePod(logger klog.Logger, old, cur interface{}) {
+	curPod := cur.(*v1.Pod)
+	oldPod := old.(*v1.Pod)
+	syncPdbs := map[string]*policy.PodDisruptionBudget{}
+
+	logger.V(4).Info("UpdatePod called on pod", "pod", klog.KObj(curPod))
+
+	if !reflect.DeepEqual(oldPod.Labels, curPod.Labels) {
+		for _, pdb := range dc.getPdbsForPod(logger, oldPod) {
+			key, err := controller.KeyFunc(pdb)
+			if err != nil {
+				logger.Error(err, "Couldn't get key for PodDisruptionBudget", "podDisruptionBudget", klog.KObj(pdb))
+				continue
+			}
+			syncPdbs[key] = pdb
+		}
+	}
+	curPdbs := dc.getPdbsForPod(logger, curPod)
+	// Warn only for curPod. Old labels are no longer on the live pod.
+	dc.warnMultiplePodDisruptionBudgets(logger, curPod, curPdbs)
+	for _, pdb := range curPdbs {
+		key, err := controller.KeyFunc(pdb)
+		if err != nil {
+			logger.Error(err, "Couldn't get key for PodDisruptionBudget", "podDisruptionBudget", klog.KObj(pdb))
+			continue
+		}
+		syncPdbs[key] = pdb
+	}
+	if len(syncPdbs) == 0 {
+		logger.V(4).Info("No matching PDBs for pod", "pod", klog.KObj(curPod))
+	}
+	for _, pdb := range syncPdbs {
+		logger.V(4).Info("updatePod -> PDB", "pod", klog.KObj(curPod), "podDisruptionBudget", klog.KObj(pdb))
 		dc.enqueuePdb(logger, pdb)
 	}
-	if has, cleanAfter := dc.nonTerminatingPodHasStaleDisruptionCondition(pod); has {
-		dc.enqueueStalePodDisruptionCleanup(logger, pod, cleanAfter)
+	if has, cleanAfter := dc.nonTerminatingPodHasStaleDisruptionCondition(curPod); has {
+		dc.enqueueStalePodDisruptionCleanup(logger, curPod, cleanAfter)
 	}
 }
 
@@ -566,13 +596,16 @@ func (dc *DisruptionController) deletePod(logger klog.Logger, obj interface{}) {
 		}
 	}
 	logger.V(4).Info("DeletePod called on pod", "pod", klog.KObj(pod))
-	pdb := dc.getPdbForPod(logger, pod)
-	if pdb == nil {
-		logger.V(4).Info("No matching PDB for pod", "pod", klog.KObj(pod))
+	pdbs := dc.getPdbsForPod(logger, pod)
+	dc.warnMultiplePodDisruptionBudgets(logger, pod, pdbs)
+	if len(pdbs) == 0 {
+		logger.V(4).Info("No matching PDBs for pod", "pod", klog.KObj(pod))
 		return
 	}
-	logger.V(4).Info("DeletePod -> PDB", "pod", klog.KObj(pod), "podDisruptionBudget", klog.KObj(pdb))
-	dc.enqueuePdb(logger, pdb)
+	for _, pdb := range pdbs {
+		logger.V(4).Info("DeletePod -> PDB", "pod", klog.KObj(pod), "podDisruptionBudget", klog.KObj(pdb))
+		dc.enqueuePdb(logger, pdb)
+	}
 }
 
 func (dc *DisruptionController) enqueuePdb(logger klog.Logger, pdb *policy.PodDisruptionBudget) {
@@ -603,7 +636,7 @@ func (dc *DisruptionController) enqueueStalePodDisruptionCleanup(logger klog.Log
 	logger.V(4).Info("Enqueued pod to cleanup stale DisruptionTarget condition", "pod", klog.KObj(pod))
 }
 
-func (dc *DisruptionController) getPdbForPod(logger klog.Logger, pod *v1.Pod) *policy.PodDisruptionBudget {
+func (dc *DisruptionController) getPdbsForPod(logger klog.Logger, pod *v1.Pod) []*policy.PodDisruptionBudget {
 	// GetPodPodDisruptionBudgets returns an error only if no
 	// PodDisruptionBudgets are found.  We don't return that as an error to the
 	// caller.
@@ -612,13 +645,21 @@ func (dc *DisruptionController) getPdbForPod(logger klog.Logger, pod *v1.Pod) *p
 		logger.V(4).Info("No PodDisruptionBudgets found for pod, PodDisruptionBudget controller will avoid syncing.", "pod", klog.KObj(pod))
 		return nil
 	}
+	return pdbs
+}
 
-	if len(pdbs) > 1 {
-		msg := fmt.Sprintf("Pod %q/%q matches multiple PodDisruptionBudgets.  Chose %q arbitrarily.", pod.Namespace, pod.Name, pdbs[0].Name)
-		logger.Info(msg)
-		dc.recorder.Event(pod, v1.EventTypeWarning, "MultiplePodDisruptionBudgets", msg)
+func (dc *DisruptionController) warnMultiplePodDisruptionBudgets(logger klog.Logger, pod *v1.Pod, pdbs []*policy.PodDisruptionBudget) {
+	if len(pdbs) <= 1 {
+		return
 	}
-	return pdbs[0]
+	names := make([]string, len(pdbs))
+	for i, pdb := range pdbs {
+		names[i] = pdb.Name
+	}
+	slices.Sort(names)
+	msg := fmt.Sprintf("Pod %q/%q matches multiple PodDisruptionBudgets %q. Overlapping PDBs are unsupported for eviction.", pod.Namespace, pod.Name, names)
+	logger.Info(msg)
+	dc.recorder.Event(pod, v1.EventTypeWarning, "MultiplePodDisruptionBudgets", msg)
 }
 
 // This function returns pods using the PodDisruptionBudget object.

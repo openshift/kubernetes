@@ -8,15 +8,13 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Backups returns a BackupInformer.
-	Backups() TypedBackupInformer
-	// CRIOCredentialProviderConfigs returns a CRIOCredentialProviderConfigInformer.
-	CRIOCredentialProviderConfigs() TypedCRIOCredentialProviderConfigInformer
-	// ClusterMonitorings returns a ClusterMonitoringInformer.
+	// ClusterMonitorings returns a TypedClusterMonitoringInformer.
 	ClusterMonitorings() TypedClusterMonitoringInformer
-	// InsightsDataGathers returns a InsightsDataGatherInformer.
+	// ControllerManagers returns a TypedControllerManagerInformer.
+	ControllerManagers() TypedControllerManagerInformer
+	// InsightsDataGathers returns a TypedInsightsDataGatherInformer.
 	InsightsDataGathers() TypedInsightsDataGatherInformer
-	// PKIs returns a PKIInformer.
+	// PKIs returns a TypedPKIInformer.
 	PKIs() TypedPKIInformer
 }
 
@@ -31,19 +29,14 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// Backups returns a TypedBackupInformer.
-func (v *version) Backups() TypedBackupInformer {
-	return &backupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// CRIOCredentialProviderConfigs returns a TypedCRIOCredentialProviderConfigInformer.
-func (v *version) CRIOCredentialProviderConfigs() TypedCRIOCredentialProviderConfigInformer {
-	return &cRIOCredentialProviderConfigInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
 // ClusterMonitorings returns a TypedClusterMonitoringInformer.
 func (v *version) ClusterMonitorings() TypedClusterMonitoringInformer {
 	return &clusterMonitoringInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// ControllerManagers returns a TypedControllerManagerInformer.
+func (v *version) ControllerManagers() TypedControllerManagerInformer {
+	return &controllerManagerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // InsightsDataGathers returns a TypedInsightsDataGatherInformer.

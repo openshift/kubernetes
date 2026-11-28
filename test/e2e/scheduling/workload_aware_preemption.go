@@ -35,9 +35,10 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/ptr"
 )
 
-const extendedResourceName = "example.com/combined-resource"
+const extendedResourceDomain = "example.com/"
 
 var (
 	gangPolicy = schedulingv1beta1.PodGroupSchedulingPolicy{
@@ -49,6 +50,8 @@ var (
 	allDisruption = schedulingv1beta1.DisruptionMode{
 		All: &schedulingv1beta1.AllDisruptionMode{},
 	}
+	preemptNever         = schedulingv1beta1.PreemptNever
+	preemptLowerPriority = schedulingv1beta1.PreemptLowerPriority
 )
 
 type preemptorType int
@@ -90,20 +93,18 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 		framework.ExpectNoError(err, "failed to delete priority class: %s", name)
 	}
 
-	addExtendedResource := func(ctx context.Context, nodeName string) {
+	addExtendedResource := func(ctx context.Context, nodeName string, resourceName v1.ResourceName) {
 		cs := f.ClientSet
-		resName := v1.ResourceName(extendedResourceName)
-		e2enode.AddExtendedResource(ctx, cs, nodeName, resName, resource.MustParse("2"))
+		e2enode.AddExtendedResource(ctx, cs, nodeName, resourceName, resource.MustParse("2"))
 	}
 
-	removeExtendedResource := func(ctx context.Context, nodeName string) {
+	removeExtendedResource := func(ctx context.Context, nodeName string, resourceName v1.ResourceName) {
 		cs := f.ClientSet
-		resName := v1.ResourceName(extendedResourceName)
 		ginkgo.By("Removing extended resource from node")
-		e2enode.RemoveExtendedResource(ctx, cs, nodeName, resName)
+		e2enode.RemoveExtendedResource(ctx, cs, nodeName, resourceName)
 	}
 
-	makePod := func(nodeName string, name, pgName string, priority string) *v1.Pod {
+	makePod := func(nodeName string, name, pgName string, priority string, resourceName v1.ResourceName) *v1.Pod {
 		ns := f.Namespace.Name
 		p := e2epod.MakePod(ns, map[string]string{"kubernetes.io/hostname": nodeName}, nil, admissionapi.LevelPrivileged, "")
 		p.ObjectMeta.GenerateName = name + "-"
@@ -111,18 +112,19 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 		if pgName != "" {
 			p.Spec.SchedulingGroup = &v1.PodSchedulingGroup{PodGroupName: &pgName}
 		}
-		p.Spec.Containers[0].Resources.Requests = v1.ResourceList{v1.ResourceName(extendedResourceName): resource.MustParse("1")}
-		p.Spec.Containers[0].Resources.Limits = v1.ResourceList{v1.ResourceName(extendedResourceName): resource.MustParse("1")}
+		p.Spec.Containers[0].Resources.Requests = v1.ResourceList{resourceName: resource.MustParse("1")}
+		p.Spec.Containers[0].Resources.Limits = v1.ResourceList{resourceName: resource.MustParse("1")}
 		return p
 	}
 
-	makePodGroup := func(pgName string, priorityName string, schedulingPolicy schedulingv1beta1.PodGroupSchedulingPolicy, disruptionMode schedulingv1beta1.DisruptionMode) *schedulingv1beta1.PodGroup {
+	makePodGroup := func(pgName string, priorityName string, preemptionPolicy *schedulingv1beta1.PreemptionPolicy, schedulingPolicy schedulingv1beta1.PodGroupSchedulingPolicy, disruptionMode schedulingv1beta1.DisruptionMode) *schedulingv1beta1.PodGroup {
 		ns := f.Namespace.Name
 
 		return &schedulingv1beta1.PodGroup{
 			ObjectMeta: metav1.ObjectMeta{Name: pgName, Namespace: ns},
 			Spec: schedulingv1beta1.PodGroupSpec{
 				PriorityClassName: priorityName,
+				PreemptionPolicy:  preemptionPolicy,
 				SchedulingPolicy:  schedulingPolicy,
 				DisruptionMode:    &disruptionMode,
 			},
@@ -146,6 +148,15 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 			framework.ExpectNoError(err, "failed to get pod %s", podName)
 		}
 		return pod.DeletionTimestamp != nil
+	}
+
+	verifyPodGroupPreemptionPolicy := func(ctx context.Context, name string, want schedulingv1beta1.PreemptionPolicy) {
+		cs := f.ClientSet
+		ns := f.Namespace.Name
+		ginkgo.By(fmt.Sprintf("Verifying PodGroup %s has preemptionPolicy %s", name, want))
+		pg, err := cs.SchedulingV1beta1().PodGroups(ns).Get(ctx, name, metav1.GetOptions{})
+		framework.ExpectNoError(err, "failed to get PodGroup %s", name)
+		gomega.Expect(pg.Spec.PreemptionPolicy).To(gomega.HaveValue(gomega.Equal(want)), "unexpected preemptionPolicy on PodGroup %s", name)
 	}
 
 	verifyPodRunningOnNode := func(ctx context.Context, podName, nodeName string) {
@@ -198,15 +209,29 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 		}).WithTimeout(5 * time.Second).WithPolling(1 * time.Second).Should(gomega.Succeed())
 	}
 
+	verifyNonePreempted := func(ctx context.Context, pods []*v1.Pod) {
+		ginkgo.By("Verifying no pods in PG-victim are preempted")
+		gomega.Consistently(ctx, func(ctx context.Context) error {
+			for _, p := range pods {
+				if isPodPreempted(ctx, p.Name) {
+					return fmt.Errorf("expected no pods to be preempted, but pod %s was preempted", p.Name)
+				}
+			}
+			return nil
+		}).WithTimeout(5*time.Second).WithPolling(1*time.Second).Should(gomega.Succeed(), "No pods in PG-victim should be preempted")
+	}
+
 	type preemptionTestArgs struct {
-		preemptorType        preemptorType
-		victimDisruptionMode schedulingv1beta1.DisruptionMode
-		verify               func(context.Context, []*v1.Pod)
+		preemptorType             preemptorType
+		preemptorPreemptionPolicy *schedulingv1beta1.PreemptionPolicy
+		victimDisruptionMode      schedulingv1beta1.DisruptionMode
+		verify                    func(context.Context, []*v1.Pod)
 	}
 
 	runPreemptionTest := func(ctx context.Context, args preemptionTestArgs) {
 		cs := f.ClientSet
 		ns := f.Namespace.Name
+		extendedResourceName := v1.ResourceName(extendedResourceDomain + ns)
 
 		ginkgo.By("Creating PriorityClasses")
 		lowPriorityName := "low-priority-" + ns
@@ -217,20 +242,27 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 			Value:      100,
 		})
 		defer deletePriorityClass(ctx, lowPriorityName)
+
+		var highPriorityPreemptionPolicy *v1.PreemptionPolicy
+		if args.preemptorPreemptionPolicy != nil {
+			p := v1.PreemptionPolicy(*args.preemptorPreemptionPolicy)
+			highPriorityPreemptionPolicy = &p
+		}
 		createPriorityClass(ctx, &schedulingv1.PriorityClass{
-			ObjectMeta: metav1.ObjectMeta{Name: highPriorityName},
-			Value:      1000,
+			ObjectMeta:       metav1.ObjectMeta{Name: highPriorityName},
+			Value:            1000,
+			PreemptionPolicy: highPriorityPreemptionPolicy,
 		})
 		defer deletePriorityClass(ctx, highPriorityName)
 
 		nodeName := getNodeName(ctx)
 		ginkgo.By("Adding extended resource to node")
-		addExtendedResource(ctx, nodeName)
-		defer removeExtendedResource(ctx, nodeName)
+		addExtendedResource(ctx, nodeName, extendedResourceName)
+		defer removeExtendedResource(ctx, nodeName, extendedResourceName)
 
 		ginkgo.By(fmt.Sprintf("Creating low-priority pod group PG-victim with disruptionMode %v", args.victimDisruptionMode))
 		pgVictimName := "pg-victim-" + ns
-		pgVictim := makePodGroup(pgVictimName, lowPriorityName, gangPolicy, args.victimDisruptionMode)
+		pgVictim := makePodGroup(pgVictimName, lowPriorityName, nil, gangPolicy, args.victimDisruptionMode)
 		createPodGroup(ctx, pgVictim)
 		defer deletePodGroup(ctx, pgVictim.Name)
 
@@ -238,7 +270,7 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 		for i := range gangPolicy.Gang.MinCount {
 			name := fmt.Sprintf("victim%d", i+1)
 			ginkgo.By(fmt.Sprintf("Creating low-priority pod %s belonging to PG-victim", name))
-			p := makePod(nodeName, name, pgVictimName, lowPriorityName)
+			p := makePod(nodeName, name, pgVictimName, lowPriorityName, extendedResourceName)
 			createdPod, err := cs.CoreV1().Pods(ns).Create(ctx, p, metav1.CreateOptions{})
 			framework.ExpectNoError(err, "failed to create pod %s", name)
 			pods = append(pods, createdPod)
@@ -253,21 +285,28 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 		if args.preemptorType == podGroup {
 			pgPreemptorName = "pg-preemptor-" + ns
 			ginkgo.By("Creating high-priority pod group PG-preemptor with gang policy")
-			pgPreemptor := makePodGroup(pgPreemptorName, highPriorityName, schedulingv1beta1.PodGroupSchedulingPolicy{
+			pgPreemptor := makePodGroup(pgPreemptorName, highPriorityName, args.preemptorPreemptionPolicy, schedulingv1beta1.PodGroupSchedulingPolicy{
 				Gang: &schedulingv1beta1.GangSchedulingPolicy{MinCount: 1},
 			}, singleDisruption)
 			createPodGroup(ctx, pgPreemptor)
 			defer deletePodGroup(ctx, pgPreemptor.Name)
+			// An omitted policy is resolved from the PriorityClass, whose policy defaults to PreemptLowerPriority.
+			verifyPodGroupPreemptionPolicy(ctx, pgPreemptorName, ptr.Deref(args.preemptorPreemptionPolicy, schedulingv1beta1.PreemptLowerPriority))
 		}
 
 		ginkgo.By("Creating high-priority individual pod hp1")
-		hp1 := makePod(nodeName, "hp1", pgPreemptorName, highPriorityName)
+		hp1 := makePod(nodeName, "hp1", pgPreemptorName, highPriorityName, extendedResourceName)
 		var err error
 		hp1, err = cs.CoreV1().Pods(ns).Create(ctx, hp1, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "failed to create pod hp1")
 
-		ginkgo.By("Verifying high priority pods are running")
-		verifyPodRunningOnNode(ctx, hp1.Name, nodeName)
+		if args.preemptorPreemptionPolicy != nil && *args.preemptorPreemptionPolicy == schedulingv1beta1.PreemptNever {
+			ginkgo.By("Verifying high priority pod is unschedulable")
+			framework.ExpectNoError(e2epod.WaitForPodNameUnschedulableInNamespace(ctx, cs, hp1.Name, ns), "pod %s did not become unschedulable", hp1.Name)
+		} else {
+			ginkgo.By("Verifying high priority pods are running")
+			verifyPodRunningOnNode(ctx, hp1.Name, nodeName)
+		}
 
 		args.verify(ctx, pods)
 	}
@@ -287,6 +326,18 @@ var _ = SIGDescribe("WorkloadAwarePreemption", framework.WithFeatureGate(feature
 			preemptorType:        pod,
 			victimDisruptionMode: singleDisruption,
 			verify:               verifyPartialPreempted,
+		}),
+		ginkgo.Entry("should preempt group when preemptor pod group explicitly sets PreemptLowerPriority preemption policy", preemptionTestArgs{
+			preemptorType:             podGroup,
+			preemptorPreemptionPolicy: &preemptLowerPriority,
+			victimDisruptionMode:      allDisruption,
+			verify:                    verifyAllPreempted,
+		}),
+		ginkgo.Entry("should not preempt group when preemptor pod group has PreemptNever preemption policy", preemptionTestArgs{
+			preemptorType:             podGroup,
+			preemptorPreemptionPolicy: &preemptNever,
+			victimDisruptionMode:      allDisruption,
+			verify:                    verifyNonePreempted,
 		}),
 	)
 })

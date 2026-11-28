@@ -63,7 +63,7 @@ kube::test::find_go_packages() {
   for module in $(find hack/tools -name go.mod | sed -e 's;/go.mod;;'); do
    (
      cd "${module}"
-     go list -find \
+     go list -mod=readonly -find \
              -f '{{if or (gt (len .TestGoFiles) 0) (gt (len .XTestGoFiles) 0)}}{{.ImportPath}}{{end}}' \
              ./... |
      sed -e "s;^;${module}/;"
@@ -315,6 +315,7 @@ runTests() {
                GOFLAGS="${GOFLAGS:+${GOFLAGS} }-mod=readonly" ;;
              hack/tools/*)
                GOTOOLCHAIN="$(kube::golang::hack_tools_gotoolchain)"
+               GOFLAGS="${GOFLAGS:+${GOFLAGS} }-mod=readonly"
                # hack/tools is not part of the workspace, must change the directory.
                cd "${prefix}"
                ;;

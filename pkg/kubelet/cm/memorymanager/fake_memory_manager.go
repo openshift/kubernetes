@@ -35,7 +35,7 @@ type fakeManager struct {
 	state state.State
 }
 
-func (m *fakeManager) Start(ctx context.Context, activePods ActivePodsFunc, sourcesReady config.SourcesReady, podStatusProvider status.PodStatusProvider, containerRuntime runtimeService, initialContainers containermap.ContainerMap) error {
+func (m *fakeManager) Start(ctx context.Context, _ ActivePodsFunc, _ config.SourcesReady, _ status.PodStatusProvider, _ runtimeService, _ containermap.ContainerMap) error {
 	logger := klog.FromContext(ctx)
 	logger.Info("Start()")
 	return nil
@@ -85,6 +85,10 @@ func (m *fakeManager) State() state.Reader {
 	return m.state
 }
 
+func (m *fakeManager) CanAllocateExclusively(res v1.ResourceName) bool {
+	return false
+}
+
 // GetAllocatableMemory returns the amount of allocatable memory for each NUMA node
 func (m *fakeManager) GetAllocatableMemory(logger klog.Logger) []state.Block {
 	logger.Info("Get Allocatable Memory")
@@ -99,13 +103,13 @@ func (m *fakeManager) GetMemory(logger klog.Logger, podUID, containerName string
 }
 
 // GetPodMemory returns the memory allocated by a pod from NUMA nodes
-func (m *fakeManager) GetPodMemory(podUID string) []state.Block {
-	logger := klog.LoggerWithValues(klog.TODO(), "podUID", podUID)
+func (m *fakeManager) GetPodMemory(logger klog.Logger, podUID string) []state.Block {
+	logger = klog.LoggerWithValues(logger, "podUID", podUID)
 	logger.Info("Get Pod Memory")
 	return []state.Block{}
 }
 
-func (m *fakeManager) GetResourceIsolationLevel(pod *v1.Pod, container *v1.Container) cmqos.ResourceIsolationLevel {
+func (m *fakeManager) GetResourceIsolationLevel(_ *v1.Pod, _ *v1.Container) cmqos.ResourceIsolationLevel {
 	return cmqos.ResourceIsolationContainer
 }
 

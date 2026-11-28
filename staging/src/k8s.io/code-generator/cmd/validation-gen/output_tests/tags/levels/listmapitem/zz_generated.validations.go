@@ -25,7 +25,6 @@ import (
 	context "context"
 	fmt "fmt"
 
-	equality "k8s.io/apimachinery/pkg/api/equality"
 	operation "k8s.io/apimachinery/pkg/api/operation"
 	safe "k8s.io/apimachinery/pkg/api/safe"
 	validate "k8s.io/apimachinery/pkg/api/validate"
@@ -71,7 +70,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -81,7 +80,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
@@ -110,7 +109,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -120,7 +119,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
@@ -149,7 +148,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -159,7 +158,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
@@ -188,7 +187,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -198,7 +197,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
@@ -227,7 +226,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -237,7 +236,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
@@ -266,7 +265,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -276,7 +275,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
@@ -305,7 +304,7 @@ func Validate_ListMapItemStruct(
 			oldValueCorrelated bool) (errs field.ErrorList) {
 			// don't revalidate unchanged data
 			if oldValueCorrelated && op.Type == operation.Update {
-				if equality.Semantic.DeepEqual(obj, oldObj) {
+				if validate.SemanticDeepEqual(obj, oldObj) {
 					return nil
 				}
 			}
@@ -315,7 +314,7 @@ func Validate_ListMapItemStruct(
 				func(a *MapItem, b *MapItem) bool { return a.Key == b.Key }); len(e) != 0 {
 				errs = append(errs, e...)
 			}
-			func() { // cohort = "{"key": "foo"}"
+			func() { // cohort = "{"key": "foo"}.value"
 				if e := validate.ValSliceItem(ctx, op, fldPath, obj, oldObj,
 					func(item *MapItem) bool { return item.Key == "foo" }, validate.DirectEqual,
 					func(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *MapItem) field.ErrorList {
