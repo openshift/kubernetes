@@ -148,7 +148,7 @@ type cgroupCommon struct {
 	// useSystemd tells if systemd cgroup manager should be used.
 	useSystemd bool
 
-  	// cpuLoadBalanceDisable tells whether kubelet should disable
+	// cpuLoadBalanceDisable tells whether kubelet should disable
 	// cpu load balancing on new cgroups it creates.
 	cpuLoadBalanceDisable bool
 
