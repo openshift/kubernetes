@@ -144,11 +144,7 @@ func ConnectSessionBus(opts ...ConnOption) (*Conn, error) {
 
 // ConnectSystemBus connects to the system bus.
 func ConnectSystemBus(opts ...ConnOption) (*Conn, error) {
-	address, err := getSystemBusPlatformAddress()
-	if err != nil {
-		return nil, err
-	}
-	return Connect(address, opts...)
+	return Connect(getSystemBusPlatformAddress(), opts...)
 }
 
 // Connect connects to the given address.
@@ -175,11 +171,7 @@ func Connect(address string, opts ...ConnOption) (*Conn, error) {
 // Note: this connection is not ready to use. One must perform Auth and Hello
 // on the connection before it is usable.
 func SystemBusPrivate(opts ...ConnOption) (*Conn, error) {
-	address, err := getSystemBusPlatformAddress()
-	if err != nil {
-		return nil, err
-	}
-	return Dial(address, opts...)
+	return Dial(getSystemBusPlatformAddress(), opts...)
 }
 
 // SystemBusPrivateHandler returns a new private connection to the system bus, using the provided handlers.

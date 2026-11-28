@@ -37,18 +37,18 @@ type StreamServerInfo struct {
 
 // Unmarshaler contains the server request data and allows it to be unmarshaled
 // into a concrete type
-type Unmarshaler func(any) error
+type Unmarshaler func(interface{}) error
 
 // Invoker invokes the client's request and response from the ttrpc server
 type Invoker func(context.Context, *Request, *Response) error
 
 // UnaryServerInterceptor specifies the interceptor function for server request/response
-type UnaryServerInterceptor func(context.Context, Unmarshaler, *UnaryServerInfo, Method) (any, error)
+type UnaryServerInterceptor func(context.Context, Unmarshaler, *UnaryServerInfo, Method) (interface{}, error)
 
 // UnaryClientInterceptor specifies the interceptor function for client request/response
 type UnaryClientInterceptor func(context.Context, *Request, *Response, *UnaryClientInfo, Invoker) error
 
-func defaultServerInterceptor(ctx context.Context, unmarshal Unmarshaler, _ *UnaryServerInfo, method Method) (any, error) {
+func defaultServerInterceptor(ctx context.Context, unmarshal Unmarshaler, _ *UnaryServerInfo, method Method) (interface{}, error) {
 	return method(ctx, unmarshal)
 }
 
@@ -56,9 +56,9 @@ func defaultClientInterceptor(ctx context.Context, req *Request, resp *Response,
 	return invoker(ctx, req, resp)
 }
 
-type StreamServerInterceptor func(context.Context, StreamServer, *StreamServerInfo, StreamHandler) (any, error)
+type StreamServerInterceptor func(context.Context, StreamServer, *StreamServerInfo, StreamHandler) (interface{}, error)
 
-func defaultStreamServerInterceptor(ctx context.Context, ss StreamServer, _ *StreamServerInfo, stream StreamHandler) (any, error) {
+func defaultStreamServerInterceptor(ctx context.Context, ss StreamServer, _ *StreamServerInfo, stream StreamHandler) (interface{}, error) {
 	return stream(ctx, ss)
 }
 

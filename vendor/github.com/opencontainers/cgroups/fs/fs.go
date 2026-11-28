@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"sync"
 
@@ -153,9 +153,8 @@ func (m *Manager) AddPid(subcgroup string, pid int) (retErr error) {
 	c := m.cgroups
 
 	for _, dir := range m.paths {
-		path := filepath.Join(dir, subcgroup)
-		// Make sure path is either dir itself or below it.
-		if path != dir && !strings.HasPrefix(path, dir+"/") {
+		path := path.Join(dir, subcgroup)
+		if !strings.HasPrefix(path, dir) {
 			return fmt.Errorf("bad sub cgroup path: %s", subcgroup)
 		}
 

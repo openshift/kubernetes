@@ -4,7 +4,7 @@ module k8s.io/cri-streaming
 
 go 1.27.0
 
-godebug default=go1.27
+godebug default=go1.26
 
 require (
 	github.com/emicklei/go-restful/v3 v3.14.0
@@ -14,7 +14,7 @@ require (
 	google.golang.org/grpc v1.85.0
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/streaming v0.0.0
+	k8s.io/streaming v0.38.0-beta.0
 )
 
 require (
@@ -26,7 +26,7 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
 )
 
 replace (

@@ -10,8 +10,6 @@ formatters:
 linters:
   enable:
     - errorlint
-    - govet
-    - modernize
     - nolintlint
     - unconvert
     - unparam

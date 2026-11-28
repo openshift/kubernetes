@@ -81,7 +81,7 @@ func getSignature(t reflect.Type, depth *depthCounter) (sig string) {
 		return "t"
 	case reflect.Float64:
 		return "d"
-	case reflect.Pointer:
+	case reflect.Ptr:
 		return getSignature(t.Elem(), depth)
 	case reflect.String:
 		if t == objectPathType {
